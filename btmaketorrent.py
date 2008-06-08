@@ -13,9 +13,9 @@
 # Written by Bram Cohen
 
 import sys
-from BitTorrent.makemetafile import make_meta_files
-from BitTorrent.parseargs import parseargs, printHelp
-from BitTorrent import BTFailure
+from Anomos.makemetafile import make_meta_files
+from Anomos.parseargs import parseargs, printHelp
+from Anomos import BTFailure
 
 defaults = [
     ('piece_size_pow2', 18,

@@ -12,13 +12,13 @@
 
 # Written by Bram Cohen
 
-from BitTorrent import testtest
+from Anomos import testtest
 import bttrack
 import btmakemetafile
 import btdownloadheadless
 
 def run():
-    testtest.try_all(['BitTorrent.RawServer', 'BitTorrent.zurllib'])
+    testtest.try_all(['Anomos.RawServer', 'Anomos.zurllib'])
 
 if __name__ == '__main__':
     run()

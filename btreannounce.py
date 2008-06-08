@@ -13,7 +13,7 @@
 # Written by Henry 'Pi' James and Bram Cohen
 
 from sys import argv
-from BitTorrent.bencode import bencode, bdecode
+from Anomos.bencode import bencode, bdecode
 
 if len(argv) < 3:
     print '%s http://new.uri:port/announce file1.torrent file2.torrent' % argv[0]

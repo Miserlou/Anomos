@@ -15,12 +15,12 @@
 import sys
 import os
 
-from BitTorrent.launchmanycore import LaunchMany
-from BitTorrent.defaultargs import get_defaults
-from BitTorrent.parseargs import parseargs, printHelp
-from BitTorrent import configfile
-from BitTorrent import version
-from BitTorrent import BTFailure
+from Anomos.launchmanycore import LaunchMany
+from Anomos.defaultargs import get_defaults
+from Anomos.parseargs import parseargs, printHelp
+from Anomos import configfile
+from Anomos import version
+from Anomos import BTFailure
 
 exceptions = []
 

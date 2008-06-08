@@ -21,15 +21,15 @@ from time import time, strftime
 from signal import signal, SIGWINCH
 from cStringIO import StringIO
 
-from BitTorrent.download import Feedback, Multitorrent
-from BitTorrent.defaultargs import get_defaults
-from BitTorrent.parseargs import parseargs, printHelp
-from BitTorrent.zurllib import urlopen
-from BitTorrent.bencode import bdecode
-from BitTorrent.ConvertedMetainfo import ConvertedMetainfo
-from BitTorrent import configfile
-from BitTorrent import BTFailure
-from BitTorrent import version
+from Anomos.download import Feedback, Multitorrent
+from Anomos.defaultargs import get_defaults
+from Anomos.parseargs import parseargs, printHelp
+from Anomos.zurllib import urlopen
+from Anomos.bencode import bdecode
+from Anomos.ConvertedMetainfo import ConvertedMetainfo
+from Anomos import configfile
+from Anomos import BTFailure
+from Anomos import version
 
 
 def fmttime(n):

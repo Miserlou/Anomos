@@ -13,7 +13,7 @@
 # Written by Bram Cohen
 
 from sys import argv
-from BitTorrent.track import track
+from Anomos.track import track
 
 if __name__ == '__main__':
     track(argv[1:])

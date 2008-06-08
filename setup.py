@@ -15,7 +15,7 @@
 import sys
 import os
 from distutils.core import setup, Extension
-import BitTorrent
+import Anomos
 
 import glob
 
@@ -25,7 +25,7 @@ scripts = ["btdownloadgui.py", "btdownloadcurses.py", "btdownloadheadless.py",
            "bttrack.py", "btreannounce.py", "btrename.py", "btshowmetainfo.py",
            "bttest.py"]
 
-img_root, doc_root = BitTorrent.calc_unix_dirs()
+img_root, doc_root = Anomos.calc_unix_dirs()
 
 data_files = [ (img_root        , glob.glob('images/*png')+['images/bittorrent.ico',]),
                (img_root+'/logo', glob.glob('images/logo/bittorrent_[0-9]*.png')     ),
@@ -34,13 +34,13 @@ data_files = [ (img_root        , glob.glob('images/*png')+['images/bittorrent.i
                ]
 
 setup(
-    name = "BitTorrent",
-    version = BitTorrent.version,
-    author = "Bram Cohen",
-    author_email = "bram@bitconjurer.org",
-    url = "http://bittorrent.com/",
-    license = "BitTorrent Open Source License",
+    name = "Anomos",
+    version = Anomos.version,
+    author = "John Schanck",
+    author_email = "john@anomos.info",
+    url = "http://anomos.info/",
+    license = "MIT License",
     scripts = scripts,
-    packages = ["BitTorrent"],
+    packages = ["Anomos"],
     data_files = data_files,
     )
