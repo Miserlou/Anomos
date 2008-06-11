@@ -1,0 +1,33 @@
+Tracker crypto functions:
+
+Generate RSA Key Pair		yep
+Save RSA Keypair as PEM		yep
+Load PEM			yep
+Maintain db of all connected rsa keys
+Incoming traffic: Does this IP have an associated RSA key already?
+			Decrypt traffic with our private key
+				Is it valid HTTP request?
+					Do what it says
+				No
+					Shit a dick nipple: (encrypted) "Not valid HTTP"
+	
+		If not, is this a valid 1024b RSA key?
+		  If so, save IP:key tuple, send (encrypted) confirmation message "confirmed"
+		  If not:
+			Shit a dick nipple: "Invalid RSA key"
+
+Outgoing traffic:
+	Get pubkey of IP
+		Encrypt outgoing HTML
+
+Generate/store AES keys for new request (temp store of encryption key:decryption key)
+Maybe: encrypt first connection request?
+		for each peer
+
+Non crypto shit (partial?):
+	Find paths (average should be 2.71828)
+	Generate tracking codes
+		send (encrypted)
+
+
+
