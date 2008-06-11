@@ -20,7 +20,7 @@ def saveNewPEM():
 	rsa.savekey(rsa, pvtkeyfilename, cipher='aes_128_cbc', callback=util.passphrase_callback)
 	rsa.save_pub_key(pubkeyfilename)
 
-def loadPrivateKeyFromPEM():
+def loadKeysFromPEM():
 	pvtkeyfilename = 'rsa%dpvtkey.pem' % (1024)
 	pubkeyfilename = 'rsa%dpubkey.pem' % (1024)
 	pvt = RSA.load_key(pvtkeyfilename, callback=util.passphrase_callback):
