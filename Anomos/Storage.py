@@ -14,7 +14,7 @@ import os
 from bisect import bisect_right
 from array import array
 
-#from Anomos.obsoletepythonsupport import *
+from Anomos.obsoletepythonsupport import *
 
 from Anomos import BTFailure
 
@@ -238,6 +238,7 @@ class Storage(object):
                 raise BTFailure("Fastresume info doesn't match file "
                                 "modification time")
             if size != fsize:
+                print size, fsize
                 raise BTFailure("Fastresume data doesn't match actual "
                                 "filesize")
         if not return_filelist:
