@@ -1,0 +1,47 @@
+					    ___                                    
+					   /   |  ____  ____  ____ ___  ____  _____
+					  / /| | / __ \/ __ \/ __ `__ \/ __ \/ ___/
+					 / ___ |/ / / / /_/ / / / / / / /_/ (__  ) 
+					/_/  |_/_/ /_/\____/_/ /_/ /_/\____/____/  
+                                          
+
+Starting the Download:
+	Downloader makes request
+		Tracker generates AES key to be shared between uploader (UL) and downloader (DL)
+		Tracker stores AES key in a dictionary as a session identifier. 
+			Format: {AES0: (IP_UL0,IP_DL0), ... , AESN: (IP_ULN,IP_DLN)}
+		Tracker sends DL the AES key, tracking code (DL to UL), and the request packet to send to the UL
+			The request packet is preencrypted with the DL's pub key, 
+	DL creates message containing AES key and chunk request
+	DL signs message with UL's pub. key
+	DL sends message to first user in circuit as designated by tracking code.
+
+Relaying:
+	Each relay in the circuit tries to decrypt the message with their own private key.
+		If the message does not decrypt successfully
+			Relayer removes first digit from tracking code and stores it as next_relay_id.
+			Random digit is appended to tracking code.
+			Message is passed on to the user associated with next_relay_id.
+		If the message is decrypted successfully
+			The current relay identifies themself as the uploader and begins the upload
+
+Starting the Upload:
+	The UL makes an announce, identifying the session with the AES key
+		Tracker responds with tracking code (UL to DL) and the DL's public key.
+	UL creates message containing AES encrypted data and signs it with the DL's pub.key.
+	UL sends message to first user in circuit.
+
+Subsequent Downloads:
+	DL creates message with (AES Encrypted?) chunk request and signs with UL's pub key
+	DL sends message to first user in the circuit
+	
+Subsequent Uploads:
+	UL creates message with AES encrypted data and signs with DL's pub key
+	UL sends message to first user in the circuit
+
+Things we haven't talked about yet...
+	-DL/UL should change circuits every X minutes, perhaps during reannounce
+		This is trickier than it sounds, changing too frequently or not changing at all harms anonymity.
+		I'm sure the TOR project has some insight on this
+
+
