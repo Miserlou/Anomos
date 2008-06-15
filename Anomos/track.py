@@ -212,6 +212,8 @@ class Tracker(object):
         self.state = {}
         self.seedcount = {}
 
+	self.pubkeys = {}
+
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
             self.only_local_override_ip = not config['nat_check']

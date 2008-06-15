@@ -40,7 +40,7 @@ class HTTPConnection(object):
     def data_came_in(self, data):
         if self.donereading or self.next_func is None:
             return True
-        self.buf += data
+        self.buf += data		##or decrypt here?
         while True:
             try:
                 i = self.buf.index('\n')
@@ -154,7 +154,12 @@ class HTTPConnection(object):
             r.write('\r\n')
         if self.command != 'HEAD':
             r.write(data)
-        self.connection.write(r.getvalue())
+
+	## encrypted = ipkey.public_encrypt(r.getvalue(), pkcs1_oaep_repadding)		##where is ipkey coming from?
+
+        ##self.connection.write(encrypted)
+
+	self.connection.write(r.getvalue())
         if self.connection.is_flushed():
             self.connection.shutdown(1)
 

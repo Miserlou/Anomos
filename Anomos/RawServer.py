@@ -81,7 +81,7 @@ class SingleSocket(object):
         if self.connected:
             try:
                 while self.buffer != []:
-                    amount = self.socket.send(self.buffer[0])
+                    amount = self.socket.send(self.buffer[0])	##this is where shit is sent-should encryption be done here? read buffer, encrypt, rebuffer?
                     if amount != len(self.buffer[0]):
                         if amount != 0:
                             self.buffer[0] = self.buffer[0][amount:]
@@ -251,6 +251,7 @@ class RawServer(object):
                     s.last_hit = time()
                     try:
                         data = s.socket.recv(100000)
+			################################## decrypt here?
                     except socket.error, e:
                         code, msg = e
                         if code != EWOULDBLOCK:
