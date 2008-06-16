@@ -202,7 +202,7 @@ class Graph:
 
 
 
-def getTrackingCode(graph, source, dest, tcmaxval=lambda: 5, tclen=10):
+def getTrackingCode(graph, source, dest):
     """Generate the tracking code for the shortest path from source to dest
     Arguments:
     graph -- The graph to be searched

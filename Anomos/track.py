@@ -34,7 +34,7 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
 from Anomos import version
 
-from M2Crypto import RSA
+from Anomos.crypto import saveNewPEM, loadKeysFromPEM
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -212,13 +212,17 @@ class Tracker(object):
         self.times = {}
         self.state = {}
         self.seedcount = {}
-
-	self.rsapubkey
-	self.rsaprvkey
-
-	self.pubkeys = {}
-	self.aeskeys = {}
-
+        
+        # Get tracker's rsa keys
+        try:
+            self.rsapubkey, self.rsapvtkey = loadKeysFromPEM()
+        except IOError:
+            saveNewPEM()
+            self.rsapubkey, self.rsapvtkey = loadKeysFromPEM()
+        
+        self.pubkeys = {} # TODO: Integrate with NetworkModel.py
+        self.aeskeys = {}
+        
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
             self.only_local_override_ip = not config['nat_check']
@@ -308,27 +312,17 @@ class Tracker(object):
         self.uq_broken = unquote('+') != ' '
         self.keep_dead = config['keep_dead']
 
-	try:
-		rsa = self.loadKeysFromPEM()
-		self.rsapubkey = rsa[0]
-		self.rsapvtkey = rsa[1]
-	except:
-	        saveNewPEM()
-		rsa = self.loadKeysFromPEM()
-		self.rsapubkey = rsa[0]
-		self.rsapvtkey = rsa[1]
-	
     def storePubKey(ip, key):
-	self.pubkeys[ip] = key
+        self.pubkeys[ip] = key
 
     def getPubKey(ip):
-	return self.pubkeys[ip]
+        return self.pubkeys[ip]
 
     def storeAESKey(ucid, key):
-	self.aeskeys[ucid] = key
+        self.aeskeys[ucid] = key
 
-    def getAESKey(ucid, key): ##do we actually ever need this?
-	return self.aeskeys[ucid]
+    def getAESKey(ucid): ##do we actually ever need this?
+        return self.aeskeys[ucid]
 
     def allow_local_override(self, ip, given_ip):
         return is_valid_ipv4(given_ip) and (
@@ -485,7 +479,6 @@ class Tracker(object):
                 if self.allowed[infohash].has_key('failure reason'):
                     return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
-
         return None
 
     def add_data(self, infohash, event, ip, paramslist):
@@ -675,40 +668,47 @@ class Tracker(object):
         nip = get_forwarded_ip(headers)
         if nip and not self.only_local_override_ip:
             ip = nip
-	
+        
         paramslist = {}
         def params(key, default = None, l = paramslist):
             if l.has_key(key):
                 return l[key][0]
             return default
 
-        try:
-            (scheme, netloc, path, pars, query, fragment) = urlparse(path)
-            if self.uq_broken == 1:
-                path = path.replace('+',' ')
-                query = query.replace('+',' ')
-            path = unquote(path)[1:]
+        
+        (scheme, netloc, path, pars, query, fragment) = urlparse(path)
+        if self.uq_broken == 1:
+            path = path.replace('+',' ')
+            query = query.replace('+',' ')
+        path = unquote(path)[1:]
 
-            ## if length == 1024b (128B), then assume it is an RSA pub key
-            ## remember that client should check that encrypted announce query is not 128B
-		##or find some way to verify that a string is a valid RSA key and avoid all of this unpleasentness
-            if (len(query) == 128):						
-		 ##if ip has a key already.. ? 
-		 self.storePubKey(ip, query)
-		 ##some confirmation should be sent here
-		 return
-
-	    decquery = self.rsapvtkey.private_decrypt(query)			##decrypt!
-
-            for s in decquery.split('&'):
-                if s != '':
-                    i = s.index('=')
-                    kw = unquote(s[:i])
-                    paramslist.setdefault(kw, [])
-                    paramslist[kw] += [unquote(s[i+1:])]
-
+        # The client should already know the tracker's pubkey, so even the first
+        # request should be encrypted. Let's designate a query param "pke" that 
+        # signifies encrypted data. If it's not present we should return a 400
+        # bad request and tell them to use the pubkey. I've added a /key path as
+        # for requesting the key if it wasn't in the .torrent, but I don't think
+        # this is a good idea security wise (MITM attacks and whatnot).
+        # As for sending the key, this can be done, encrypted, as a normal query
+        # param: ?key=f83cd3aa....&some more stuff.
+        #
+        ##if (len(query) == 128): #if ip has a key already.. ? 
+        ##    self.storePubKey(ip, query)
+        ##some confirmation should be sent here
+        ##decquery = self.rsapvtkey.private_decrypt(query)            ##decrypt!
+        
+        paramslist = self.parseQuery(query)
+        if params('pke'):
+            # Decrypt the query
+            decquery = self.rsapvtkey.private_decrypt(params('msg')) 
+            # Update with the new params
+            paramslist.update(self.parseQuery(decquery))
+        
+        try:   
             if path == '' or path == 'index.html':
                 return self.get_infopage()
+            if path == 'key': # Is this a good idea? Not very secure.
+                # Should we add anything to this header? 
+                return (200, 'OK', {'Content-Type': 'text/plain'}, self.rsapubkey)
             if path == 'scrape':
                 return self.get_scrape(paramslist)
             if (path == 'file'):
@@ -749,6 +749,16 @@ class Tracker(object):
             data['scrape'] = self.scrapedata(infohash, False)
 
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data))
+
+    def parseQuery(self, query):
+        params = {}
+        for s in query.split('&'):
+            if s != '':
+                key,val = s.split('=')
+                kw = unquote(key)
+                params.setdefault(kw, [])
+                params[kw] += [unquote(val)]
+        return params
 
     def natcheckOK(self, infohash, peerid, ip, port, not_seed):
         bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
@@ -855,7 +865,8 @@ def track(args):
                   config['socket_timeout'], bindaddr = config['bind'])
     t = Tracker(config, r)
     s = r.create_serversocket(config['port'], config['bind'], True)
-    r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']), self.getPubKey, this.storePubKey)
+    r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))#, t.getPubKey, t.storePubKey))
+    print "listening"
     r.listen_forever()
     t.save_dfile()
     print '# Shutting down: ' + isotime()

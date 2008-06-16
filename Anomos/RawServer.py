@@ -34,6 +34,7 @@ all = POLLIN | POLLOUT
 class SingleSocket(object):
 
     def __init__(self, raw_server, sock, handler, context, ip=None):
+        print "MAKING SOCKET!!!"
         self.raw_server = raw_server
         self.socket = sock
         self.handler = handler
@@ -57,7 +58,7 @@ class SingleSocket(object):
                     self.ip = peername # UNIX socket, not really ip
 
     def getip():
-	return self.ip
+        return self.ip
 
     def close(self):
         sock = self.socket
@@ -84,7 +85,7 @@ class SingleSocket(object):
         if self.connected:
             try:
                 while self.buffer != []:
-                    amount = self.socket.send(self.buffer[0])	##this is where shit is sent-should encryption be done here? read buffer, encrypt, rebuffer?
+                    amount = self.socket.send(self.buffer[0])
                     if amount != len(self.buffer[0]):
                         if amount != 0:
                             self.buffer[0] = self.buffer[0][amount:]
@@ -220,7 +221,9 @@ class RawServer(object):
         return s
 
     def _handle_events(self, events):
+        print "Handle: ", events
         for sock, event in events:
+            print events
             if sock in self.serversockets:
                 s = self.serversockets[sock]
                 if event & (POLLHUP | POLLERR) != 0:
@@ -235,11 +238,11 @@ class RawServer(object):
                         nss = SingleSocket(self, newsock, handler, context)
                         self.single_sockets[newsock.fileno()] = nss
                         self.poll.register(newsock, POLLIN)
-                        self._make_wrapped_call(handler. \
-                           external_connection_made, (nss,), context=context)
+                        self._make_wrapped_call(handler.external_connection_made, (nss,), context=context)
                     except socket.error:
                         sleep(1)
             else:
+                print "first else"
                 s = self.single_sockets.get(sock)
                 if s is None:
                     if sock == self.wakeupfds[0]:
@@ -254,7 +257,6 @@ class RawServer(object):
                     s.last_hit = time()
                     try:
                         data = s.socket.recv(100000)
-			################################## decrypt here?
                     except socket.error, e:
                         code, msg = e
                         if code != EWOULDBLOCK:
@@ -263,9 +265,8 @@ class RawServer(object):
                     if data == '':
                         self._close_socket(s)
                     else:
-			### no, decrypt here.
-			name = s.getpeername()
-			
+                        ### no, decrypt here. 
+                        name = s.getpeername()
                         self._make_wrapped_call(s.handler.data_came_in,
                                                 (s, data), s)
                 # data_came_in could have closed the socket (s.socket = None)

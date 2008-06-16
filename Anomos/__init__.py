@@ -11,10 +11,10 @@
 app_name = "Anomos"
 version = '0.0.0'
 
-URL = 'http://www.bittorrent.com/'
-DONATE_URL = URL + 'donate.html'
-FAQ_URL = URL + 'FAQ.html'
-HELP_URL = URL + 'documentation.html'
+URL = 'http://www.anomos.info/'
+DONATE_URL = 'http://sourceforge.net/donate/index.php?group_id=203746'# + 'donate.html'
+FAQ_URL = URL# + 'FAQ.html'
+HELP_URL = URL# + 'documentation.html'
 
 import sys
 assert sys.version_info >= (2, 2, 1), "Python 2.2.1 or newer required"

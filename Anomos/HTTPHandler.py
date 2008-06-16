@@ -14,7 +14,6 @@ from cStringIO import StringIO
 from sys import stdout
 import time
 from gzip import GzipFile
-from M2Crypto import RSA
 
 DEBUG = False
 
@@ -26,7 +25,7 @@ months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 
 class HTTPConnection(object):
 
-    def __init__(self, handler, connection, getrsakey, setrsakey):
+    def __init__(self, handler, connection):
         self.handler = handler
         self.connection = connection
         self.buf = ''
@@ -34,8 +33,6 @@ class HTTPConnection(object):
         self.done = False
         self.donereading = False
         self.next_func = self.read_type
-	self.getrsakey = getrsakey
-	self.setrsakey = setrsakey
 
     def get_ip(self):
         return self.connection.ip
@@ -43,7 +40,7 @@ class HTTPConnection(object):
     def data_came_in(self, data):
         if self.donereading or self.next_func is None:
             return True
-        self.buf += data		##or decrypt here?
+        self.buf += data
         while True:
             try:
                 i = self.buf.index('\n')
@@ -95,6 +92,7 @@ class HTTPConnection(object):
             else:
                 #default to identity. 
                 self.encoding = 'identity'
+            print "getfunc"
             r = self.handler.getfunc(self, self.path, self.headers)
             if r is not None:
                 self.answer(r)
@@ -148,8 +146,7 @@ class HTTPConnection(object):
 
         self.done = True
         r = StringIO()
-        r.write('HTTP/1.0 ' + str(responsecode) + ' ' + 
-            responsestring + '\r\n')
+        r.write('HTTP/1.0 ' + str(responsecode) + ' ' + responsestring + '\r\n')
         if not self.pre1:
             headers['Content-Length'] = len(data)
             for key, value in headers.items():
@@ -157,29 +154,27 @@ class HTTPConnection(object):
             r.write('\r\n')
         if self.command != 'HEAD':
             r.write(data)
-
-	rsakey = self.getrsakey(self.connection.ip)
-
-	encrypted = rsakey.public_encrypt(r.getvalue(), pkcs1_oaep_repadding)		##encrypt string to send with ip's rsakey
-
-        self.connection.write(encrypted)
-	##self.connection.write(r.getvalue())						##old		
+        
+        #rsakey = self.handler.getrsakey(self.connection.ip)
+        #encrypted = rsakey.public_encrypt(r.getvalue(), pkcs1_oaep_repadding) ##encrypt string to send with ip's rsakey
+        #self.connection.write(encrypted)
+        self.connection.write(r.getvalue())                        ##old
         if self.connection.is_flushed():
             self.connection.shutdown(1)
 
 
 class HTTPHandler(object):
 
-    def __init__(self, getfunc, minflush, getrsakey, setrsakey):
+    def __init__(self, getfunc, minflush):#, getrsakey, setrsakey):
         self.connections = {}
         self.getfunc = getfunc
         self.minflush = minflush
         self.lastflush = time.time()
-	self.getrsakey = getrsakey
-	self.setrsakey = getrsakey
+        #self.getrsakey = getrsakey
+        #self.setrsakey = setrsakey
 
     def external_connection_made(self, connection):
-        self.connections[connection] = HTTPConnection(self, connection, getrsakey, setrsakey)
+        self.connections[connection] = HTTPConnection(self, connection)
 
     def connection_flushed(self, connection):
         if self.connections[connection].done:
