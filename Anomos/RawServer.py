@@ -34,7 +34,6 @@ all = POLLIN | POLLOUT
 class SingleSocket(object):
 
     def __init__(self, raw_server, sock, handler, context, ip=None):
-        print "MAKING SOCKET!!!"
         self.raw_server = raw_server
         self.socket = sock
         self.handler = handler
@@ -57,7 +56,7 @@ class SingleSocket(object):
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
 
-    def getip():
+    def getip(self):
         return self.ip
 
     def close(self):
@@ -102,7 +101,7 @@ class SingleSocket(object):
             self.raw_server.poll.register(self.socket, all)
 
 def default_error_handler(x, y):
-    print x
+    print x, y
 
 
 class RawServer(object):
@@ -221,9 +220,7 @@ class RawServer(object):
         return s
 
     def _handle_events(self, events):
-        print "Handle: ", events
         for sock, event in events:
-            print events
             if sock in self.serversockets:
                 s = self.serversockets[sock]
                 if event & (POLLHUP | POLLERR) != 0:
@@ -242,7 +239,6 @@ class RawServer(object):
                     except socket.error:
                         sleep(1)
             else:
-                print "first else"
                 s = self.single_sockets.get(sock)
                 if s is None:
                     if sock == self.wakeupfds[0]:
@@ -266,15 +262,13 @@ class RawServer(object):
                         self._close_socket(s)
                     else:
                         ### no, decrypt here. 
-                        name = s.getpeername()
-                        self._make_wrapped_call(s.handler.data_came_in,
-                                                (s, data), s)
+                        ### name = s.getpeername()
+                        self._make_wrapped_call(s.handler.data_came_in, (s, data), s)
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
                     s.try_write()
                     if s.is_flushed():
-                        self._make_wrapped_call(s.handler.connection_flushed,
-                                                (s,), s)
+                        self._make_wrapped_call(s.handler.connection_flushed,(s,), s)
 
     def _pop_externally_added(self):
         while self.externally_added_tasks:

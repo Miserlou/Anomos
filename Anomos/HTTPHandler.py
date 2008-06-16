@@ -92,7 +92,6 @@ class HTTPConnection(object):
             else:
                 #default to identity. 
                 self.encoding = 'identity'
-            print "getfunc"
             r = self.handler.getfunc(self, self.path, self.headers)
             if r is not None:
                 self.answer(r)
