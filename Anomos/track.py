@@ -688,8 +688,19 @@ class Tracker(object):
                 path = path.replace('+',' ')
                 query = query.replace('+',' ')
             path = unquote(path)[1:]
-	    decquery = self.rsapvtkey.private_decrypt(query)			##decrypt! 
-            for s in query.split('&'):
+
+            ## if length == 1024b (128B), then assume it is an RSA pub key
+            ## remember that client should check that encrypted announce query is not 128B
+		##or find some way to verify that a string is a valid RSA key and avoid all of this unpleasentness
+            if (len(query) == 128)						
+		 ##if ip has a key already.. ? 
+		 self.storePubKey(ip, query)
+		 ##some confirmation should be sent here
+		 return
+
+	    decquery = self.rsapvtkey.private_decrypt(query)			##decrypt!
+
+            for s in decquery.split('&'):
                 if s != '':
                     i = s.index('=')
                     kw = unquote(s[:i])
@@ -844,7 +855,7 @@ def track(args):
                   config['socket_timeout'], bindaddr = config['bind'])
     t = Tracker(config, r)
     s = r.create_serversocket(config['port'], config['bind'], True)
-    r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))
+    r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']), self.getPubKey, this.storePubKey)
     r.listen_forever()
     t.save_dfile()
     print '# Shutting down: ' + isotime()
