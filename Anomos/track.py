@@ -34,6 +34,7 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
 from Anomos import version
 
+from M2Crypto import RSA
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -212,7 +213,11 @@ class Tracker(object):
         self.state = {}
         self.seedcount = {}
 
+	self.rsapubkey
+	self.rsaprvkey
+
 	self.pubkeys = {}
+	self.aeskeys = {}
 
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
@@ -302,6 +307,28 @@ class Tracker(object):
 
         self.uq_broken = unquote('+') != ' '
         self.keep_dead = config['keep_dead']
+
+	try:
+		rsa = self.loadKeysFromPEM()
+		self.rsapubkey = rsa[0]
+		self.rsapvtkey = rsa[1]
+	except:
+	        saveNewPEM()
+		rsa = self.loadKeysFromPEM()
+		self.rsapubkey = rsa[0]
+		self.rsapvtkey = rsa[1]
+	
+    def storePubKey(ip, key):
+	self.pubkeys[ip] = key
+
+    def getPubKey(ip):
+	return self.pubkeys[ip]
+
+    def storeAESKey(ucid, key):
+	self.aeskeys[ucid] = key
+
+   def getAESKey(ucid, key):			##do we actually ever need this?
+	return self.aeskeys[ucid]
 
     def allow_local_override(self, ip, given_ip):
         return is_valid_ipv4(given_ip) and (
@@ -648,7 +675,7 @@ class Tracker(object):
         nip = get_forwarded_ip(headers)
         if nip and not self.only_local_override_ip:
             ip = nip
-
+	
         paramslist = {}
         def params(key, default = None, l = paramslist):
             if l.has_key(key):
@@ -661,6 +688,7 @@ class Tracker(object):
                 path = path.replace('+',' ')
                 query = query.replace('+',' ')
             path = unquote(path)[1:]
+	    decquery = self.rsapvtkey.private_decrypt(query)			##decrypt! 
             for s in query.split('&'):
                 if s != '':
                     i = s.index('=')

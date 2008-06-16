@@ -56,6 +56,9 @@ class SingleSocket(object):
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
 
+    def getip():
+	return self.ip
+
     def close(self):
         sock = self.socket
         self.socket = None
@@ -260,6 +263,9 @@ class RawServer(object):
                     if data == '':
                         self._close_socket(s)
                     else:
+			### no, decrypt here.
+			name = s.getpeername()
+			
                         self._make_wrapped_call(s.handler.data_came_in,
                                                 (s, data), s)
                 # data_came_in could have closed the socket (s.socket = None)

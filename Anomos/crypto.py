@@ -11,6 +11,7 @@ for other functions used directly, look at RSA.py in M2Crypto
 
 import sys
 import M2Crypto
+import os
 from M2Crypto import Rand, RSA, util
 
 def saveNewPEM():
@@ -30,11 +31,15 @@ def saveNewPEM():
 	Rand.save_file('randpool.dat')
 
 def loadKeysFromPEM():
+
 	pvtkeyfilename = 'rsa%dpvtkey.pem' % (1024)
 	pubkeyfilename = 'rsa%dpubkey.pem' % (1024)
-
-	pvt = RSA.load_key(pvtkeyfilename)
-	pub = RSA.load_pub_key(pubkeyfilename)
+	
+	if os.path.exists(pvtkeyfilename)
+		pvt = RSA.load_key(pvtkeyfilename)
+	if os.path.exists(pubkeyfilename)
+		pub = RSA.load_pub_key(pubkeyfilename)
+	else return false
 
 	rsa = (pub, pvt)
 	return rsa

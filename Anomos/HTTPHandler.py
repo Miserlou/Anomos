@@ -14,6 +14,7 @@ from cStringIO import StringIO
 from sys import stdout
 import time
 from gzip import GzipFile
+from M2Crypto import RSA
 
 DEBUG = False
 
@@ -25,7 +26,7 @@ months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 
 class HTTPConnection(object):
 
-    def __init__(self, handler, connection):
+    def __init__(self, handler, connection, getrsakey, setrsakey):
         self.handler = handler
         self.connection = connection
         self.buf = ''
@@ -33,6 +34,8 @@ class HTTPConnection(object):
         self.done = False
         self.donereading = False
         self.next_func = self.read_type
+	self.getrsakey = getrsakey
+	self.setrsakey = setrsakey
 
     def get_ip(self):
         return self.connection.ip
@@ -155,25 +158,28 @@ class HTTPConnection(object):
         if self.command != 'HEAD':
             r.write(data)
 
-	## encrypted = ipkey.public_encrypt(r.getvalue(), pkcs1_oaep_repadding)		##where is ipkey coming from?
+	rsakey = self.getrsakey(self.connection.ip)
 
-        ##self.connection.write(encrypted)
+	encrypted = rsakey.public_encrypt(r.getvalue(), pkcs1_oaep_repadding)		##encrypt string to send with ip's rsakey
 
-	self.connection.write(r.getvalue())
+        self.connection.write(encrypted)
+	##self.connection.write(r.getvalue())						##old		
         if self.connection.is_flushed():
             self.connection.shutdown(1)
 
 
 class HTTPHandler(object):
 
-    def __init__(self, getfunc, minflush):
+    def __init__(self, getfunc, minflush, getrsakey, setrsakey):
         self.connections = {}
         self.getfunc = getfunc
         self.minflush = minflush
         self.lastflush = time.time()
+	self.getrsakey = getrsakey
+	self.setrsakey = getrsakey
 
     def external_connection_made(self, connection):
-        self.connections[connection] = HTTPConnection(self, connection)
+        self.connections[connection] = HTTPConnection(self, connection, getrsakey, setrsakey)
 
     def connection_flushed(self, connection):
         if self.connections[connection].done:
