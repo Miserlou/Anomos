@@ -675,35 +675,34 @@ class Tracker(object):
                 return l[key][0]
             return default
 
-        
-        (scheme, netloc, path, pars, query, fragment) = urlparse(path)
-        if self.uq_broken == 1:
-            path = path.replace('+',' ')
-            query = query.replace('+',' ')
-        path = unquote(path)[1:]
+        try: 
+            (scheme, netloc, path, pars, query, fragment) = urlparse(path)
+            if self.uq_broken == 1:
+                path = path.replace('+',' ')
+                query = query.replace('+',' ')
+            path = unquote(path)[1:]
 
-        # The client should already know the tracker's pubkey, so even the first
-        # request should be encrypted. Let's designate a query param "pke" that 
-        # signifies encrypted data. If it's not present we should return a 400
-        # bad request and tell them to use the pubkey. I've added a /key path as
-        # for requesting the key if it wasn't in the .torrent, but I don't think
-        # this is a good idea security wise (MITM attacks and whatnot).
-        # As for sending the key, this can be done, encrypted, as a normal query
-        # param: ?key=f83cd3aa....&some more stuff.
-        #
-        ##if (len(query) == 128): #if ip has a key already.. ? 
-        ##    self.storePubKey(ip, query)
-        ##some confirmation should be sent here
-        ##decquery = self.rsapvtkey.private_decrypt(query)            ##decrypt!
-        
-        paramslist = self.parseQuery(query)
-        if params('pke'):
-            # Decrypt the query
-            decquery = self.rsapvtkey.private_decrypt(params('msg')) 
-            # Update with the new params
-            paramslist.update(self.parseQuery(decquery))
-        
-        try:   
+            # The client should already know the tracker's pubkey, so even the first
+            # request should be encrypted. Let's designate a query param "pke" that 
+            # signifies encrypted data. If it's not present we should return a 400
+            # bad request and tell them to use the pubkey. I've added a /key path as
+            # for requesting the key if it wasn't in the .torrent, but I don't think
+            # this is a good idea security wise (MITM attacks and whatnot).
+            # As for sending the key, this can be done, encrypted, as a normal query
+            # param: ?key=f83cd3aa....&some more stuff.
+            #
+            ##if (len(query) == 128): #if ip has a key already.. ? 
+            ##    self.storePubKey(ip, query)
+            ##some confirmation should be sent here
+            ##decquery = self.rsapvtkey.private_decrypt(query)            ##decrypt!
+            
+            paramslist = self.parseQuery(query)
+            if params('pke'):
+                # Decrypt the query
+                decquery = self.rsapvtkey.private_decrypt(params('pke')) 
+                # Update with the new params
+                paramslist.update(self.parseQuery(decquery))
+              
             if path == '' or path == 'index.html':
                 return self.get_infopage()
             if path == 'key': # Is this a good idea? Not very secure.
@@ -751,6 +750,8 @@ class Tracker(object):
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data))
 
     def parseQuery(self, query):
+        if query.startswith("pke"):
+            return dict([query.split('=',1)])
         params = {}
         for s in query.split('&'):
             if s != '':
@@ -866,7 +867,6 @@ def track(args):
     t = Tracker(config, r)
     s = r.create_serversocket(config['port'], config['bind'], True)
     r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))#, t.getPubKey, t.storePubKey))
-    print "listening"
     r.listen_forever()
     t.save_dfile()
     print '# Shutting down: ' + isotime()
