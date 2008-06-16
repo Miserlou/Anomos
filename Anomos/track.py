@@ -327,7 +327,7 @@ class Tracker(object):
     def storeAESKey(ucid, key):
 	self.aeskeys[ucid] = key
 
-   def getAESKey(ucid, key):			##do we actually ever need this?
+    def getAESKey(ucid, key): ##do we actually ever need this?
 	return self.aeskeys[ucid]
 
     def allow_local_override(self, ip, given_ip):
@@ -692,7 +692,7 @@ class Tracker(object):
             ## if length == 1024b (128B), then assume it is an RSA pub key
             ## remember that client should check that encrypted announce query is not 128B
 		##or find some way to verify that a string is a valid RSA key and avoid all of this unpleasentness
-            if (len(query) == 128)						
+            if (len(query) == 128):						
 		 ##if ip has a key already.. ? 
 		 self.storePubKey(ip, query)
 		 ##some confirmation should be sent here
