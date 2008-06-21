@@ -20,7 +20,7 @@ from traceback import print_exc
 from time import time, gmtime, strftime, localtime
 from random import shuffle
 from types import StringType, IntType, LongType, ListType, DictType
-from binascii import b2a_hex
+from binascii import b2a_hex, a2b_hex
 from cStringIO import StringIO
 
 from Anomos.obsoletepythonsupport import *
@@ -34,7 +34,8 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
 from Anomos import version
 
-from Anomos.crypto import saveNewPEM, loadKeysFromPEM
+from Anomos.crypto import RSAKeyPair, AESKeyManager
+from Anomos.NetworkModel import NetworkModel
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -212,16 +213,12 @@ class Tracker(object):
         self.times = {}
         self.state = {}
         self.seedcount = {}
-        
+              
         # Get tracker's rsa keys
-        try:
-            self.rsapubkey, self.rsapvtkey = loadKeysFromPEM()
-        except IOError:
-            saveNewPEM()
-            self.rsapubkey, self.rsapvtkey = loadKeysFromPEM()
+        self.rsa = RSAKeyPair('tracker') # should probably use some unique id for the alias here.
         
         self.pubkeys = {} # TODO: Integrate with NetworkModel.py
-        self.aeskeys = {}
+        self.aeskeys = AESKeyManager()
         
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
@@ -309,13 +306,16 @@ class Tracker(object):
                 pass
             self.allowed = None
 
-        self.uq_broken = unquote('+') != ' '
+        self.uq_broken = unquote('+') != ' ' # This sucks!
         self.keep_dead = config['keep_dead']
-
-    def storePubKey(ip, key):
+        
+        self.networkmodel = NetworkModel()
+    
+    
+    def storePubKey(ip, key):# Move to NetworkModel
         self.pubkeys[ip] = key
 
-    def getPubKey(ip):
+    def getPubKey(ip):# Move to NetworkModel
         return self.pubkeys[ip]
 
     def storeAESKey(ucid, key):
@@ -495,7 +495,7 @@ class Tracker(object):
         myid = params('peer_id','')
         if len(myid) != 20:
             raise ValueError, 'id not of length 20'
-        if event not in ['started', 'completed', 'stopped', 'snooped', None]:
+        if event not in ['started', 'completed', 'stopped', None]:
             raise ValueError, 'invalid event'
         port = int(params('port',''))
         if port < 0 or port > 65535:
@@ -674,14 +674,13 @@ class Tracker(object):
             if l.has_key(key):
                 return l[key][0]
             return default
-
+        
         try: 
             (scheme, netloc, path, pars, query, fragment) = urlparse(path)
             if self.uq_broken == 1:
                 path = path.replace('+',' ')
-                query = query.replace('+',' ')
+                # query = query.replace('+',' ')
             path = unquote(path)[1:]
-
             # The client should already know the tracker's pubkey, so even the first
             # request should be encrypted. Let's designate a query param "pke" that 
             # signifies encrypted data. If it's not present we should return a 400
@@ -699,15 +698,16 @@ class Tracker(object):
             paramslist = self.parseQuery(query)
             if params('pke'):
                 # Decrypt the query
-                decquery = self.rsapvtkey.private_decrypt(params('pke')) 
+                binpke = a2b_hex(params('pke'))
+                decquery = self.rsa.decrypt(binpke) 
                 # Update with the new params
                 paramslist.update(self.parseQuery(decquery))
-              
+            
             if path == '' or path == 'index.html':
                 return self.get_infopage()
-            if path == 'key': # Is this a good idea? Not very secure.
+            #if path == 'key': # Is this a good idea? Not very secure.
                 # Should we add anything to this header? 
-                return (200, 'OK', {'Content-Type': 'text/plain'}, self.rsapubkey)
+            #    return (200, 'OK', {'Content-Type': 'text/plain'}, self.rsapubkey)
             if path == 'scrape':
                 return self.get_scrape(paramslist)
             if (path == 'file'):
@@ -757,8 +757,10 @@ class Tracker(object):
             if s != '':
                 key,val = s.split('=')
                 kw = unquote(key)
+                kw = kw.replace('+',' ') # TODO: find out if this is absolutely necessary
                 params.setdefault(kw, [])
                 params[kw] += [unquote(val)]
+                
         return params
 
     def natcheckOK(self, infohash, peerid, ip, port, not_seed):
