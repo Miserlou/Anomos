@@ -18,6 +18,7 @@ from binascii import b2a_hex
 
 from Anomos.bitfield import Bitfield
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
+from Anomos import AESKeyManager
 
 def toint(s):
     return int(b2a_hex(s), 16)
@@ -140,6 +141,9 @@ class StorageWrapper(object):
                 self.rplaces[i] = ALLOCATED
             else:
                 data = self.storage.read(piece_size * i, self._piecelen(i))
+                ## Decrypt here?
+                ## data = self.AESKM.Decrypt(data, key, iv) ?
+                ## self.storage.write(piece, data) ?
                 sh = sha(buffer(data, 0, lastlen))
                 sp = sh.digest()
                 sh.update(buffer(data, lastlen))
