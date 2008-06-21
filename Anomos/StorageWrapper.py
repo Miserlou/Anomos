@@ -141,9 +141,6 @@ class StorageWrapper(object):
                 self.rplaces[i] = ALLOCATED
             else:
                 data = self.storage.read(piece_size * i, self._piecelen(i))
-                ## Decrypt here?
-                ## data = self.AESKM.Decrypt(data, key, iv) ?
-                ## self.storage.write(piece, data) ?
                 sh = sha(buffer(data, 0, lastlen))
                 sp = sh.digest()
                 sh.update(buffer(data, lastlen))
@@ -321,6 +318,11 @@ class StorageWrapper(object):
         return r
 
     def piece_came_in(self, index, begin, piece, source = None):
+
+        ## Decrypt here?
+        ## data = self.AESKM.Decrypt(key, iv, data) ?
+        ## self.storage.write(piece, data) ?
+
         if self.places[index] < 0:
             if self.rplaces[index] == ALLOCATED:
                 self._initalloc(index, index)
@@ -409,4 +411,7 @@ class StorageWrapper(object):
             self.waschecked[index] = True
         if begin + length > self._piecelen(index):
             return None
+        ## Encrypt outgoing chunk here!
+        ## encd = AESKM.Encrypt(key, iv , (self.storage.read(self.piece_size * self.places[index] + begin, length))
+        ## return encd
         return self.storage.read(self.piece_size * self.places[index] + begin, length)
