@@ -41,7 +41,7 @@ if __name__ == '__main__':
     else:
         try:
             config, args = parseargs(sys.argv[1:], defaults, 2, None)
-            make_meta_files(args[0], args[1:], piece_len_pow2=config['piece_size_pow2'], progressfunc=prog, filefunc=dc, comment=config['comment'], target=config['target'], filesystem_encoding=config['filesystem_encoding'])
+            make_meta_files(args[0], args[1], args[2:], piece_len_pow2=config['piece_size_pow2'], progressfunc=prog, filefunc=dc, comment=config['comment'], target=config['target'], filesystem_encoding=config['filesystem_encoding'])
         except BTFailure, e:
             print str(e)
             sys.exit(1)

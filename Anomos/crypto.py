@@ -70,6 +70,16 @@ class RSAKeyPair:
         if self.pubkey and self.pvtkey:
             return self.pvtkey.private_decrypt(data, self.padding)
 
+class RSAPubKey:
+    #This seems stupid now but we need a place to put a nice encryption function.
+    '''Initialize from (e,n) tuple'''
+    def __init__(self, en):
+        self.key = RSA.new_pub_key(en)
+
+    def encrypt(self, data):
+        #This is not a nice encryption function.
+        return self.key.public_encrypt(data, RSA.pkcs1_oaep_padding)
+
 class AESKeyManager:
     def __init__(self, data_dir='', crypto_dir='crypto', algorithm='aes_128_cfb'):
         self.crypto_path = os.path.join(data_dir, crypto_dir)

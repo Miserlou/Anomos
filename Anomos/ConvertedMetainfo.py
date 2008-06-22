@@ -23,7 +23,6 @@ from Anomos.bencode import bencode
 from Anomos import btformats
 from Anomos import WARNING, ERROR
 
-
 WINDOWS_UNSUPPORTED_CHARS ='"*/:<>?\|'
 windows_translate = [chr(i) for i in range(256)]
 for x in WINDOWS_UNSUPPORTED_CHARS:
@@ -92,7 +91,11 @@ class ConvertedMetainfo(object):
         self.files_fs = None
         self.total_bytes = 0
         self.sizes = []
-
+        self.publickey = None
+        
+        if metainfo.has_key('pubkey'):
+            self.publickey = metainfo['pubkey'] # just load the (e, n) tuple, not a real key yet.
+        
         btformats.check_message(metainfo, check_paths=False)
         info = metainfo['info']
         if info.has_key('length'):

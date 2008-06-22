@@ -49,6 +49,7 @@ from Anomos.ConvertedMetainfo import set_filesystem_encoding
 from Anomos import version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
+from Anomos.crypto import RSAPubKey
 
 class Feedback(object):
 
@@ -205,7 +206,8 @@ class _SingleTorrent(object):
         self._activity = ('Initial startup', 0)
         self.feedback = None
         self.errors = []
-
+        self.tracker_pubkey = None
+        
     def start_download(self, *args, **kwargs):
         it = self._start_download(*args, **kwargs)
         def cont():
@@ -227,7 +229,10 @@ class _SingleTorrent(object):
         self.total_bytes = metainfo.total_bytes
         if not metainfo.reported_errors:
             metainfo.show_encoding_errors(self._error)
-
+        
+        if metainfo.publickey:
+            self.tracker_pubkey = RSAPubKey(metainfo.publickey)
+        
         myid = self._make_id()
         seed(myid)
         def schedfunc(func, delay):
@@ -337,7 +342,7 @@ class _SingleTorrent(object):
             downmeasure.get_total, self.reported_port, myid,
             self.infohash, self._error, self.finflag, upmeasure.get_rate,
             downmeasure.get_rate, self._encoder.ever_got_incoming,
-            self.internal_shutdown, self._announce_done)
+            self.internal_shutdown, self._announce_done, self.tracker_pubkey)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             upmeasure_seedtime.get_rate, downmeasure.get_rate,
             upmeasure.get_total, downmeasure.get_total,

@@ -25,6 +25,7 @@ from Anomos.btformats import check_info
 from Anomos.parseargs import parseargs, printHelp
 from Anomos.obsoletepythonsupport import *
 from Anomos import BTFailure
+from M2Crypto.RSA import load_pub_key
 
 ignore = ['core', 'CVS', 'Thumbs.db']
 
@@ -36,12 +37,10 @@ for i in range(0xFDD0, 0xFDF0):
 for i in (0xFFFE, 0xFFFF):
     noncharacter_translate[i] = None
 
-del i
-
 def dummy(v):
     pass
 
-def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
+def make_meta_files(url, pubkeyfilename, files, flag=Event(), progressfunc=dummy,
                     filefunc=dummy, piece_len_pow2=None, target=None,
                     comment=None, filesystem_encoding=None):
     if len(files) > 1 and target:
@@ -85,11 +84,11 @@ def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
         if t[1] == '':
             f = t[0]
         filefunc(f)
-        make_meta_file(f, url, flag=flag, progress=callback,
+        make_meta_file(f, url, pubkeyfilename, flag=flag, progress=callback,
                        piece_len_exp=piece_len_pow2, target=target,
                        comment=comment, encoding=filesystem_encoding)
 
-def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
+def make_meta_file(path, url, pubkeyfilename, piece_len_exp, flag=Event(), progress=dummy,
                    comment=None, target=None, encoding='ascii'):
     piece_length = 2 ** piece_len_exp
     a, b = os.path.split(path)
@@ -104,8 +103,9 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
     if flag.isSet():
         return
     check_info(info)
+    pubkey = load_pub_key(pubkeyfilename).pub()
     h = file(f, 'wb')
-    data = {'info': info, 'announce': url.strip(),'creation date': int(time())}
+    data = {'info': info, 'announce': url.strip(), 'pubkey':pubkey, 'creation date': int(time())}
     if comment:
         data['comment'] = comment
     h.write(bencode(data))

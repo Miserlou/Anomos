@@ -15,18 +15,18 @@ from socket import error, gethostbyname
 from time import time
 from random import random, randrange
 from binascii import b2a_hex
+from urlparse import urlparse
 
 from Anomos.zurllib import urlopen, quote, Request
 from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
-
 class Rerequester(object):
 
     def __init__(self, url, config, sched, howmany, connect, externalsched,
             amount_left, up, down, port, myid, infohash, errorfunc, doneflag,
-            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc):
+            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, pubkey=None):
         self.baseurl = url
         self.infohash = infohash
         self.peerid = None
@@ -57,6 +57,7 @@ class Rerequester(object):
         self.last_time = None
         self.previous_down = 0
         self.previous_up = 0
+        self.pubkey = pubkey
 
     def _makeurl(self, peerid, port):
         return ('%s?info_hash=%s&peer_id=%s&port=%s&key=%s' %
@@ -150,8 +151,14 @@ class Rerequester(object):
         self.successfunc = None
 
     def _rerequest(self, url, peerid):
-        if self.config['ip']:
+        if self.config['ip']: # Why is this here instead of in announce()?
             url += '&ip=' + gethostbyname(self.config['ip'])
+        
+        # Encrypt query here.
+        if self.pubkey:
+            (scheme, netloc, path, pars, query, fragment) = urlparse(url)
+            query = self.pubkey.encrypt(query)
+            url = ''.join(scheme, netloc, path, pars, query, fragment)
         request = Request(url)
         if self.config['tracker_proxy']:
             request.set_proxy(self.config['tracker_proxy'], 'http')
