@@ -22,73 +22,62 @@ of the original sender or the ultimate receiver of the file chunk.
 """
 
 import random
-from sys import maxint, argv
+from sys import maxint
 from sha import sha
 
-_INFINITY = maxint-1
-_TC_DELIMITER = ":"
+INFINITY = maxint-1
+TC_DELIMITER = ":"
 
-class Vertex:
-    def __init__(self, name, edges=[]):
-        """Creates a vertex
-        
-        Arguments:
-        name: Client's IP address as a string
-        edges: Tuple of form ((IP-1, dist-1), (IP-2, dist-2)...(IP-n, dist-n)) 
-        
-        """
+class SimPeer:
+    def __init__(self, name, pubkey, maxid=100):
         self.name = name
-        ### Consider changing edges to a dictionary of dictionarys with primary key = IP
-        self.edges = {}     # Maps relative IDs to edges ((IP, distance) pairs)
-        self.redges = {}    # Maps IP addresses to their relative ids
-        map(self.addEdge, edges)
+        self.pubKey = pubkey
+        self.maxid = maxid
+        self.neighbors = {}
+        self.id_map = {}
     
-    def addEdge(self, edge):
-        """Connects this vertex to the vertex with name: edge
-        
-        Note: there is no actual mapping of objects here, edge
-        should be an IP address or otherwise unique string, not a 
-        Vertex object. Vertex lookup is performed by Graph objects. 
-        The addEdge function only creates a relationship between this
-        Vertex and the name of another Vertex.
-        """
-        if self.edges and self.redges:
-            rel_id = self.redges.get(edge[0], max(self.edges) + 1)
-            self.edges[rel_id] = edge
-            self.redges[edge[0]] = rel_id
-        else:
-            self.edges[0] = edge
-            self.redges[edge[0]] = 0
+    def addNeighbor(self, peerid, nid):
+        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid})
+        self.id_map[nid] = peerid
     
-    def removeEdge(self, edge):
-        del self.edges[edge]
-        del self.redges[edge]
+    def removeEdge(self, peerid):
+        nid = self.neghbors.get(peerid, {}).get('nid', None)
+        if self.edges.has_key(peerid):
+            del self.neighbors[peerid]
+        if nid:
+            del self.id_map['nid']
+    
+    def disconnect(self):
+        self.neighbors = {}
+        self.id_map = {}
+    
+    def getAvailableNIDs(self):
+        '''returns set object containing NIDs in range 0 -> maxid which are not in use'''
+        used = set(self.id_map.keys())
+        idrange = set(range(0,self.maxid))
+        return idrange - used
     
     def degree(self):
-        return len(self.edges)
+        return len(self.neighbors)
     
-    def reWeight(self, ip, weight):
+    def reWeight(self, peerid, weight):
         """ Reset the weight between this vertex and IP """
-        rel_id = self.getRelId(ip)
-        if not rel_id is None:
-            self.edges[rel_id] = (ip, weight)
+        if self.neighbors.has_key(peerid):
+            self.neighbors[peerid]['dist'] = weight
     
-    def getWeight(self, ip):
-        rel_id = self.getRelId(ip)
-        if not rel_id is None:
-            return self.edges[rel_id][1]
-        return None
+    def getWeight(self, nid):
+        return self.neighbors.get(nid, {}).get('dist', INFINITY)
     
-    def getRelId(self, ip, default=None):
+    def getNID(self, peerid, default=None):
         """ Return the relative ID associated with IP
             return default if the vertices aren't connected """
-        return self.redges.get(ip, default)
+        return self.neighbors.get(peerid, {}).get('nid', default)
     
     def getNbrs(self):
         return self.redges.keys()
     
-    def isConnected(self, ip):
-        return ip in self.redges.keys()
+    def isConnected(self, peerid):
+        return peerid in self.redges.keys()
     
     def printConnections(self):
         """Debugging only. Returns IP-self: IP-0, IP-1, IP-2, ..., IP-n"""
@@ -98,20 +87,23 @@ class Vertex:
         return self.name
 
 
-class Graph:
-    def __init__(self, vertices=[]):
+class NetworkModel:
+    '''Simple Graph model of network'''
+    def __init__(self):
         self.names = {}
-        self.insert(*vertices)
     
     def get(self, name):
         """Return the vertex object v with v.name = name"""
-        return self.names[name]
+        return self.names.get(name, None)
     
     def getNames(self):
         return self.names.keys()
     
     def getVertices(self):
         return self.names.values()
+    
+    def addPeer(self, peerid, pubkey):
+        self.names[peerid] = SimPeer(peerid, pubkey)
     
     def order(self):
         """The order of a graph equals the number of vertices it contains"""
@@ -123,24 +115,18 @@ class Graph:
     def maxDegree(self):
         return max([v.degree() for v in self.getVertices()])
     
-    def insert(self, *vertices):
-        """Insert one or more vertices into the graph"""
-        for v in vertices:
-            self.names[v.name] = v
+    def connect(self, v1, v2):
+        nidsV1 = self.get(v1).getAvailableNIDs()
+        nidsV2 = self.get(v2).getAvailableNIDs()
+        nid = random.choice(list(nidsV1.intersection(nidsV2)))
+        self.get(v1).addNeighbor(v2, nid)
+        self.get(v2).addNeighbor(v1, nid)
     
-    def removeVertex(self, vertex):
-        if vertex in self.names:
-            for otherVertex in self.names[vertex].getNbrs():
-                self.names[otherVertex].removeEdge(vertex)
-            del self.names[vertex]
-    
-    def connect(self, v1, v2, w1=1, w2=1):
-        """Connect v1 to v2 with weight w1 and v2 to v1 with weight w2"""
-        try:
-            self.get(v1).addEdge((v2, w1))
-            self.get(v2).addEdge((v1, w2))
-        except KeyError, k:
-            print "Vertex", k, "was not found"
+    def disconnect(self, peerid):
+        if peerid in self.names:
+            for neighborOf in self.names[peerid].getNbrs():
+                self.names[neighborOf].removeEdge(peerid)
+            del self.names[peerid]
     
     def bfConnected(self, source):
         """Return all vertices connected to source, breadth first"""
@@ -167,7 +153,7 @@ class Graph:
         return False
     
     def shortestPath(self, s, d):
-        """Returns shortest path from s to d as a list of relative IDs
+        """Returns shortest path from s to d as a list of peer IDs
         
         Arguments:
         s -- name of the source vertex
@@ -176,7 +162,7 @@ class Graph:
         source = self.get(s)
         dest = self.get(d)     
         paths = dict.fromkeys(self.getNames(), [])
-        distances = dict.fromkeys(self.getNames(), _INFINITY)
+        distances = dict.fromkeys(self.getNames(), INFINITY)
         
         distances[source.name] = 0 # The distance of the source to itself is 0
         dist_to_unknown = distances.copy() # Select the next vertex to explore from this dict
@@ -186,51 +172,62 @@ class Graph:
             # minimizes the already-known distances.
             min_name = min([(v, k) for (k, v) in dist_to_unknown.iteritems()])[1]
             next = self.get(min_name)
-            for n, d in next.edges.itervalues(): # n is the name of an adjacent vertex, d is the distance to it
+            for n, info in next.neighbors.iteritems(): # n is the name of an adjacent vertex, info is dict of dist and nid
+                d = info.get('dist')
                 if distances[next.name] + d < distances[n]:
                     distances[n] = distances[next.name] + d
-                    paths[n] = paths[next.name] + [next.redges[n]]
+                    paths[n] = paths[next.name] + [n]
                 if n in dist_to_unknown:
                     dist_to_unknown[n] = distances[n]
             last = next
             if last.name in dist_to_unknown: # Delete the completely explored vertex
                 del dist_to_unknown[last.name]
         return paths[dest.name]
+
+    def getTrackingCode(self, source, dest):
+        """Generate the tracking code for the shortest path from source to dest
+        Arguments:
+        source -- Name of the start vertex
+        dest -- Name of the end vertex
+        tclen -- Length of the tracker code to be generated (default 10)
+        tcmaxval -- Maximum value allowed to be added as padding (should be
+                    equal to the maximum order of any vertex in the graph)
+        """
+        v_source = self.get(source)
+        v_dest = self.get(dest)
+        
+        # Block direct connections from source to dest
+        sd_temp = v_source.getWeight(dest)
+        if sd_temp:
+            v_source.reWeight(dest, INFINITY) 
+        
+        pathByNames = self.shortestPath(source,dest)
+        tc = pathByNames
+        #tc = self.encryptTC(pathByNames)
+        
+        #Obsolete padding
+        #maxval = 5#(graph.maxDegree() + graph.minDegree())/2
+        #padding_data = sha(str(hash(v_dest) ^ hash(tuple(tc)))).digest()
+        #padding = [str(ord(i)%maxval) for i in padding_data[:(tclen-(len(tc)-1))]]
+        #tc.extend(padding)
+        
+        v_source.reWeight(dest, sd_temp)
+        return TC_DELIMITER.join(tc)
+    
+    def encryptTC(self, pathByNames, plaintext='#'):
+        #TODO: Padding
+        message = plaintext # Some easy to check string for recipient to read + padding
+        prev_neighbor = None
+        for peername in reversed(pathByNames):
+            peerobj = self.get(peername)
+            if prev_neighbor:
+                message = prev_neighbor.getnid(peer) + message
+            peerobj.pubkey.encrypt(message)
+            prev_neighbor = peerobj
+        return message # result: E_a(TC_b + E_b(TC_c + E_c(message)))
     
     def __repr__(self):
         return "\n".join(map(Vertex.printConnections, self.names.values()))
-
-
-
-def getTrackingCode(graph, source, dest):
-    """Generate the tracking code for the shortest path from source to dest
-    Arguments:
-    graph -- The graph to be searched
-    source -- Name of the start vertex
-    dest -- Name of the end vertex
-    tclen -- Length of the tracker code to be generated (default 10)
-    tcmaxval -- Maximum value allowed to be added as padding (should be
-                equal to the maximum order of any vertex in the graph)
-    """
-    v_source = graph.get(source)
-    v_dest = graph.get(dest)
-    
-    sd_temp = v_source.getWeight(dest)
-    if sd_temp:
-        # Block direct connections from source to dest
-        v_source.reWeight(dest, _INFINITY) 
-    
-    tc = graph.shortestPath(source,dest)
-    tc = map(str, tc)
-    
-    maxval = 5#(graph.maxDegree() + graph.minDegree())/2
-    padding_data = sha(str(hash(v_dest) ^ hash(tuple(tc)))).digest()
-    padding = [str(ord(i)%maxval) for i in padding_data[:(tclen-(len(tc)-1))]]
-    tc.extend(padding)
-    
-    
-    v_source.reWeight(dest, sd_temp)
-    return _TC_DELIMITER.join(tc)
 
 
 def tcTest(numnodes=10, numedges=20):
@@ -242,16 +239,18 @@ def tcTest(numnodes=10, numedges=20):
     #   Vertex(G_ips[3], zip(G_ips[4:6], (1,3))), \
     #   Vertex(G_ips[4], ((G_ips[5],1), (G_ips[0],1))), \
     #   Vertex(G_ips[5], ())]
-    graph = Graph()
-    graph.insert(*[Vertex(ip) for ip in G_ips])
+    graph = NetworkModel()
+    for peerid in G_ips:
+        graph.addPeer(peerid, None)
+    #graph.insert(*[Vertex(ip) for ip in G_ips])
     for i in range(numedges):
         v1,v2 = sample(G_ips, 2)
-        graph.connect(v1, v2, 1, 1)
+        graph.connect(v1, v2)
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
     #print "Graph is connected? ", graph.isConnected()
     for i in range(10):
         n1, n2 = sample(range(graph.order()), 2)
-        print "\t%d, %d:" % (n1, n2), getTrackingCode(graph, G_ips[n1], G_ips[n2])
+        print "\t%d, %d:" % (n1, n2), graph.getTrackingCode(G_ips[n1], G_ips[n2])
     #print "\t0, 3:", getTrackingCode(graph, G_ips[0], G_ips[3])
     #print "\t3, 0:", getTrackingCode(graph, G_ips[3], G_ips[0])
     #print "\t5, 2:", getTrackingCode(graph, G_ips[5], G_ips[2])
@@ -259,14 +258,10 @@ def tcTest(numnodes=10, numedges=20):
     #print "\t2, 4:", getTrackingCode(graph, G_ips[2], G_ips[4])
 
 if __name__ == "__main__":
+    from sys import argv
     options = {}
     for opt in argv[1:]:
         o = opt.strip('-')
         key,val = o.split('=')
         options[key] = int(val)
-    arglist = []
-    if options.has_key('numNodes'):
-        arglist.append(options['numNodes'])
-    if options.has_key('numEdges'):
-        arglist.append(options['numEdges'])
-    tcTest(*arglist)
+    tcTest(**options)

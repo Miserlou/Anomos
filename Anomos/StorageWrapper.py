@@ -17,8 +17,8 @@ from array import array
 from binascii import b2a_hex
 
 from Anomos.bitfield import Bitfield
+from Anomos.crypto import AESKeyManager
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
-from Anomos import AESKeyManager
 
 def toint(s):
     return int(b2a_hex(s), 16)

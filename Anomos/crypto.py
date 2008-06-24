@@ -11,18 +11,15 @@ for other functions used directly, look at RSA.py and EVP.py in M2Crypto
 """
 
 import sys
-import M2Crypto
 import os
 import cStringIO
 from binascii import hexlify, unhexlify
 from M2Crypto import Rand, RSA, m2, util, EVP
 
-# We should store the keys in the data_dir (~/.anomos). Otherwise they get
-# saved wherever the tracker is started.
 ## Apparently the tracker doesn't use the data_dir like clients do. So I'm storing
 ## keys in a directory called 'crypto/' within wherever the tracker was run.
 ## you can specify data_dir='somedir' to put it somewhere else.
-class RSAKeyPair:
+class RSAKeyPair(RSAPubKey):
     def __init__(self, alias, data_dir='', crypto_dir='crypto', key_size=1024, padding='pkcs1_oaep_padding'):
         self.alias = alias
         self.crypto_path = os.path.join(data_dir, crypto_dir)
@@ -55,16 +52,17 @@ class RSAKeyPair:
 
     def loadKeysFromPEM(self):
         if self.pubkey and self.pvtkey:
-            return #TODO: Probably should have some warning here.
+            raise RSA.RSAError("Key already initialized")
         # Don't bother checking if these paths exist, they'll raise
         # an IOError if they don't and we'll catch that to determine if we need to
         # generate a key.
         self.pvtkey = RSA.load_key(self.pvtkeyfilename)
         self.pubkey = RSA.load_pub_key(self.pubkeyfilename)
     
-    def encrypt(self, data):
-        if self.pubkey and self.pvtkey:
-            return self.pubkey.public_encrypt(data, self.padding)
+    #Inherits encrypt function from RSAPubKey
+    #def encrypt(self, data):
+    #    if self.pubkey and self.pvtkey:
+    #        return self.pubkey.public_encrypt(data, self.padding)
     
     def decrypt(self, data):
         if self.pubkey and self.pvtkey:
@@ -74,17 +72,18 @@ class RSAPubKey:
     #This seems stupid now but we need a place to put a nice encryption function.
     '''Initialize from (e,n) tuple'''
     def __init__(self, en):
-        self.key = RSA.new_pub_key(en)
+        self.pubkey = RSA.new_pub_key(en)
 
     def encrypt(self, data):
         #This is not a nice encryption function.
-        return self.key.public_encrypt(data, RSA.pkcs1_oaep_padding)
+        return self.pubkey.public_encrypt(data, RSA.pkcs1_oaep_padding)
 
 class AESKeyManager:
     def __init__(self, data_dir='', crypto_dir='crypto', algorithm='aes_128_cfb'):
         self.crypto_path = os.path.join(data_dir, crypto_dir)
         if not os.path.exists(self.crypto_path):
             os.mkdir(self.crypto_path)
+        self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
         self.aeskeys = {}
         self.algorithm = algorithm
     
@@ -128,19 +127,20 @@ class AESKeyManager:
         obuf.close()
         return decrypted
     
-    ##32 random bytes
-    def getRand32(self):
-        Rand.load_file(os.path.join(self.crypto_path, 'randpool.dat'), -1)
-        rb = Rand.rand_bytes(32);
-        Rand.save_file(os.path.join(self.crypto_path, 'randpool.dat'))
-        return rb
-
     def getNewAES(self):
-        return self.getRand32()
+        return getRand32(self.randfile)
 
-    def getNewIV():
-        return self.getRand32()
+    def getNewIV(self):
+        return getRand32(self.randfile)
 
+
+##Moved out of AESManager -- general enough to be a module function.
+##32 random bytes
+def getRand32(randfile):
+    Rand.load_file(randfile, -1)
+    rb = Rand.rand_bytes(32);
+    Rand.save_file(randfile)
+    return rb
 
       
 secret = "Call me subwoofa cause I push so much base!"
