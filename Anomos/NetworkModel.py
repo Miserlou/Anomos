@@ -22,6 +22,8 @@ of the original sender or the ultimate receiver of the file chunk.
 import random
 from sys import maxint
 from sha import sha
+from crypto import RSAPubKey
+from M2Crypto import RSA
 
 INFINITY = maxint-1
 TC_DELIMITER = ":"
@@ -40,7 +42,7 @@ class SimPeer:
         @param maxid: Maximum value for Neighbor IDs
         """
         self.name = name
-        self.pubKey = pubkey
+        self.pubkey = pubkey
         self.maxid = maxid
         self.neighbors = {}
         self.id_map = {}
@@ -260,7 +262,7 @@ class NetworkModel:
             v_source.reWeight(dest, sd_temp)
         return self.encryptTC(pathByNames)
     
-    def encryptTC(self, pathByNames, plaintext='#'):
+    def encryptTC(self, pathByNames, plaintext='#', msglen=1024):
         """
         Returns an encrypted tracking code
         @see: http://anomos.info/wp/2008/06/19/tracking-codes-revised/
@@ -278,9 +280,13 @@ class NetworkModel:
         for peername in reversed(pathByNames):
             peerobj = self.get(peername)
             if prev_neighbor:
-                message = prev_neighbor.getNID(peer) + message
-            peerobj.pubkey.encrypt(message)
+                cipherd = peerobj.pubkey.encrypt(str(prev_neighbor.getNID(peername)))
+                message = cipherd + message
+            else:
+                message = peerobj.pubkey.encrypt(message)
             prev_neighbor = peerobj
+        while len(message) < msglen:
+            message += chr(random.randint(0,255))
         return message
     
     def __repr__(self):
@@ -301,16 +307,19 @@ def tcTest(numnodes=10, numedges=20):
     #   Vertex(G_ips[5], ())]
     graph = NetworkModel()
     for peerid in G_ips:
-        graph.addPeer(peerid, None)
+        en = RSA.gen_key(1024,65537).pub()
+        pk = RSAPubKey(en)
+        graph.addPeer(peerid, pk)
     #graph.insert(*[Vertex(ip) for ip in G_ips])
     for i in range(numedges):
         v1,v2 = sample(G_ips, 2)
         graph.connect(v1, v2)
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
     #print "Graph is connected? ", graph.isConnected()
-    for i in range(10):
+    for i in range(1):
         n1, n2 = sample(range(graph.order()), 2)
-        print "\t%d, %d:" % (n1, n2), graph.getTrackingCode(G_ips[n1], G_ips[n2])
+        print len(graph.getTrackingCode(G_ips[n1], G_ips[n2]))
+        #print "\t%d, %d:" % (n1, n2), graph.getTrackingCode(G_ips[n1], G_ips[n2])
     #print "\t0, 3:", getTrackingCode(graph, G_ips[0], G_ips[3])
     #print "\t3, 0:", getTrackingCode(graph, G_ips[3], G_ips[0])
     #print "\t5, 2:", getTrackingCode(graph, G_ips[5], G_ips[2])

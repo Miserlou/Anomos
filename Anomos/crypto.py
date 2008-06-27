@@ -13,26 +13,39 @@ for other functions used directly, look at RSA.py and EVP.py in M2Crypto
 import sys
 import os
 import cStringIO
-from binascii import hexlify, unhexlify
+import sha
+import random
+from binascii import b2a_hex, a2b_hex
 from M2Crypto import Rand, RSA, m2, util, EVP
 
+def tobinary(i):
+    return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
+
 class RSAPubKey:
-    def __init__(self, en):
+    def __init__(self, en, data_dir='', crypto_dir='crypto'):
         """
         @param en: exponent and n components of key to initialize new public key from
         @type en: tuple of form (e, n)
         """
         self.pubkey = RSA.new_pub_key(en)
-
-    def encrypt(self, data):
+        self.crypto_path = os.path.join(data_dir, crypto_dir)
+        self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
+    
+    def encrypt(self, data, padto=1024):
         """
         @type data: string
-        @return: ciphertext of data
-        
-        @todo: Write stream encryption for RSA and/or switch to RSA encrypted AES keys for bulk encryption (for speed)
+        @return: ciphertext of data, format: [RSA encrypted session key][Checksum(sessionkey, info, content)][info -- msg length etc.][content][padding]
+        @rtype: string
         """
-        return self.pubkey.public_encrypt(data, RSA.pkcs1_oaep_padding)
-
+        sessionkey = AESKey(None, self.randfile)
+        esk = self.pubkey.public_encrypt(sessionkey.key, RSA.pkcs1_oaep_padding)
+        msglen = tobinary(len(data)) # Anything else here?
+        checksum = sha.new(sessionkey.key + msglen + data).digest()
+        ciphertext = sessionkey.encrypt(sessionkey.key, checksum + msglen + data)
+        padlen = padto-(len(esk)+len(ciphertext))
+        padding = "".join(chr(random.randint(0,255)) for i in range(padlen))
+        return esk + ciphertext + padding
+        
 ## Apparently the tracker doesn't use the data_dir like clients do. So I'm storing
 ## keys in a directory called 'crypto/' within wherever the tracker was run.
 ## you can specify data_dir='somedir' to put it somewhere else.
@@ -71,12 +84,9 @@ class RSAKeyPair(RSAPubKey):
         Generate new RSA key and save it to file
         """
         Rand.load_file(self.randfile, -1)
-        
         rsa = RSA.gen_key(self.key_size, m2.RSA_F4)  ## RSA_F4 == 65537; exponent: 65537 is secure
-        
         rsa.save_key(self.pvtkeyfilename)
         rsa.save_pub_key(self.pubkeyfilename)
-        
         Rand.save_file(self.randfile)
 
     def loadKeysFromPEM(self):
@@ -86,9 +96,6 @@ class RSAKeyPair(RSAPubKey):
         """
         if self.pubkey and self.pvtkey:
             raise RSA.RSAError("Key already loaded")
-        # Don't bother checking if these paths exist, they'll raise
-        # an IOError if they don't and we'll catch that to determine if we need to
-        # generate a key.
         self.pvtkey = RSA.load_key(self.pvtkeyfilename)
         self.pubkey = RSA.load_pub_key(self.pubkeyfilename)
     
@@ -100,41 +107,46 @@ class RSAKeyPair(RSAPubKey):
         Decrypts data encrypted with this public key
         
         @type data: string
+        @raise ValueError: Bad Checksum
         """
-        if self.pubkey and self.pvtkey:
+        byte_key_size = self.key_size/8
+        if len(data) <= byte_key_size:
             return self.pvtkey.private_decrypt(data, self.padding)
+        
+        # Data is longer than key, twas bulk encrypted.
+        # Decrypt the session key with our private key
+        tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
+        # TODO: What to do about IVs in this case?
+        sessionkey = AESKey(tmpsk, self.randfile) # tmpsk is standing in for IV!!!!
+        # Decrypt the rest of the message with the session key
+        content = sessionkey.decrypt(tmpsk, data[byte_key_size:])
+        pos = sha.digestsize
+        givenchksum = content[:pos] # first 20 bytes
+        smsglen = content[pos:pos+4] # next 4 bytes
+        imsglen = int(b2a_hex(smsglen), 16)
+        pos += 4
+        message = content[pos:pos+imsglen]
+        mychksum = sha.new(tmpsk+smsglen+message).digest()
+        if givenchksum != mychksum:
+            raise ValueError("Bad Checksum - Data may have been tampered with") 
+        return message
 
-class AESKeyManager:
-    def __init__(self, data_dir='', crypto_dir='crypto', algorithm='aes_128_cfb'):
+
+class AESKey:
+    def __init__(self, key=None, randfile='randpool.dat', algorithm='aes_128_cfb'):
         """
-        @param data_dir: Directory where data is stored
-        @param crypto_dir: Directory (under data_dir) to store keys and randfiles in
+        @param randfile: Path to randfile
         @param algorithm: encryption algorithm to use
+        @param key: 32 byte string to use as key
         """
-        self.crypto_path = os.path.join(data_dir, crypto_dir)
-        if not os.path.exists(self.crypto_path):
-            os.mkdir(self.crypto_path)
-        self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
-        self.aeskeys = {}
+        #TODO: Check if randfile exists
+        self.randfile=randfile
         self.algorithm = algorithm
-    
-    def addKey(self, alias, key=None):
-        """
-        Add key to keyring with name alias, if no key given, generate a new one.
-        @type alias: string
-        @type key: string
-        """
         if key:
-            self.aeskeys[alias] = key
+            self.key = key
         else:
-            self.aeskeys[alias] = self.getNewAES()
-    
-    def getKey(self, alias):
-        return self.aeskeys.get(alias, '')
-    
-    def containsKey(self, alias):
-        return self.aeskeys.has_key(alias)
-    
+            self.key = self.newAES()
+        
     ##this is where the actual ciphering is done
     def cipher_filter(self, cipher, inf, outf):
         while 1:
@@ -145,7 +157,7 @@ class AESKeyManager:
         outf.write(cipher.final())
         return outf.getvalue()
     
-    def encrypt(self, key, iv, text):
+    def encrypt(self, iv, text):
         """
         @param key: Alias of key to encrypt with
         @type key: string
@@ -156,13 +168,13 @@ class AESKeyManager:
         """
         sbuf=cStringIO.StringIO(text)
         obuf=cStringIO.StringIO()
-        encoder = EVP.Cipher(self.algorithm, self.getKey(key), iv, 1)
-        encrypted = hexlify(self.cipher_filter(encoder, sbuf, obuf))
+        encoder = EVP.Cipher(self.algorithm, self.key, iv, 1)
+        encrypted = self.cipher_filter(encoder, sbuf, obuf)
         sbuf.close()
         obuf.close()
         return encrypted
     
-    def decrypt(self, key, iv, text):
+    def decrypt(self, iv, text):
         """
         @param key: Alias of key to decrypt with
         @type key: string
@@ -171,24 +183,45 @@ class AESKeyManager:
         @param text: Ciphertext to decrypt
         @type text: string
         """
-        obuf = cStringIO.StringIO(unhexlify(text))
+        obuf = cStringIO.StringIO(text)
         sbuf = cStringIO.StringIO()
-        decoder = EVP.Cipher(self.algorithm, self.getKey(key), iv, 0)
+        decoder = EVP.Cipher(self.algorithm, self.key, iv, 0)
         decrypted = self.cipher_filter(decoder, obuf, sbuf)
         sbuf.close()
         obuf.close()
         return decrypted
     
-    def getNewAES(self):
+    def newAES(self):
         """
         @return: 32byte AES key
         @rtype: string
         """
         return getRand32(self.randfile)
-
-    def getNewIV(self):
+    
+    def newIV(self):
         return getRand32(self.randfile)
 
+#This class is most likely useless.
+#class AESKeyManager:
+#    def __init__(self):
+#        self.aeskeys = {}
+#    
+#    def addKey(self, alias, key=None):
+#        """
+#        Add key to keyring with name alias, if no key given, generate a new one.
+#        @type alias: string
+#        @type key: string
+#        """
+#        if key:
+#            self.aeskeys[alias] = key
+#        else:
+#            self.aeskeys[alias] = AESKey(self.randfile)
+#    
+#    def getKey(self, alias):
+#        return self.aeskeys.get(alias, '')
+#    
+#    def containsKey(self, alias):
+#        return self.aeskeys.has_key(alias)
 
 ##Moved out of AESManager -- general enough to be a module function.
 ##32 random bytes
@@ -206,22 +239,21 @@ def getRand32(randfile):
 secret = "Call me subwoofa cause I push so much base!"
 
 def testCrypto():
-    # Test AESKeyManager
-    km = AESKeyManager()
-    km.addKey('12345') #'12345' is an alias for the key, 
-    iv = km.getRand32()
+    # Test AESKey
+    key = AESKey(None, '/home/john/anomos/crypto/randpool.dat')
+    iv = key.newIV()
     
     print "Unencrypted:", secret
 
-    encrypted = km.encrypt('12345', iv, secret)
+    encrypted = key.encrypt(iv, secret)
     print encrypted
-    print km.decrypt('12345', iv,encrypted)
+    print key.decrypt(iv,encrypted)
     
     # Test RSAKeyPair
     rsa = RSAKeyPair('WampWamp')
     encrypted = rsa.encrypt(secret)
-    print encrypted
-    print rsa.decrypt(encrypted)
+    print "Encrypted: " + encrypted
+    print "Decrypted: " + rsa.decrypt(encrypted)
 
 if __name__ == "__main__":
     testCrypto()
