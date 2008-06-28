@@ -31,20 +31,26 @@ class RSAPubKey:
         self.crypto_path = os.path.join(data_dir, crypto_dir)
         self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
     
-    def encrypt(self, data, padto=1024):
+    def encrypt(self, data, rmsglen=None):
         """
         @type data: string
         @return: ciphertext of data, format: [RSA encrypted session key][Checksum(sessionkey, info, content)][info -- msg length etc.][content][padding]
         @rtype: string
         """
         sessionkey = AESKey(None, self.randfile)
-        esk = self.pubkey.public_encrypt(sessionkey.key, RSA.pkcs1_oaep_padding)
-        msglen = tobinary(len(data)) # Anything else here?
-        checksum = sha.new(sessionkey.key + msglen + data).digest()
-        ciphertext = sessionkey.encrypt(sessionkey.key, checksum + msglen + data)
-        padlen = padto-(len(esk)+len(ciphertext))
+        iv = sessionkey.newIV()
+        esk = self.pubkey.public_encrypt(sessionkey.key+iv, RSA.pkcs1_oaep_padding)
+        if rmsglen:
+            bmsglen = tobinary(rmsglen)
+        else:
+            rmsglen = len(data)
+            bmsglen = tobinary(len(data))
+        checksum = sha.new(sessionkey.key + iv + bmsglen + data[:rmsglen]).digest()
+        content = checksum + bmsglen + data
+        padlen = 32-(len(content)%32)
         padding = "".join(chr(random.randint(0,255)) for i in range(padlen))
-        return esk + ciphertext + padding
+        ciphertext = sessionkey.encrypt(iv, content+padding)
+        return esk + ciphertext
         
 ## Apparently the tracker doesn't use the data_dir like clients do. So I'm storing
 ## keys in a directory called 'crypto/' within wherever the tracker was run.
@@ -108,28 +114,32 @@ class RSAKeyPair(RSAPubKey):
         
         @type data: string
         @raise ValueError: Bad Checksum
+        @return: (decrypted message, padding)
+        @rtype: tuple
         """
         byte_key_size = self.key_size/8
         if len(data) <= byte_key_size:
             return self.pvtkey.private_decrypt(data, self.padding)
         
         # Data is longer than key, twas bulk encrypted.
-        # Decrypt the session key with our private key
+        # Decrypt the session key and IV with our private key
         tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
-        # TODO: What to do about IVs in this case?
-        sessionkey = AESKey(tmpsk, self.randfile) # tmpsk is standing in for IV!!!!
+        sk = tmpsk[:32] # Session Key
+        iv = tmpsk[32:] # IV
+        sessionkey = AESKey(sk, self.randfile)
         # Decrypt the rest of the message with the session key
-        content = sessionkey.decrypt(tmpsk, data[byte_key_size:])
+        content = sessionkey.decrypt(iv, data[byte_key_size:])
         pos = sha.digestsize
         givenchksum = content[:pos] # first 20 bytes
         smsglen = content[pos:pos+4] # next 4 bytes
         imsglen = int(b2a_hex(smsglen), 16)
         pos += 4
         message = content[pos:pos+imsglen]
+        pos += imsglen
         mychksum = sha.new(tmpsk+smsglen+message).digest()
         if givenchksum != mychksum:
             raise ValueError("Bad Checksum - Data may have been tampered with") 
-        return message
+        return (message, content[pos:])
 
 
 class AESKey:
@@ -149,11 +159,8 @@ class AESKey:
         
     ##this is where the actual ciphering is done
     def cipher_filter(self, cipher, inf, outf):
-        while 1:
-            buf=inf.read() # This will read whole string, should it be 32 bytes instead?
-            if not buf:
-                break
-            outf.write(cipher.update(buf))
+        buf=inf.read()
+        outf.write(cipher.update(buf))
         outf.write(cipher.final())
         return outf.getvalue()
     
@@ -246,14 +253,14 @@ def testCrypto():
     print "Unencrypted:", secret
 
     encrypted = key.encrypt(iv, secret)
-    print encrypted
+    print b2a_hex(encrypted)
     print key.decrypt(iv,encrypted)
     
     # Test RSAKeyPair
     rsa = RSAKeyPair('WampWamp')
     encrypted = rsa.encrypt(secret)
-    print "Encrypted: " + encrypted
-    print "Decrypted: " + rsa.decrypt(encrypted)
+    print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
+    print "Decrypted: ", rsa.decrypt(encrypted)
 
 if __name__ == "__main__":
     testCrypto()

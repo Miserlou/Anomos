@@ -22,11 +22,17 @@ of the original sender or the ultimate receiver of the file chunk.
 import random
 from sys import maxint
 from sha import sha
-from crypto import RSAPubKey
+from crypto import RSAPubKey, RSAKeyPair
 from M2Crypto import RSA
 
 INFINITY = maxint-1
 TC_DELIMITER = ":"
+
+DEBUG_ON = True
+def DEBUG(*args):
+    global DEBUG_ON
+    if DEBUG_ON:
+        print args
 
 class SimPeer:
     """
@@ -164,9 +170,13 @@ class NetworkModel:
         """
         nidsV1 = self.get(v1).getAvailableNIDs()
         nidsV2 = self.get(v2).getAvailableNIDs()
-        nid = random.choice(list(nidsV1.intersection(nidsV2)))
-        self.get(v1).addNeighbor(v2, nid)
-        self.get(v2).addNeighbor(v1, nid)
+        l = list(nidsV1.intersection(nidsV2))
+        if len(l):
+            nid = random.choice(l)
+            self.get(v1).addNeighbor(v2, nid)
+            self.get(v2).addNeighbor(v1, nid)
+        else:
+            raise RuntimeError("Peers cannot be connected.")
     
     def disconnect(self, peerid):
         """
@@ -257,7 +267,8 @@ class NetworkModel:
         sd_temp = v_source.getWeight(dest)
         if sd_temp:
             v_source.reWeight(dest, INFINITY)         
-        pathByNames = self.shortestPath(source,dest)
+        pathByNames = [source] + self.shortestPath(source,dest)
+        DEBUG(pathByNames)
         if sd_temp:
             v_source.reWeight(dest, sd_temp)
         return self.encryptTC(pathByNames)
@@ -280,10 +291,10 @@ class NetworkModel:
         for peername in reversed(pathByNames):
             peerobj = self.get(peername)
             if prev_neighbor:
-                cipherd = peerobj.pubkey.encrypt(str(prev_neighbor.getNID(peername)))
-                message = cipherd + message
+                tcnum = str(prev_neighbor.getNID(peername))
+                message = peerobj.pubkey.encrypt(tcnum + message, len(tcnum))
             else:
-                message = peerobj.pubkey.encrypt(message)
+                message = peerobj.pubkey.encrypt(message, len(message))
             prev_neighbor = peerobj
         while len(message) < msglen:
             message += chr(random.randint(0,255))
@@ -297,34 +308,29 @@ class NetworkModel:
 ##TESTING##
 ###########
 def tcTest(numnodes=10, numedges=20):
-    from random import sample
+    from binascii import b2a_hex
     G_ips = ['.'.join([str(i)]*4) for i in range(numnodes)]
-    #Graph = [Vertex(G_ips[0], zip(G_ips[1:3], (1,1))), \
-    #   Vertex(G_ips[1], zip(G_ips[2:4], (1,1))), \
-    #   Vertex(G_ips[2], ()), \
-    #   Vertex(G_ips[3], zip(G_ips[4:6], (1,3))), \
-    #   Vertex(G_ips[4], ((G_ips[5],1), (G_ips[0],1))), \
-    #   Vertex(G_ips[5], ())]
     graph = NetworkModel()
+    pk = RSAKeyPair('WampWamp') # All use same RSA key for testing.
     for peerid in G_ips:
-        en = RSA.gen_key(1024,65537).pub()
-        pk = RSAPubKey(en)
         graph.addPeer(peerid, pk)
-    #graph.insert(*[Vertex(ip) for ip in G_ips])
     for i in range(numedges):
-        v1,v2 = sample(G_ips, 2)
-        graph.connect(v1, v2)
+        n1, n2 = random.sample(range(graph.order()), 2)    
+        graph.connect(G_ips[n1], G_ips[n2])
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
-    #print "Graph is connected? ", graph.isConnected()
-    for i in range(1):
+    for i in range(5):
         n1, n2 = sample(range(graph.order()), 2)
-        print len(graph.getTrackingCode(G_ips[n1], G_ips[n2]))
-        #print "\t%d, %d:" % (n1, n2), graph.getTrackingCode(G_ips[n1], G_ips[n2])
-    #print "\t0, 3:", getTrackingCode(graph, G_ips[0], G_ips[3])
-    #print "\t3, 0:", getTrackingCode(graph, G_ips[3], G_ips[0])
-    #print "\t5, 2:", getTrackingCode(graph, G_ips[5], G_ips[2])
-    #print "\t2, 5:", getTrackingCode(graph, G_ips[2], G_ips[5])
-    #print "\t2, 4:", getTrackingCode(graph, G_ips[2], G_ips[4])
+        print "Tracking code #%d from %s to %s" % (i, G_ips[n1], G_ips[n2])
+        x = graph.getTrackingCode(G_ips[n1], G_ips[n2])
+        print "Encrypted Tracking Code: ", b2a_hex(x)
+        print "Length: ", len(x)
+        tc = []
+        m, p = pk.decrypt(x)
+        tc.append(m)
+        while m != '#':
+            m, p = pk.decrypt(p)
+            tc.append(m)
+        print "Decrypted Tracking Code  ", ":".join(tc)
 
 if __name__ == "__main__":
     from sys import argv
