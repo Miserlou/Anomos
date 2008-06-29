@@ -14,9 +14,7 @@ and the peer which the Vertex object represents.
 To determine how a chunk should get from uploader to downloader, the
 Anomos tracker computes the shortest path between the two and returns
 a colon delimited tracking code consisting of the relative IDs of each
-edge in the path. Since the IDs are relative, the tracking code may be
-sent to any individual in the network without compromising the identity 
-of the original sender or the ultimate receiver of the file chunk.
+edge in the path.
 """
 
 import random
@@ -251,7 +249,7 @@ class NetworkModel:
             last = cur
         return paths[dest.name]
 
-    def getTrackingCode(self, source, dest):
+    def getTrackingCode(self, source, dest, plaintext='#'):
         """
         Generate the tracking code for the shortest path from source to dest
         
@@ -271,7 +269,7 @@ class NetworkModel:
         DEBUG(pathByNames)
         if sd_temp:
             v_source.reWeight(dest, sd_temp)
-        return self.encryptTC(pathByNames)
+        return self.encryptTC(pathByNames, plaintext)
     
     def encryptTC(self, pathByNames, plaintext='#', msglen=1024):
         """
@@ -325,10 +323,10 @@ def tcTest(numnodes=10, numedges=20):
         print "Encrypted Tracking Code: ", b2a_hex(x)
         print "Length: ", len(x)
         tc = []
-        m, p = pk.decrypt(x)
+        m, p = pk.decrypt(x, True)
         tc.append(m)
         while m != '#':
-            m, p = pk.decrypt(p)
+            m, p = pk.decrypt(p, True)
             tc.append(m)
         print "Decrypted Tracking Code  ", ":".join(tc)
 

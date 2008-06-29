@@ -15,7 +15,7 @@ from socket import error, gethostbyname
 from time import time
 from random import random, randrange
 from binascii import b2a_hex
-from urlparse import urlparse
+from urlparse import urlparse, urlunparse
 
 from Anomos.zurllib import urlopen, quote, Request
 from Anomos.btformats import check_peers
@@ -157,8 +157,8 @@ class Rerequester(object):
         # Encrypt query here.
         if self.pubkey:
             (scheme, netloc, path, pars, query, fragment) = urlparse(url)
-            query = self.pubkey.encrypt(query)
-            url = ''.join(scheme, netloc, path, pars, query, fragment)
+            query = "pke=%s" % (b2a_hex(self.pubkey.encrypt(query)))
+            url = urlunparse((scheme, netloc, path, pars, query, fragment))
         request = Request(url)
         if self.config['tracker_proxy']:
             request.set_proxy(self.config['tracker_proxy'], 'http')

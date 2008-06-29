@@ -206,7 +206,10 @@ class _SingleTorrent(object):
         self._activity = ('Initial startup', 0)
         self.feedback = None
         self.errors = []
+        self.myid = None
+        self.client_pubkey = None
         self.tracker_pubkey = None
+        self.neighbors = {}
         
     def start_download(self, *args, **kwargs):
         it = self._start_download(*args, **kwargs)
@@ -222,7 +225,6 @@ class _SingleTorrent(object):
 
     def _start_download(self, metainfo, feedback, save_path):
         self.feedback = feedback
-        config = self.config
         self._set_auto_uploads()
 
         self.infohash = metainfo.infohash
@@ -233,8 +235,8 @@ class _SingleTorrent(object):
         if metainfo.publickey:
             self.tracker_pubkey = RSAPubKey(metainfo.publickey)
         
-        myid = self._make_id()
-        seed(myid)
+        self._make_id()
+        seed(self.myid)
         def schedfunc(func, delay):
             self._rawserver.add_task(func, delay, self)
         def externalsched(func, delay):
@@ -245,11 +247,11 @@ class _SingleTorrent(object):
             myfiles = [save_path]
         self._filepool.add_files(myfiles, self)
         self._myfiles = myfiles
-        self._storage = Storage(config, self._filepool, zip(myfiles,
+        self._storage = Storage(self.config, self._filepool, zip(myfiles,
                                                             metainfo.sizes))
         resumefile = None
-        if config['data_dir']:
-            filename = os.path.join(config['data_dir'], 'resume',
+        if self.config['data_dir']:
+            filename = os.path.join(self.config['data_dir'], 'resume',
                                     self.infohash.encode('hex'))
             if os.path.exists(filename):
                 try:
@@ -279,7 +281,7 @@ class _SingleTorrent(object):
                 self._activity = (activity, fractionDone)
             try:
                 self._storagewrapper = StorageWrapper(self._storage,
-                     config, metainfo.hashes, metainfo.piece_length,
+                     self.config, metainfo.hashes, metainfo.piece_length,
                      self._finished, statusfunc, self._doneflag, data_flunked,
                      self.infohash, errorfunc, resumefile)
             except:
@@ -299,47 +301,47 @@ class _SingleTorrent(object):
 
         if self._storagewrapper.amount_left == 0:
             self._finished()
-        choker = Choker(config, schedfunc, self.finflag.isSet)
-        upmeasure = Measure(config['max_rate_period'])
-        upmeasure_seedtime = Measure(config['max_rate_period_seedtime'])
-        downmeasure = Measure(config['max_rate_period'])
+        choker = Choker(self.config, schedfunc, self.finflag.isSet)
+        upmeasure = Measure(self.config['max_rate_period'])
+        upmeasure_seedtime = Measure(self.config['max_rate_period_seedtime'])
+        downmeasure = Measure(self.config['max_rate_period'])
         self._upmeasure = upmeasure
         self._downmeasure = downmeasure
         self._ratemeasure = RateMeasure(self._storagewrapper.
                                         amount_left_with_partials)
-        picker = PiecePicker(len(metainfo.hashes), config)
+        picker = PiecePicker(len(metainfo.hashes), self.config)
         for i in xrange(len(metainfo.hashes)):
             if self._storagewrapper.do_I_have(i):
                 picker.complete(i)
         for i in self._storagewrapper.stat_dirty:
             picker.requested(i)
         def kickpeer(connection):
-            def kick():
+            def kick(): # wtf?
                 connection.close()
             schedfunc(kick, 0)
         def banpeer(ip):
             self._encoder.ban(ip)
-        downloader = Downloader(config, self._storagewrapper, picker,
+        downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
                                 kickpeer, banpeer)
         def make_upload(connection):
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
-                        config['max_slice_length'], config['max_rate_period'])
+                        self.config['max_slice_length'], self.config['max_rate_period'])
         self._encoder = Encoder(make_upload, downloader, choker,
                      len(metainfo.hashes), self._ratelimiter, self._rawserver,
-                     config, myid, schedfunc, self.infohash, self)
+                     self.config, self.myid, schedfunc, self.infohash, self)
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port()
             self.reserved_ports.append(self.reported_port)
         self._singleport_listener.add_torrent(self.infohash, self._encoder)
         self._listening = True
-        self._rerequest = Rerequester(metainfo.announce, config,
+        self._rerequest = Rerequester(metainfo.announce, self.config,
             schedfunc, self._encoder.how_many_connections,
             self._encoder.start_connection, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
-            downmeasure.get_total, self.reported_port, myid,
+            downmeasure.get_total, self.reported_port, self.myid,
             self.infohash, self._error, self.finflag, upmeasure.get_rate,
             downmeasure.get_rate, self._encoder.ever_got_incoming,
             self.internal_shutdown, self._announce_done, self.tracker_pubkey)
@@ -516,9 +518,9 @@ class _SingleTorrent(object):
         else:
             return
         self.reported_port = r
-        myid = self._make_id()
-        self._encoder.my_id = myid
-        self._rerequest.change_port(myid, r)
+        self.myid = self._make_id()
+        self._encoder.my_id = self.myid
+        self._rerequest.change_port(self.myid, r)
 
     def _announce_done(self):
         for port in self.reserved_ports[:-1]:
@@ -529,7 +531,7 @@ class _SingleTorrent(object):
         myid = 'M' + version.split()[0].replace('.', '-')
         myid = myid + ('-' * (8-len(myid)))+sha(repr(time())+ ' ' +
                                      str(getpid())).digest()[-6:].encode('hex')
-        return myid
+        self.myid = myid
 
     def _set_auto_uploads(self):
         uploads = self.config['max_uploads']

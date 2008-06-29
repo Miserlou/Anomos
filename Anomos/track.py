@@ -695,11 +695,12 @@ class Tracker(object):
             ##some confirmation should be sent here
             ##decquery = self.rsapvtkey.private_decrypt(query)            ##decrypt!
             
-            paramslist = self.parseQuery(query)
+            paramslist.update(self.parseQuery(query))
+            print paramslist
             if params('pke'):
                 # Decrypt the query
                 binpke = a2b_hex(params('pke'))
-                decquery = self.rsa.decrypt(binpke) 
+                decquery = self.rsa.decrypt(binpke, returnpad=False)
                 # Update with the new params
                 paramslist.update(self.parseQuery(decquery))
             
@@ -750,17 +751,14 @@ class Tracker(object):
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data))
 
     def parseQuery(self, query):
-        if query.startswith("pke"):
-            return dict([query.split('=',1)])
         params = {}
         for s in query.split('&'):
             if s != '':
-                key,val = s.split('=')
+                key,val = s.split('=', 1) # Only split at the first "=" character (necessary for pke= case)
                 kw = unquote(key)
                 kw = kw.replace('+',' ') # TODO: find out if this is absolutely necessary
                 params.setdefault(kw, [])
-                params[kw] += [unquote(val)]
-                
+                params[kw] += [unquote(val),]
         return params
 
     def natcheckOK(self, infohash, peerid, ip, port, not_seed):

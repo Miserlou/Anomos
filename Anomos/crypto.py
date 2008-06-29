@@ -18,6 +18,9 @@ import random
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import Rand, RSA, m2, util, EVP
 
+MESSAGE=0
+PADDING=1
+
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
@@ -39,6 +42,7 @@ class RSAPubKey:
         """
         sessionkey = AESKey(None, self.randfile)
         iv = sessionkey.newIV()
+        # Encrypt the session key which we'll use to bulk encrypt the rest of the data
         esk = self.pubkey.public_encrypt(sessionkey.key+iv, RSA.pkcs1_oaep_padding)
         if rmsglen:
             bmsglen = tobinary(rmsglen)
@@ -99,6 +103,7 @@ class RSAKeyPair(RSAPubKey):
         """
         @raise IOError: If invalid path for (pvt/pub)keyfilename
         @raise RSA.RSAError: If keys were already loaded
+        @raise RSA.RSAError: If you type the wrong password
         """
         if self.pubkey and self.pvtkey:
             raise RSA.RSAError("Key already loaded")
@@ -108,13 +113,18 @@ class RSAKeyPair(RSAPubKey):
     # Inherits encrypt function from RSAPubKey
     # def encrypt(self, data)
     
-    def decrypt(self, data):
+    def decrypt(self, data, returnpad=False):
         """
         Decrypts data encrypted with this public key
         
+        @param data: The data, padding and all, to be decrypted
         @type data: string
+        @param returnpad: return "junk" decrypted padding as well as message. Default: False
+        @type returnpad: boolean
+        
         @raise ValueError: Bad Checksum
-        @return: (decrypted message, padding)
+        
+        @return: tuple (decrypted message, padding) if returnpad is true, string otherwise
         @rtype: tuple
         """
         byte_key_size = self.key_size/8
@@ -139,7 +149,10 @@ class RSAKeyPair(RSAPubKey):
         mychksum = sha.new(tmpsk+smsglen+message).digest()
         if givenchksum != mychksum:
             raise ValueError("Bad Checksum - Data may have been tampered with") 
-        return (message, content[pos:])
+        if returnpad:
+            return (message, content[pos:])
+        else:
+            return message
 
 
 class AESKey:
@@ -209,26 +222,26 @@ class AESKey:
         return getRand32(self.randfile)
 
 #This class is most likely useless.
-#class AESKeyManager:
-#    def __init__(self):
-#        self.aeskeys = {}
-#    
-#    def addKey(self, alias, key=None):
-#        """
-#        Add key to keyring with name alias, if no key given, generate a new one.
-#        @type alias: string
-#        @type key: string
-#        """
-#        if key:
-#            self.aeskeys[alias] = key
-#        else:
-#            self.aeskeys[alias] = AESKey(self.randfile)
-#    
-#    def getKey(self, alias):
-#        return self.aeskeys.get(alias, '')
-#    
-#    def containsKey(self, alias):
-#        return self.aeskeys.has_key(alias)
+class AESKeyManager:
+    def __init__(self):
+        self.aeskeys = {}
+    
+    def addKey(self, alias, key=None):
+        """
+        Add key to keyring with name alias, if no key given, generate a new one.
+        @type alias: string
+        @type key: string
+        """
+        if key:
+            self.aeskeys[alias] = key
+        else:
+            self.aeskeys[alias] = AESKey(self.randfile)
+    
+    def getKey(self, alias):
+        return self.aeskeys.get(alias, '')
+    
+    def containsKey(self, alias):
+        return self.aeskeys.has_key(alias)
 
 ##Moved out of AESManager -- general enough to be a module function.
 ##32 random bytes
@@ -242,12 +255,12 @@ def getRand32(randfile):
     Rand.save_file(randfile)
     return rb
 
-      
+
 secret = "Call me subwoofa cause I push so much base!"
 
 def testCrypto():
     # Test AESKey
-    key = AESKey(None, '/home/john/anomos/crypto/randpool.dat')
+    key = AESKey(None, 'crypto/randpool.dat')
     iv = key.newIV()
     
     print "Unencrypted:", secret
