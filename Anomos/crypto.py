@@ -18,9 +18,6 @@ import random
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import Rand, RSA, m2, util, EVP
 
-MESSAGE=0
-PADDING=1
-
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
@@ -37,7 +34,7 @@ class RSAPubKey:
     def encrypt(self, data, rmsglen=None):
         """
         @type data: string
-        @return: ciphertext of data, format: [RSA encrypted session key][Checksum(sessionkey, info, content)][info -- msg length etc.][content][padding]
+        @return: ciphertext of data, format: {RSA encrypted session key}[Checksum(sessionkey, info, content)][msg length][content][padding]
         @rtype: string
         """
         sessionkey = AESKey(None, self.randfile)
@@ -173,7 +170,7 @@ class AESKey:
             self.key = self.newAES()
         if iv:
             self.iv = iv
-        else
+        else:
             self.iv = self.newIV()
 
         ##keep the ciphers warm, iv only needs to be used once
@@ -231,11 +228,11 @@ class AESKey:
     def newIV(self):
         return getRand32(self.randfile)
 
-    def getIV(self)
-    """
-    @return: IV used
-    @rtype: string
-    """
+    def getIV(self):
+        """
+        @return: IV used
+        @rtype: string
+        """
         return self.iv
 
 class AESKeyManager:

@@ -316,8 +316,7 @@ class StorageWrapper(object):
             self.endgame = True
         return r
 
-    def piece_came_in(self, index, begin, piece, source = None, key):
-
+    def piece_came_in(self, index, begin, piece, source = None, key=None):
         if self.places[index] < 0:
             if self.rplaces[index] == ALLOCATED:
                 self._initalloc(index, index)

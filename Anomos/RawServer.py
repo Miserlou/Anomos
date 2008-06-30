@@ -235,7 +235,8 @@ class RawServer(object):
                         nss = SingleSocket(self, newsock, handler, context)
                         self.single_sockets[newsock.fileno()] = nss
                         self.poll.register(newsock, POLLIN)
-                        self._make_wrapped_call(handler.external_connection_made, (nss,), context=context)
+                        self._make_wrapped_call(handler.external_connection_made,\
+                                                (nss,), context=context)
                     except socket.error:
                         sleep(1)
             else:
@@ -263,12 +264,14 @@ class RawServer(object):
                     else:
                         ### no, decrypt here. 
                         ### name = s.getpeername()
-                        self._make_wrapped_call(s.handler.data_came_in, (s, data), s)
+                        self._make_wrapped_call(s.handler.data_came_in, \
+                                                    (s, data), s)
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
                     s.try_write()
                     if s.is_flushed():
-                        self._make_wrapped_call(s.handler.connection_flushed,(s,), s)
+                        self._make_wrapped_call(s.handler.connection_flushed, \
+                                                    (s,), s)
 
     def _pop_externally_added(self):
         while self.externally_added_tasks:
@@ -282,9 +285,7 @@ class RawServer(object):
                 if len(self.funcs) == 0:
                     period = 1e9
                 else:
-                    period = self.funcs[0][0] - time()
-                if period < 0:
-                    period = 0
+                    period = max(0, self.funcs[0][0] - time())
                 events = self.poll.poll(period * timemult)
                 if self.doneflag.isSet():
                     return
@@ -303,15 +304,12 @@ class RawServer(object):
                 # should be here, and people report conflicting behavior,
                 # so I'll just try all the possibilities
                 try:
-                    code, msg, desc = e
-                except:
-                    try:
-                        code, msg = e
-                    except:
-                        code = ENOBUFS
+                    code = e[0]
+                except TypeError:
+                    code = ENOBUFS
                 if code == ENOBUFS:
-                    self.errorfunc(CRITICAL, "Have to exit due to the TCP "
-                                   "stack flaking out. "
+                    self.errorfunc(CRITICAL, "Have to exit due to the TCP " \
+                                   "stack flaking out. " \
                                    "Please see the FAQ at %s"%FAQ_URL)
                     return
             except KeyboardInterrupt:

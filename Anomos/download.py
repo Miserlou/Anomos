@@ -89,8 +89,7 @@ class Multitorrent(object):
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'
-        if self.config['minport'] <= 0:
-            self.config['minport'] = 1
+        self.config['minport'] = max(1, self.config['minport'])
         for port in xrange(self.config['minport'], self.config['maxport'] + 1):
             try:
                 self.singleport_listener.open_port(port, self.config)
@@ -325,7 +324,7 @@ class _SingleTorrent(object):
             self._encoder.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
-                                kickpeer, banpeer, AESKM)
+                                kickpeer, banpeer, self.AESKM)
         def make_upload(connection):
             kee = AESKM.getKey(connection.ip)
             return Upload(connection, self._ratelimiter, upmeasure,

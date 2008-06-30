@@ -45,16 +45,13 @@ class poll(object):
         remove(self.wlist, f)
 
     def poll(self, timeout = None):
-        if self.rlist != [] or self.wlist != []:
+        if self.rlist or self.wlist:
             r, w, e = select(self.rlist, self.wlist, [], timeout)
         else:
             sleep(timeout)
             return []
-        result = []
-        for s in r:
-            result.append((s, POLLIN))
-        for s in w:
-            result.append((s, POLLOUT))
+        result = [(s, POLLIN) for s in r]
+        result += [(s, POLLOUT) for s in w]
         return result
 
 def remove(list, item):
