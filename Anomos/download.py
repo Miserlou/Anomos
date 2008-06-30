@@ -49,7 +49,7 @@ from Anomos.ConvertedMetainfo import set_filesystem_encoding
 from Anomos import version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
-from Anomos.crypto import RSAPubKey
+from Anomos.crypto import RSAPubKey, AESKeyManager
 
 class Feedback(object):
 
@@ -85,6 +85,7 @@ class Multitorrent(object):
                                         config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
                                                  errorfunc)
+        self.AESKM = AESKeyManager()
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'
@@ -107,7 +108,7 @@ class Multitorrent(object):
 
     def start_torrent(self, metainfo, config, feedback, filename):
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
-                                 self.ratelimiter, self.filepool, config)
+                                 self.ratelimiter, self.filepool, config, self.AESKM)
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
@@ -175,7 +176,7 @@ class Multitorrent(object):
 class _SingleTorrent(object):
 
     def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
-                 config):
+                 config, AESKM):
         self._rawserver = rawserver
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
@@ -210,6 +211,7 @@ class _SingleTorrent(object):
         self.client_pubkey = None
         self.tracker_pubkey = None
         self.neighbors = {}
+        self.AESKM = AESKM
         
     def start_download(self, *args, **kwargs):
         it = self._start_download(*args, **kwargs)
@@ -323,11 +325,12 @@ class _SingleTorrent(object):
             self._encoder.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
-                                kickpeer, banpeer)
+                                kickpeer, banpeer, AESKM)
         def make_upload(connection):
+            kee = AESKM.getKey(connection.ip)
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
-                        self.config['max_slice_length'], self.config['max_rate_period'])
+                        self.config['max_slice_length'], self.config['max_rate_period'], kee)
         self._encoder = Encoder(make_upload, downloader, choker,
                      len(metainfo.hashes), self._ratelimiter, self._rawserver,
                      self.config, self.myid, schedfunc, self.infohash, self)

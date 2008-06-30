@@ -66,7 +66,7 @@ class BadDataGuard(object):
 
 class SingleDownload(object):
 
-    def __init__(self, downloader, connection):
+    def __init__(self, downloader, connection, key):
         self.downloader = downloader
         self.connection = connection
         self.choked = True
@@ -80,6 +80,7 @@ class SingleDownload(object):
         self.example_interest = None
         self.backlog = 2
         self.guard = BadDataGuard(self)
+        self.key = key
 
     def _backlog(self):
         backlog = 2 + int(4 * self.measure.get_rate() /
@@ -145,7 +146,7 @@ class SingleDownload(object):
         self.downloader.measurefunc(len(piece))
         self.downloader.downmeasure.update_rate(len(piece))
         if not self.downloader.storage.piece_came_in(index, begin, piece,
-                                                     self.guard):
+                                                     self.guard, key):
             if self.downloader.storage.endgame:
                 while self.downloader.storage.do_I_have_requests(index):
                     nb, nl = self.downloader.storage.new_request(index)
@@ -309,7 +310,7 @@ class SingleDownload(object):
 class Downloader(object):
 
     def __init__(self, config, storage, picker, numpieces, downmeasure,
-                 measurefunc, kickfunc, banfunc):
+                 measurefunc, kickfunc, banfunc, AESKM):
         self.config = config
         self.storage = storage
         self.picker = picker
@@ -324,6 +325,7 @@ class Downloader(object):
         self.perip = {}
         self.bad_peers = {}
         self.discarded_bytes = 0
+        self.AESKM = AESKM
 
     def make_download(self, connection):
         ip = connection.ip
@@ -332,7 +334,8 @@ class Downloader(object):
             perip = PerIPStats()
             self.perip[ip] = perip
         perip.numconnections += 1
-        d = SingleDownload(self, connection)
+        kee = AESKM.getKey(connection.ip)
+        d = SingleDownload(self, connection, kee)
         perip.lastdownload = d
         perip.peerid = connection.id
         self.downloads.append(d)

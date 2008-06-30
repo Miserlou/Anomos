@@ -156,19 +156,29 @@ class RSAKeyPair(RSAPubKey):
 
 
 class AESKey:
-    def __init__(self, key=None, randfile='randpool.dat', algorithm='aes_128_cfb'):
+    def __init__(self, key=None, iv=None, randfile='randpool.dat', algorithm='aes_128_cfb'):
         """
         @param randfile: Path to randfile
         @param algorithm: encryption algorithm to use
         @param key: 32 byte string to use as key
+        @param iv: 32 byte initalization vector to use
         """
         #TODO: Check if randfile exists
         self.randfile=randfile
         self.algorithm = algorithm
+        
         if key:
             self.key = key
         else:
             self.key = self.newAES()
+        if iv:
+            self.iv = iv
+        else
+            self.iv = self.newIV()
+
+        ##keep the ciphers warm, iv only needs to be used once
+        self.encCipher = EVP.Cipher(self.algorithm, self.key, self.iv, 1)
+        self.decCipher = EVP.Cipher(self.algorithm, self.key, self.iv, 0)
         
     ##this is where the actual ciphering is done
     def cipher_filter(self, cipher, inf, outf):
@@ -188,7 +198,7 @@ class AESKey:
         """
         sbuf=cStringIO.StringIO(text)
         obuf=cStringIO.StringIO()
-        encoder = EVP.Cipher(self.algorithm, self.key, iv, 1)
+        encoder = self.encCipher
         encrypted = self.cipher_filter(encoder, sbuf, obuf)
         sbuf.close()
         obuf.close()
@@ -205,7 +215,7 @@ class AESKey:
         """
         obuf = cStringIO.StringIO(text)
         sbuf = cStringIO.StringIO()
-        decoder = EVP.Cipher(self.algorithm, self.key, iv, 0)
+        decoder = self.decCipher
         decrypted = self.cipher_filter(decoder, obuf, sbuf)
         sbuf.close()
         obuf.close()
@@ -221,19 +231,26 @@ class AESKey:
     def newIV(self):
         return getRand32(self.randfile)
 
-#This class is most likely useless.
+    def getIV(self)
+    """
+    @return: IV used
+    @rtype: string
+    """
+        return self.iv
+
 class AESKeyManager:
     def __init__(self):
         self.aeskeys = {}
     
-    def addKey(self, alias, key=None):
+    def addKey(self, alias, key=None, iv=None):
         """
-        Add key to keyring with name alias, if no key given, generate a new one.
+        Add key and iv to keyring with name alias, if no key given, generate a new one.
         @type alias: string
         @type key: string
+        @type iv: string
         """
-        if key:
-            self.aeskeys[alias] = key
+        if key and iv:
+            self.aeskeys[alias] = AESKey(key, iv)
         else:
             self.aeskeys[alias] = AESKey(self.randfile)
     
