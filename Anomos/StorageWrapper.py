@@ -318,10 +318,6 @@ class StorageWrapper(object):
 
     def piece_came_in(self, index, begin, piece, source = None, key):
 
-        ## Decrypt here?
-        data = key.decrypt(piece)
-        self.storage.write(piece, data)
-
         if self.places[index] < 0:
             if self.rplaces[index] == ALLOCATED:
                 self._initalloc(index, index)
@@ -346,7 +342,10 @@ class StorageWrapper(object):
         self.download_history.setdefault(index, {})
         self.download_history[index][begin] = source
 
-        self.storage.write(self.places[index] * self.piece_size + begin, piece)
+        ## Decrypt here?
+        data = key.decrypt(piece)
+        self.storage.write(self.places[index] * self.piece_size + begin, data)
+
         self.stat_dirty[index] = 1
         self.numactive[index] -= 1
         if self.numactive[index] == 0:
