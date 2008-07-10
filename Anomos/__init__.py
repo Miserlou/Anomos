@@ -11,6 +11,8 @@
 app_name = "Anomos"
 version = '0.0.0'
 
+protocol_name = "Anomos"
+
 URL = 'http://www.anomos.info/'
 DONATE_URL = 'http://sourceforge.net/donate/index.php?group_id=203746'# + 'donate.html'
 FAQ_URL = URL# + 'FAQ.html'

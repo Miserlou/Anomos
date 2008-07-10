@@ -17,6 +17,7 @@ from binascii import b2a_hex
 
 from Anomos.bitfield import Bitfield
 from Anomos.obsoletepythonsupport import *
+from Anomos import protocol_name
 
 def toint(s):
     return int(b2a_hex(s), 16)
@@ -40,9 +41,6 @@ PIECE = chr(7)
 # index, begin, piece
 CANCEL = chr(8)
 
-protocol_name = 'Anomos protocol'
-
-
 class Connection(object):
 
     def __init__(self, encoder, connection, id, is_local):
@@ -58,7 +56,6 @@ class Connection(object):
         self.upload = None
         self.download = None
         self._buffer = []
-        self._buffer_len = 0
         self._reader = self._read_messages()
         self._next_len = self._reader.next()
         self._partial_message = None
@@ -284,17 +281,15 @@ class Connection(object):
         while True:
             if self.closed:
                 return
-            i = self._next_len - self._buffer_len
+            i = self._next_len - len(self._buffer)
             if i > len(s):
                 self._buffer.append(s)
-                self._buffer_len += len(s)
                 return
             m = s[:i]
-            if self._buffer_len > 0:
+            if len(self._buffer) > 0:
                 self._buffer.append(m)
                 m = ''.join(self._buffer)
                 self._buffer = []
-                self._buffer_len = 0
             s = s[i:]
             self._message = m
             try:

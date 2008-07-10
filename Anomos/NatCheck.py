@@ -12,8 +12,7 @@
 
 from cStringIO import StringIO
 from socket import error as socketerror
-
-protocol_name = 'Anomos protocol'
+from Anomos import protocol_name
 
 # header, reserved, download id, my id, [length, message]
 
