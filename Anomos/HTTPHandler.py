@@ -164,14 +164,12 @@ class HTTPConnection(object):
 
 class HTTPHandler(object):
 
-    def __init__(self, getfunc, minflush):#, getrsakey, setrsakey):
+    def __init__(self, getfunc, minflush):
         self.connections = {}
         self.getfunc = getfunc
         self.minflush = minflush
         self.lastflush = time.time()
-        #self.getrsakey = getrsakey
-        #self.setrsakey = setrsakey
-
+    
     def external_connection_made(self, connection):
         self.connections[connection] = HTTPConnection(self, connection)
 

@@ -94,7 +94,7 @@ class ConvertedMetainfo(object):
         self.publickey = None
         
         if metainfo.has_key('pubkey'):
-            self.publickey = metainfo['pubkey'] # just load the (e, n) tuple, not a real key yet.
+            self.publickey = metainfo['pubkey'] # just loads the public key string
         
         btformats.check_message(metainfo, check_paths=False)
         info = metainfo['info']

@@ -163,7 +163,8 @@ class RawServer(object):
         for k in tokill:
             if k.socket is not None:
                 self._close_socket(k)
-
+    
+    @staticmethod
     def create_serversocket(port, bind='', reuse=False, tos=0):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if reuse and os.name != 'nt':
@@ -177,8 +178,7 @@ class RawServer(object):
         server.bind((bind, port))
         server.listen(5)
         return server
-    create_serversocket = staticmethod(create_serversocket)
-
+    
     def start_listening(self, serversocket, handler, context=None):
         self.listening_handlers[serversocket.fileno()] = (handler, context)
         self.serversockets[serversocket.fileno()] = serversocket

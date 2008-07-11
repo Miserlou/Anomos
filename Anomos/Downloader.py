@@ -16,7 +16,6 @@ from time import time
 from Anomos.CurrentRateMeasure import Measure
 from Anomos.bitfield import Bitfield
 
-
 class PerIPStats(object):
 
     def __init__(self):
@@ -146,7 +145,7 @@ class SingleDownload(object):
         self.downloader.measurefunc(len(piece))
         self.downloader.downmeasure.update_rate(len(piece))
         if not self.downloader.storage.piece_came_in(index, begin, piece,
-                                                     self.guard, key):
+                                                     self.guard, self.key):
             if self.downloader.storage.endgame:
                 while self.downloader.storage.do_I_have_requests(index):
                     nb, nl = self.downloader.storage.new_request(index)
@@ -334,6 +333,7 @@ class Downloader(object):
             perip = PerIPStats()
             self.perip[ip] = perip
         perip.numconnections += 1
+        # The key most likely does not exist yet...
         kee = AESKM.getKey(connection.ip)
         d = SingleDownload(self, connection, kee)
         perip.lastdownload = d
