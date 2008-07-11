@@ -22,11 +22,17 @@ from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
+STARTED=0
+COMPLETED=1
+STOPPED=2
+
 class Rerequester(object):
 
     def __init__(self, url, config, sched, howmany, connect, externalsched,
             amount_left, up, down, port, myid, infohash, errorfunc, doneflag,
-            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, pubkey=None):
+            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, clientkey, trackerkey=None):
+    #I would like __init__ to look more like this one day
+    #def __init__(self, url, context):
         self.baseurl = url
         self.infohash = infohash
         self.peerid = None
@@ -35,7 +41,7 @@ class Rerequester(object):
         self.url = None
         self.config = config
         self.last = None
-        self.trackerid = None
+        #self.trackerid = None
         self.announce_interval = 30 * 60
         self.sched = sched
         self.howmany = howmany
@@ -57,18 +63,19 @@ class Rerequester(object):
         self.last_time = None
         self.previous_down = 0
         self.previous_up = 0
-        self.pubkey = pubkey
-
+        self.clientkey = clientkey
+        self.trackerkey = trackerkey
+        self.send_key = True
+    
     def _makeurl(self, peerid, port):
-        return ('%s?info_hash=%s&peer_id=%s&port=%s&key=%s' %
-                (self.baseurl, quote(self.infohash), quote(peerid), str(port),
-                 b2a_hex(''.join([chr(randrange(256)) for i in xrange(4)]))))
+        return ('%s?info_hash=%s&peer_id=%s&port=%s&' %
+                (self.baseurl, quote(self.infohash), quote(peerid), str(port)))
 
     def change_port(self, peerid, port):
         self.wanted_peerid = peerid
         self.port = port
         self.last = None
-        self.trackerid = None
+        #self.trackerid = None
         self._check()
 
     def begin(self):
@@ -80,7 +87,7 @@ class Rerequester(object):
         self._check()
 
     def announce_stop(self):
-        self._announce(2)
+        self._announce(STOPPED)
 
     def _check(self):
         if self.current_started is not None:
@@ -92,17 +99,17 @@ class Rerequester(object):
         if self.peerid is None:
             self.peerid = self.wanted_peerid
             self.url = self._makeurl(self.peerid, self.port)
-            self._announce(0)
+            self._announce(STARTED)
             return
         if self.peerid != self.wanted_peerid:
-            self._announce(2)
+            self._announce(STOPPED)
             self.peerid = None
             self.previous_up = self.up()
             self.previous_down = self.down()
             return
         if self.finish:
             self.finish = False
-            self._announce(1)
+            self._announce(COMPLETED)
             return
         if self.fail_wait is not None:
             if self.last_time + self.fail_wait <= time():
@@ -124,14 +131,19 @@ class Rerequester(object):
              str(self.down() - self.previous_down), str(self.amount_left())))
         if self.last is not None:
             s += '&last=' + quote(str(self.last))
-        if self.trackerid is not None:
-            s += '&trackerid=' + quote(str(self.trackerid))
+        #if self.trackerid is not None:
+        #    s += '&trackerid=' + quote(str(self.trackerid))
         if self.howmany() >= self.config['max_initiate']:
             s += '&numwant=0'
         else:
             s += '&compact=1'
         if event is not None:
             s += '&event=' + ['started', 'completed', 'stopped'][event]
+        if self.config['ip']:
+            s += '&ip=' + gethostbyname(self.config['ip'])
+        if self.send_key:
+            s += '&pubkey=' + quote(self.clientkey.asString())
+            self.send_key = False
         Thread(target=self._rerequest, args=[s, self.peerid]).start()
 
     # Must destroy all references that could cause reference circles
@@ -151,13 +163,11 @@ class Rerequester(object):
         self.successfunc = None
 
     def _rerequest(self, url, peerid):
-        if self.config['ip']: # Why is this here instead of in announce()?
-            url += '&ip=' + gethostbyname(self.config['ip'])
-        
+        """ Make an HTTP GET request to the tracker """
         # Encrypt query here.
-        if self.pubkey:
+        if self.trackerkey:
             (scheme, netloc, path, pars, query, fragment) = urlparse(url)
-            query = "pke=%s" % (b2a_hex(self.pubkey.encrypt(query)))
+            query = "pke=" + quote(self.trackerkey.encrypt(query))
             url = urlunparse((scheme, netloc, path, pars, query, fragment))
         request = Request(url)
         if self.config['tracker_proxy']:
@@ -193,7 +203,10 @@ class Rerequester(object):
             self._fail()
             return
         try:
+            # Here's where we receive/decrypt data from the tracker
             r = bdecode(data)
+            if r.has_key('pke'):
+                r = bdecode(self.clientkey.decrypt(r['pke']))
             check_peers(r)
         except BTFailure, e:
             if data != '':
@@ -220,7 +233,7 @@ class Rerequester(object):
             self.announce_interval = r.get('interval', self.announce_interval)
             self.config['rerequest_interval'] = r.get('min interval',
                                             self.config['rerequest_interval'])
-            self.trackerid = r.get('tracker id', self.trackerid)
+            #self.trackerid = r.get('tracker id', self.trackerid)
             self.last = r.get('last')
             p = r['peers']
             peers = []

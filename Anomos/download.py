@@ -31,7 +31,6 @@ except AttributeError:
     def getpid():
         return 1
 
-from Anomos.btformats import check_message
 from Anomos.Choker import Choker
 from Anomos.Storage import Storage, FilePool
 from Anomos.StorageWrapper import StorageWrapper
@@ -49,7 +48,7 @@ from Anomos.ConvertedMetainfo import set_filesystem_encoding
 from Anomos import version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
-from Anomos.crypto import RSAPubKey, AESKeyManager
+from Anomos.crypto import RSAKeyPair, RSAPubKey, AESKeyManager
 
 class Feedback(object):
 
@@ -85,7 +84,8 @@ class Multitorrent(object):
                                         config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
                                                  errorfunc)
-        self.AESKM = AESKeyManager()
+        self.rsa = RSAKeyPair('Peer') #TODO: make this a unique name
+        self.AESKM = AESKeyManager() 
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'
@@ -107,7 +107,8 @@ class Multitorrent(object):
 
     def start_torrent(self, metainfo, config, feedback, filename):
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
-                                 self.ratelimiter, self.filepool, config, self.AESKM)
+                                 self.ratelimiter, self.filepool, config, 
+                                 self.AESKM, self.rsa)
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
@@ -175,7 +176,7 @@ class Multitorrent(object):
 class _SingleTorrent(object):
 
     def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
-                 config, AESKM):
+                 config, AESKM, rsa_key):
         self._rawserver = rawserver
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
@@ -211,7 +212,8 @@ class _SingleTorrent(object):
         self.tracker_pubkey = None
         self.neighbors = {}
         self.AESKM = AESKM
-        
+        self.rsa = rsa_key
+    
     def start_download(self, *args, **kwargs):
         it = self._start_download(*args, **kwargs)
         def cont():
@@ -317,7 +319,7 @@ class _SingleTorrent(object):
         for i in self._storagewrapper.stat_dirty:
             picker.requested(i)
         def kickpeer(connection):
-            def kick(): # wtf?
+            def kick():
                 connection.close()
             schedfunc(kick, 0)
         def banpeer(ip):
@@ -326,7 +328,7 @@ class _SingleTorrent(object):
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
                                 kickpeer, banpeer, self.AESKM)
         def make_upload(connection):
-            kee = AESKM.getKey(connection.ip)
+            kee = self.AESKM.getKey(connection.ip)
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
                         self.config['max_slice_length'], self.config['max_rate_period'], kee)
@@ -346,7 +348,7 @@ class _SingleTorrent(object):
             downmeasure.get_total, self.reported_port, self.myid,
             self.infohash, self._error, self.finflag, upmeasure.get_rate,
             downmeasure.get_rate, self._encoder.ever_got_incoming,
-            self.internal_shutdown, self._announce_done, self.tracker_pubkey)
+            self.internal_shutdown, self._announce_done, self.rsa, self.tracker_pubkey)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             upmeasure_seedtime.get_rate, downmeasure.get_rate,
             upmeasure.get_total, downmeasure.get_total,
@@ -530,6 +532,10 @@ class _SingleTorrent(object):
         del self.reserved_ports[:-1]
 
     def _make_id(self):
+        """ Construct a peer id.
+        @return: Peer id, format: An-n-n
+        @rtype: string
+        """
         myid = 'M' + version.split()[0].replace('.', '-')
         myid = myid + ('-' * (8-len(myid)))+sha(repr(time())+ ' ' +
                                      str(getpid())).digest()[-6:].encode('hex')

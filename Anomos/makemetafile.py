@@ -103,7 +103,7 @@ def make_meta_file(path, url, pubkeyfilename, piece_len_exp, flag=Event(), progr
     if flag.isSet():
         return
     check_info(info)
-    pubkey = load_pub_key(pubkeyfilename).pub()
+    pubkey = load_pub_key(pubkeyfilename).pub()[1] # pub() returns (e,n)
     h = file(f, 'wb')
     data = {'info': info, 'announce': url.strip(), 'pubkey':pubkey, 'creation date': int(time())}
     if comment:

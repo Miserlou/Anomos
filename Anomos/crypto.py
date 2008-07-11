@@ -16,18 +16,23 @@ import cStringIO
 import sha
 import random
 from binascii import b2a_hex, a2b_hex
-from M2Crypto import Rand, RSA, m2, util, EVP
+from M2Crypto import m2, Rand, RSA, m2, util, EVP
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
+def toM2Exp(n):
+    return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
+
 class RSAPubKey:
-    def __init__(self, en, data_dir='', crypto_dir='crypto'):
+    def __init__(self, keystring, exponent=65537, data_dir='', crypto_dir='crypto'):
         """
-        @param en: exponent and n components of key to initialize new public key from
-        @type en: tuple of form (e, n)
+        @param keystring: "n" value of pubkey to initialize new public key from
+        @param exponent: "e" value of pubkey, should always be 65537
+        @type keystring: string
+        @type exponent: int
         """
-        self.pubkey = RSA.new_pub_key(en)
+        self.pubkey = RSA.new_pub_key((toM2Exp(exponent), keystring))
         self.crypto_path = os.path.join(data_dir, crypto_dir)
         self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
     
@@ -52,7 +57,11 @@ class RSAPubKey:
         padding = "".join(chr(random.randint(0,255)) for i in range(padlen))
         ciphertext = sessionkey.encrypt(iv, content+padding)
         return esk + ciphertext
-        
+    
+    def asString(self):
+        return self.pubkey.pub()[1]
+    
+
 ## Apparently the tracker doesn't use the data_dir like clients do. So I'm storing
 ## keys in a directory called 'crypto/' within wherever the tracker was run.
 ## you can specify data_dir='somedir' to put it somewhere else.
@@ -252,7 +261,10 @@ class AESKeyManager:
             self.aeskeys[alias] = AESKey(self.randfile)
     
     def getKey(self, alias):
-        return self.aeskeys.get(alias, '')
+        if self.aeskeys.has_key(alias):
+            return self.aeskeys[alias]
+        else:
+            raise CryptoError("Key not found")
     
     def containsKey(self, alias):
         return self.aeskeys.has_key(alias)
@@ -269,6 +281,8 @@ def getRand32(randfile):
     Rand.save_file(randfile)
     return rb
 
+class CryptoError(Exception):
+    pass
 
 secret = "Call me subwoofa cause I push so much base!"
 

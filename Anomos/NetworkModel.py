@@ -18,17 +18,15 @@ edge in the path.
 """
 
 import random
-from sys import maxint
+from sys import maxint as INFINITY
 from sha import sha
 from crypto import RSAPubKey, RSAKeyPair
 from M2Crypto import RSA
 
-INFINITY = maxint-1
 TC_DELIMITER = ":"
 
 DEBUG_ON = True
 def DEBUG(*args):
-    global DEBUG_ON
     if DEBUG_ON:
         print args
 
@@ -46,7 +44,7 @@ class SimPeer:
         @param maxid: Maximum value for Neighbor IDs
         """
         self.name = name
-        self.pubkey = pubkey
+        self.pubkey = RSAPubKey(pubkey)
         self.maxid = maxid
         self.neighbors = {}
         self.id_map = {}
@@ -143,8 +141,11 @@ class NetworkModel:
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
         @type pubkey: Anomos.crypto.RSAPubKey
+        @returns: a reference to the created peer
+        @rtype: SimPeer
         """
         self.names[peerid] = SimPeer(peerid, pubkey)
+        return self.names[peerid]
     
     def order(self):
         """

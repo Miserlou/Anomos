@@ -189,6 +189,19 @@ def is_local_ip(ip):
     except ValueError:
         return 0
 
+def params_factory(dictionary, default=None):
+    """ 
+    Function factory that lets us easily get info from dictionaries of the 
+    form { key : [value], ... }
+    @param dictionary: the dict to index into
+    @param default: the default value to return if key is not found
+    @rtype: function
+    """
+    def params(key, default=default, d=dictionary):
+        if d.has_key(key):
+            return d[key][0]
+        return default
+    return params
 
 class Tracker(object):
 
@@ -217,8 +230,9 @@ class Tracker(object):
         # Get tracker's rsa keys
         self.rsa = RSAKeyPair('tracker') # should probably use some unique id for the alias here.
         
-        self.pubkeys = {} # TODO: Integrate with NetworkModel.py
         self.aeskeys = AESKeyManager()
+        
+        self.networkmodel = NetworkModel()
         
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
@@ -239,7 +253,10 @@ class Tracker(object):
         self.downloads    = self.state.setdefault('peers', {})
         self.completed    = self.state.setdefault('completed', {})
 
-        self.becache = {}   # format: infohash: [[l1, s1], [l2, s2], [l3, s3]]
+        self.becache = {}   # format: {infohash: [[l1, s1], [l2, s2], [l3, s3]]}
+                            # becache[infohash][0]=> Normal => [downloads,seeds]
+                            # becache[infohash][1]=> No Peer ID => "" ""
+                            # becache[infohash][2]=> Compact => "" ""
         for infohash, ds in self.downloads.items():
             self.seedcount[infohash] = 0
             for x,y in ds.items():
@@ -308,16 +325,7 @@ class Tracker(object):
 
         self.uq_broken = unquote('+') != ' ' # This sucks!
         self.keep_dead = config['keep_dead']
-        
-        self.networkmodel = NetworkModel()
     
-    
-    def storePubKey(ip, key):# Move to NetworkModel
-        self.pubkeys[ip] = key
-
-    def getPubKey(ip):# Move to NetworkModel
-        return self.pubkeys[ip]
-
     def storeAESKey(ucid, key):
         self.aeskeys[ucid] = key
 
@@ -480,34 +488,45 @@ class Tracker(object):
                     return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
         return None
-
+    
+    def update_simpeer(self, paramslist):
+        params = params_factory(paramslist)
+        
+        simpeer = self.networkmodel.get(params('peer_id'))
+        if not simpeer and params('pubkey'):
+            # First announce, with pubkey
+            simpeer = self.networkmodel.addPeer(params('peer_id'), params('pubkey'))
+        # TODO: What if they don't give a pubkey
+        #Verify the connecting peer is who they say they are.
+        #Update any changed information
+    
     def add_data(self, infohash, event, ip, paramslist):
         peers = self.downloads.setdefault(infohash, {})
         ts = self.times.setdefault(infohash, {})
         self.completed.setdefault(infohash, 0)
         self.seedcount.setdefault(infohash, 0)
 
-        def params(key, default = None, l = paramslist):
-            if l.has_key(key):
-                return l[key][0]
-            return default
+        params = params_factory(paramslist)
 
         myid = params('peer_id','')
         if len(myid) != 20:
-            raise ValueError, 'id not of length 20'
+            raise ValueError('id not of length 20')
         if event not in ['started', 'completed', 'stopped', None]:
-            raise ValueError, 'invalid event'
+            raise ValueError('invalid event')
         port = int(params('port',''))
-        if port < 0 or port > 65535:
-            raise ValueError, 'invalid port'
+        if not (0 < port < 65535):
+            raise ValueError('invalid port')
         left = int(params('left',''))
         if left < 0:
-            raise ValueError, 'invalid amount left'
+            raise ValueError('invalid amount left')
 
         peer = peers.get(myid)
-        mykey = params('key')
-        auth = not peer or peer.get('key', -1) == mykey or peer.get('ip') == ip
-
+        #I'm getting rid of the old key field, it was used as a quasi identity
+        #for each peer but it's obsoleted by signing and encryption.
+        #mykey = params('key')
+        #auth = not peer or peer.get('key', -1) == mykey or peer.get('ip') == ip
+        auth = not peer or peer.get('ip') == ip
+        
         gip = params('ip')
         local_override = gip and self.allow_local_override(ip, gip)
         if local_override:
@@ -529,8 +548,6 @@ class Tracker(object):
         elif not peer:
             ts[myid] = time()
             peer = {'ip': ip, 'port': port, 'left': left}
-            if mykey:
-                peer['key'] = mykey
             if gip:
                 peer['given ip'] = gip
             if port:
@@ -554,9 +571,11 @@ class Tracker(object):
 
             ts[myid] = time()
             if not left and peer['left']:
+                # Peer has a complete file, count them as a seeder.
                 self.completed[infohash] += 1
                 self.seedcount[infohash] += 1
                 if not peer.get('nat', -1):
+                    # Move their becache data from downloader to seeder array.
                     for bc in self.becache[infohash]:
                         bc[1][myid] = bc[0][myid]
                         del bc[0][myid]
@@ -598,7 +617,7 @@ class Tracker(object):
         return rsize
 
     def peerlist(self, infohash, stopped, is_seed, return_type, rsize):
-        data = {}    # return data
+        data = {}    # data to be returned
         seeds = self.seedcount[infohash]
         data['complete'] = seeds
         data['incomplete'] = len(self.downloads[infohash]) - seeds
@@ -611,10 +630,10 @@ class Tracker(object):
         if stopped or not rsize:     # save some bandwidth
             data['peers'] = []
             return data
-
+        
         bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
-        len_l = len(bc[0][0])
-        len_s = len(bc[0][1])
+        len_l = len(bc[0][0]) # Number of downloaders
+        len_s = len(bc[0][1]) # Number of seeders
         if not (len_l+len_s):   # caches are empty!
             data['peers'] = []
             return data
@@ -670,10 +689,7 @@ class Tracker(object):
             ip = nip
         
         paramslist = {}
-        def params(key, default = None, l = paramslist):
-            if l.has_key(key):
-                return l[key][0]
-            return default
+        params = params_factory(paramslist)
         
         try: 
             (scheme, netloc, path, pars, query, fragment) = urlparse(path)
@@ -681,6 +697,7 @@ class Tracker(object):
                 path = path.replace('+',' ')
                 # query = query.replace('+',' ')
             path = unquote(path)[1:]
+            
             # The client should already know the tracker's pubkey, so even the first
             # request should be encrypted. Let's designate a query param "pke" that 
             # signifies encrypted data. If it's not present we should return a 400
@@ -688,18 +705,12 @@ class Tracker(object):
             # for requesting the key if it wasn't in the .torrent, but I don't think
             # this is a good idea security wise (MITM attacks and whatnot).
             # As for sending the key, this can be done, encrypted, as a normal query
-            # param: ?key=f83cd3aa....&some more stuff.
-            #
-            ##if (len(query) == 128): #if ip has a key already.. ? 
-            ##    self.storePubKey(ip, query)
-            ##some confirmation should be sent here
-            ##decquery = self.rsapvtkey.private_decrypt(query)            ##decrypt!
+            # param: ?pubkey=f83cd3aa....&some more stuff.
             
             paramslist.update(self.parseQuery(query))
-            print paramslist
             if params('pke'):
                 # Decrypt the query
-                binpke = a2b_hex(params('pke'))
+                binpke = unquote(params('pke'))
                 decquery = self.rsa.decrypt(binpke, returnpad=False)
                 # Update with the new params
                 paramslist.update(self.parseQuery(decquery))
@@ -717,11 +728,12 @@ class Tracker(object):
                 return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
             if path != 'announce':
                 return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
-
+            
+            self.update_simpeer(paramslist)
             # main tracker function
             infohash = params('info_hash')
             if not infohash:
-                raise ValueError, 'no info hash'
+                raise ValueError('no info hash')
 
             notallowed = self.check_allowed(infohash, paramslist)
             if notallowed:
@@ -742,19 +754,21 @@ class Tracker(object):
         else:
             return_type = 0
 
-        data = self.peerlist(infohash, event=='stopped', not params('left'),
-                             return_type, rsize)
+        data = self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
 
         if paramslist.has_key('scrape'):
             data['scrape'] = self.scrapedata(infohash, False)
-
+        #Encrypt outgoing data
+        simpeer = self.networkmodel.get(params('peer_id'))
+        if simpeer and simpeer.pubkey:
+            data = {'pke':simpeer.pubkey.encrypt(bencode(data))}
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data))
 
     def parseQuery(self, query):
         params = {}
         for s in query.split('&'):
             if s != '':
-                key,val = s.split('=', 1) # Only split at the first "=" character (necessary for pke= case)
+                key,val = s.split('=', 1) #Only split at the first "=" character
                 kw = unquote(key)
                 kw = kw.replace('+',' ') # TODO: find out if this is absolutely necessary
                 params.setdefault(kw, [])
@@ -838,13 +852,13 @@ class Tracker(object):
         del dls[peerid]
 
     def expire_downloaders(self):
-        for infohash, peertimes in self.times.iteritems():
-            for myid, t in peertimes.iteritems():
+        for infohash, peertimes in self.times.items():
+            for myid, t in peertimes.items():
                 if t < self.prevtime:
                     self.delete_peer(infohash, myid)
         self.prevtime = time()
         if (self.keep_dead != 1):
-            for key, peers in self.downloads.iteritems():
+            for key, peers in self.downloads.items():
                 if len(peers) == 0 and (self.allowed is None or
                                         key not in self.allowed):
                     del self.times[key]
@@ -866,7 +880,7 @@ def track(args):
                   config['socket_timeout'], bindaddr = config['bind'])
     t = Tracker(config, r)
     s = r.create_serversocket(config['port'], config['bind'], True)
-    r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))#, t.getPubKey, t.storePubKey))
+    r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))
     r.listen_forever()
     t.save_dfile()
     print '# Shutting down: ' + isotime()
