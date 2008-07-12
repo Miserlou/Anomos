@@ -383,18 +383,18 @@ class Tracker(object):
                 for name, infohash in names:
                     l = self.downloads[infohash]
                     n = self.completed.get(infohash, 0)
-                    tn = tn + n
+                    tn += n
                     c = self.seedcount[infohash]
-                    tc = tc + c
+                    tc += c
                     d = len(l) - c
-                    td = td + d
+                    td += d
                     if self.allowed is not None and self.show_names:
                         if self.allowed.has_key(infohash):
-                            nf = nf + 1
+                            nf += 1
                             sz = self.allowed[infohash]['length']  # size
-                            ts = ts + sz
+                            ts += sz
                             szt = sz * n   # Transferred for this torrent
-                            tt = tt + szt
+                            tt += szt
                             if self.allow_get == 1:
                                 linkname = '<a href="/file?info_hash=' + quote(infohash) + '">' + name + '</a>'
                             else:
@@ -406,7 +406,7 @@ class Tracker(object):
                             % (b2a_hex(infohash), c, d, n))
                 ttn = 0
                 for i in self.completed.values():
-                    ttn = ttn + i
+                    ttn += i
                 if self.allowed is not None and self.show_names:
                     s.write('<tr><td align="right" colspan="2">%i files</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i/%i</td><td align="right">%s</td></tr>\n'
                             % (nf, size_format(ts), tc, td, tn, ttn, size_format(tt)))
@@ -437,33 +437,35 @@ class Tracker(object):
         f = {'complete': c, 'incomplete': d, 'downloaded': n}
         if return_name and self.show_names and self.allowed is not None:
             f['name'] = self.allowed[infohash]['name']
-        return (f)
+        return f
 
     def get_scrape(self, paramslist):
+        params = params_factory(paramslist)
         fs = {}
-        if paramslist.has_key('info_hash'):
+        if params('info_hash'):
             if self.config['scrape_allowed'] not in ['specific', 'full']:
-                return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
-                    bencode({'failure reason':
-                    'specific scrape function is not available with this tracker.'}))
-            for infohash in paramslist['info_hash']:
+                return self.reply(400, 'Not Authorized', \
+                    {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
+                    bencode({'failure reason': 'specific scrape function is not available with this tracker.'}), \
+                    params('peer_id'))
+            for infohash in params('info_hash'):
                 if self.allowed is not None and infohash not in self.allowed:
                     continue
                 if infohash in self.downloads:
                     fs[infohash] = self.scrapedata(infohash)
         else:
             if self.config['scrape_allowed'] != 'full':
-                return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
-                    bencode({'failure reason':
-                    'full scrape function is not available with this tracker.'}))
+                return self.reply(400, 'Not Authorized', \
+                    {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
+                    bencode({'failure reason': 'full scrape function is not available with this tracker.'}), \
+                    params('peer_id'))
             if self.allowed is not None:
                 hashes = self.allowed
             else:
                 hashes = self.downloads
             for infohash in hashes:
                 fs[infohash] = self.scrapedata(infohash)
-
-        return (200, 'OK', {'Content-Type': 'text/plain'}, bencode({'files': fs}))
+        return self.reply(200, 'OK', {'Content-Type': 'text/plain'}, bencode({'files': fs}), params('peer_id'))
 
     def get_file(self, infohash):
          if not self.allow_get:
@@ -478,15 +480,19 @@ class Tracker(object):
              open(fpath, 'rb').read())
 
     def check_allowed(self, infohash, paramslist):
+        params = params_factory(paramslist)
         if self.allowed is not None:
             if not self.allowed.has_key(infohash):
-                return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
-                    bencode({'failure reason':
-                    'Requested download is not authorized for use with this tracker.'}))
+                return self.reply(200, 'Not Authorized', \
+                    {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
+                    bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}), \
+                    params('peer_id'))
             if self.config['allowed_controls']:
                 if self.allowed[infohash].has_key('failure reason'):
-                    return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
-                        bencode({'failure reason': self.allowed[infohash]['failure reason']}))
+                    return self.reply(200, 'Not Authorized', \
+                        {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
+                        bencode({'failure reason': self.allowed[infohash]['failure reason']}), \
+                        params('peer_id'))
         return None
     
     def update_simpeer(self, paramslist):
@@ -744,8 +750,8 @@ class Tracker(object):
             rsize = self.add_data(infohash, event, ip, paramslist)
 
         except ValueError, e:
-            return (400, 'Bad Request', {'Content-Type': 'text/plain'},
-                'you sent me garbage - ' + str(e))
+            return self.reply(400, 'Bad Request', {'Content-Type': 'text/plain'},
+                'you sent me garbage - ' + str(e), params('peer_id'))
 
         if params('compact'):
             return_type = 2
@@ -758,11 +764,7 @@ class Tracker(object):
 
         if paramslist.has_key('scrape'):
             data['scrape'] = self.scrapedata(infohash, False)
-        #Encrypt outgoing data
-        simpeer = self.networkmodel.get(params('peer_id'))
-        if simpeer and simpeer.pubkey:
-            data = {'pke':simpeer.pubkey.encrypt(bencode(data))}
-        return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data))
+        return self.reply(200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data), params('peer_id'))
 
     def parseQuery(self, query):
         params = {}
@@ -865,6 +867,21 @@ class Tracker(object):
                     del self.downloads[key]
                     del self.seedcount[key]
         self.rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
+    
+    def reply(self, code, message, headers, data, peer_id=None):
+        """ 
+        Craft an HTTP response.
+        If peer_id is present this function will attempt to encrypt the data.
+        @return: HTTP response, eg. (200, OK, {'Content-Type': 'text/plain'}, data)
+        @rtype: tuple
+        """
+        if peer_id: # Try to encrypt the response
+            simpeer = self.networkmodel.get(peer_id)
+            if simpeer and simpeer.pubkey:
+                if not isinstance(data, basestring):
+                    data = bencode(data)
+                data = bencode({'pke': simpeer.pubkey.encrypt(data)})
+        return (code, message, headers, data)
 
 def track(args):
     if len(args) == 0:
