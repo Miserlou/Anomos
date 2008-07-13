@@ -16,7 +16,7 @@ import cStringIO
 import sha
 import random
 from binascii import b2a_hex, a2b_hex
-from M2Crypto import m2, Rand, RSA, m2, util, EVP
+from M2Crypto import m2, Rand, RSA, util, EVP
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
