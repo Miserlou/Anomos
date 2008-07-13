@@ -100,9 +100,21 @@ Sending/Receiving a TC (10%)
        incoming socket is transferred to this Relayer. And the relayer initializes the
        new connection as per the TC-Num.
 
-Relaying (0%)
+Relaying (1%)
 --------
     New data comes in on insocket, Relayer directs it to outsocket.
     (!) Here's where all the exciting things like mixing can happen.
+
+    Data d comes in on an open socket
+    *d is decrypted using our private RSA key
+    Is this data for us? If so, decrypt with our AESKM and treat normally.                 //If this socket doesn't have a NextNeighbor, it's for us?
+    *If not: 
+        RelayParts ( {nextneighborip:{dataparts}} )+= d
+        If RelayParts.bytes() >= 256M (should be a user-set variable eventually):      //Let's try it just in RAM first. Writing to disk will be slowwww.
+            Don't accept any more incoming data                                                            //Can relayers choke their neighbors?
+   *While RelayParts has data:
+        Send something from RelayParts to next neighbor outsocket.                        // In order? Random? I think in order for now.
+
+_________________EOF________________________________________
 
 
