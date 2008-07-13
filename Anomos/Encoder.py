@@ -32,7 +32,7 @@ class Encoder(object):
         self.my_id = my_id
         self.config = config
         self.schedulefunc = schedulefunc
-        self.download_id = download_id
+        self.download_id = download_id  # Infohash
         self.context = context
         self.everinc = False
         self.connections = {}
@@ -117,8 +117,13 @@ class SingleportListener(object):
         self.ports = {}
         self.torrents = {}
         self.connections = {}
+        self.neighbors = {}
         self.download_id = None
-
+    
+    def add_neighbor(self, nid, dns):
+        if nid not in self.neighbors:
+            self.neighbors[nid] = dns
+    
     def _check_close(self, port):
         if not port or self.port == port or self.ports[port][1] > 0:
             return
@@ -168,6 +173,14 @@ class SingleportListener(object):
         self.torrents[infohash].singleport_connection(self, conn)
 
     def external_connection_made(self, connection):
+        """ 
+        Connection came in.
+        @param connection: SingleSocket
+        """
+        # The Connection's encoder is initially this SingleportListener (which
+        # has download_id=None so that the Connection knows this is an incoming, 
+        # connection. Once the infohash is read, it'll be the changed to the 
+        # appropriate connection object
         con = Connection(self, connection, None, False)
         self.connections[connection] = con
         connection.handler = con

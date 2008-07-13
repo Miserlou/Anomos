@@ -200,7 +200,8 @@ class RawServer(object):
             except:
                 pass
         try:
-            sock.connect_ex(dns)
+            # This will be picked up on the receiving end by the client's passive socket
+            sock.connect_ex(dns) 
         except socket.error:
             sock.close()
             raise
@@ -222,6 +223,7 @@ class RawServer(object):
     def _handle_events(self, events):
         for sock, event in events:
             if sock in self.serversockets:
+                # Data came in on a port's passive socket.
                 s = self.serversockets[sock]
                 if event & (POLLHUP | POLLERR) != 0:
                     self.poll.unregister(s)
@@ -229,6 +231,7 @@ class RawServer(object):
                     self.errorfunc(CRITICAL, 'lost server socket')
                 else:
                     try:
+                        # Connection attempt
                         handler, context = self.listening_handlers[sock]
                         newsock, addr = s.accept()
                         newsock.setblocking(0)
@@ -240,6 +243,7 @@ class RawServer(object):
                     except socket.error:
                         sleep(1)
             else:
+                # Data came in on a single_socket
                 s = self.single_sockets.get(sock)
                 if s is None:
                     if sock == self.wakeupfds[0]:

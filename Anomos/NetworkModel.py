@@ -250,7 +250,7 @@ class NetworkModel:
             last = cur
         return paths[dest.name]
 
-    def getTrackingCode(self, source, dest, plaintext='#'):
+    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=False):
         """
         Generate the tracking code for the shortest path from source to dest
         
@@ -263,12 +263,12 @@ class NetworkModel:
         v_dest = self.get(dest)
         
         # Block direct connections from source to dest
-        sd_temp = v_source.getWeight(dest)
-        if sd_temp:
+        if block_direct_connections:
+            sd_temp = v_source.getWeight(dest)
             v_source.reWeight(dest, INFINITY)         
         pathByNames = [source] + self.shortestPath(source,dest)
         DEBUG(pathByNames)
-        if sd_temp:
+        if block_direct_connections:
             v_source.reWeight(dest, sd_temp)
         return self.encryptTC(pathByNames, plaintext)
     

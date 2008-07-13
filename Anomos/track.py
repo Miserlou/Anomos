@@ -649,6 +649,7 @@ class Tracker(object):
             if cache[0] + self.config['min_time_between_cache_refreshes'] < time():
                 cache = None
             else:
+                #this could probably be cleaned up..
                 if ( (is_seed and len(cache[1]) < rsize)
                      or len(cache[1]) < l_get_size or not cache[1] ):
                         cache = None

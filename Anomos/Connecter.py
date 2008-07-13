@@ -56,12 +56,13 @@ class Connection(object):
         self.upload = None
         self.download = None
         self._buffer = []
-        self._reader = self._read_messages()
-        self._next_len = self._reader.next()
+        self._reader = self._read_messages() # Starts the generator
+        self._next_len = self._reader.next() # Gets the first yield
         self._partial_message = None
         self._outqueue = []
         self.choke_sent = True
-        if self.locally_initiated:
+        if self.locally_initiated: # This connection is sending data
+            #TODO: Write neighbor ID here.
             connection.write(chr(len(protocol_name)) + protocol_name +
                 (chr(0) * 8) + self.encoder.download_id)
             if self.id is not None:
@@ -157,6 +158,7 @@ class Connection(object):
         elif self._message != self.encoder.download_id:
             return
         if not self.locally_initiated:
+            # Respond with our information.
             self.connection.write(chr(len(protocol_name)) + protocol_name +
                 (chr(0) * 8) + self.encoder.download_id + self.encoder.my_id)
 
