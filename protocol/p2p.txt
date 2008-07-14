@@ -115,6 +115,5 @@ Relaying (1%)
    *While RelayParts has data:
         Send something from RelayParts to next neighbor outsocket.                        // In order? Random? I think in order for now.
 
-_________________EOF________________________________________
-
+______________________________EOF_______________________________
 
