@@ -9,37 +9,43 @@ This file is a sort of a mockup and may be rewritten/never used at all.
 
 """
 
-from Anomos import Asizer
-
 class Relayer(object):
-
-    def __init__(self, inconnection, outconnection, choker, neighborpubkey, key):
-        self.asizer = Asizer()
-        self.inconnection = inconnection           """Needed? or handled by Downloader?"""
-        self.outconnection = outconnection      '''Assumed to containa nextneighor IP'''        
+    """ As a tracking code is being sent, each peer it reaches (other than the
+        uploader and downloader) creates a Relayer object to maintain the 
+        association between the incoming socket and the outgoing socket (so 
+        that the TC only needs to be sent once).
+    """
+    def __init__(self, incoming, outgoing, storage, choker, key):
+        """
+        @param incoming: The connection to read data from
+        @param outgoing: The connection to write data to
+        @param storage: Where we store data waiting to be sent
+        
+        @type incoming: Connection
+        @type outgoing: Connection
+        @param storage: StorageWrapper
+        """
+        self.inconnection = inconnection
+        self.outconnection = outconnection # Assumed to containa nextneighor IP
+        self.storage = storage
         self.choker = choker
-        self.relayparts = Queue()                       """Queue for now, while we aren't piecemixing"""
+        self.relayparts = []
         self.choked = True
         self.unchoke_time = None
         self.interested = False
         self.buffer = []
-        self.neighborpubkey = neighborpubkey
+        #Neighbor Key is in their Connection object
+        #self.neighborpubkey = neighborpubkey 
         self.key = key
 
-    def bytesLessThan(object d, allowedbytes=268435456):
-        size = self.asizer.asizeof(d)
-        if(size < allowedbytes):
-            return true
-        return false
-
-    def addPart(object o):
+    def addPart(self, o):
         ##TODO: Where is this object coming from?
         p = key.decrypt(o)
         relayparts.put(p)
 
-    def returnPart():
+    def returnPart(self):
         return relayparts.get()
 
-     def sendPart():
-       neighborpubkey.encrypt(returnPart())
-       outconnection.write(returnPart())    ## ??
+    def sendPart(self):
+        self.outgoing.pubkey.encrypt(returnPart())
+        outconnection.write(returnPart())    ## ??
