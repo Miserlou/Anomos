@@ -21,7 +21,6 @@ import gc
 from sha import sha
 from socket import error as socketerror
 from random import seed
-from time import time
 from cStringIO import StringIO
 from traceback import print_exc
 from math import sqrt
@@ -31,6 +30,7 @@ except AttributeError:
     def getpid():
         return 1
 
+from Anomos.platform import bttime
 from Anomos.Choker import Choker
 from Anomos.Storage import Storage, FilePool
 from Anomos.StorageWrapper import StorageWrapper
@@ -536,10 +536,11 @@ class _SingleTorrent(object):
         @return: Peer id, format: An-n-n
         @rtype: string
         """
-        myid = 'M' + version.split()[0].replace('.', '-')
-        myid = myid + ('-' * (8-len(myid)))+sha(repr(time())+ ' ' +
-                                     str(getpid())).digest()[-6:].encode('hex')
-        self.myid = myid
+        myid = 'A' + version.split()[0].replace('.', '-')
+        
+        #myid = myid + ('-' * (8-len(myid)))+sha(repr(bttime())+ ' ' +
+        #                             str(getpid())).digest()[-6:].encode('hex')
+        #self.myid = myid + 
 
     def _set_auto_uploads(self):
         uploads = self.config['max_uploads']
@@ -559,7 +560,7 @@ class _SingleTorrent(object):
         self.config['max_uploads_internal'] = uploads
 
     def _error(self, level, text, exception=False):
-        self.errors.append((time(), level, text))
+        self.errors.append((bttime(), level, text))
         if exception:
             self.feedback.exception(self, text)
         else:

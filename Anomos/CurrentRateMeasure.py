@@ -10,21 +10,21 @@
 
 # Written by Bram Cohen
 
-from time import time
+from Anomos.platform import bttime
 
 
 class Measure(object):
 
     def __init__(self, max_rate_period, fudge=5):
         self.max_rate_period = max_rate_period
-        self.ratesince = time() - fudge
+        self.ratesince = bttime() - fudge
         self.last = self.ratesince
         self.rate = 0.0
         self.total = 0
 
     def update_rate(self, amount):
         self.total += amount
-        t = time()
+        t = bttime()
         self.rate = (self.rate * (self.last - self.ratesince) + 
             amount) / (t - self.ratesince)
         self.last = t
@@ -41,7 +41,7 @@ class Measure(object):
     def time_until_rate(self, newrate):
         if self.rate <= newrate:
             return 0
-        t = time() - self.ratesince
+        t = bttime() - self.ratesince
         return ((self.rate * t) / newrate) - t
 
     def get_total(self):

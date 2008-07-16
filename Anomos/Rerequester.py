@@ -12,11 +12,11 @@
 
 from threading import Thread
 from socket import error, gethostbyname
-from time import time
 from random import random, randrange
 from binascii import b2a_hex
 from urlparse import urlparse, urlunparse
 
+from Anomos.platform import bttime
 from Anomos.zurllib import urlopen, quote, Request
 from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
@@ -91,10 +91,10 @@ class Rerequester(object):
 
     def _check(self):
         if self.current_started is not None:
-            if self.current_started <= time() - 58:
+            if self.current_started <= bttime() - 58:
                 self.errorfunc(WARNING, "Tracker announce still not complete "
                                "%d seconds after starting it" %
-                               int(time() - self.current_started))
+                               int(bttime() - self.current_started))
             return
         if self.peerid is None:
             self.peerid = self.wanted_peerid
@@ -112,20 +112,20 @@ class Rerequester(object):
             self._announce(COMPLETED)
             return
         if self.fail_wait is not None:
-            if self.last_time + self.fail_wait <= time():
+            if self.last_time + self.fail_wait <= bttime():
                 self._announce()
             return
-        if self.last_time > time() - self.config['rerequest_interval']:
+        if self.last_time > bttime() - self.config['rerequest_interval']:
             return
         if self.ever_got_incoming():
             getmore = self.howmany() <= self.config['min_peers'] / 3
         else:
             getmore = self.howmany() < self.config['min_peers']
-        if getmore or time() - self.last_time > self.announce_interval:
+        if getmore or bttime() - self.last_time > self.announce_interval:
             self._announce()
 
     def _announce(self, event=None):
-        self.current_started = time()
+        self.current_started = bttime()
         s = ('%s&uploaded=%s&downloaded=%s&left=%s' %
             (self.url, str(self.up() - self.previous_up),
              str(self.down() - self.previous_down), str(self.amount_left())))
@@ -142,7 +142,7 @@ class Rerequester(object):
         if self.config['ip']:
             s += '&ip=' + gethostbyname(self.config['ip'])
         if self.send_key:
-            s += '&pubkey=' + quote(self.clientkey.asString())
+            s += '&pubkey=' + quote(self.clientkey.bin())
             self.send_key = False
         Thread(target=self._rerequest, args=[s, self.peerid]).start()
 
@@ -197,7 +197,7 @@ class Rerequester(object):
 
     def _postrequest(self, data=None, errormsg=None, peerid=None):
         self.current_started = None
-        self.last_time = time()
+        self.last_time = bttime()
         if errormsg is not None:
             self.errorfunc(WARNING, errormsg)
             self._fail()

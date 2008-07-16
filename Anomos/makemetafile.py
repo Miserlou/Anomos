@@ -17,12 +17,12 @@ from __future__ import division
 import os
 import sys
 from sha import sha
-from time import time
 from threading import Event
 
 from Anomos.bencode import bencode
 from Anomos.btformats import check_info
 from Anomos.parseargs import parseargs, printHelp
+from Anomos.platform import bttime
 from Anomos.obsoletepythonsupport import *
 from Anomos import BTFailure
 from M2Crypto.RSA import load_pub_key
@@ -105,7 +105,7 @@ def make_meta_file(path, url, pubkeyfilename, piece_len_exp, flag=Event(), progr
     check_info(info)
     pubkey = load_pub_key(pubkeyfilename).pub()[1] # pub() returns (e,n)
     h = file(f, 'wb')
-    data = {'info': info, 'announce': url.strip(), 'pubkey':pubkey, 'creation date': int(time())}
+    data = {'info': info, 'announce': url.strip(), 'pubkey':pubkey, 'creation date': int(bttime())}
     if comment:
         data['comment'] = comment
     h.write(bencode(data))

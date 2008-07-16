@@ -11,8 +11,8 @@
 # Written by Bram Cohen
 
 from random import shuffle
-from time import time
 
+from Anomos.platform import bttime
 from Anomos.CurrentRateMeasure import Measure
 from Anomos.bitfield import Bitfield
 
@@ -140,7 +140,7 @@ class SingleDownload(object):
             return False
         if self.downloader.storage.endgame:
             self.downloader.all_requests.remove((index, begin, len(piece)))
-        self.last = time()
+        self.last = bttime()
         self.measure.update_rate(len(piece))
         self.downloader.measurefunc(len(piece))
         self.downloader.downmeasure.update_rate(len(piece))
@@ -303,7 +303,7 @@ class SingleDownload(object):
         return self.measure.get_rate()
 
     def is_snubbed(self):
-        return time() - self.last > self.downloader.snub_time
+        return bttime() - self.last > self.downloader.snub_time
 
 
 class Downloader(object):

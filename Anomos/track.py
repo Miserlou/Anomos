@@ -17,7 +17,7 @@ import re
 from threading import Event
 from urlparse import urlparse
 from traceback import print_exc
-from time import time, gmtime, strftime, localtime
+from time import gmtime, strftime
 from random import shuffle
 from types import StringType, IntType, LongType, ListType, DictType
 from binascii import b2a_hex, a2b_hex
@@ -29,6 +29,7 @@ from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.RawServer import RawServer
 from Anomos.HTTPHandler import HTTPHandler, months, weekdays
 from Anomos.parsedir import parsedir
+from Anomos.platform import bttime
 from Anomos.NatCheck import NatCheck
 from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
@@ -125,7 +126,7 @@ alas = 'your file may exist elsewhere in the universe\nbut alas, not here\n'
 
 def isotime(secs = None):
     if secs == None:
-        secs = time()
+        secs = bttime()
     return strftime('%Y-%m-%d %H:%M UTC', gmtime(secs))
 
 http_via_filter = re.compile(' for ([0-9.]+)\Z')
@@ -277,7 +278,7 @@ class Tracker(object):
         self.save_dfile_interval = config['save_dfile_interval']
         self.show_names = config['show_names']
         rawserver.add_task(self.save_dfile, self.save_dfile_interval)
-        self.prevtime = time()
+        self.prevtime = bttime()
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
         rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
         self.logfile = None
@@ -552,7 +553,7 @@ class Tracker(object):
                 self.delete_peer(infohash,myid)
 
         elif not peer:
-            ts[myid] = time()
+            ts[myid] = bttime()
             peer = {'ip': ip, 'port': port, 'left': left}
             if gip:
                 peer['given ip'] = gip
@@ -575,7 +576,7 @@ class Tracker(object):
             if not auth:
                 return rsize    # return w/o changing stats
 
-            ts[myid] = time()
+            ts[myid] = bttime()
             if not left and peer['left']:
                 # Peer has a complete file, count them as a seeder.
                 self.completed[infohash] += 1
@@ -646,7 +647,7 @@ class Tracker(object):
         l_get_size = int(float(rsize)*(len_l)/(len_l+len_s))
         cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
         if cache:
-            if cache[0] + self.config['min_time_between_cache_refreshes'] < time():
+            if cache[0] + self.config['min_time_between_cache_refreshes'] < bttime():
                 cache = None
             else:
                 #this could probably be cleaned up..
@@ -655,7 +656,7 @@ class Tracker(object):
                         cache = None
         if not cache:
             vv = [[],[],[]]
-            cache = [ time(),
+            cache = [ bttime(),
                       bc[return_type][0].values()+vv[return_type],
                       bc[return_type][1].values() ]
             shuffle(cache[1])
@@ -786,10 +787,9 @@ class Tracker(object):
         bc[2][not not_seed][peerid] = compact_peer_info(ip, port)
 
     def natchecklog(self, peerid, ip, port, result):
-        year, month, day, hour, minute, second, a, b, c = localtime(time())
+        
         print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
-            ip, quote(peerid), day, months[month], year, hour, minute, second,
-            ip, port, result)
+            ip, quote(peerid), strftime("[%d/%b/%Y:%H:%M:%S]"), ip, port, result)
 
     def connectback_result(self, result, downloadid, peerid, ip, port):
         record = self.downloads.get(downloadid, {}).get(peerid)
@@ -859,7 +859,7 @@ class Tracker(object):
             for myid, t in peertimes.items():
                 if t < self.prevtime:
                     self.delete_peer(infohash, myid)
-        self.prevtime = time()
+        self.prevtime = bttime()
         if (self.keep_dead != 1):
             for key, peers in self.downloads.items():
                 if len(peers) == 0 and (self.allowed is None or
