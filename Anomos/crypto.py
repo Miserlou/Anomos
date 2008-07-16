@@ -22,6 +22,9 @@ from Anomos import BTFailure
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
+def toM2Exp(n):
+    return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
+
 class RSAPubKey:
     def __init__(self, keystring, exp=65537, data_dir='', crypto_dir='crypto'):
         """
@@ -30,10 +33,8 @@ class RSAPubKey:
         @type keystring: string
         @type exponent: int
         """
-        rsa = m2.rsa_new()
-        m2.rsa_set_e_bin(rsa, tobinary(exp))
-        m2.rsa_set_n_bin(rsa, n)
-        self.pubkey = RSA.RSA_pub(rsa, 1)
+        self.pubkey = RSA.new_pub_key((toM2Exp(exp), keystring))
+        self.pubkey.check_key()
         self.crypto_path = os.path.join(data_dir, crypto_dir)
         self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
     
@@ -42,7 +43,7 @@ class RSAPubKey:
         @return: SHA digest of string concatenation of exponent and public key
         @rtype: string
         """
-        return sha.sha(''.join(self.pubkey.pub())).hexdigest()
+        return sha.new(''.join(self.pubkey.pub())).hexdigest()
         
     def encrypt(self, data, rmsglen=None):
         """
@@ -65,7 +66,9 @@ class RSAPubKey:
         ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext
     
-    def asString(self):
+    def bin(self):
+        """ return: pubkey (without exponent) as binary string """
+        # I'm wondering if we shouldn't send the exponent too.
         return self.pubkey.pub()[1]
     
 
@@ -140,10 +143,6 @@ class RSAKeyPair(RSAPubKey):
         @rtype: tuple
         """
         byte_key_size = self.key_size/8
-        if len(data) <= byte_key_size:
-            return self.pvtkey.private_decrypt(data, self.padding)
-        
-        # Data is longer than key, twas bulk encrypted.
         # Decrypt the session key and IV with our private key
         tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
         sk = tmpsk[:32] # Session Key
@@ -248,26 +247,22 @@ class AESKeyManager:
     def __init__(self):
         self.aeskeys = {}
     
-    def addKey(self, alias, key=None, iv=None):
+    def addKey(self, alias, key):
         """
-        Add key and iv to keyring with name alias, if no key given, generate a new one.
+        Add key to keyring with name alias, if no key given, generate a new one.
         @type alias: string
-        @type key: string
-        @type iv: string
+        @type key: AESKey
         """
-        if key and iv:
-            self.aeskeys[alias] = AESKey(key, iv)
-        else:
-            self.aeskeys[alias] = AESKey(randfile=self.randfile)
-    
+        if not self.containsKey(alias):
+            self.aeskeys[alias] = key
+
     def getKey(self, alias):
         return self.aeskeys.get(alias, None)
     
     def containsKey(self, alias):
         return self.aeskeys.has_key(alias)
 
-##Moved out of AESManager -- general enough to be a module function.
-##32 random bytes
+
 def getRand(randfile, numBytes=32):
     """
     @param randfile: Full path to randfile
@@ -290,11 +285,12 @@ if __name__ == "__main__":
         print "Unencrypted:", secret
 
         encrypted = key.encrypt(secret)
+        print len(encrypted)
         print b2a_hex(encrypted)
         print key.decrypt(encrypted)
         
         # Test RSAKeyPair
-        rsa = RSAKeyPair('WampWamp')
+        rsa = RSAKeyPair('tracker')
         encrypted = rsa.encrypt(secret)
         print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
         print "Decrypted: ", rsa.decrypt(encrypted)
