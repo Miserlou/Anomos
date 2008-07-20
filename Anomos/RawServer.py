@@ -106,7 +106,6 @@ class RawServer(object):
     def __init__(self, doneflag, config, noisy=True,
             errorfunc=default_error_handler, bindaddr='', tos=0):
         self.config = config
-        #self.timeout = timeout
         self.bindaddr = bindaddr
         self.tos = tos
         self.poll = poll()
@@ -121,7 +120,7 @@ class RawServer(object):
         self.listening_handlers = {}
         self.serversockets = {}
         self.live_contexts = {None : True}
-        self.add_task(self.scan_for_timeouts, timeout_check_interval)
+        self.add_task(self.scan_for_timeouts, self.config['timeout_check_interval'])
         if sys.platform != 'win32':
             self.wakeupfds = os.pipe()
             self.poll.register(self.wakeupfds[0], POLLIN)

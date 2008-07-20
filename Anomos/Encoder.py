@@ -12,6 +12,7 @@
 
 from socket import error as socketerror
 
+from Anomos.crypto import AESKeyManager
 from Anomos.Connecter import Connection
 from Anomos import BTFailure
 
@@ -39,6 +40,7 @@ class Encoder(object):
         self.complete_connections = {}
         self.spares = []
         self.banned = {}
+        self.pubkey = context.rsa
         schedulefunc(self.send_keepalives, config['keepalive_interval'])
 
     def send_keepalives(self):
@@ -48,15 +50,20 @@ class Encoder(object):
             c.send_keepalive()
 
     def start_connection(self, dns, id):
+        """
+        @param dns: (IP, Port)
+        @param id: The neighbor ID to assign to this connection
+        @type dns: tuple
+        @type id: int
+        """
+        
         if dns[0] in self.banned:
             return
-        if id == self.my_id:
-            return
         for v in self.connections.values():
-            if id and v.id == id:
-                return
+            if id and v.id == id: 
+                return # ID is taken
             if self.config['one_connection_per_ip'] and v.ip == dns[0]:
-                return
+                return # Already connected to this peer
         if len(self.connections) >= self.config['max_initiate']:
             if len(self.spares) < self.config['max_initiate'] and \
                    dns not in self.spares:
@@ -67,7 +74,7 @@ class Encoder(object):
         except socketerror:
             pass
         else:
-            con = Connection(self, c, id, True)
+            con = Connection(self, c, id, True) # Local connection for receiving
             self.connections[c] = con
             c.handler = con
 
@@ -111,18 +118,27 @@ class Encoder(object):
 
 class SingleportListener(object):
 
-    def __init__(self, rawserver):
+    def __init__(self, rawserver, config, pubkey):
         self.rawserver = rawserver
+        self.config = config
         self.port = 0
         self.ports = {}
         self.torrents = {}
         self.connections = {}
-        self.neighbors = {}
+        self.neighbors = {} # Format -> { Neighbor_ID : (IP, Port) }
+        self.keyring = AESKeyManager()
+        self.pubkey = pubkey
         self.download_id = None
     
-    def add_neighbor(self, nid, dns):
+    def add_neighbor(self, nid, dns, pubkey):
         if nid not in self.neighbors:
-            self.neighbors[nid] = dns
+            self.neighbors[nid] = (dns, pubkey)
+    
+    def nid_by_ip(self, ip):
+        for nid, dns in self.neighbors.iteritems():
+            if ip == dns[0]:
+                return nid
+        return None
     
     def _check_close(self, port):
         if not port or self.port == port or self.ports[port][1] > 0:
@@ -177,11 +193,14 @@ class SingleportListener(object):
         Connection came in.
         @param connection: SingleSocket
         """
-        # The Connection's encoder is initially this SingleportListener (which
-        # has download_id=None so that the Connection knows this is an incoming, 
-        # connection. Once the infohash is read, it'll be the changed to the 
-        # appropriate connection object
-        con = Connection(self, connection, None, False)
+        nid = self.nid_by_ip(connection.ip)
+        if nid: 
+            # The incomming connection is one of our neighbors
+            con = Connection(self, connection, nid, False)
+        else:
+            print "New Neighbor"
+            # It's a new neighbor
+            con = Connection(self, connection, None, False)
         self.connections[connection] = con
         connection.handler = con
 
