@@ -206,8 +206,11 @@ class Rerequester(object):
             # Here's where we receive/decrypt data from the tracker
             r = bdecode(data)
             if r.has_key('pke'):
-                r = bdecode(self.clientkey.decrypt(r['pke']))
-            check_peers(r)
+                r.update(bdecode(self.clientkey.decrypt(r['pke'])))
+                del r['pke']
+                print r
+            #TODO: update check_peers for Anomos
+            #check_peers(r)
         except BTFailure, e:
             if data != '':
                 self.errorfunc(ERROR, 'bad data from tracker - ' + str(e))

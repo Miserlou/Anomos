@@ -27,7 +27,7 @@ from Anomos.obsoletepythonsupport import *
 
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.RawServer import RawServer
-from Anomos.HTTPHandler import HTTPHandler, months, weekdays
+from Anomos.HTTPHandler import HTTPHandler
 from Anomos.parsedir import parsedir
 from Anomos.platform import bttime
 from Anomos.NatCheck import NatCheck
@@ -496,13 +496,15 @@ class Tracker(object):
                         params('peer_id'))
         return None
     
-    def update_simpeer(self, paramslist):
+    def update_simpeer(self, paramslist, ip):
         params = params_factory(paramslist)
         
         simpeer = self.networkmodel.get(params('peer_id'))
-        if not simpeer and params('pubkey'):
-            # First announce, with pubkey
-            simpeer = self.networkmodel.addPeer(params('peer_id'), params('pubkey'))
+        if not simpeer and params('pubkey'): # New peer
+            dns = (ip, int(params('port')))
+            simpeer = self.networkmodel.addPeer(params('peer_id'), 
+                                                params('pubkey'), dns)
+            print simpeer.id_map
         # TODO: What if they don't give a pubkey
         #Verify the connecting peer is who they say they are.
         #Update any changed information
@@ -622,8 +624,25 @@ class Tracker(object):
                     NatCheck(self.connectback_result,infohash,myid,ip1,port,self.rawserver)
 
         return rsize
-
-    def peerlist(self, infohash, stopped, is_seed, return_type, rsize):
+    
+    def neighborlist(self, peerid):
+        sim = self.networkmodel.get(peerid)
+        if not sim.id_map:
+            return {'peers':{}}
+        data={}
+        data['peers'] = []
+        for p in sim.id_map.values():
+            dns = sim.neighbors[p]['dns']
+            data['peers'].append({'ip':dns[0], 'port':dns[1], 'peer id':p})
+        print data
+        return data
+    
+    def peerlist(self, peerid, infohash, stopped, is_seed, return_type, rsize):
+        """ Return a set of Tracking Codes 
+        @param peerid: PeerID of source peer
+        @param infohash: File requested
+        @param stopped: 
+        """
         data = {}    # data to be returned
         seeds = self.seedcount[infohash]
         data['complete'] = seeds
@@ -650,7 +669,6 @@ class Tracker(object):
             if cache[0] + self.config['min_time_between_cache_refreshes'] < bttime():
                 cache = None
             else:
-                #this could probably be cleaned up..
                 if ( (is_seed and len(cache[1]) < rsize)
                      or len(cache[1]) < l_get_size or not cache[1] ):
                         cache = None
@@ -737,7 +755,7 @@ class Tracker(object):
             if path != 'announce':
                 return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
             
-            self.update_simpeer(paramslist)
+            self.update_simpeer(paramslist, ip)
             # main tracker function
             infohash = params('info_hash')
             if not infohash:
@@ -749,7 +767,7 @@ class Tracker(object):
 
             event = params('event')
 
-            rsize = self.add_data(infohash, event, ip, paramslist)
+            #rsize = self.add_data(infohash, event, ip, paramslist)
 
         except ValueError, e:
             return self.reply(400, 'Bad Request', {'Content-Type': 'text/plain'},
@@ -761,8 +779,9 @@ class Tracker(object):
             return_type = 1
         else:
             return_type = 0
-
-        data = self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
+        
+        data = self.neighborlist(params('peer_id'))
+        #self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
 
         if paramslist.has_key('scrape'):
             data['scrape'] = self.scrapedata(infohash, False)
@@ -894,8 +913,7 @@ def track(args):
         print 'error: ' + str(e)
         print 'run with no arguments for parameter explanations'
         return
-    r = RawServer(Event(), config['timeout_check_interval'],
-                  config['socket_timeout'], bindaddr = config['bind'])
+    r = RawServer(Event(), config, bindaddr = config['bind'])
     t = Tracker(config, r)
     s = r.create_serversocket(config['port'], config['bind'], True)
     r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))
