@@ -35,28 +35,28 @@ class SimPeer:
     Container for some information tracker needs to know about each peer, also
     node in Graph model of network topology used for Tracking Code generation.
     """
-    def __init__(self, name, pubkey, maxid=100):
+    def __init__(self, name, pubkey, dns):
         """
         @param name: Peer ID to be assigned to this SimPeer
         @type name: string
         @param pubkey: RSA Public Key to use when encrypting to this peer
         @type pubkey: Anomos.crypto.RSAPubKey
-        @param maxid: Maximum value for Neighbor IDs
         """
         self.name = name
         self.pubkey = RSAPubKey(pubkey)
-        self.maxid = maxid
         self.neighbors = {}
         self.id_map = {}
+        self.dns = dns
     
-    def addNeighbor(self, peerid, nid):
+    def addNeighbor(self, peerid, nid, dns):
         """
         Assign Neighbor ID to peer
         
         @type peerid: string
         @type nid: int
         """
-        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid})
+        #TODO: What happens if we get a new neighbor we're already connected to
+        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid,'dns':dns})
         self.id_map[nid] = peerid
     
     def removeEdge(self, peerid):
@@ -73,11 +73,11 @@ class SimPeer:
     
     def getAvailableNIDs(self):
         """
-        @return: set object containing NIDs in range 0 -> maxid which are not in use
+        @return: set object containing NIDs in range 0 -> 255 which are not in use
         @rtype: set of ints
         """
         used = set(self.id_map.keys())
-        idrange = set(range(0,self.maxid))
+        idrange = set([chr(i) for i in range(0, 256)])
         return idrange - used
     
     def degree(self):
@@ -107,7 +107,7 @@ class SimPeer:
         return self.redges.keys()
     
     def isConnected(self, peerid):
-        return peerid in self.redges.keys()
+        return self.neighbors.has_key(peerid)
     
     def printConnections(self):
         """Debugging only. Returns IP-self: IP-0, IP-1, IP-2, ..., IP-n"""
@@ -136,7 +136,7 @@ class NetworkModel:
     def getVertices(self):
         return self.names.values()
     
-    def addPeer(self, peerid, pubkey):
+    def addPeer(self, peerid, pubkey, dns, num_neighbors=1):
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
@@ -144,7 +144,8 @@ class NetworkModel:
         @returns: a reference to the created peer
         @rtype: SimPeer
         """
-        self.names[peerid] = SimPeer(peerid, pubkey)
+        self.names[peerid] = SimPeer(peerid, pubkey, dns)
+        self.randConnect(peerid, num_neighbors)
         return self.names[peerid]
     
     def order(self):
@@ -167,15 +168,32 @@ class NetworkModel:
         @param v2: Peer ID
         @type v2: string
         """
-        nidsV1 = self.get(v1).getAvailableNIDs()
-        nidsV2 = self.get(v2).getAvailableNIDs()
-        l = list(nidsV1.intersection(nidsV2))
+        p1 = self.get(v1)
+        p2 = self.get(v2)
+        nidsP1 = p1.getAvailableNIDs()
+        nidsP2 = p2.getAvailableNIDs()
+        l = list(nidsP1.intersection(nidsP2))
         if len(l):
             nid = random.choice(l)
-            self.get(v1).addNeighbor(v2, nid)
-            self.get(v2).addNeighbor(v1, nid)
+            p1.addNeighbor(v2, nid, p2.dns)
+            p2.addNeighbor(v1, nid, p1.dns)
         else:
-            raise RuntimeError("Peers cannot be connected.")
+            raise RuntimeError("No available NeighborIDs. It's possible the \
+                                network is being attacked. Please file a bug \
+                                report")
+    
+    def randConnect(self, peerid, numpeers):
+        peer = self.get(peerid)
+        others = self.names.keys()
+        others.remove(peerid)
+        for nid in peer.neighbors.keys():
+            others.remove(nid)
+        for c in range(numpeers):
+            if len(others) == 0:
+                break
+            otherpeerid = random.choice(others)
+            self.connect(peerid, otherpeerid)
+            others.remove(otherpeerid)
     
     def disconnect(self, peerid):
         """
