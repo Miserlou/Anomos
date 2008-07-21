@@ -14,6 +14,7 @@ from threading import Thread
 from socket import error, gethostbyname
 from random import random, randrange
 from binascii import b2a_hex
+from base64 import urlsafe_b64encode
 from urlparse import urlparse, urlunparse
 
 from Anomos.platform import bttime
@@ -167,7 +168,7 @@ class Rerequester(object):
         # Encrypt query here.
         if self.trackerkey:
             (scheme, netloc, path, pars, query, fragment) = urlparse(url)
-            query = "pke=" + quote(self.trackerkey.encrypt(query))
+            query = "pke=" + urlsafe_b64encode(self.trackerkey.encrypt(query))
             url = urlunparse((scheme, netloc, path, pars, query, fragment))
         request = Request(url)
         if self.config['tracker_proxy']:

@@ -22,6 +22,7 @@ from random import shuffle
 from types import StringType, IntType, LongType, ListType, DictType
 from binascii import b2a_hex, a2b_hex
 from cStringIO import StringIO
+from base64 import urlsafe_b64decode
 
 from Anomos.obsoletepythonsupport import *
 
@@ -736,7 +737,7 @@ class Tracker(object):
             paramslist.update(self.parseQuery(query))
             if params('pke'):
                 # Decrypt the query
-                binpke = unquote(params('pke'))
+                binpke = urlsafe_b64decode(params('pke'))
                 decquery = self.rsa.decrypt(binpke, returnpad=False)
                 # Update with the new params
                 paramslist.update(self.parseQuery(decquery))
