@@ -20,22 +20,16 @@ class Relayer(object):
         @param incoming: The connection to read data from
         @param outgoing: The connection to write data to
         @param storage: Where we store data waiting to be sent
-<<<<<<< HEAD:Anomos/Relayer.py
         @param uprate: Upload rate measurer
         @param downrate: Download rate measurer
->>>>>>> e1c888485344a786de85576b1ede7db0c4b64c2c:Anomos/Relayer.py
         @type incoming: Connection
         @type outgoing: Connection
-<<<<<<< HEAD:Anomos/Relayer.py
         @type uprate: Measure
         @type downrate: Measure
->>>>>>> e1c888485344a786de85576b1ede7db0c4b64c2c:Anomos/Relayer.py
         @param storage: StorageWrapper
         """
-<<<<<<< HEAD:Anomos/Relayer.py
         self.incoming = incoming
         self.outgoing = outgoing
->>>>>>> e1c888485344a786de85576b1ede7db0c4b64c2c:Anomos/Relayer.py
         self.storage = storage
         self.choker = choker
         self.relayparts = []
@@ -45,8 +39,6 @@ class Relayer(object):
         self.downrate = downrate            #statistical
         self.interested = False
         self.buffer = []
-<<<<<<< HEAD:Anomos/Relayer.py
->>>>>>> e1c888485344a786de85576b1ede7db0c4b64c2c:Anomos/Relayer.py
         self.key = key
 
     def addPart(self, o):
@@ -58,7 +50,6 @@ class Relayer(object):
         return relayparts.get()
 
     def sendPart(self):
-<<<<<<< HEAD:Anomos/Relayer.py
         eprt = self.outgoing.pubkey.encrypt(returnPart())
         self.outconnection.write(eprt)
         self.uprate.update_rate(len(eprt))
@@ -70,4 +61,3 @@ class Relayer(object):
 
     def get_rate(self):
         return self.uprate.get_rate()
->>>>>>> e1c888485344a786de85576b1ede7db0c4b64c2c:Anomos/Relayer.py
