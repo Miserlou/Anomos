@@ -12,8 +12,9 @@
 
 from cStringIO import StringIO
 from sys import stdout
-import time
+from time import localtime
 from gzip import GzipFile
+from Anomos.platform import bttime
 
 DEBUG = False
 
@@ -134,11 +135,11 @@ class HTTPConnection(object):
         username = '-'
         referer = self.headers.get('referer','-')
         useragent = self.headers.get('user-agent','-')
-        year, month, day, hour, minute, second, a, b, c = time.localtime(time.time())
+        year, month, day, hour, minute, second, a, b, c = localtime(bttime())
         print '%s %s %s [%02d/%3s/%04d:%02d:%02d:%02d] "%s" %i %i "%s" "%s"' % (
             self.connection.ip, ident, username, day, months[month], year, hour,
             minute, second, self.header, responsecode, len(data), referer, useragent)
-        t = time.time()
+        t = bttime()
         if t - self.handler.lastflush > self.handler.minflush:
             self.handler.lastflush = t
             stdout.flush()
@@ -168,7 +169,7 @@ class HTTPHandler(object):
         self.connections = {}
         self.getfunc = getfunc
         self.minflush = minflush
-        self.lastflush = time.time()
+        self.lastflush = bttime()
     
     def external_connection_made(self, connection):
         self.connections[connection] = HTTPConnection(self, connection)

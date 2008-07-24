@@ -17,7 +17,7 @@ import socket
 from cStringIO import StringIO
 from traceback import print_exc
 from errno import EWOULDBLOCK, ENOBUFS
-from time import time, sleep
+from Anomos.platform import bttime
 from Anomos import CRITICAL, FAQ_URL
 
 try:
@@ -28,9 +28,6 @@ except ImportError:
     timemult = 1
 
 
-all = POLLIN | POLLOUT
-
-
 class SingleSocket(object):
 
     def __init__(self, raw_server, sock, handler, context, ip=None):
@@ -38,7 +35,7 @@ class SingleSocket(object):
         self.socket = sock
         self.handler = handler
         self.buffer = []
-        self.last_hit = time()
+        self.last_hit = bttime()
         self.fileno = sock.fileno()
         self.connected = False
         self.context = context
@@ -98,7 +95,7 @@ class SingleSocket(object):
         if self.buffer == []:
             self.raw_server.poll.register(self.socket, POLLIN)
         else:
-            self.raw_server.poll.register(self.socket, all)
+            self.raw_server.poll.register(self.socket, POLLIN | POLLOUT)
 
 def default_error_handler(x, y):
     print x, y
@@ -106,10 +103,9 @@ def default_error_handler(x, y):
 
 class RawServer(object):
 
-    def __init__(self, doneflag, timeout_check_interval, timeout, noisy=True,
+    def __init__(self, doneflag, config, noisy=True,
             errorfunc=default_error_handler, bindaddr='', tos=0):
-        self.timeout_check_interval = timeout_check_interval
-        self.timeout = timeout
+        self.config = config
         self.bindaddr = bindaddr
         self.tos = tos
         self.poll = poll()
@@ -124,7 +120,7 @@ class RawServer(object):
         self.listening_handlers = {}
         self.serversockets = {}
         self.live_contexts = {None : True}
-        self.add_task(self.scan_for_timeouts, timeout_check_interval)
+        self.add_task(self.scan_for_timeouts, self.config['timeout_check_interval'])
         if sys.platform != 'win32':
             self.wakeupfds = os.pipe()
             self.poll.register(self.wakeupfds[0], POLLIN)
@@ -145,7 +141,7 @@ class RawServer(object):
 
     def add_task(self, func, delay, context=None):
         if context in self.live_contexts:
-            insort(self.funcs, (time() + delay, func, context))
+            insort(self.funcs, (bttime() + delay, func, context))
 
     def external_add_task(self, func, delay, context=None):
         self.externally_added_tasks.append((func, delay, context))
@@ -154,8 +150,9 @@ class RawServer(object):
             os.write(self.wakeupfds[1], 'X')
 
     def scan_for_timeouts(self):
-        self.add_task(self.scan_for_timeouts, self.timeout_check_interval)
-        t = time() - self.timeout
+        self.add_task(self.scan_for_timeouts, 
+                      self.config['timeout_check_interval'])
+        t = bttime() - self.config['socket_timeout']
         tokill = []
         for s in self.single_sockets.values():
             if s.last_hit < t:
@@ -205,9 +202,10 @@ class RawServer(object):
         except socket.error:
             sock.close()
             raise
-        except Exception, e:
-            sock.close()
-            raise socket.error(str(e))
+        # Commenting this out, because it appears to not be necessary
+        #except Exception, e:
+        #    sock.close()
+        #    raise socket.error(str(e))
         self.poll.register(sock, POLLIN)
         s = SingleSocket(self, sock, handler, context, dns[0])
         self.single_sockets[sock.fileno()] = s
@@ -225,7 +223,7 @@ class RawServer(object):
             if sock in self.serversockets:
                 # Data came in on a port's passive socket.
                 s = self.serversockets[sock]
-                if event & (POLLHUP | POLLERR) != 0:
+                if event & (POLLHUP | POLLERR):
                     self.poll.unregister(s)
                     s.close()
                     self.errorfunc(CRITICAL, 'lost server socket')
@@ -235,17 +233,19 @@ class RawServer(object):
                         handler, context = self.listening_handlers[sock]
                         newsock, addr = s.accept()
                         newsock.setblocking(0)
+                    except socket.error, e:
+                        self.errorfunc(WARNING, "Error handling accepted "\
+                                       "connection: " + str(e))
+                    else:
                         nss = SingleSocket(self, newsock, handler, context)
                         self.single_sockets[newsock.fileno()] = nss
                         self.poll.register(newsock, POLLIN)
                         self._make_wrapped_call(handler.external_connection_made,\
                                                 (nss,), context=context)
-                    except socket.error:
-                        sleep(1)
             else:
                 # Data came in on a single_socket
                 s = self.single_sockets.get(sock)
-                if s is None:
+                if s is None: # Not an external connection
                     if sock == self.wakeupfds[0]:
                         # Another thread wrote this just to wake us up.
                         os.read(sock, 1)
@@ -255,7 +255,7 @@ class RawServer(object):
                     self._close_socket(s)
                     continue
                 if event & (POLLIN | POLLHUP):
-                    s.last_hit = time()
+                    s.last_hit = bttime()
                     try:
                         data = s.socket.recv(100000)
                     except socket.error, e:
@@ -266,8 +266,6 @@ class RawServer(object):
                     if data == '':
                         self._close_socket(s)
                     else:
-                        ### no, decrypt here. 
-                        ### name = s.getpeername()
                         self._make_wrapped_call(s.handler.data_came_in, \
                                                     (s, data), s)
                 # data_came_in could have closed the socket (s.socket = None)
@@ -289,11 +287,11 @@ class RawServer(object):
                 if len(self.funcs) == 0:
                     period = 1e9
                 else:
-                    period = max(0, self.funcs[0][0] - time())
+                    period = max(0, self.funcs[0][0] - bttime())
                 events = self.poll.poll(period * timemult)
                 if self.doneflag.isSet():
                     return
-                while len(self.funcs) > 0 and self.funcs[0][0] <= time():
+                while len(self.funcs) > 0 and self.funcs[0][0] <= bttime():
                     garbage, func, context = self.funcs.pop(0)
                     self._make_wrapped_call(func, (), context=context)
                 self._close_dead()
@@ -307,10 +305,10 @@ class RawServer(object):
                 # I can't find a coherent explanation for what the behavior
                 # should be here, and people report conflicting behavior,
                 # so I'll just try all the possibilities
-                try:
-                    code = e[0]
-                except TypeError:
-                    code = ENOBUFS
+                if isinstance(e, (list, tuple)):
+                    code = e[0] # May be ENOBUFS
+                else:
+                    code = e
                 if code == ENOBUFS:
                     self.errorfunc(CRITICAL, "Have to exit due to the TCP " \
                                    "stack flaking out. " \

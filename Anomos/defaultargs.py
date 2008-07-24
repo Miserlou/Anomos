@@ -50,7 +50,7 @@ rare_options = [
         "how many bytes to query for per request."),
     ('max_message_length', 2 ** 23,
         "maximum length prefix encoding you'll accept over the wire - larger values get the connection dropped."),
-    ('timeout', 300.0,
+    ('socket_timeout', 300.0,
         'seconds to wait between closing sockets which nothing has been received on'),
     ('timeout_check_interval', 60.0,
         'seconds to wait between checking if any connections have timed out'),

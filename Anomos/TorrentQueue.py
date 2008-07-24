@@ -16,8 +16,7 @@ import os
 import sys
 import threading
 
-from time import time
-
+from Anomos.platform import bttime
 from Anomos.download import Feedback, Multitorrent
 from Anomos.controlsocket import ControlSocket
 from Anomos.bencode import bdecode
@@ -149,7 +148,7 @@ class TorrentQueue(Feedback):
         self._dump_state()
 
     def _check_version(self):
-        now = time()
+        now = bttime()
         if self.last_version_check > now - 24*3600:
             return
         self.last_version_check = now
@@ -207,7 +206,7 @@ class TorrentQueue(Feedback):
                                self.ui_options, self.global_error)
 
     def _dump_state(self):
-        self.last_save_time = time()
+        self.last_save_time = bttime()
         r = []
         def write_entry(infohash, t):
             if t.dlpath is None:
@@ -364,7 +363,7 @@ class TorrentQueue(Feedback):
         if self.doneflag.isSet():
             return
         self.rawserver.add_task(self._queue_loop, 20)
-        now = time()
+        now = bttime()
         if self.queue and self.starting_torrent is None:
             mintime = now - self.config['next_torrent_time'] * 60
             minratio = self.config['next_torrent_ratio'] / 100
@@ -564,7 +563,7 @@ class TorrentQueue(Feedback):
             return
         status = torrent.dl.get_status(want_spew, want_fileinfo)
         if torrent.finishtime is not None:
-            now = time()
+            now = bttime()
             uptotal = status['upTotal'] + torrent.uptotal_old
             downtotal = status['downTotal'] + torrent.downtotal_old
             ulspeed = status['upRate2']
@@ -725,7 +724,7 @@ class TorrentQueue(Feedback):
             if ratio and t.uptotal >= t.downtotal * ratio:
                 raise BTShutdown("Not starting torrent as it already meets "
                                "the current settings for when to stop seeding")
-        self.torrents[torrent.infohash].finishtime = time()
+        self.torrents[torrent.infohash].finishtime = bttime()
 
     def started(self, torrent):
         infohash = torrent.infohash

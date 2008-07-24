@@ -10,7 +10,7 @@
 
 # Written by Bram Cohen
 
-from time import time
+from Anomos.platform import bttime
 
 
 class RateMeasure(object):
@@ -27,11 +27,11 @@ class RateMeasure(object):
     def data_came_in(self, amount):
         if not self.got_anything:
             self.got_anything = True
-            self.start = time() - 2
+            self.start = bttime() - 2
             self.last = self.start
             self.left -= amount
             return
-        self.update(time(), amount)
+        self.update(bttime(), amount)
 
     def data_rejected(self, amount):
         self.left += amount
@@ -39,7 +39,7 @@ class RateMeasure(object):
     def get_time_left(self):
         if not self.got_anything:
             return None
-        t = time()
+        t = bttime()
         if t - self.last > 15:
             self.update(t, 0)
         return self.remaining

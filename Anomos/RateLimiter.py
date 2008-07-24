@@ -10,7 +10,7 @@
 
 # Written by Uoti Urpala
 
-from time import time
+from Anomos.platform import bttime
 
 class RateLimiter(object):
 
@@ -33,7 +33,7 @@ class RateLimiter(object):
             unitsize = 17000
         self.upload_rate = rate * 1024
         self.unitsize = unitsize
-        self.lasttime = time()
+        self.lasttime = bttime()
         self.offset_amount = 0
 
     def queue(self, conn):
@@ -48,7 +48,7 @@ class RateLimiter(object):
             self.last = conn
 
     def try_send(self, check_time=False):
-        t = time()
+        t = bttime()
         self.offset_amount -= (t - self.lasttime) * self.upload_rate
         self.lasttime = t
         if check_time:

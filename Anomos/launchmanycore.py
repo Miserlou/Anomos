@@ -22,9 +22,9 @@ from Anomos.parsedir import parsedir
 from Anomos.download import Multitorrent, Feedback
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import BTFailure
+from Anomos.platform import bttime
 
 from threading import Event
-from time import time
 
 
 class LaunchMany(Feedback):
@@ -144,7 +144,7 @@ class LaunchMany(Feedback):
                     uprate = stats['upRate']
                     upamt = s['upTotal']
                     dnamt = s['downTotal']
-                if d.errors and (d.closed or d.errors[-1][0] + 300 > time()):
+                if d.errors and (d.closed or d.errors[-1][0] + 300 > bttime()):
                     msg = d.errors[-1][2]
 
             data.append(( name, status, progress, peers, seeds, seedsmsg, dist,

@@ -21,7 +21,6 @@ import gc
 from sha import sha
 from socket import error as socketerror
 from random import seed
-from time import time
 from cStringIO import StringIO
 from traceback import print_exc
 from math import sqrt
@@ -31,6 +30,9 @@ except AttributeError:
     def getpid():
         return 1
 
+import random
+
+from Anomos.platform import bttime
 from Anomos.Choker import Choker
 from Anomos.Storage import Storage, FilePool
 from Anomos.StorageWrapper import StorageWrapper
@@ -73,19 +75,19 @@ class Multitorrent(object):
     def __init__(self, config, doneflag, errorfunc, listen_fail_ok=False):
         self.config = dict(config)
         self.errorfunc = errorfunc
-        self.rawserver = RawServer(doneflag, config['timeout_check_interval'],
-                                   config['timeout'], errorfunc=errorfunc,
+        self.rsa = RSAKeyPair(str(random.randint(0,5))) #TODO: make this a unique name
+        self.AESKM = AESKeyManager()
+        self.rawserver = RawServer(doneflag, config, errorfunc=errorfunc,
                                    bindaddr=config['bind'])
-        self.singleport_listener = SingleportListener(self.rawserver)
+        self.singleport_listener = SingleportListener(self.rawserver, 
+                                                      self.config, self.rsa)
         self._find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
         self.ratelimiter = RateLimiter(self.rawserver.add_task)
         self.ratelimiter.set_parameters(config['max_upload_rate'],
                                         config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
-                                                 errorfunc)
-        self.rsa = RSAKeyPair('Peer') #TODO: make this a unique name
-        self.AESKM = AESKeyManager() 
+                                                 errorfunc) 
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'
@@ -208,11 +210,10 @@ class _SingleTorrent(object):
         self.feedback = None
         self.errors = []
         self.myid = None
-        self.client_pubkey = None
-        self.tracker_pubkey = None
         self.neighbors = {}
         self.AESKM = AESKM
         self.rsa = rsa_key
+        self.tracker_pubkey = None
     
     def start_download(self, *args, **kwargs):
         it = self._start_download(*args, **kwargs)
@@ -536,10 +537,11 @@ class _SingleTorrent(object):
         @return: Peer id, format: An-n-n
         @rtype: string
         """
-        myid = 'M' + version.split()[0].replace('.', '-')
-        myid = myid + ('-' * (8-len(myid)))+sha(repr(time())+ ' ' +
-                                     str(getpid())).digest()[-6:].encode('hex')
-        self.myid = myid
+        myid = 'A' + version.split()[0].replace('.', '-')
+        self.myid = myid + sha(self.rsa.bin()).hexdigest()[-(20-len(myid)):]
+        #myid = myid + ('-' * (8-len(myid)))+sha(repr(bttime())+ ' ' +
+        #                             str(getpid())).digest()[-6:].encode('hex')
+        #self.myid = myid + 
 
     def _set_auto_uploads(self):
         uploads = self.config['max_uploads']
@@ -559,7 +561,7 @@ class _SingleTorrent(object):
         self.config['max_uploads_internal'] = uploads
 
     def _error(self, level, text, exception=False):
-        self.errors.append((time(), level, text))
+        self.errors.append((bttime(), level, text))
         if exception:
             self.feedback.exception(self, text)
         else:

@@ -17,6 +17,7 @@ import sha
 import random
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
+from Anomos import BTFailure
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
@@ -25,40 +26,49 @@ def toM2Exp(n):
     return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
 
 class RSAPubKey:
-    def __init__(self, keystring, exponent=65537, data_dir='', crypto_dir='crypto'):
+    def __init__(self, keystring, exp=65537, data_dir='', crypto_dir='crypto'):
         """
         @param keystring: "n" value of pubkey to initialize new public key from
         @param exponent: "e" value of pubkey, should always be 65537
         @type keystring: string
         @type exponent: int
         """
-        self.pubkey = RSA.new_pub_key((toM2Exp(exponent), keystring))
+        self.pubkey = RSA.new_pub_key((toM2Exp(exp), keystring))
+        self.pubkey.check_key()
         self.crypto_path = os.path.join(data_dir, crypto_dir)
         self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
     
+    def keyID(self):
+        """ 
+        @return: SHA digest of string concatenation of exponent and public key
+        @rtype: string
+        """
+        return sha.new(''.join(self.pubkey.pub())).hexdigest()
+        
     def encrypt(self, data, rmsglen=None):
         """
         @type data: string
         @return: ciphertext of data, format: {RSA encrypted session key}[Checksum(sessionkey, info, content)][msg length][content][padding]
         @rtype: string
         """
-        sessionkey = AESKey(None, self.randfile)
-        iv = sessionkey.newIV()
+        sessionkey = AESKey(randfile=self.randfile)
         # Encrypt the session key which we'll use to bulk encrypt the rest of the data
-        esk = self.pubkey.public_encrypt(sessionkey.key+iv, RSA.pkcs1_oaep_padding)
+        esk = self.pubkey.public_encrypt(sessionkey.key+sessionkey.iv, RSA.pkcs1_oaep_padding)
         if rmsglen:
             bmsglen = tobinary(rmsglen)
         else:
             rmsglen = len(data)
             bmsglen = tobinary(len(data))
-        checksum = sha.new(sessionkey.key + iv + bmsglen + data[:rmsglen]).digest()
+        checksum = sha.new(sessionkey.key + bmsglen + data[:rmsglen]).digest()
         content = checksum + bmsglen + data
         padlen = 32-(len(content)%32)
         padding = "".join(chr(random.randint(0,255)) for i in range(padlen))
-        ciphertext = sessionkey.encrypt(iv, content+padding)
+        ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext
     
-    def asString(self):
+    def bin(self):
+        """ return: pubkey (without exponent) as binary string """
+        # I'm wondering if we shouldn't send the exponent too.
         return self.pubkey.pub()[1]
     
 
@@ -66,7 +76,7 @@ class RSAPubKey:
 ## keys in a directory called 'crypto/' within wherever the tracker was run.
 ## you can specify data_dir='somedir' to put it somewhere else.
 class RSAKeyPair(RSAPubKey):
-    def __init__(self, alias, data_dir='', crypto_dir='crypto', key_size=1024, padding='pkcs1_oaep_padding'):
+    def __init__(self, alias, data_dir='', crypto_dir='crypto', key_size=1024, padding=RSA.pkcs1_oaep_padding):
         """                
         @param alias: Unique name for the key, can be anything.
         @type alias: string
@@ -81,7 +91,7 @@ class RSAKeyPair(RSAPubKey):
         if not os.path.exists(self.crypto_path):
             os.mkdir(self.crypto_path)
         self.key_size = key_size
-        self.padding = getattr(RSA, padding)
+        self.padding = padding
         
         self.pvtkeyfilename = os.path.join(self.crypto_path, '%s-pvt.pem' % (self.alias))
         self.pubkeyfilename = os.path.join(self.crypto_path, '%s-pub.pem' % (self.alias))
@@ -93,28 +103,27 @@ class RSAKeyPair(RSAPubKey):
             self.loadKeysFromPEM()
         except IOError:
             self.saveNewPEM()
-            self.loadKeysFromPEM()
     
     def saveNewPEM(self):
         """
-        Generate new RSA key and save it to file
+        Generate new RSA key, save it to file, and sets this objects 
+        pvtkey and pubkey.
         """
         Rand.load_file(self.randfile, -1)
-        rsa = RSA.gen_key(self.key_size, m2.RSA_F4)  ## RSA_F4 == 65537; exponent: 65537 is secure
+        rsa = RSA.gen_key(self.key_size, m2.RSA_F4)
+        self.pvtkey = rsa
+        self.pubkey = RSA.new_pub_key(self.pvtkey.pub())
         rsa.save_key(self.pvtkeyfilename)
         rsa.save_pub_key(self.pubkeyfilename)
         Rand.save_file(self.randfile)
 
     def loadKeysFromPEM(self):
         """
-        @raise IOError: If invalid path for (pvt/pub)keyfilename
-        @raise RSA.RSAError: If keys were already loaded
-        @raise RSA.RSAError: If you type the wrong password
+        @raise IOError: If (pvt|pub)keyfilename does not exist
+        @raise RSA.RSAError: If wrong password is given
         """
-        if self.pubkey and self.pvtkey:
-            raise RSA.RSAError("Key already loaded")
         self.pvtkey = RSA.load_key(self.pvtkeyfilename)
-        self.pubkey = RSA.load_pub_key(self.pubkeyfilename)
+        self.pubkey = RSA.new_pub_key(self.pvtkey.pub())
     
     # Inherits encrypt function from RSAPubKey
     # def encrypt(self, data)
@@ -134,17 +143,13 @@ class RSAKeyPair(RSAPubKey):
         @rtype: tuple
         """
         byte_key_size = self.key_size/8
-        if len(data) <= byte_key_size:
-            return self.pvtkey.private_decrypt(data, self.padding)
-        
-        # Data is longer than key, twas bulk encrypted.
         # Decrypt the session key and IV with our private key
         tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
         sk = tmpsk[:32] # Session Key
         iv = tmpsk[32:] # IV
-        sessionkey = AESKey(sk, self.randfile)
+        sessionkey = AESKey(sk, iv, self.randfile)
         # Decrypt the rest of the message with the session key
-        content = sessionkey.decrypt(iv, data[byte_key_size:])
+        content = sessionkey.decrypt(data[byte_key_size:])
         pos = sha.digestsize
         givenchksum = content[:pos] # first 20 bytes
         smsglen = content[pos:pos+4] # next 4 bytes
@@ -152,7 +157,7 @@ class RSAKeyPair(RSAPubKey):
         pos += 4
         message = content[pos:pos+imsglen]
         pos += imsglen
-        mychksum = sha.new(tmpsk+smsglen+message).digest()
+        mychksum = sha.new(sk+smsglen+message).digest()
         if givenchksum != mychksum:
             raise ValueError("Bad Checksum - Data may have been tampered with") 
         if returnpad:
@@ -193,7 +198,7 @@ class AESKey:
         outf.write(cipher.final())
         return outf.getvalue()
     
-    def encrypt(self, iv, text):
+    def encrypt(self, text):
         """
         @param key: Alias of key to encrypt with
         @type key: string
@@ -210,7 +215,7 @@ class AESKey:
         obuf.close()
         return encrypted
     
-    def decrypt(self, iv, text):
+    def decrypt(self, text):
         """
         @param key: Alias of key to decrypt with
         @type key: string
@@ -232,76 +237,61 @@ class AESKey:
         @return: 32byte AES key
         @rtype: string
         """
-        return getRand32(self.randfile)
+        return getRand(self.randfile, 32)
     
     def newIV(self):
-        return getRand32(self.randfile)
+        return getRand(self.randfile, 32)
 
-    def getIV(self):
-        """
-        @return: IV used
-        @rtype: string
-        """
-        return self.iv
 
 class AESKeyManager:
     def __init__(self):
         self.aeskeys = {}
     
-    def addKey(self, alias, key=None, iv=None):
+    def addKey(self, alias, key):
         """
-        Add key and iv to keyring with name alias, if no key given, generate a new one.
+        Add key to keyring with name alias, if no key given, generate a new one.
         @type alias: string
-        @type key: string
-        @type iv: string
+        @type key: AESKey
         """
-        if key and iv:
-            self.aeskeys[alias] = AESKey(key, iv)
-        else:
-            self.aeskeys[alias] = AESKey(self.randfile)
-    
+        if not self.containsKey(alias):
+            self.aeskeys[alias] = key
+
     def getKey(self, alias):
-        if self.aeskeys.has_key(alias):
-            return self.aeskeys[alias]
-        else:
-            raise CryptoError("Key not found")
+        return self.aeskeys.get(alias, None)
     
     def containsKey(self, alias):
         return self.aeskeys.has_key(alias)
 
-##Moved out of AESManager -- general enough to be a module function.
-##32 random bytes
-def getRand32(randfile):
+
+def getRand(randfile, numBytes=32):
     """
     @param randfile: Full path to randfile
     @type randfile: string
     """
     Rand.load_file(randfile, -1)
-    rb = Rand.rand_bytes(32);
+    rb = Rand.rand_bytes(numBytes);
     Rand.save_file(randfile)
     return rb
-
-class CryptoError(Exception):
+    
+class CryptoError(BTFailure):
     pass
 
-secret = "Call me subwoofa cause I push so much base!"
-
-def testCrypto():
-    # Test AESKey
-    key = AESKey(None, 'crypto/randpool.dat')
-    iv = key.newIV()
-    
-    print "Unencrypted:", secret
-
-    encrypted = key.encrypt(iv, secret)
-    print b2a_hex(encrypted)
-    print key.decrypt(iv,encrypted)
-    
-    # Test RSAKeyPair
-    rsa = RSAKeyPair('WampWamp')
-    encrypted = rsa.encrypt(secret)
-    print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
-    print "Decrypted: ", rsa.decrypt(encrypted)
-
 if __name__ == "__main__":
+    def testCrypto():
+        secret = "Call me subwoofa cause I push so much base!"
+        # Test AESKey
+        key = AESKey(randfile='crypto/randpool.dat')
+        
+        print "Unencrypted:", secret
+
+        encrypted = key.encrypt(secret)
+        print len(encrypted)
+        print b2a_hex(encrypted)
+        print key.decrypt(encrypted)
+        
+        # Test RSAKeyPair
+        rsa = RSAKeyPair('tracker')
+        encrypted = rsa.encrypt(secret)
+        print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
+        print "Decrypted: ", rsa.decrypt(encrypted)
     testCrypto()
