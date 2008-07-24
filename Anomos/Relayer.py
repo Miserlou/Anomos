@@ -45,6 +45,7 @@ class Relayer(object):
         ##TODO: Where is this object coming from?
         p = key.decrypt(o)
         relayparts.put(p)
+        downrate.update_rate(len(o))
 
     def returnPart(self):
         return relayparts.get()
@@ -61,3 +62,21 @@ class Relayer(object):
 
     def get_rate(self):
         return self.uprate.get_rate()
+
+    def choke(self):
+        if not self.choked:
+            self.choked = True
+            self.incoming.send_choke()
+
+    def unchoke(self, time):
+        if self.choked:
+            self.choked = False
+            self.unchoke_time = time
+            self.outgoing.send_unchoke()
+   
+    def sent_choke(self): 
+        assert self.choked
+        del self.buffer[:]
+
+    def has_queries(self):
+        return len(self.buffer) > 0
