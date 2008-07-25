@@ -14,7 +14,7 @@
 from __future__ import generators
 
 from binascii import b2a_hex
-
+from M2Crypto.RSA import RSAError
 from Anomos.crypto import AESKey, RSAPubKey
 from Anomos.bitfield import Bitfield
 from Anomos.obsoletepythonsupport import *
@@ -43,7 +43,6 @@ PIECE = chr(7)
 CANCEL = chr(8)
 
 ##Anomos Control Chars##
-NID = chr(9) # Used to indicate a neighbor connection request.
 PUBKEY = chr(10) # Sent before a pubkey to be used in an AES key exchange
 EXCHANGE = chr(11) # The data that follows is RSA encrypted AES data
 CONFIRM = chr(12)
@@ -57,8 +56,6 @@ class Connection(object):
         self.id = id
         self.ip = connection.ip
         self.locally_initiated = is_local
-        # Connection is "established" if it's coming from one of our neighbors
-        self.established = (id is not None) and not is_local
         self.complete = False
         self.closed = False
         self.got_anything = False
@@ -66,6 +63,7 @@ class Connection(object):
         self.upload = None
         self.download = None
         self._buffer = []
+        self._buffer_len = 0
         self._reader = self._read_messages() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
         self._partial_message = None
@@ -154,13 +152,13 @@ class Connection(object):
         """
         aes = AESKey()
         self.tmp_aes = aes
-        msg = pubkey.encrypt(EXCHANGE + self.id + 
-                             tobinary(len(aes.key)) + aes.key + 
-                             tobinary(len(aes.iv)) + aes.iv)
+        msg = EXCHANGE + pubkey.encrypt(self.id + tobinary(len(aes.key)) + 
+                                        aes.key + tobinary(len(aes.iv)) + 
+                                        aes.iv)
         self._send_message(msg)
     
     def get_aes_key(self):
-        if self.id and self.established:
+        if self.id:
             return self.encoder.keyring.getKey(self.id)
         return None
     
@@ -173,13 +171,13 @@ class Connection(object):
         if self._message != protocol_name:
             return
         yield 8  # reserved
-        if not self.established:
+        if not self.id:
             if not self.locally_initiated:
                 # External non-neighbor connection
                 # Respond with PubKey
                 self.connection.write(chr(len(protocol_name)) + protocol_name +
                 (chr(0) * 8))
-                pkmsg = PUBKEY + self.encoder.pubkey.bin()
+                pkmsg = PUBKEY + self.encoder.rsakey.pub_bin()
                 self._send_message(pkmsg)
         #else: We're getting a tracking code, or relayed message
 #        yield 20 # download id
@@ -220,7 +218,6 @@ class Connection(object):
         while True:
             yield 4   # message length
             l = toint(self._message)
-            print "LL: ", l
             if l > self.encoder.config['max_message_length']:
                 return
             if l > 0:
@@ -228,6 +225,11 @@ class Connection(object):
                 self._got_message(self._message)
 
     def _got_message(self, message):
+        """ Handles an incoming message. First byte designates message type,
+            may be any one of (CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, 
+            HAVE, BITFIELD, REQUEST, PIECE, CANCEL, PUBKEY, EXCHANGE, 
+            CONFIRM, ENCRYPTED)
+        """
         t = message[0]
         if t == BITFIELD and self.got_anything:
             self.close()
@@ -297,40 +299,40 @@ class Connection(object):
             if self.download.got_piece(i, toint(message[5:9]), message[9:]):
                 for co in self.encoder.complete_connections:
                     co.send_have(i)
-        elif t == NID:
-            if len(message) > 1:
-                self.close()
-                return
-            self.encoder.pubkey.bin()
         elif t == PUBKEY:
-            #TODO: Check size and whatnot
-            if self.established:
-                self.close()
-                return
+            #TODO: Check size?
             pub = RSAPubKey(message[1:])
             self.send_key_exchange(pub)
         elif t == EXCHANGE:
             try:
-                nid = toint(message[1:5])
-                keylen = toint(message[5:9])
-                key = message[9:9+keylen]
-                i = 9+keysize
-                ivlen = message[i:i+4]
+                plaintxt = self.encoder.rsakey.decrypt(message[1:])
+                nid = plaintxt[0]
+                i = 1
+                keylen = toint(plaintxt[i:i+4])
                 i += 4
-                iv = message[i:i+ivlen]
+                key = plaintxt[i:i+keylen]
+                i += keylen
+                ivlen = toint(plaintxt[i:i+4])
+                i += 4
+                iv = plaintxt[i:i+ivlen]
             except IndexError:
                 self.close()
                 return
+            except RSAError:
+                # Bad decrypt, wrong private key?
+                pass
+            except ValueError:
+                # Bad Checksum, possible MITM attack
+                pass
             if self.encoder.neighbors.get(nid):
+                # NID already in use!
                 self.close()
                 return
             self.id = nid
             self.encoder.keyring.addKey(self.id, AESKey(key, iv))
             self._send_message(CONFIRM)
             print "Sending Confirm"
-            self.established = True
         elif t == CONFIRM:
-            self.established = True
             self.encoder.keyring.addKey(self.id, self.tmp_aes)
             print "Got Confirm"
             self.close()
@@ -357,21 +359,23 @@ class Connection(object):
     
     def _send_encrypted_message(self, message):
         key = self.get_aes_key()
-        self._send_message(key.encrypt(message))
+        self._send_message(ENCRYPTED + key.encrypt(message))
     
     def data_came_in(self, conn, s):
         while True:
             if self.closed:
                 return
-            i = self._next_len - len(self._buffer)
+            i = self._next_len - self._buffer_len
             if i > len(s):
                 self._buffer.append(s)
+                self._buffer_len += len(s)
                 return
             m = s[:i]
-            if len(self._buffer) > 0:
+            if self._buffer_len > 0:
                 self._buffer.append(m)
                 m = ''.join(self._buffer)
                 self._buffer = []
+                self._buffer_len = 0
             s = s[i:]
             self._message = m
             try:

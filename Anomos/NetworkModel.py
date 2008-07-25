@@ -44,8 +44,8 @@ class SimPeer:
         """
         self.name = name
         self.pubkey = RSAPubKey(pubkey)
-        self.neighbors = {}
-        self.id_map = {}
+        self.neighbors = {} # {PeerID: {dist:#, nid:#, dns:(#,#)}}
+        self.id_map = {}    # {NeighborID : PeerID}
         self.dns = dns
     
     def addNeighbor(self, peerid, nid, dns):
@@ -65,11 +65,10 @@ class SimPeer:
         
         @type peerid: string
         """
-        nid = self.neghbors.get(peerid, {}).get('nid', None)
-        if self.edges.has_key(peerid):
+        edge = self.neighbors.get(peerid, {})
+        if edge:
+            del self.id_map[edge['nid']]
             del self.neighbors[peerid]
-        if nid:
-            del self.id_map['nid']
     
     def getAvailableNIDs(self):
         """
@@ -104,7 +103,7 @@ class SimPeer:
         return self.neighbors.get(peerid, {}).get('nid', default)
     
     def getNbrs(self):
-        return self.redges.keys()
+        return self.neighbors.keys()
     
     def isConnected(self, peerid):
         return self.neighbors.has_key(peerid)

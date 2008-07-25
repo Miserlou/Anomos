@@ -499,13 +499,15 @@ class Tracker(object):
     
     def update_simpeer(self, paramslist, ip):
         params = params_factory(paramslist)
-        
-        simpeer = self.networkmodel.get(params('peer_id'))
-        if not simpeer and params('pubkey'): # New peer
-            dns = (ip, int(params('port')))
-            simpeer = self.networkmodel.addPeer(params('peer_id'), 
-                                                params('pubkey'), dns)
-            print simpeer.id_map
+        peerid = params('peer_id')
+        simpeer = self.networkmodel.get(peerid)
+        if not simpeer:
+            if params('pubkey'): # New peer
+                dns = (ip, int(params('port')))
+                simpeer = self.networkmodel.addPeer(params('peer_id'), 
+                                                    params('pubkey'), dns)
+        if simpeer and params('event') == 'stopped':
+            self.networkmodel.disconnect(peerid)
         # TODO: What if they don't give a pubkey
         #Verify the connecting peer is who they say they are.
         #Update any changed information
@@ -626,15 +628,18 @@ class Tracker(object):
 
         return rsize
     
-    def neighborlist(self, peerid):
+    def neighborlist(self, peerid, stopped=False):
+        if stopped:
+            return {}
         sim = self.networkmodel.get(peerid)
-        if not sim.id_map:
+        if sim and not sim.id_map:
             return {'peers':{}}
         data={}
         data['peers'] = []
         for p in sim.id_map.values():
             dns = sim.neighbors[p]['dns']
-            data['peers'].append({'ip':dns[0], 'port':dns[1], 'peer id':p})
+            nid = sim.neighbors[p]['nid']
+            data['peers'].append({'ip':dns[0], 'port':dns[1], 'peer id':nid})
         print data
         return data
     
@@ -781,7 +786,7 @@ class Tracker(object):
         else:
             return_type = 0
         
-        data = self.neighborlist(params('peer_id'))
+        data = self.neighborlist(params('peer_id'), event=='stopped')
         #self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
 
         if paramslist.has_key('scrape'):

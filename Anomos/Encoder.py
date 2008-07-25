@@ -23,7 +23,8 @@ from Anomos import BTFailure
 class Encoder(object):
 
     def __init__(self, make_upload, downloader, choker, numpieces, ratelimiter,
-               raw_server, config, my_id, schedulefunc, download_id, context):
+               raw_server, config, my_id, schedulefunc, download_id, context, 
+               keyring):
         self.make_upload = make_upload
         self.downloader = downloader
         self.choker = choker
@@ -41,6 +42,7 @@ class Encoder(object):
         self.spares = []
         self.banned = {}
         self.pubkey = context.rsa
+        self.keyring = keyring
         schedulefunc(self.send_keepalives, config['keepalive_interval'])
 
     def send_keepalives(self):
@@ -118,7 +120,7 @@ class Encoder(object):
 
 class SingleportListener(object):
 
-    def __init__(self, rawserver, config, pubkey):
+    def __init__(self, rawserver, config, rsakey, keyring):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
@@ -126,8 +128,8 @@ class SingleportListener(object):
         self.torrents = {}
         self.connections = {}
         self.neighbors = {} # Format -> { Neighbor_ID : (IP, Port) }
-        self.keyring = AESKeyManager()
-        self.pubkey = pubkey
+        self.keyring = keyring
+        self.rsakey = rsakey
         self.download_id = None
     
     def add_neighbor(self, nid, dns, pubkey):

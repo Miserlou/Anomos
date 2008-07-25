@@ -66,7 +66,7 @@ class RSAPubKey:
         ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext
     
-    def bin(self):
+    def pub_bin(self):
         """ return: pubkey (without exponent) as binary string """
         # I'm wondering if we shouldn't send the exponent too.
         return self.pubkey.pub()[1]

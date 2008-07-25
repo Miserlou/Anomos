@@ -143,7 +143,7 @@ class Rerequester(object):
         if self.config['ip']:
             s += '&ip=' + gethostbyname(self.config['ip'])
         if self.send_key:
-            s += '&pubkey=' + quote(self.clientkey.bin())
+            s += '&pubkey=' + quote(self.clientkey.pub_bin())
             self.send_key = False
         Thread(target=self._rerequest, args=[s, self.peerid]).start()
 

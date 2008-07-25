@@ -76,11 +76,11 @@ class Multitorrent(object):
         self.config = dict(config)
         self.errorfunc = errorfunc
         self.rsa = RSAKeyPair(str(random.randint(0,5))) #TODO: make this a unique name
-        self.AESKM = AESKeyManager()
+        self.keyring = AESKeyManager() # Holds our neighbor's AES keys
         self.rawserver = RawServer(doneflag, config, errorfunc=errorfunc,
                                    bindaddr=config['bind'])
-        self.singleport_listener = SingleportListener(self.rawserver, 
-                                                      self.config, self.rsa)
+        self.singleport_listener = SingleportListener(self.rawserver, self.config, 
+                                                      self.rsa, self.keyring)
         self._find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
         self.ratelimiter = RateLimiter(self.rawserver.add_task)
@@ -110,7 +110,7 @@ class Multitorrent(object):
     def start_torrent(self, metainfo, config, feedback, filename):
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
                                  self.ratelimiter, self.filepool, config, 
-                                 self.AESKM, self.rsa)
+                                 self.keyring, self.rsa)
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
@@ -178,7 +178,7 @@ class Multitorrent(object):
 class _SingleTorrent(object):
 
     def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
-                 config, AESKM, rsa_key):
+                 config, keyring, rsa_key):
         self._rawserver = rawserver
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
@@ -211,7 +211,7 @@ class _SingleTorrent(object):
         self.errors = []
         self.myid = None
         self.neighbors = {}
-        self.AESKM = AESKM
+        self.keyring = keyring
         self.rsa = rsa_key
         self.tracker_pubkey = None
     
@@ -327,15 +327,16 @@ class _SingleTorrent(object):
             self._encoder.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
-                                kickpeer, banpeer, self.AESKM)
+                                kickpeer, banpeer, self.keyring)
         def make_upload(connection):
-            kee = self.AESKM.getKey(connection.ip)
+            kee = self.keyring.getKey(connection.ip)
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
                         self.config['max_slice_length'], self.config['max_rate_period'], kee)
         self._encoder = Encoder(make_upload, downloader, choker,
                      len(metainfo.hashes), self._ratelimiter, self._rawserver,
-                     self.config, self.myid, schedfunc, self.infohash, self)
+                     self.config, self.myid, schedfunc, self.infohash, self,
+                     self.keyring)
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port()
@@ -538,7 +539,7 @@ class _SingleTorrent(object):
         @rtype: string
         """
         myid = 'A' + version.split()[0].replace('.', '-')
-        self.myid = myid + sha(self.rsa.bin()).hexdigest()[-(20-len(myid)):]
+        self.myid = myid + sha(self.rsa.pub_bin()).hexdigest()[-(20-len(myid)):]
         #myid = myid + ('-' * (8-len(myid)))+sha(repr(bttime())+ ' ' +
         #                             str(getpid())).digest()[-6:].encode('hex')
         #self.myid = myid + 
