@@ -62,8 +62,7 @@ class Connection(object):
         self.next_upload = None
         self.upload = None
         self.download = None
-        self._buffer = []
-        self._buffer_len = 0
+        self._buffer = ""
         self._reader = self._read_messages() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
         self._partial_message = None
@@ -365,17 +364,14 @@ class Connection(object):
         while True:
             if self.closed:
                 return
-            i = self._next_len - self._buffer_len
+            i = self._next_len - len(self._buffer)
             if i > len(s):
-                self._buffer.append(s)
-                self._buffer_len += len(s)
+                self._buffer += s
                 return
             m = s[:i]
-            if self._buffer_len > 0:
-                self._buffer.append(m)
-                m = ''.join(self._buffer)
-                self._buffer = []
-                self._buffer_len = 0
+            if len(self._buffer) > 0:
+                m = self._buffer + m
+                self._buffer = ""
             s = s[i:]
             self._message = m
             try:
