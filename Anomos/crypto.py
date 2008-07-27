@@ -17,7 +17,7 @@ import sha
 import random
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
-from Anomos import BTFailure
+##from Anomos import BTFailure
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
@@ -70,18 +70,6 @@ class RSAPubKey:
         """ return: pubkey (without exponent) as binary string """
         # I'm wondering if we shouldn't send the exponent too.
         return self.pubkey.pub()[1]
-
-    def verify(signature, digest)
-        """@param: signature: Signature of a document
-           @param: digest: the sha1 of that document
-           @return: true if verified; false if not
-           @rtype: boolean
-        """
-        ptxt=self.pubkey.public_decrypt(signature, RSA.pkcs1_padding)
-        if ptxt!=digest:
-            return false
-        else:
-            return true
 
 ## Apparently the tracker doesn't use the data_dir like clients do. So I'm storing
 ## keys in a directory called 'crypto/' within wherever the tracker was run.
@@ -139,7 +127,7 @@ class RSAKeyPair(RSAPubKey):
     # Inherits encrypt function from RSAPubKey
     # def encrypt(self, data)
 
-    def sign(msg)
+    def sign(self, msg):
         """
         Returns the signature of a message.
         @param msg: The message to sign
@@ -148,6 +136,18 @@ class RSAKeyPair(RSAPubKey):
         dgst = sha1(msg)
         signature = self.pvtkey.private_encrypt(dgst, RSA.pkcs1_padding)
         return signature
+
+    def verify(self, signature, digest):
+        """@param: signature: Signature of a document
+           @param: digest: the sha1 of that document
+           @return: true if verified; false if not
+           @rtype: boolean
+        """
+        ptxt=self.pubkey.public_decrypt(signature, RSA.pkcs1_padding)
+        if ptxt!=digest:
+            return False
+        else:
+            return True
     
     def decrypt(self, data, returnpad=False):
         """
@@ -293,19 +293,18 @@ def getRand(randfile, numBytes=32):
     rb = Rand.rand_bytes(numBytes);
     Rand.save_file(randfile)
     return rb
-    
-class CryptoError(BTFailure):
-    pass
 
-def sha1(msg)
+def sha1(msg):
     """
     @param msg: message to digest
     @return: digest: SHA1 digest
     """
-	sha1=EVP.MessageDigest('sha1')
-	sha1.update(msg)
-	return=sha1.digest()
-
+    shah=EVP.MessageDigest('sha1')
+    shah.update(msg)
+    return shah.digest()
+    
+##class CryptoError(BTFailure):
+##    pass
 
 if __name__ == "__main__":
     def testCrypto():
@@ -323,6 +322,10 @@ if __name__ == "__main__":
         # Test RSAKeyPair
         rsa = RSAKeyPair('tracker')
         encrypted = rsa.encrypt(secret)
+        sig = rsa.sign(secret)
         print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
+        dec = rsa.decrypt(encrypted)
+        dhash = sha1(dec)
         print "Decrypted: ", rsa.decrypt(encrypted)
+        print "Verified: ", rsa.verify(sig, dhash)
     testCrypto()
