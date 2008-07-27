@@ -67,11 +67,12 @@ def get_dir_root(shellvars):
 
 is_frozen_exe = (os.name == 'nt') and hasattr(sys, 'frozen') and (sys.frozen == 'windows_exe')
 
-# hackery to get around bug in py2exe that tries to write log files to
-# application directories, which may not be writable by non-admin users
 if is_frozen_exe:
     baseclass = sys.stderr.__class__
     class Stderr(baseclass):
+        """ Hackery to get around bug in py2exe that tries to write log files to
+            application directories, which may not be writable by non-admin users
+        """
         logroot = get_home_dir()
         if logroot is None:
             logroot = os.path.splitdrive(sys.executable)[0]
