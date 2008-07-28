@@ -17,7 +17,7 @@ import sha
 import random
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
-##from Anomos import BTFailure
+from Anomos import BTFailure
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
@@ -133,7 +133,7 @@ class RSAKeyPair(RSAPubKey):
         @param msg: The message to sign
         @return: signature The signature of the message from the private key
         """
-        dgst = sha1(msg)
+        dgst = sha.new(msg).digest()
         signature = self.pvtkey.private_encrypt(dgst, RSA.pkcs1_padding)
         return signature
 
@@ -144,10 +144,7 @@ class RSAKeyPair(RSAPubKey):
            @rtype: boolean
         """
         ptxt=self.pubkey.public_decrypt(signature, RSA.pkcs1_padding)
-        if ptxt!=digest:
-            return False
-        else:
-            return True
+        return ptxt == digest
     
     def decrypt(self, data, returnpad=False):
         """
@@ -294,17 +291,8 @@ def getRand(randfile, numBytes=32):
     Rand.save_file(randfile)
     return rb
 
-def sha1(msg):
-    """
-    @param msg: message to digest
-    @return: digest: SHA1 digest
-    """
-    shah=EVP.MessageDigest('sha1')
-    shah.update(msg)
-    return shah.digest()
-    
-##class CryptoError(BTFailure):
-##    pass
+class CryptoError(BTFailure):
+    pass
 
 if __name__ == "__main__":
     def testCrypto():
@@ -325,7 +313,7 @@ if __name__ == "__main__":
         sig = rsa.sign(secret)
         print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
         dec = rsa.decrypt(encrypted)
-        dhash = sha1(dec)
+        dhash = sha.new(dec).digest()
         print "Decrypted: ", rsa.decrypt(encrypted)
         print "Verified: ", rsa.verify(sig, dhash)
     testCrypto()
