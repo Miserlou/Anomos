@@ -746,12 +746,10 @@ class Tracker(object):
                 decquery = self.rsa.decrypt(binpke, returnpad=False)
                 # Update with the new params
                 paramslist.update(self.parseQuery(decquery))
+                del paramslist['pke']
             
             if path == '' or path == 'index.html':
                 return self.get_infopage()
-            #if path == 'key': # Is this a good idea? Not very secure.
-                # Should we add anything to this header? 
-            #    return (200, 'OK', {'Content-Type': 'text/plain'}, self.rsapubkey)
             if path == 'scrape':
                 return self.get_scrape(paramslist)
             if (path == 'file'):
