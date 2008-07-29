@@ -39,7 +39,7 @@ class Encoder(object):
         self.everinc = False
         self.connections = {}
         self.complete_connections = {}
-        self.spares = []
+        #self.spares = []
         self.banned = {}
         self.pubkey = context.rsa
         self.keyring = keyring
@@ -58,32 +58,43 @@ class Encoder(object):
         @type dns: tuple
         @type id: int
         """
-        
         if dns[0] in self.banned:
             return
+        established = False
         for v in self.connections.values():
             if id and v.id == id: 
-                return # ID is taken
-            if self.config['one_connection_per_ip'] and v.ip == dns[0]:
-                return # Already connected to this peer
+                established = True
+                break
+            ## We have to allow multiple connections per IP
+            #if self.config['one_connection_per_ip'] and v.ip == dns[0]:
+            #   return # Already connected to this peer
         if len(self.connections) >= self.config['max_initiate']:
-            if len(self.spares) < self.config['max_initiate'] and \
-                   dns not in self.spares:
-                self.spares.append(dns)
-            return
+            #if len(self.spares) < self.config['max_initiate'] and \
+            #       dns not in self.spares:
+            #    self.spares.append(dns)
+            return #(!) back propagate a failure message
         try:
             c = self.raw_server.start_connection(dns, None, self.context)
         except socketerror:
             pass
         else:
-            con = Connection(self, c, id, True) # Local connection for receiving
+            # Make the local connection for receiving. Connection is considered
+            # established if we've already contacted them and exchanged a key
+            con = Connection(self, c, id, True, established)
             self.connections[c] = con
             c.handler = con
 
     def connection_completed(self, c):
         self.complete_connections[c] = 1
-        c.upload = self.make_upload(c)
-        c.download = self.downloader.make_download(c)
+        if not c.isrelay:
+            c.upload = self.make_upload(c)
+            c.download = self.downloader.make_download(c)
+        #else:
+        #we're a relayer
+        #Initialize outgoing connection: c_out
+        #Make a Relayer(c, c_out,...)
+        #c.upload = the relayer
+        #c.download = the relayer
         self.choker.connection_made(c)
 
     def ever_got_incoming(self):
@@ -92,10 +103,10 @@ class Encoder(object):
     def how_many_connections(self):
         return len(self.complete_connections)
 
-    def replace_connection(self):
-        while len(self.connections) < self.config['max_initiate'] and \
-                  self.spares:
-            self.start_connection(self.spares.pop(), None)
+    #def replace_connection(self):
+    #    while len(self.connections) < self.config['max_initiate'] and \
+    #              self.spares:
+    #        self.start_connection(self.spares.pop(), None)
 
     def close_connections(self):
         for c in self.connections.itervalues():
@@ -132,9 +143,23 @@ class SingleportListener(object):
         self.rsakey = rsakey
         self.download_id = None
     
-    def add_neighbor(self, nid, dns, pubkey):
+    def add_neighbor(self, nid, dns, aeskey):
+        """ Establishes a peer as a neighbor 
+        @param nid: The neighbor ID of this peer
+        @param dns: The IP address and port to reach this neighbor at
+        @param aeskey: The AES-256 key to use when talking to this peer
+        """
         if nid not in self.neighbors:
-            self.neighbors[nid] = (dns, pubkey)
+            self.neighbors[nid] = [(dns, pubkey),]
+        elif self.neighbors[nid][1] != dns[1]:
+                self.neighbors[nid].append((dns, pubkey))
+        else:
+            #TODO: Would we ever get an add_neighbor for an already existing
+            #      neighbor?
+            pass
+    
+    #def is_neighbor(self, nid, port):
+    #    
     
     def nid_by_ip(self, ip):
         for nid, dns in self.neighbors.iteritems():
@@ -198,11 +223,10 @@ class SingleportListener(object):
         nid = self.nid_by_ip(connection.ip)
         if nid: 
             # The incomming connection is one of our neighbors
-            con = Connection(self, connection, nid, False)
+            con = Connection(self, connection, nid, False, True)
         else:
-            print "New Neighbor"
             # It's a new neighbor
-            con = Connection(self, connection, None, False)
+            con = Connection(self, connection, None, False, False)
         self.connections[connection] = con
         connection.handler = con
 

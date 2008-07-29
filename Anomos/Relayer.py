@@ -1,12 +1,9 @@
-"""Relayer.py
-@author: Rich Jones, John Schanck
-@license: see .txt
-
+"""
 Relayer objects, like Uploader and Downloader, serve to take incoming information, store it, 
-    and pass it to the next neighbor in the chain.
+and pass it to the next neighbor in the chain.
 
-This file is a sort of a mockup and may be rewritten/never used at all.
-
+@author: Rich Jones, John Schanck
+@license: see License.txt
 """
 
 class Relayer(object):

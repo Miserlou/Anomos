@@ -43,6 +43,7 @@ PIECE = chr(7)
 CANCEL = chr(8)
 
 ##Anomos Control Chars##
+TCODE = chr(9)
 PUBKEY = chr(10) # Sent before a pubkey to be used in an AES key exchange
 EXCHANGE = chr(11) # The data that follows is RSA encrypted AES data
 CONFIRM = chr(12)
@@ -50,18 +51,20 @@ ENCRYPTED = chr(13) # The data that follows is AES encrypted
 
 class Connection(object):
 
-    def __init__(self, encoder, connection, id, is_local):
+    def __init__(self, encoder, connection, id, is_local, established=False):
         self.encoder = encoder
         self.connection = connection
         self.id = id
         self.ip = connection.ip
         self.locally_initiated = is_local
+        self.established = established
         self.complete = False
         self.closed = False
         self.got_anything = False
         self.next_upload = None
         self.upload = None
         self.download = None
+        self.is_relay = False
         self._buffer = ""
         self._reader = self._read_messages() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -157,7 +160,7 @@ class Connection(object):
         self._send_message(msg)
     
     def get_aes_key(self):
-        if self.id:
+        if self.established:
             return self.encoder.keyring.getKey(self.id)
         return None
     
@@ -170,15 +173,16 @@ class Connection(object):
         if self._message != protocol_name:
             return
         yield 8  # reserved
-        if not self.id:
-            if not self.locally_initiated:
-                # External non-neighbor connection
+        if not self.locally_initiated:
+            self.connection.write(chr(len(protocol_name)) + protocol_name + (chr(0) * 8))
+            if not self.established:
+                # Non-neighbor connection
                 # Respond with PubKey
-                self.connection.write(chr(len(protocol_name)) + protocol_name +
-                (chr(0) * 8))
                 pkmsg = PUBKEY + self.encoder.rsakey.pub_bin()
                 self._send_message(pkmsg)
-        #else: We're getting a tracking code, or relayed message
+            else: #We're getting a tracking code, or relayed message
+                self.is_relay = True
+
 #        yield 20 # download id
 #        if self.encoder.download_id is None:  # incoming connection
 #            # modifies self.encoder if successful
@@ -328,11 +332,11 @@ class Connection(object):
                 self.close()
                 return
             self.id = nid
-            self.encoder.keyring.addKey(self.id, AESKey(key, iv))
+            self.encoder.add_neighbor(self.id, AESKey(key, iv))
             self._send_message(CONFIRM)
             print "Sending Confirm"
         elif t == CONFIRM:
-            self.encoder.keyring.addKey(self.id, self.tmp_aes)
+            self.encoder.add_neighbor(self.id, self.tmp_aes)
             print "Got Confirm"
             self.close()
         else:
@@ -342,7 +346,7 @@ class Connection(object):
         self.closed = True
         self._reader = None
         del self.encoder.connections[self.connection]
-        self.encoder.replace_connection()
+        # self.encoder.replace_connection()
         if self.complete:
             del self.encoder.complete_connections[self]
             self.download.disconnected()

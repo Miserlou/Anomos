@@ -27,12 +27,12 @@ Relaying:
 
 Starting the Upload:
 	The UL makes an announce, identifying the session with the AES key
-		Tracker responds with tracking code (UL to DL) and the DL's public key.
-	UL creates message containing AES encrypted data and signs it with the DL's pub.key.
+		Tracker responds with tracking code (UL to DL)
+	UL creates message containing AES encrypted data
 	UL sends message to first user in circuit.
 
 Subsequent Downloads:
-	DL creates message with (AES Encrypted?) chunk request and signs with UL's pub key
+	DL creates message with (AES Encrypted?) chunk request
 	DL sends message to first user in the circuit
 	
 Subsequent Uploads:

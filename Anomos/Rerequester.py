@@ -29,7 +29,7 @@ STOPPED=2
 
 class Rerequester(object):
 
-    def __init__(self, url, config, sched, howmany, connect, externalsched,
+    def __init__(self, url, config, sched, neighbors, connect, externalsched,
             amount_left, up, down, port, myid, infohash, errorfunc, doneflag,
             upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, clientkey, trackerkey=None):
     #I would like __init__ to look more like this one day
@@ -45,7 +45,8 @@ class Rerequester(object):
         #self.trackerid = None
         self.announce_interval = 30 * 60
         self.sched = sched
-        self.howmany = howmany
+        self.neighbors = neighbors
+        #self.howmany = howmany
         self.connect = connect
         self.externalsched = externalsched
         self.amount_left = amount_left
@@ -119,9 +120,9 @@ class Rerequester(object):
         if self.last_time > bttime() - self.config['rerequest_interval']:
             return
         if self.ever_got_incoming():
-            getmore = self.howmany() <= self.config['min_peers'] / 3
+            getmore = len(self.neighbors) <= self.config['min_peers'] / 3
         else:
-            getmore = self.howmany() < self.config['min_peers']
+            getmore = len(self.neighbors) < self.config['min_peers']
         if getmore or bttime() - self.last_time > self.announce_interval:
             self._announce()
 
@@ -134,7 +135,7 @@ class Rerequester(object):
             s += '&last=' + quote(str(self.last))
         #if self.trackerid is not None:
         #    s += '&trackerid=' + quote(str(self.trackerid))
-        if self.howmany() >= self.config['max_initiate']:
+        if len(self.neighbors) >= self.config['max_initiate']:
             s += '&numwant=0'
         else:
             s += '&compact=1'
@@ -150,7 +151,7 @@ class Rerequester(object):
     # Must destroy all references that could cause reference circles
     def cleanup(self):
         self.sched = None
-        self.howmany = None
+        self.neighbors = None
         self.connect = None
         self.externalsched = lambda *args: None
         self.amount_left = None
@@ -161,7 +162,9 @@ class Rerequester(object):
         self.downratefunc = None
         self.ever_got_incoming = None
         self.diefunc = None
-        self.successfunc = None
+        self.successfunc = None 
+        self.clientkey = None
+        self.trackerkey = None
 
     def _rerequest(self, url, peerid):
         """ Make an HTTP GET request to the tracker """
@@ -218,7 +221,7 @@ class Rerequester(object):
             self._fail()
             return
         if r.has_key('failure reason'):
-            if self.howmany() > 0:
+            if len(self.neighbors) > 0:
                 self.errorfunc(ERROR, 'rejected by tracker - ' +
                                r['failure reason'])
             else:
@@ -249,7 +252,7 @@ class Rerequester(object):
             else:
                 for x in p:
                     peers.append((x['ip'], x['port'], x.get('peer id')))
-            ps = len(peers) + self.howmany()
+            ps = len(peers) + len(self.neighbors)
             if ps < self.config['max_initiate']:
                 if self.doneflag.isSet():
                     if r.get('num peers', 1000) - r.get('done peers', 0) > ps * 1.2:

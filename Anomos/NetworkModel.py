@@ -319,34 +319,41 @@ class NetworkModel:
     def __repr__(self):
         return "\n".join(map(Vertex.printConnections, self.names.values()))
 
+try:
+    import psyco
+except ImportError:
+    pass
+else:
+    pass
+    #psyco.profile()
 
 ###########
 ##TESTING##
 ###########
-def tcTest(numnodes=10, numedges=20):
+def tcTest(numnodes=1000, numedges=20000):
     from binascii import b2a_hex
+    import time
     G_ips = ['.'.join([str(i)]*4) for i in range(numnodes)]
     graph = NetworkModel()
     pk = RSAKeyPair('WampWamp') # All use same RSA key for testing.
     for peerid in G_ips:
-        graph.addPeer(peerid, pk)
-    for i in range(numedges):
-        n1, n2 = random.sample(range(graph.order()), 2)    
-        graph.connect(G_ips[n1], G_ips[n2])
+        graph.addPeer(peerid, pk.pub_bin(), (peerid, 8080), int(numedges/numnodes))
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
-    for i in range(5):
-        n1, n2 = sample(range(graph.order()), 2)
-        print "Tracking code #%d from %s to %s" % (i, G_ips[n1], G_ips[n2])
+    t = time.time()
+    for i in range(1):
+        n1, n2 = random.sample(range(graph.order()), 2)
+        #print "Tracking code #%d from %s to %s" % (i, G_ips[n1], G_ips[n2])
         x = graph.getTrackingCode(G_ips[n1], G_ips[n2])
-        print "Encrypted Tracking Code: ", b2a_hex(x)
-        print "Length: ", len(x)
+        #print "Encrypted Tracking Code: ", b2a_hex(x)
+        #print "Length: ", len(x)
         tc = []
         m, p = pk.decrypt(x, True)
         tc.append(m)
         while m != '#':
             m, p = pk.decrypt(p, True)
             tc.append(m)
-        print "Decrypted Tracking Code  ", ":".join(tc)
+        #print "Decrypted Tracking Code  ", ":".join(tc)
+    print time.time() - t
 
 if __name__ == "__main__":
     from sys import argv

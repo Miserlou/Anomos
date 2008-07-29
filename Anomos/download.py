@@ -345,7 +345,7 @@ class _SingleTorrent(object):
         self._singleport_listener.add_torrent(self.infohash, self._encoder)
         self._listening = True
         self._rerequest = Rerequester(metainfo.announce, self.config,
-            schedfunc, self._encoder.how_many_connections,
+            schedfunc, self.neighbors,
             self._encoder.start_connection, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
             downmeasure.get_total, self.reported_port, self.myid,
