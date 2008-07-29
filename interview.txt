@@ -1,0 +1,160 @@
+Hi Tom! Rich and John here:
+
+>   1) File-sharing anonymity is something long desired, yet the
+>   practical application of this, at least in the file-sharing world,
+>   has been spotty. What does Anonmos bring to the table?
+
+BitTorrent is king of peer to peer filesharing at the moment. People
+seem to really like the BitTorrent model for a number of reasons,
+particularly ease, speed and sheer abundance, so that's what we've
+decided to expand upon.
+
+Anomos takes BitTorrent and combines it with the Onion Routing model
+of Tor, but in a tracker-oriented way, with the added benefit of
+end-to-end encryption. By doing this, we create a system whereby a
+person can download a file from numerous sources anonymously, where
+the uploader doesn't know where the download is going to, the routing
+peers don't know what a file is or where it's destination is, and a
+downloader doesn't know where a file originated from.
+
+>
+>   2) Explain Anonmos to us. What's happening in our world that
+>   motivated its creation?
+
+Governments and ISPs in lots of countries are conspiring against
+internet users for fairly nefarious purposes, domestic surveillance
+and copyright extortion. One of the worst examples of this is the UK's
+3 strikes proposal:
+http://www.techcrunch.com/2008/02/12/uk-proposes-three-strikes-and-your-out-illegal-downloading-law/
+
+I believe that open access to information is a fundamental right of
+man and it needs to be protected.
+
+>
+>   3) Who would most benefit from using Anonmos?
+>
+
+Governments and ISPs in lots of countries are conspiring against
+internet users for fairly nefarious purposes, such as domestic
+surveillance and copyright extortion. One of the worst examples of
+this is the UK's 3 strikes proposal.
+
+We believe that open access to information is a fundamental right of
+man and it needs to be protected. If people have important information
+to share, they shouldn't have to worry about being punished for it.
+For this reason, we created Anomos as a tool of free speech.
+
+>   4) What experience do you have in anonymous protocols and applications?
+>
+I've used Tor and FreeNet before, but unfortunately they both have
+some implementation problems which makes them undesirable solutions
+for the problem we're trying to solve.
+
+
+>   5) The network overhead from the protocol specifications seems
+>   robust. Should the end user expect to dedicate more bandwidth than
+>   the average BitTorrent client?
+>
+Yes. We agreed very early on that unfortunately, some speed and CPU
+power would have to sacrificed in the name of security. Pipes get
+thicker and computers get faster, the important thing is that there is
+a secure platform.
+
+
+>   6) A post to Anonmos' blog mentions an upcoming alpha release. Tell
+>   us more about it.
+>
+
+The first alpha release will be a complete proof of concept of the
+protocol. Then we'll go through an extensive public and private
+security audit before we start looking at release candidates.
+
+>   7) Anonmos' technology doesn't appear to get along with the current
+>   tracker inventory. How much retooling would be required to
+>   accommodate Anonmos?
+>
+Well, that depends. A person who wants to set up a tracker shouldn't
+have to do anything different than the official BitTorrent tracker.
+
+
+>   8) In your blog, you mention Anonmos' anonymity is a matter of
+>   degrees. Can you describe its vulnerabilities or weakness?
+>
+
+The link encryption and onion routing make the path and peer
+connections very safe, assuming the implementation is sound. The
+biggest threat to client anonymity is the amount of trust placed in
+the tracker. Ultimately, we could enhance this trust using Hardware
+Security Modules, but that's still in our future ideas box.
+
+>   9) What are Anonmos' strengths?
+>
+Anomos is fast (as it uses multi-sourcing), ad-hoc, strongly
+encrypted, pseudonymous, and easy to use as it is based on familiar
+technologies.
+
+In the comments of the blog coverage we've had so far, a lot of people
+don't seem to recognize the difference between our model and just
+running BT over Tor. In ours, the user's ratio is rewarded for
+sharing, whereas for BitTorrent over Tor, they're punished in effect
+for it.
+
+>   10) Who is the team behind Anonmo? How does Free Culture fit into
+>   this picture? How are your goals similar?
+>
+Rich goes to Boston University and John goes to Hampshire College. We
+are friends from high school.
+
+We're both interested in the ideas of the Free Culture movement. I
+(Rich) actually started the BU Free Culture chapter. Free Culture is a
+bit different though, that is less to do with circumventing laws and
+more to do with changing them or providing new options under existing
+laws. My main goal with BUFC has nothing to do with filesharing but
+with OpenCourseWare (see ocw.mit.edu).
+
+>   11) How did you come up with the application's name?
+>
+
+Anomos is greek for Lawless. http://strongsnumbers.com/greek/459.htm
+
+We talked about having a recursive acronym with a lot of clicking
+sounds in it just because we liked the people idea of getting a lot of
+white people to make clicking noises at each other but that name
+didn't make the cut for some reason.
+
+
+>   12) Is there anything else you'd like to ad?
+>
+Rich: Stay Black
+
+
+> John Schanck wrote:
+>>
+>> Tom,
+>>
+>> I'd be more than happy to answer any questions you have. I've CC'ed the
+>> other lead developer on the project, Rich Jones, as he might be
+>> interested in answering your questions as well.
+>>
+>> -John
+>>
+>>
+>> On Thu, 2008-07-24 at 15:18 -0400, Tom Mennecke wrote:
+>>
+>>>
+>>> Hi John,
+>>>
+>>> Good afternoon and I hope you're well!
+>>>
+>>> I'm Tom Mennecke, and I write for the online publication Slyck.com.  I've
+>>> been reading your webpage after I was directed by the article in
+>>> P2P-Blog.com, and I was wondering if you might have some time for an email
+>>> interview?
+>>>
+>>> Thank you,
+>>>
+>>> Tom Mennecke
+>>>
+>
+>
+
