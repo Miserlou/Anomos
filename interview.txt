@@ -1,4 +1,4 @@
-Hi Tom! Rich and John here:
+﻿Hi Tom! Rich and John here:
 
 >   1) File-sharing anonymity is something long desired, yet the
 >   practical application of this, at least in the file-sharing world,
@@ -22,33 +22,25 @@ downloader doesn't know where a file originated from.
 >   motivated its creation?
 
 Governments and ISPs in lots of countries are conspiring against
-internet users for fairly nefarious purposes, domestic surveillance
+Internet users for fairly nefarious purposes, domestic surveillance
 and copyright extortion. One of the worst examples of this is the UK's
-3 strikes proposal:
-http://www.techcrunch.com/2008/02/12/uk-proposes-three-strikes-and-your-out-illegal-downloading-law/
+3 strikes proposal.
 
-I believe that open access to information is a fundamental right of
-man and it needs to be protected.
+We believe that open access to information is a fundamental human right and it needs to be protected.
 
 >
 >   3) Who would most benefit from using Anonmos?
 >
 
-Governments and ISPs in lots of countries are conspiring against
-internet users for fairly nefarious purposes, such as domestic
-surveillance and copyright extortion. One of the worst examples of
-this is the UK's 3 strikes proposal.
+Plenty of folks! Whistle blowers, citizen journalists, people with limited freedom of speech/press, citizens of countries where the accusation of apostasy or sexual deviance could be life threatening, documentarians, mash-up artists. Anyone who feels their freedom may be unjustly threatened by their activities on the Internet.
 
-We believe that open access to information is a fundamental right of
-man and it needs to be protected. If people have important information
-to share, they shouldn't have to worry about being punished for it.
-For this reason, we created Anomos as a tool of free speech.
 
 >   4) What experience do you have in anonymous protocols and applications?
 >
-I've used Tor and FreeNet before, but unfortunately they both have
+Rich: I've used Tor and FreeNet before, but unfortunately they both have
 some implementation problems which makes them undesirable solutions
 for the problem we're trying to solve.
+John: Over the past year I've done everything I can to familiarize myself with the field, and I'm confident that we know what we're doing. Of course we are students, not experts, so we're very interested in talking with other people who have worked on anonymizing protocols and applications before and having them examine our protocol.
 
 
 >   5) The network overhead from the protocol specifications seems
@@ -58,7 +50,7 @@ for the problem we're trying to solve.
 Yes. We agreed very early on that unfortunately, some speed and CPU
 power would have to sacrificed in the name of security. Pipes get
 thicker and computers get faster, the important thing is that there is
-a secure platform.
+a secure platform. 
 
 
 >   6) A post to Anonmos' blog mentions an upcoming alpha release. Tell
@@ -73,8 +65,15 @@ security audit before we start looking at release candidates.
 >   tracker inventory. How much retooling would be required to
 >   accommodate Anonmos?
 >
-Well, that depends. A person who wants to set up a tracker shouldn't
-have to do anything different than the official BitTorrent tracker.
+Well, that depends. 
+To connect to an Anomos tracker you're going to have to be using an Anomos
+compatible client. The only change for the end user will be that, for now, they 
+have to open their Anomos .torrents with a different program than they use for
+BitTorrent. Similarly, someone running a tracker will see very little change.
+If the protocol gets popular and people want to create alternative Anomos 
+compatible Trackers or Clients, they'll have a bit of work set out for them. But
+we're being sure to thoroughly document every part of the protocol to make the 
+process as simple as possible.
 
 
 >   8) In your blog, you mention Anonmos' anonymity is a matter of
@@ -84,14 +83,13 @@ have to do anything different than the official BitTorrent tracker.
 The link encryption and onion routing make the path and peer
 connections very safe, assuming the implementation is sound. The
 biggest threat to client anonymity is the amount of trust placed in
-the tracker. Ultimately, we could enhance this trust using Hardware
-Security Modules, but that's still in our future ideas box.
+the tracker. Ultimately, we could enhance this trust using a variety of methods, but that's still in our future ideas box.
+We also know that, like all low-latency networks, we're vulnerable to traffic analysis. If an adversary suspects two individuals of communicating, and is capable of watching both of their connections, they may be able to break the anonymity. Such an attack would be extremely difficult for anyone to perform, but it is possible.
 
 >   9) What are Anonmos' strengths?
 >
 Anomos is fast (as it uses multi-sourcing), ad-hoc, strongly
-encrypted, pseudonymous, and easy to use as it is based on familiar
-technologies.
+encrypted, pseudonymous, and easy to use.
 
 In the comments of the blog coverage we've had so far, a lot of people
 don't seem to recognize the difference between our model and just
@@ -106,26 +104,19 @@ Rich goes to Boston University and John goes to Hampshire College. We
 are friends from high school.
 
 We're both interested in the ideas of the Free Culture movement. I
-(Rich) actually started the BU Free Culture chapter. Free Culture is a
-bit different though, that is less to do with circumventing laws and
-more to do with changing them or providing new options under existing
-laws. My main goal with BUFC has nothing to do with filesharing but
-with OpenCourseWare (see ocw.mit.edu).
+(Rich) actually started the BU Free Culture chapter. My main goal with BUFC has nothing to do with filesharing but with OpenCourseWare (see ocw.mit.edu). 
+
+Anomos is the epitome of a Free Culture project, it strongly encourages broader access to information, the preservation of civil liberties, and collaboration. 
 
 >   11) How did you come up with the application's name?
 >
 
-Anomos is greek for Lawless. http://strongsnumbers.com/greek/459.htm
-
-We talked about having a recursive acronym with a lot of clicking
-sounds in it just because we liked the people idea of getting a lot of
-white people to make clicking noises at each other but that name
-didn't make the cut for some reason.
-
+We went through a bunch of names including some crazy ideas like recursive acronyms involving
+clicking sounds, but eventually decided on using a Greek word relating to the project. The Greek for "anonymous" is something like "anonumos," but we shortened it to Anomos.. which happens to be the Greek word for Lawless. It works.
 
 >   12) Is there anything else you'd like to ad?
 >
-Rich: Stay Black
+Thanks for your interest in the project!
 
 
 > John Schanck wrote:
