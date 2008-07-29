@@ -131,7 +131,7 @@ class RSAKeyPair(RSAPubKey):
         """
         Returns the signature of a message.
         @param msg: The message to sign
-        @return: signature The signature of the message from the private key
+        @return signature: The signature of the message from the private key
         """
         dgst = sha1(msg)
         signature = self.pvtkey.private_encrypt(dgst, RSA.pkcs1_padding)
