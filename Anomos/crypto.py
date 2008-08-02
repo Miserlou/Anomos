@@ -5,7 +5,7 @@
 anomos. very preliminary. rsa should eventually be replaced with real ssl. requires m2crypto.
 
 RSA padding: pkcs1_oaep_padding
-AES cipher: aes_128_cfb
+AES cipher: aes_256_cfb
 
 for other functions used directly, look at RSA.py and EVP.py in M2Crypto
 """
@@ -185,7 +185,7 @@ class RSAKeyPair(RSAPubKey):
 
 
 class AESKey:
-    def __init__(self, key=None, iv=None, randfile='randpool.dat', algorithm='aes_128_cfb'):
+    def __init__(self, key=None, iv=None, randfile='randpool.dat', algorithm='aes_256_cfb'):
         """
         @param randfile: Path to randfile
         @param algorithm: encryption algorithm to use
@@ -281,7 +281,7 @@ class AESKeyManager:
         return self.aeskeys.has_key(alias)
 
 
-def getRand(randfile, numBytes=32):
+def getRand(randfile="randpool.dat", numBytes=32):
     """
     @param randfile: Full path to randfile
     @type randfile: string
