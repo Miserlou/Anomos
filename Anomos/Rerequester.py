@@ -47,7 +47,8 @@ class Rerequester(object):
         self.sched = sched
         self.neighbors = neighbors
         #self.howmany = howmany
-        self.connect = connect
+        self.nbr_connect = neighbors.start_connection
+        self.peer_connect = connect
         self.externalsched = externalsched
         self.amount_left = amount_left
         self.up = up
@@ -70,6 +71,7 @@ class Rerequester(object):
         self.send_key = True
     
     def _makeurl(self, peerid, port):
+        print peerid, len(peerid)
         return ('%s?info_hash=%s&peer_id=%s&port=%s&' %
                 (self.baseurl, quote(self.infohash), quote(peerid), str(port)))
 
@@ -120,9 +122,9 @@ class Rerequester(object):
         if self.last_time > bttime() - self.config['rerequest_interval']:
             return
         if self.ever_got_incoming():
-            getmore = len(self.neighbors) <= self.config['min_peers'] / 3
+            getmore = self.neighbors.count() <= self.config['min_peers'] / 3
         else:
-            getmore = len(self.neighbors) < self.config['min_peers']
+            getmore = self.neighbors.count() < self.config['min_peers']
         if getmore or bttime() - self.last_time > self.announce_interval:
             self._announce()
 
@@ -135,7 +137,7 @@ class Rerequester(object):
             s += '&last=' + quote(str(self.last))
         #if self.trackerid is not None:
         #    s += '&trackerid=' + quote(str(self.trackerid))
-        if len(self.neighbors) >= self.config['max_initiate']:
+        if self.neighbors.count() >= self.config['max_initiate']:
             s += '&numwant=0'
         else:
             s += '&compact=1'
@@ -221,7 +223,7 @@ class Rerequester(object):
             self._fail()
             return
         if r.has_key('failure reason'):
-            if len(self.neighbors) > 0:
+            if self.neighbors.count() > 0:
                 self.errorfunc(ERROR, 'rejected by tracker - ' +
                                r['failure reason'])
             else:
@@ -252,7 +254,7 @@ class Rerequester(object):
             else:
                 for x in p:
                     peers.append((x['ip'], x['port'], x.get('peer id')))
-            ps = len(peers) + len(self.neighbors)
+            ps = len(peers) + self.neighbors.count()
             if ps < self.config['max_initiate']:
                 if self.doneflag.isSet():
                     if r.get('num peers', 1000) - r.get('done peers', 0) > ps * 1.2:
@@ -260,8 +262,12 @@ class Rerequester(object):
                 else:
                     if r.get('num peers', 1000) > ps * 1.2:
                         self.last = None
+            # Initialize any new neighbors
             for x in peers:
-                self.connect((x[0], x[1]), x[2])
+                self.nbr_connect((x[0], x[1]), x[2])
+            # Start downloads
+            for tc in r.get('tracking codes'):
+                self.peer_connect(tc)
             if peerid == self.wanted_peerid:
                 self.successfunc()
             self._check()

@@ -30,7 +30,7 @@ except ImportError:
 
 class SingleSocket(object):
 
-    def __init__(self, raw_server, sock, handler, context, ip=None):
+    def __init__(self, raw_server, sock, handler, context, ip=None, port=None):
         self.raw_server = raw_server
         self.socket = sock
         self.handler = handler
@@ -41,6 +41,7 @@ class SingleSocket(object):
         self.context = context
         if ip is not None:
             self.ip = ip
+            self.port = port
         else:
             try:
                 peername = self.socket.getpeername()
@@ -49,6 +50,7 @@ class SingleSocket(object):
             else:
                 try:
                     self.ip = peername[0]
+                    self.port = peername[1]
                 except:
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
@@ -144,6 +146,9 @@ class RawServer(object):
             insort(self.funcs, (bttime() + delay, func, context))
 
     def external_add_task(self, func, delay, context=None):
+        '''Called from a thread other than RawServers, queues up tasks to be
+           in a threadsafe way
+        '''
         self.externally_added_tasks.append((func, delay, context))
         # Wake up the RawServer thread in case it's sleeping in poll()
         if self.wakeupfds[1] is not None:
@@ -207,7 +212,7 @@ class RawServer(object):
         #    sock.close()
         #    raise socket.error(str(e))
         self.poll.register(sock, POLLIN)
-        s = SingleSocket(self, sock, handler, context, dns[0])
+        s = SingleSocket(self, sock, handler, context, dns[0], dns[1])
         self.single_sockets[sock.fileno()] = s
         return s
 

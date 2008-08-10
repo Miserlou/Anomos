@@ -15,7 +15,7 @@ from __future__ import generators
 
 from binascii import b2a_hex
 from M2Crypto.RSA import RSAError
-from Anomos.crypto import AESKey, RSAPubKey
+from Anomos.crypto import AESKey, RSAPubKey, getRand
 from Anomos.bitfield import Bitfield
 from Anomos.obsoletepythonsupport import *
 from Anomos import protocol_name
@@ -56,6 +56,8 @@ class Connection(object):
         self.connection = connection
         self.id = id
         self.ip = connection.ip
+        #TODO: This port might not always be set
+        self.port = connection.port
         self.locally_initiated = is_local
         self.established = established
         self.complete = False
@@ -159,6 +161,10 @@ class Connection(object):
                                         aes.iv)
         self._send_message(msg)
     
+    def send_tracking_code(self, trackcode):
+        print "SENDING TC"
+        self.send_encrypted_message(TC + trackcode)
+    
     def get_aes_key(self):
         if self.established:
             return self.encoder.keyring.getKey(self.id)
@@ -175,14 +181,20 @@ class Connection(object):
         yield 8  # reserved
         if not self.locally_initiated:
             self.connection.write(chr(len(protocol_name)) + protocol_name + (chr(0) * 8))
-            if not self.established:
+            if self.established:
+                #We're getting a tracking code, or relayed message
+                self.is_relay = True
+                self.encoder.connection_completed(self)
+            else: 
                 # Non-neighbor connection
                 # Respond with PubKey
                 pkmsg = PUBKEY + self.encoder.rsakey.pub_bin()
                 self._send_message(pkmsg)
-            else: #We're getting a tracking code, or relayed message
-                self.is_relay = True
-
+        #else:
+        #    if self.established:
+        #        self.encoder.connection_completed(self)
+                # Local Connection, check if we're starting a circuit
+         #       self.send_encrypted_message(TCODE + tracking_code)
 #        yield 20 # download id
 #        if self.encoder.download_id is None:  # incoming connection
 #            # modifies self.encoder if successful
@@ -302,6 +314,17 @@ class Connection(object):
             if self.download.got_piece(i, toint(message[5:9]), message[9:]):
                 for co in self.encoder.complete_connections:
                     co.send_have(i)
+        elif t == TCODE:
+            plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
+            if len(plaintext) == 1:
+                if self.upload is not None:
+                    #This is a new connection
+                    self.encoder.start_connection(None, plaintext, self)
+                padlen = (len(message)-1) - len(nextTC)
+                pad = getRand("randfile.dat", padlen)
+            else:
+                # TC is for us
+                pass
         elif t == PUBKEY:
             #TODO: Check size?
             pub = RSAPubKey(message[1:])
@@ -327,18 +350,20 @@ class Connection(object):
             except ValueError:
                 # Bad Checksum, possible MITM attack
                 pass
-            if self.encoder.neighbors.get(nid):
+            if self.encoder.neighbors.has_id(nid):
                 # NID already in use!
                 self.close()
                 return
             self.id = nid
-            self.encoder.add_neighbor(self.id, AESKey(key, iv))
+            self.encoder.add_neighbor(self.id, (self.ip, self.port), AESKey(key, iv))
+            #Make this a method in SingleportListener..
+            self.encoder = self.encoder.neighbors
+            self.encoder.connections[self.connection] = self
             self._send_message(CONFIRM)
-            print "Sending Confirm"
+            #self.encoder.complete_connection(self)
         elif t == CONFIRM:
-            self.encoder.add_neighbor(self.id, self.tmp_aes)
-            print "Got Confirm"
-            self.close()
+            self.encoder.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
+            #self.encoder.complete_connection(self)
         else:
             self.close()
 
@@ -348,6 +373,7 @@ class Connection(object):
         del self.encoder.connections[self.connection]
         # self.encoder.replace_connection()
         if self.complete:
+            print "Severed"
             del self.encoder.complete_connections[self]
             self.download.disconnected()
             self.encoder.choker.connection_lost(self)

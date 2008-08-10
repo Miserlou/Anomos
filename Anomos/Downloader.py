@@ -309,7 +309,7 @@ class SingleDownload(object):
 class Downloader(object):
 
     def __init__(self, config, storage, picker, numpieces, downmeasure,
-                 measurefunc, kickfunc, banfunc, AESKM):
+                 measurefunc, kickfunc, banfunc, keyring):
         self.config = config
         self.storage = storage
         self.picker = picker
@@ -324,7 +324,7 @@ class Downloader(object):
         self.perip = {}
         self.bad_peers = {}
         self.discarded_bytes = 0
-        self.AESKM = AESKM
+        self.keyring = keyring
 
     def make_download(self, connection):
         ip = connection.ip
@@ -334,7 +334,7 @@ class Downloader(object):
             self.perip[ip] = perip
         perip.numconnections += 1
         # The key most likely does not exist yet...
-        kee = AESKM.getKey(connection.ip)
+        kee = self.keyring.getKey(connection.ip)
         d = SingleDownload(self, connection, kee)
         perip.lastdownload = d
         perip.peerid = connection.id

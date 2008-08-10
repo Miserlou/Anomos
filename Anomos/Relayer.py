@@ -75,7 +75,7 @@ class Relayer(object):
         self.choke(self)
 
     def got_unchoke(self, time):
-        self.choke(self)
+        self.unchoke(time)
    
     def sent_choke(self): 
         assert self.choked

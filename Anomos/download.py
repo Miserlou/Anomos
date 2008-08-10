@@ -20,18 +20,13 @@ import threading
 import gc
 from sha import sha
 from socket import error as socketerror
-from random import seed
 from cStringIO import StringIO
 from traceback import print_exc
 from math import sqrt
-try:
-    getpid = os.getpid
-except AttributeError:
-    def getpid():
-        return 1
 
 import random
 
+from Anomos.NeighborManager import NeighborManager
 from Anomos.platform import bttime
 from Anomos.Choker import Choker
 from Anomos.Storage import Storage, FilePool
@@ -76,12 +71,14 @@ class Multitorrent(object):
     def __init__(self, config, doneflag, errorfunc, listen_fail_ok=False):
         self.config = dict(config)
         self.errorfunc = errorfunc
-        self.rsa = RSAKeyPair(str(random.randint(0,5))) #TODO: make this a unique name
+        self.rsa = RSAKeyPair(config['identity'])
         self.keyring = AESKeyManager() # Holds our neighbor's AES keys
         self.rawserver = RawServer(doneflag, config, errorfunc=errorfunc,
                                    bindaddr=config['bind'])
+        self.neighbors = NeighborManager(self.rawserver, config)
         self.singleport_listener = SingleportListener(self.rawserver, self.config, 
-                                                      self.rsa, self.keyring)
+                                                      self.neighbors, self.rsa, 
+                                                      self.keyring)
         self._find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
         self.ratelimiter = RateLimiter(self.rawserver.add_task)
@@ -110,8 +107,8 @@ class Multitorrent(object):
 
     def start_torrent(self, metainfo, config, feedback, filename):
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
-                                 self.ratelimiter, self.filepool, config, 
-                                 self.keyring, self.rsa)
+                                 self.ratelimiter, self.filepool, config,
+                                 self.neighbors, self.keyring, self.rsa)
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
@@ -179,7 +176,7 @@ class Multitorrent(object):
 class _SingleTorrent(object):
 
     def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
-                 config, keyring, rsa_key):
+                 config, neighbors, keyring, rsa_key):
         self._rawserver = rawserver
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
@@ -211,7 +208,7 @@ class _SingleTorrent(object):
         self.feedback = None
         self.errors = []
         self.myid = None
-        self.neighbors = {}
+        self.neighbors = neighbors
         self.keyring = keyring
         self.rsa = rsa_key
         self.tracker_pubkey = None
@@ -241,7 +238,6 @@ class _SingleTorrent(object):
             self.tracker_pubkey = RSAPubKey(metainfo.publickey)
         
         self._make_id()
-        seed(self.myid)
         def schedfunc(func, delay):
             self._rawserver.add_task(func, delay, self)
         def externalsched(func, delay):
@@ -335,9 +331,7 @@ class _SingleTorrent(object):
                         upmeasure_seedtime, choker, self._storagewrapper,
                         self.config['max_slice_length'], self.config['max_rate_period'], kee)
         self._encoder = Encoder(make_upload, downloader, choker,
-                     len(metainfo.hashes), self._ratelimiter, self._rawserver,
-                     self.config, self.myid, schedfunc, self.infohash, self,
-                     self.keyring)
+                                len(metainfo.hashes), schedfunc, self)
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port()
@@ -352,6 +346,9 @@ class _SingleTorrent(object):
             self.infohash, self._error, self.finflag, upmeasure.get_rate,
             downmeasure.get_rate, self._encoder.ever_got_incoming,
             self.internal_shutdown, self._announce_done, self.rsa, self.tracker_pubkey)
+            # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure.get_total
+            #             downmeasure.get_total, upmeasure.get_rate, downmeasure.get_rate,
+            #             self)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             upmeasure_seedtime.get_rate, downmeasure.get_rate,
             upmeasure.get_total, downmeasure.get_total,
@@ -526,7 +523,7 @@ class _SingleTorrent(object):
             return
         self.reported_port = r
         self.myid = self._make_id()
-        self._encoder.my_id = self.myid
+        self._encoder.myid = self.myid
         self._rerequest.change_port(self.myid, r)
 
     def _announce_done(self):
@@ -541,9 +538,6 @@ class _SingleTorrent(object):
         """
         myid = 'A' + version.split()[0].replace('.', '-')
         self.myid = myid + sha(self.rsa.pub_bin()).hexdigest()[-(20-len(myid)):]
-        #myid = myid + ('-' * (8-len(myid)))+sha(repr(bttime())+ ' ' +
-        #                             str(getpid())).digest()[-6:].encode('hex')
-        #self.myid = myid + 
 
     def _set_auto_uploads(self):
         uploads = self.config['max_uploads']

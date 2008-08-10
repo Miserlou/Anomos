@@ -18,7 +18,7 @@ from threading import Event
 from urlparse import urlparse
 from traceback import print_exc
 from time import gmtime, strftime
-from random import shuffle
+from random import shuffle, sample
 from types import StringType, IntType, LongType, ListType, DictType
 from binascii import b2a_hex, a2b_hex
 from cStringIO import StringIO
@@ -36,7 +36,7 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
 from Anomos import version
 
-from Anomos.crypto import RSAKeyPair, AESKeyManager
+from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey
 from Anomos.NetworkModel import NetworkModel
 
 defaults = [
@@ -503,9 +503,9 @@ class Tracker(object):
         simpeer = self.networkmodel.get(peerid)
         if not simpeer:
             if params('pubkey'): # New peer
-                dns = (ip, int(params('port')))
+                loc = (ip, int(params('port')))
                 simpeer = self.networkmodel.addPeer(params('peer_id'), 
-                                                    params('pubkey'), dns)
+                                                    params('pubkey'), loc)
         if simpeer and params('event') == 'stopped':
             self.networkmodel.disconnect(peerid)
         # TODO: What if they don't give a pubkey
@@ -628,90 +628,130 @@ class Tracker(object):
 
         return rsize
     
-    def neighborlist(self, peerid, stopped=False):
-        if stopped:
-            return {}
+    def neighborlist(self, peerid):
         sim = self.networkmodel.get(peerid)
         if sim and not sim.id_map:
-            return {'peers':{}}
-        data={}
-        data['peers'] = []
+            return {}
+        neighbors = []
         for p in sim.id_map.values():
-            dns = sim.neighbors[p]['dns']
+            loc = sim.neighbors[p]['loc']
             nid = sim.neighbors[p]['nid']
-            data['peers'].append({'ip':dns[0], 'port':dns[1], 'peer id':nid})
-        print data
-        return data
+            neighbors.append({'ip':loc[0], 'port':loc[1], 'peer id':nid})
+        return neighbors
     
-    def peerlist(self, peerid, infohash, stopped, is_seed, return_type, rsize):
-        """ Return a set of Tracking Codes 
-        @param peerid: PeerID of source peer
-        @param infohash: File requested
-        @param stopped: 
+    def getTCs(self, peerid, infohash, return_type, count):
         """
-        data = {}    # data to be returned
-        seeds = self.seedcount[infohash]
-        data['complete'] = seeds
-        data['incomplete'] = len(self.downloads[infohash]) - seeds
-
-        if ( self.allowed is not None and self.config['allowed_controls'] and
-                                self.allowed[infohash].has_key('warning message') ):
-            data['warning message'] = self.allowed[infohash]['warning message']
-
-        data['interval'] = self.reannounce_interval
-        if stopped or not rsize:     # save some bandwidth
-            data['peers'] = []
-            return data
+        Gets a set of tracking codes from the specified peer to 'count' random
+        peers with 'infohash'.
+        @param peerid: PeerID of requesting peer
+        @param infohash: Infohash of requested file
+        @param count: Number of peers requested
+        @param return_type: Temporary arg for BT compatibility, will be removed.
+        @type peerid: str
+        @type infohash: str
+        @type count: int
+        """
+        #TODO: Update the cache system, and only get peers in infohash's swarm
+        #cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
+        swarm = self.networkmodel.getNames()
+        tcs = []
+        for id in sample(swarm, min(len(swarm), count)):
+            if id == peerid:
+                continue
+            print id, "To", peerid, "For", infohash
+            aes = AESKey()
+            #TODO: design a good format for the request
+            t = self.networkmodel.getTrackingCode(peerid, id, infohash + aes.key + aes.iv)
+            if t:
+                tcs.append(t)
+        return tcs
         
-        bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
-        len_l = len(bc[0][0]) # Number of downloaders
-        len_s = len(bc[0][1]) # Number of seeders
-        if not (len_l+len_s):   # caches are empty!
-            data['peers'] = []
-            return data
-        l_get_size = int(float(rsize)*(len_l)/(len_l+len_s))
-        cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
-        if cache:
-            if cache[0] + self.config['min_time_between_cache_refreshes'] < bttime():
-                cache = None
-            else:
-                if ( (is_seed and len(cache[1]) < rsize)
-                     or len(cache[1]) < l_get_size or not cache[1] ):
-                        cache = None
-        if not cache:
-            vv = [[],[],[]]
-            cache = [ bttime(),
-                      bc[return_type][0].values()+vv[return_type],
-                      bc[return_type][1].values() ]
-            shuffle(cache[1])
-            shuffle(cache[2])
-            self.cached[infohash][return_type] = cache
-            for rr in xrange(len(self.cached[infohash])):
-                if rr != return_type:
-                    try:
-                        self.cached[infohash][rr][1].extend(vv[rr])
-                    except:
-                        pass
-        if len(cache[1]) < l_get_size:
-            peerdata = cache[1]
-            if not is_seed:
-                peerdata.extend(cache[2])
-            cache[1] = []
-            cache[2] = []
-        else:
-            if not is_seed:
-                peerdata = cache[2][l_get_size-rsize:]
-                del cache[2][l_get_size-rsize:]
-                rsize -= len(peerdata)
-            else:
-                peerdata = []
-            if rsize:
-                peerdata.extend(cache[1][-rsize:])
-                del cache[1][-rsize:]
-        if return_type == 2:
-            peerdata = ''.join(peerdata)
-        data['peers'] = peerdata
-        return data
+        
+#    def peerlist(self, peerid, infohash, stopped, is_seed, return_type, rsize):
+#        """ Return a set of Tracking Codes 
+#        @param peerid: PeerID of source peer
+#        @param infohash: File requested
+#        @param stopped: 
+#        """
+#        data = {}    # data to be returned
+#        seeds = self.seedcount[infohash]
+#        data['complete'] = seeds
+#        data['incomplete'] = len(self.downloads[infohash]) - seeds
+
+#        if ( self.allowed is not None and self.config['allowed_controls'] and
+#                                self.allowed[infohash].has_key('warning message') ):
+#            data['warning message'] = self.allowed[infohash]['warning message']
+
+#        data['interval'] = self.reannounce_interval
+#        if stopped or not rsize:     # save some bandwidth
+#            data['peers'] = []
+#            return data
+#        
+#        bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
+#        len_l = len(bc[0][0]) # Number of downloaders
+#        len_s = len(bc[0][1]) # Number of seeders
+#        if not (len_l+len_s):   # caches are empty!
+#            data['peers'] = []
+#            return data
+#        l_get_size = int(float(rsize)*(len_l)/(len_l+len_s))
+#        cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
+#        if cache:
+#            if cache[0] + self.config['min_time_between_cache_refreshes'] < bttime():
+#                cache = None
+#            else:
+#                if ( (is_seed and len(cache[1]) < rsize)
+#                     or len(cache[1]) < l_get_size or not cache[1] ):
+#                        cache = None
+#        if not cache:
+#            vv = [[],[],[]]
+#            cache = [ bttime(),
+#                      bc[return_type][0].values()+vv[return_type],
+#                      bc[return_type][1].values() ]
+#            shuffle(cache[1])
+#            shuffle(cache[2])
+#            self.cached[infohash][return_type] = cache
+#            for rr in xrange(len(self.cached[infohash])):
+#                if rr != return_type:
+#                    try:
+#                        self.cached[infohash][rr][1].extend(vv[rr])
+#                    except:
+#                        pass
+#        if len(cache[1]) < l_get_size:
+#            peerdata = cache[1]
+#            if not is_seed:
+#                peerdata.extend(cache[2])
+#            cache[1] = []
+#            cache[2] = []
+#        else:
+#            if not is_seed:
+#                peerdata = cache[2][l_get_size-rsize:]
+#                del cache[2][l_get_size-rsize:]
+#                rsize -= len(peerdata)
+#            else:
+#                peerdata = []
+#            if rsize:
+#                peerdata.extend(cache[1][-rsize:])
+#                del cache[1][-rsize:]
+#        if return_type == 2:
+#            peerdata = ''.join(peerdata)
+#        data['peers'] = peerdata
+#        return data
+
+    def validate_request(self, paramslist):
+        params = params_factory(paramslist)
+        infohash = params('info_hash')
+        if infohash and len(infohash) != 20:
+            raise ValueError('infohash not of length 20')
+        if len(params('peer_id', '')) != 20:
+            raise ValueError('id not of length 20')
+        if params('event') not in ['started', 'completed', 'stopped', None]:
+            raise ValueError('invalid event')
+        port = int(params('port',-1))
+        if not (0 < port < 65535):
+            raise ValueError('invalid or unspecified port')
+        left = params('left')
+        if left and int(left) < 0:
+            raise ValueError('invalid amount left')
 
     def get(self, connection, path, headers):
         ip = connection.get_ip()
@@ -760,10 +800,12 @@ class Tracker(object):
                 return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
             
             self.update_simpeer(paramslist, ip)
+            self.validate_request(paramslist)
             # main tracker function
             infohash = params('info_hash')
-            if not infohash:
-                raise ValueError('no info hash')
+            #Quite alright not to send an infohash now.
+            #if not infohash:
+            #    raise ValueError('no info hash')
 
             notallowed = self.check_allowed(infohash, paramslist)
             if notallowed:
@@ -784,7 +826,12 @@ class Tracker(object):
         else:
             return_type = 0
         
-        data = self.neighborlist(params('peer_id'), event=='stopped')
+        stopped = event == 'stopped'
+        data = {}
+        if not stopped:
+            data['peers'] = self.neighborlist(params('peer_id'))
+            if infohash:
+                data['tracking codes'] = self.getTCs(params('peer_id'), infohash, return_type, 3)
         #self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
 
         if paramslist.has_key('scrape'):

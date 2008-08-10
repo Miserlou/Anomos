@@ -40,6 +40,7 @@ common_options = [
          "bittorrent config directory."),
     ('max_files_open', 50,
      'the maximum number of files in a multifile torrent to keep open at a time, 0 means no limit. Used to avoid running out of file descriptors.'),
+    ('identity', 'peer', 'the identity to use (basename of pub/pvt key)'),
     ]
 
 

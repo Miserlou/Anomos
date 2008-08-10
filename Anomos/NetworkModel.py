@@ -20,10 +20,8 @@ edge in the path.
 import random
 from sys import maxint as INFINITY
 from sha import sha
-from crypto import RSAPubKey, RSAKeyPair
+from crypto import RSAPubKey, RSAKeyPair, getRand
 from M2Crypto import RSA
-
-TC_DELIMITER = ":"
 
 DEBUG_ON = True
 def DEBUG(*args):
@@ -35,7 +33,7 @@ class SimPeer:
     Container for some information tracker needs to know about each peer, also
     node in Graph model of network topology used for Tracking Code generation.
     """
-    def __init__(self, name, pubkey, dns):
+    def __init__(self, name, pubkey, loc):
         """
         @param name: Peer ID to be assigned to this SimPeer
         @type name: string
@@ -44,11 +42,11 @@ class SimPeer:
         """
         self.name = name
         self.pubkey = RSAPubKey(pubkey)
-        self.neighbors = {} # {PeerID: {dist:#, nid:#, dns:(#,#)}}
+        self.neighbors = {} # {PeerID: {dist:#, nid:#, loc:(#,#)}}
         self.id_map = {}    # {NeighborID : PeerID}
-        self.dns = dns
-    
-    def addNeighbor(self, peerid, nid, dns):
+        self.loc = loc
+        self.infohashes = {} # {infohash: (downloaded, left)}
+    def addNeighbor(self, peerid, nid, loc):
         """
         Assign Neighbor ID to peer
         
@@ -56,7 +54,7 @@ class SimPeer:
         @type nid: int
         """
         #TODO: What happens if we get a new neighbor we're already connected to
-        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid,'dns':dns})
+        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid,'loc':loc})
         self.id_map[nid] = peerid
     
     def removeEdge(self, peerid):
@@ -135,7 +133,7 @@ class NetworkModel:
     def getVertices(self):
         return self.names.values()
     
-    def addPeer(self, peerid, pubkey, dns, num_neighbors=1):
+    def addPeer(self, peerid, pubkey, loc, num_neighbors=1):
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
@@ -143,7 +141,7 @@ class NetworkModel:
         @returns: a reference to the created peer
         @rtype: SimPeer
         """
-        self.names[peerid] = SimPeer(peerid, pubkey, dns)
+        self.names[peerid] = SimPeer(peerid, pubkey, loc)
         self.randConnect(peerid, num_neighbors)
         return self.names[peerid]
     
@@ -174,8 +172,8 @@ class NetworkModel:
         l = list(nidsP1.intersection(nidsP2))
         if len(l):
             nid = random.choice(l)
-            p1.addNeighbor(v2, nid, p2.dns)
-            p2.addNeighbor(v1, nid, p1.dns)
+            p1.addNeighbor(v2, nid, p2.loc)
+            p2.addNeighbor(v1, nid, p1.loc)
         else:
             raise RuntimeError("No available NeighborIDs. It's possible the \
                                 network is being attacked. Please file a bug \
@@ -267,7 +265,37 @@ class NetworkModel:
             last = cur
         return paths[dest.name]
 
-    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=False):
+## Little experiment with modified dijikstra
+#    def closestWithFile(self, source, infohash, count=1):
+#        source = self.get(s)
+
+#        paths = dict.fromkeys(self.getNames(), [])
+#        distances = dict.fromkeys(self.getNames(), INFINITY)
+#        complete_paths = {}
+#        
+#        distances[source.name] = 0 # The distance of the source to itself is 0
+#        dist_to_unknown = distances.copy() # Safe to destroy copy
+#        last = source
+#        while dist_to_unknown:
+#            # Select the next vertex to explore, which is not yet fully explored and which 
+#            # minimizes the already-known distances.
+#            cur_name = min([(v, k) for (k, v) in dist_to_unknown.iteritems()])[1]
+#            cur = self.get(cur_name)
+#            for n in cur.neighbors:
+#                d = cur.neighbors[n].get('dist')
+#                if distances[n] > distances[cur_name] + d:
+#                    distances[n] = distances[cur_name] + d
+#                    paths[n] = paths[cur_name] + [n]
+#                    if self.get(n).infohashes.has_key(infohash):
+#                        complete_paths[n] = paths[n]
+#                    if dist_to_unknown.has_key(n):
+#                        dist_to_unknown[n] = distances[n]
+#            if cur_name in dist_to_unknown: # Delete the completely explored vertex
+#                del dist_to_unknown[cur_name]
+#            last = cur
+#        return paths[dest.name]
+    
+    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=True):
         """
         Generate the tracking code for the shortest path from source to dest
         
@@ -275,7 +303,10 @@ class NetworkModel:
         @param dest: Peer ID (str) of the end node
         @return: See NetworkModel.encryptTC
         @rtype: string
+        
+        @todo: Some error checking.
         """
+        
         v_source = self.get(source)
         v_dest = self.get(dest)
         
@@ -287,6 +318,8 @@ class NetworkModel:
         DEBUG(pathByNames)
         if block_direct_connections:
             v_source.reWeight(dest, sd_temp)
+            if len(pathByNames) == 1:
+                return None
         return self.encryptTC(pathByNames, plaintext)
     
     def encryptTC(self, pathByNames, plaintext='#', msglen=1024):
@@ -301,10 +334,11 @@ class NetworkModel:
         @return: E_a(TC_b + E_b(TC_c + E_c(plaintext)))
         @rtype: string
         """
-        #TODO: Padding
         message = plaintext # Some easy to check string for recipient to read
         prev_neighbor = None
+        print "path:", pathByNames
         for peername in reversed(pathByNames):
+            print "BAABDDFA: ", peername
             peerobj = self.get(peername)
             if prev_neighbor:
                 tcnum = str(prev_neighbor.getNID(peername))
@@ -312,8 +346,8 @@ class NetworkModel:
             else:
                 message = peerobj.pubkey.encrypt(message, len(message))
             prev_neighbor = peerobj
-        while len(message) < msglen:
-            message += chr(random.randint(0,255))
+        if len(message) < msglen:
+            message += getRand("randfile.dat", msglen-len(message))
         return message
     
     def __repr__(self):
@@ -330,27 +364,29 @@ else:
 ###########
 ##TESTING##
 ###########
-def tcTest(numnodes=1000, numedges=20000):
+def tcTest(numnodes=1000, numedges=10000):
     from binascii import b2a_hex
+    import math
     import time
     G_ips = ['.'.join([str(i)]*4) for i in range(numnodes)]
     graph = NetworkModel()
     pk = RSAKeyPair('WampWamp') # All use same RSA key for testing.
     for peerid in G_ips:
-        graph.addPeer(peerid, pk.pub_bin(), (peerid, 8080), int(numedges/numnodes))
+        graph.addPeer(peerid, pk.pub_bin(), (peerid, 8080), int(math.log(1000)//math.log(4)))
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
     t = time.time()
-    for i in range(1):
+    for i in range(20):
         n1, n2 = random.sample(range(graph.order()), 2)
-        #print "Tracking code #%d from %s to %s" % (i, G_ips[n1], G_ips[n2])
         x = graph.getTrackingCode(G_ips[n1], G_ips[n2])
-        #print "Encrypted Tracking Code: ", b2a_hex(x)
-        #print "Length: ", len(x)
         tc = []
         m, p = pk.decrypt(x, True)
+        repadlen = len(x) - len(p)
+        p += getRand("randfile.dat", repadlen)
         tc.append(m)
         while m != '#':
+            plen = len(p)
             m, p = pk.decrypt(p, True)
+            p += getRand("randfile.dat", plen-len(p))
             tc.append(m)
         #print "Decrypted Tracking Code  ", ":".join(tc)
     print time.time() - t

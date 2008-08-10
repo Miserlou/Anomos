@@ -21,75 +21,124 @@ from Anomos import BTFailure
 
 
 class Encoder(object):
-
-    def __init__(self, make_upload, downloader, choker, numpieces, ratelimiter,
-               raw_server, config, my_id, schedulefunc, download_id, context, 
-               keyring):
+    ''' Encoder objects exist at the torrent level. A client has an encoder
+        object for each torrent they're downloading/seeding. The primary
+        purpose of the encoder object is to initialize new connections by
+        sending tracking codes and creating the uploader/downloader objects.
+    '''
+    #def __init__(self, make_upload, downloader, choker, numpieces, ratelimiter,
+    #           raw_server, config, my_id, schedulefunc, download_id, context, 
+    #           keyring):
+    def __init__(self, make_upload, downloader, choker, numpieces, schedulefunc,
+                 context):
         self.make_upload = make_upload
         self.downloader = downloader
         self.choker = choker
         self.numpieces = numpieces
-        self.ratelimiter = ratelimiter
-        self.raw_server = raw_server
-        self.my_id = my_id
-        self.config = config
         self.schedulefunc = schedulefunc
-        self.download_id = download_id  # Infohash
+
+        self.ratelimiter = context._ratelimiter
+        self.raw_server = context._rawserver
+        self.config = context.config
+        self.download_id = context.infohash
+        self.rsakey = context.rsa
+        self.neighbors = context.neighbors
+        self.keyring = context.keyring
         self.context = context
+
+        self.connections = {} # {socket : Connection}
+        self.complete_connections = set()
+        self.banned = set()
         self.everinc = False
-        self.connections = {}
-        self.complete_connections = {}
-        #self.spares = []
-        self.banned = {}
-        self.pubkey = context.rsa
-        self.keyring = keyring
-        schedulefunc(self.send_keepalives, config['keepalive_interval'])
+        # XXX: Send keepalives on full chains or just neighbor to neighbor?
+        # schedulefunc(self.send_keepalives, config['keepalive_interval'])
 
     def send_keepalives(self):
         self.schedulefunc(self.send_keepalives,
                           self.config['keepalive_interval'])
         for c in self.complete_connections:
             c.send_keepalive()
+    
+    def send_trackingcode(self, nid, tc):
+        neighbor = self.neighbors.get(nid)
+        if neighbor:
+            self.start_connection(neighbor[0], nid)
+        
+        #Check nid is a neighbor
+        #send the TC
 
-    def start_connection(self, dns, id):
-        """
-        @param dns: (IP, Port)
-        @param id: The neighbor ID to assign to this connection
-        @type dns: tuple
-        @type id: int
-        """
-        if dns[0] in self.banned:
-            return
-        established = False
-        for v in self.connections.values():
-            if id and v.id == id: 
-                established = True
-                break
-            ## We have to allow multiple connections per IP
-            #if self.config['one_connection_per_ip'] and v.ip == dns[0]:
-            #   return # Already connected to this peer
+    def start_connection(self, tc): #TODO: Error callback?
         if len(self.connections) >= self.config['max_initiate']:
-            #if len(self.spares) < self.config['max_initiate'] and \
-            #       dns not in self.spares:
-            #    self.spares.append(dns)
-            return #(!) back propagate a failure message
+            return
+        nid = None
         try:
-            c = self.raw_server.start_connection(dns, None, self.context)
+            #TODO: There will eventually be an extra piece of data in the TC to 
+            # verify the tracker, get that here too.
+            #TODO: Check the TC length
+            nid, tc = self.rsakey.decrypt(tc, True)
+            if len(nid) == 1:
+                print "NID:", nid
+            #TODO: Pad the tc
+        except ValueError, e:
+            print "VALUE ERR: ", e
+            return #Tampered With
+        except Exception, e:
+            print "OTHER EXCEPTION", e
+            return #Probably a decryption error
+        loc = self.neighbors.get_location(nid)
+        print self.neighbors.neighbors
+        print "LOCATION:", loc
+        if not loc: 
+            # We're no longer connected to this peer.
+            #TODO: Tell the tracker!
+            return
+        try:
+            c = self.raw_server.start_connection(loc, None, self.context)
         except socketerror:
             pass
         else:
-            # Make the local connection for receiving. Connection is considered
-            # established if we've already contacted them and exchanged a key
+            # Make the local connection for receiving.
             con = Connection(self, c, id, True, established)
             self.connections[c] = con
-            c.handler = con
+            c.handler = con 
+            con.send_tracking_code(tc)
+
+#    def start_connection(self, loc, id):
+#        """
+#        @param loc: (IP, Port)
+#        @param id: The neighbor ID to assign to this connection
+#        @type loc: tuple
+#        @type id: int
+#        """
+#        if loc and loc[0] in self.banned:
+#            return
+#        # Connection is established if they're one of this peer's neighbors
+#        established = self.neighbors.has_key(id)
+#        if established and not loc:
+#            # Got an ID but no location (as in a Tracking Code), get the loc
+#            loc = self.neighbors[id][0]
+#        if len(self.connections) >= self.config['max_initiate']:
+#            # Peer has too many connections
+#            return #TODO: back propagate a failure message
+#        try:
+#            c = self.raw_server.start_connection(loc, None, self.context)
+#        except socketerror:
+#            pass
+#        else:
+#            # Make the local connection for receiving.
+#            con = Connection(self, c, id, True, established)
+#            self.connections[c] = con
+#            c.handler = con 
 
     def connection_completed(self, c):
-        self.complete_connections[c] = 1
-        if not c.isrelay:
-            c.upload = self.make_upload(c)
-            c.download = self.downloader.make_download(c)
+        self.complete_connections.add(c)
+        #if not c.is_relay:
+        c.upload = self.make_upload(c)
+        c.download = self.downloader.make_download(c)
+        
         #else:
+        #    r = Relayer(
+        #    c.upload = 
         #we're a relayer
         #Initialize outgoing connection: c_out
         #Make a Relayer(c, c_out,...)
@@ -126,46 +175,26 @@ class Encoder(object):
         con.connection.context = self.context
 
     def ban(self, ip):
-        self.banned[ip] = None
+        self.banned.add(ip)
 
 
 class SingleportListener(object):
-
-    def __init__(self, rawserver, config, rsakey, keyring):
+    '''SingleportListener gets events from the server sockets (of which there
+        is one per torrent), initializes connection objects, and determines
+        what to do with the connection once some data has been read.
+    '''
+    def __init__(self, rawserver, config, neighbors, rsakey, keyring):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
         self.ports = {}
         self.torrents = {}
         self.connections = {}
-        self.neighbors = {} # Format -> { Neighbor_ID : (IP, Port) }
+        self.neighbors = neighbors
+        self.add_neighbor = neighbors.add_neighbor
         self.keyring = keyring
         self.rsakey = rsakey
         self.download_id = None
-    
-    def add_neighbor(self, nid, dns, aeskey):
-        """ Establishes a peer as a neighbor 
-        @param nid: The neighbor ID of this peer
-        @param dns: The IP address and port to reach this neighbor at
-        @param aeskey: The AES-256 key to use when talking to this peer
-        """
-        if nid not in self.neighbors:
-            self.neighbors[nid] = [(dns, pubkey),]
-        elif self.neighbors[nid][1] != dns[1]:
-                self.neighbors[nid].append((dns, pubkey))
-        else:
-            #TODO: Would we ever get an add_neighbor for an already existing
-            #      neighbor?
-            pass
-    
-    #def is_neighbor(self, nid, port):
-    #    
-    
-    def nid_by_ip(self, ip):
-        for nid, dns in self.neighbors.iteritems():
-            if ip == dns[0]:
-                return nid
-        return None
     
     def _check_close(self, port):
         if not port or self.port == port or self.ports[port][1] > 0:
@@ -215,20 +244,20 @@ class SingleportListener(object):
             return
         self.torrents[infohash].singleport_connection(self, conn)
 
-    def external_connection_made(self, connection):
+    def external_connection_made(self, socket):
         """ 
         Connection came in.
         @param connection: SingleSocket
         """
-        nid = self.nid_by_ip(connection.ip)
+        nid = self.neighbors.lookup_ip(socket.ip)
         if nid: 
             # The incomming connection is one of our neighbors
-            con = Connection(self, connection, nid, False, True)
+            con = Connection(self, socket, nid, False, established=True)
         else:
-            # It's a new neighbor
-            con = Connection(self, connection, None, False, False)
-        self.connections[connection] = con
-        connection.handler = con
+            # It's a new neighbor, let the NeighborManager handle it.
+            con = Connection(self, socket, None, False, established=False)
+        self.connections[socket] = con
+        socket.handler = con
 
     def replace_connection(self):
         pass
