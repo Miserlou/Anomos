@@ -14,7 +14,6 @@ import sys
 import os
 import cStringIO
 import sha
-import random
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
 from Anomos import BTFailure
@@ -62,7 +61,7 @@ class RSAPubKey:
         checksum = sha.new(sessionkey.key + bmsglen + data[:rmsglen]).digest()
         content = checksum + bmsglen + data
         padlen = 32-(len(content)%32)
-        padding = "".join(chr(random.randint(0,255)) for i in range(padlen))
+        padding = getRand(self.randfile, padlen)
         ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext
     
