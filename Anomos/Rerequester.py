@@ -148,7 +148,7 @@ class Rerequester(object):
         if self.send_key:
             s += '&pubkey=' + quote(self.clientkey.pub_bin())
             self.send_key = False
-        Thread(target=self._rerequest, args=[s, self.peerid]).start()
+        Thread(target=self._rerequest, args=[s, self.peerid, self.trackerkey]).start()
 
     # Must destroy all references that could cause reference circles
     def cleanup(self):
@@ -168,13 +168,18 @@ class Rerequester(object):
         self.clientkey = None
         self.trackerkey = None
 
-    def _rerequest(self, url, peerid):
-        """ Make an HTTP GET request to the tracker """
+    def _rerequest(self, url, peerid, trackerkey=None):
+        """ Make an HTTP GET request to the tracker 
+            Note: This runs in its own thread.
+        """
         # Encrypt query here.
-        if self.trackerkey:
+        if trackerkey:
             (scheme, netloc, path, pars, query, fragment) = urlparse(url)
-            query = "pke=" + urlsafe_b64encode(self.trackerkey.encrypt(query))
+            query = "pke=" + urlsafe_b64encode(trackerkey.encrypt(query))
             url = urlunparse((scheme, netloc, path, pars, query, fragment))
+        else:
+            #XXX: Do we allow unencrypted requests? or should we die here
+            pass
         request = Request(url)
         if self.config['tracker_proxy']:
             request.set_proxy(self.config['tracker_proxy'], 'http')
