@@ -145,7 +145,7 @@ class SingleDownload(object):
         self.downloader.measurefunc(len(piece))
         self.downloader.downmeasure.update_rate(len(piece))
         if not self.downloader.storage.piece_came_in(index, begin, piece,
-                                                     self.guard, self.key):
+                                                     self.guard):
             if self.downloader.storage.endgame:
                 while self.downloader.storage.do_I_have_requests(index):
                     nb, nl = self.downloader.storage.new_request(index)

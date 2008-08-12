@@ -86,35 +86,35 @@ class Connection(object):
             self._sever()
 
     def send_interested(self):
-        self._send_message(INTERESTED)
+        self._send_encrypted_message(INTERESTED)
 
     def send_not_interested(self):
-        self._send_message(NOT_INTERESTED)
+        self._send_encrypted_message(NOT_INTERESTED)
 
     def send_choke(self):
         if self._partial_message is None:
-            self._send_message(CHOKE)
+            self._send_encrypted_message(CHOKE)
             self.choke_sent = True
             self.upload.sent_choke()
 
     def send_unchoke(self):
         if self._partial_message is None:
-            self._send_message(UNCHOKE)
+            self._send_encrypted_message(UNCHOKE)
             self.choke_sent = False
 
     def send_request(self, index, begin, length):
-        self._send_message(REQUEST + tobinary(index) +
+        self._send_encrypted_message(REQUEST + tobinary(index) +
             tobinary(begin) + tobinary(length))
 
     def send_cancel(self, index, begin, length):
-        self._send_message(CANCEL + tobinary(index) +
+        self._send_encrypted_message(CANCEL + tobinary(index) +
             tobinary(begin) + tobinary(length))
 
     def send_bitfield(self, bitfield):
-        self._send_message(BITFIELD + bitfield)
+        self._send_encrypted_message(BITFIELD + bitfield)
 
     def send_have(self, index):
-        self._send_message(HAVE + tobinary(index))
+        self._send_encrypted_message(HAVE + tobinary(index))
 
     def send_keepalive(self):
         self._send_message('')
@@ -162,7 +162,6 @@ class Connection(object):
         self._send_message(msg)
     
     def send_tracking_code(self, trackcode):
-        print "SENDING TC"
         self._send_encrypted_message(TCODE + trackcode)
     
     def get_aes_key(self):
@@ -240,9 +239,10 @@ class Connection(object):
             CONFIRM, ENCRYPTED)
         """
         t = message[0]
-        if t == BITFIELD and self.got_anything:
-            self.close()
-            return
+        #TODO: Find out why this was needed
+        #if t == BITFIELD and self.got_anything:
+        #    self.close()
+        #    return
         self.got_anything = True
         if (t in [CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED] and
                 len(message) != 1):
@@ -310,7 +310,6 @@ class Connection(object):
                     co.send_have(i)
         elif t == TCODE:
             plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
-            print "GOT THE TCODE"
             if len(plaintext) == 1:
                 if self.upload is not None:
                     #This is a new connection

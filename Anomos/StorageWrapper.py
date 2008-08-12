@@ -316,7 +316,7 @@ class StorageWrapper(object):
             self.endgame = True
         return r
 
-    def piece_came_in(self, index, begin, piece, source = None, key=None):
+    def piece_came_in(self, index, begin, piece, source = None):
         if self.places[index] < 0:
             if self.rplaces[index] == ALLOCATED:
                 self._initalloc(index, index)
@@ -341,9 +341,7 @@ class StorageWrapper(object):
         self.download_history.setdefault(index, {})
         self.download_history[index][begin] = source
 
-        ## Decrypt here?
-        data = key.decrypt(piece)
-        self.storage.write(self.places[index] * self.piece_size + begin, data)
+        self.storage.write(self.places[index] * self.piece_size + begin, piece)
 
         self.stat_dirty[index] = 1
         self.numactive[index] -= 1
@@ -399,7 +397,7 @@ class StorageWrapper(object):
             if index in self.stat_new:
                 del self.stat_new[index]
 
-    def get_piece(self, index, begin, length, key):
+    def get_piece(self, index, begin, length):
         if not self.have[index]:
             return None
         if not self.waschecked[index]:
@@ -408,7 +406,4 @@ class StorageWrapper(object):
             self.waschecked[index] = True
         if begin + length > self._piecelen(index):
             return None
-        ## Encrypt outgoing chunk here!
-        encd = key.encrypt(self.storage.read(self.piece_size * self.places[index] + begin, length))
-        return encd
-        ##return self.storage.read(self.piece_size * self.places[index] + begin, length)
+        return self.storage.read(self.piece_size * self.places[index] + begin, length)

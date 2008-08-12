@@ -49,7 +49,7 @@ class Upload(object):
         if not self.buffer:
             return None
         index, begin, length = self.buffer.pop(0)
-        piece = self.storage.get_piece(index, begin, length, key)
+        piece = self.storage.get_piece(index, begin, length)
         if piece is None:
             self.connection.close()
             return None
