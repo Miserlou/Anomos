@@ -26,9 +26,6 @@ class Encoder(object):
         purpose of the encoder object is to initialize new connections by
         sending tracking codes and creating the uploader/downloader objects.
     '''
-    #def __init__(self, make_upload, downloader, choker, numpieces, ratelimiter,
-    #           raw_server, config, my_id, schedulefunc, download_id, context, 
-    #           keyring):
     def __init__(self, make_upload, downloader, choker, numpieces, schedulefunc,
                  context):
         self.make_upload = make_upload
@@ -86,51 +83,35 @@ class Encoder(object):
             print "OTHER EXCEPTION", e
             return #Probably a decryption error
         loc = self.neighbors.get_location(nid)
+        if not self.neighbors.is_complete(nid):
+            print "Scheduling"
+            self.neighbors.schedule_tc(nid, self.send_tc, tc)
+        elif not loc:
+                # We're no longer connected to this peer.
+                #TODO: Tell the tracker!
+                return
+        else:
+            self.send_tc(nid, tc)
+    
+    def send_tc(self, nid, tc):
+        loc = self.neighbors.get_location(nid)
         print self.neighbors.neighbors
         print "LOCATION:", loc
-        if not loc: 
-            # We're no longer connected to this peer.
-            #TODO: Tell the tracker!
-            return
         try:
             c = self.raw_server.start_connection(loc, None, self.context)
         except socketerror:
             pass
         else:
             # Make the local connection for receiving.
-            con = Connection(self, c, id, True, established)
+            con = Connection(self, c, nid, True, established=True)
             self.connections[c] = con
             c.handler = con 
             con.send_tracking_code(tc)
-
-#    def start_connection(self, loc, id):
-#        """
-#        @param loc: (IP, Port)
-#        @param id: The neighbor ID to assign to this connection
-#        @type loc: tuple
-#        @type id: int
-#        """
-#        if loc and loc[0] in self.banned:
-#            return
-#        # Connection is established if they're one of this peer's neighbors
-#        established = self.neighbors.has_key(id)
-#        if established and not loc:
-#            # Got an ID but no location (as in a Tracking Code), get the loc
-#            loc = self.neighbors[id][0]
-#        if len(self.connections) >= self.config['max_initiate']:
-#            # Peer has too many connections
-#            return #TODO: back propagate a failure message
-#        try:
-#            c = self.raw_server.start_connection(loc, None, self.context)
-#        except socketerror:
-#            pass
-#        else:
-#            # Make the local connection for receiving.
-#            con = Connection(self, c, id, True, established)
-#            self.connections[c] = con
-#            c.handler = con 
+            #XXX: Connection_completed only here for testing
+            self.connection_completed(con)
 
     def connection_completed(self, c):
+        print "complete"
         self.complete_connections.add(c)
         #if not c.is_relay:
         c.upload = self.make_upload(c)
@@ -152,11 +133,6 @@ class Encoder(object):
     def how_many_connections(self):
         return len(self.complete_connections)
 
-    #def replace_connection(self):
-    #    while len(self.connections) < self.config['max_initiate'] and \
-    #              self.spares:
-    #        self.start_connection(self.spares.pop(), None)
-
     def close_connections(self):
         for c in self.connections.itervalues():
             if not c.closed:
@@ -164,8 +140,9 @@ class Encoder(object):
                 c.closed = True
 
     def singleport_connection(self, listener, con):
-        if con.ip in self.banned:
-            return
+        #It's one of our neighbors so no need to check if the con is banned
+        #if con.ip in self.banned:
+        #    return
         m = self.config['max_allow_in']
         if m and len(self.connections) >= m:
             return
@@ -249,14 +226,16 @@ class SingleportListener(object):
         Connection came in.
         @param connection: SingleSocket
         """
-        nid = self.neighbors.lookup_ip(socket.ip)
+        nid = self.neighbors.lookup_loc(socket.ip)
         if nid: 
             # The incomming connection is one of our neighbors
+            print "Got an established conn"
             con = Connection(self, socket, nid, False, established=True)
+            self.connections[socket] = con
         else:
             # It's a new neighbor, let the NeighborManager handle it.
-            con = Connection(self, socket, None, False, established=False)
-        self.connections[socket] = con
+            con = Connection(self.neighbors, socket, None, False, established=False)
+            self.neighbors.connections[socket] = con
         socket.handler = con
 
     def replace_connection(self):

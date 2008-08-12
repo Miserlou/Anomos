@@ -178,7 +178,7 @@ class Rerequester(object):
             query = "pke=" + urlsafe_b64encode(trackerkey.encrypt(query))
             url = urlunparse((scheme, netloc, path, pars, query, fragment))
         else:
-            #XXX: Do we allow unencrypted requests? or should we die here
+            #TODO: Do we allow unencrypted requests? or should we die here
             pass
         request = Request(url)
         if self.config['tracker_proxy']:
@@ -219,7 +219,6 @@ class Rerequester(object):
             if r.has_key('pke'):
                 r.update(bdecode(self.clientkey.decrypt(r['pke'])))
                 del r['pke']
-                print r
             #TODO: update check_peers for Anomos
             #check_peers(r)
         except BTFailure, e:

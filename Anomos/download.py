@@ -75,7 +75,7 @@ class Multitorrent(object):
         self.keyring = AESKeyManager() # Holds our neighbor's AES keys
         self.rawserver = RawServer(doneflag, config, errorfunc=errorfunc,
                                    bindaddr=config['bind'])
-        self.neighbors = NeighborManager(self.rawserver, config)
+        self.neighbors = NeighborManager(self.rawserver, config, self.rsa, self.keyring)
         self.singleport_listener = SingleportListener(self.rawserver, self.config, 
                                                       self.neighbors, self.rsa, 
                                                       self.keyring)

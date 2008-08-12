@@ -133,7 +133,7 @@ class NetworkModel:
     def getVertices(self):
         return self.names.values()
     
-    def addPeer(self, peerid, pubkey, loc, num_neighbors=1):
+    def addPeer(self, peerid, pubkey, loc, num_neighbors=4):
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
@@ -176,17 +176,19 @@ class NetworkModel:
             p2.addNeighbor(v1, nid, p1.loc)
         else:
             raise RuntimeError("No available NeighborIDs. It's possible the \
-                                network is being attacked. Please file a bug \
-                                report")
+                                network is being attacked.")
     
     def randConnect(self, peerid, numpeers):
+        '''Assign 'numpeers' many randomly selected neighbors to 
+        peer with id == peerid 
+        '''
         peer = self.get(peerid)
         others = self.names.keys()
-        others.remove(peerid)
-        for nid in peer.neighbors.keys():
+        others.remove(peerid) # Remove source peer
+        for nid in peer.neighbors.keys(): # and the peers they're connected to
             others.remove(nid)
-        for c in range(numpeers):
-            if len(others) == 0:
+        for c in range(numpeers): # Connect to numpeers randomly selected peers
+            if len(others) == 0: # Unless there aren't that many in the network.
                 break
             otherpeerid = random.choice(others)
             self.connect(peerid, otherpeerid)
@@ -295,7 +297,7 @@ class NetworkModel:
 #            last = cur
 #        return paths[dest.name]
     
-    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=True):
+    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=False):
         """
         Generate the tracking code for the shortest path from source to dest
         

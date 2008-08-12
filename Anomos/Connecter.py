@@ -163,12 +163,10 @@ class Connection(object):
     
     def send_tracking_code(self, trackcode):
         print "SENDING TC"
-        self.send_encrypted_message(TC + trackcode)
+        self._send_encrypted_message(TCODE + trackcode)
     
     def get_aes_key(self):
-        if self.established:
-            return self.encoder.keyring.getKey(self.id)
-        return None
+        return self.encoder.keyring.getKey(self.id)
     
     # yields the number of bytes it wants next, gets those in self._message
     def _read_messages(self):
@@ -181,11 +179,7 @@ class Connection(object):
         yield 8  # reserved
         if not self.locally_initiated:
             self.connection.write(chr(len(protocol_name)) + protocol_name + (chr(0) * 8))
-            if self.established:
-                #We're getting a tracking code, or relayed message
-                self.is_relay = True
-                self.encoder.connection_completed(self)
-            else: 
+            if not self.established:
                 # Non-neighbor connection
                 # Respond with PubKey
                 pkmsg = PUBKEY + self.encoder.rsakey.pub_bin()
@@ -257,7 +251,7 @@ class Connection(object):
         if t == ENCRYPTED:
             key = self.get_aes_key()
             if key:
-                m = self.aeskey.decrypt(message[1:])
+                m = key.decrypt(message[1:])
                 self._got_message(m)
         elif t == CHOKE:
             self.download.got_choke()
@@ -316,6 +310,7 @@ class Connection(object):
                     co.send_have(i)
         elif t == TCODE:
             plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
+            print "GOT THE TCODE"
             if len(plaintext) == 1:
                 if self.upload is not None:
                     #This is a new connection
@@ -324,12 +319,21 @@ class Connection(object):
                 pad = getRand("randfile.dat", padlen)
             else:
                 # TC is for us
-                pass
+                infohash = plaintext[:20]
+                aes = plaintext[20:52]
+                iv = plaintext[52:74]
+                self.encoder.select_torrent(self, infohash)
+                if self.encoder.download_id is None:
+                    # We don't have that torrent...
+                    # TODO: handle this gracefully.
+                    return
+                self.encoder.connection_completed(self)
         elif t == PUBKEY:
             #TODO: Check size?
             pub = RSAPubKey(message[1:])
             self.send_key_exchange(pub)
         elif t == EXCHANGE:
+            # Read in RSA encrypted data and extract NID, AES key and AES IV
             try:
                 plaintxt = self.encoder.rsakey.decrypt(message[1:])
                 nid = plaintxt[0]
@@ -350,22 +354,20 @@ class Connection(object):
             except ValueError:
                 # Bad Checksum, possible MITM attack
                 pass
-            if self.encoder.neighbors.has_id(nid):
-                # NID already in use!
+            # Check that this NID isn't already taken
+            if self.encoder.has_neighbor(nid):
                 self.close()
                 return
             self.id = nid
             self.encoder.add_neighbor(self.id, (self.ip, self.port), AESKey(key, iv))
-            #Make this a method in SingleportListener..
-            self.encoder = self.encoder.neighbors
-            self.encoder.connections[self.connection] = self
             self._send_message(CONFIRM)
-            #self.encoder.complete_connection(self)
+            self.encoder.connection_completed(self)
         elif t == CONFIRM:
             self.encoder.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
-            #self.encoder.complete_connection(self)
+            self.encoder.connection_completed(self)
         else:
             self.close()
+            return
 
     def _sever(self):
         self.closed = True
@@ -388,6 +390,9 @@ class Connection(object):
     
     def _send_encrypted_message(self, message):
         key = self.get_aes_key()
+        if not key:
+            #TODO: Raise error here or some other warning
+            return
         self._send_message(ENCRYPTED + key.encrypt(message))
     
     def data_came_in(self, conn, s):
