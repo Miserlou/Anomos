@@ -49,6 +49,9 @@ EXCHANGE = chr(11) # The data that follows is RSA encrypted AES data
 CONFIRM = chr(12)
 ENCRYPTED = chr(13) # The data that follows is AES encrypted
 
+class ConnectionError(Exception):
+    pass
+
 class Connection(object):
 
     def __init__(self, encoder, connection, id, is_local, established=False):
@@ -80,10 +83,13 @@ class Connection(object):
             #if self.id is not None:
             #    connection.write(self.encoder.my_id)
 
-    def close(self):
+    def close(self, e=None):
+        print "Closing the connection!"
         if not self.closed:
             self.connection.close()
             self._sever()
+        if e:
+            raise ConnectionError(e)
 
     def send_interested(self):
         self._send_encrypted_message(INTERESTED)
@@ -246,7 +252,7 @@ class Connection(object):
         self.got_anything = True
         if (t in [CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED] and
                 len(message) != 1):
-            self.close()
+            self.close("Invalid message length")
             return
         if t == ENCRYPTED:
             key = self.get_aes_key()
@@ -263,47 +269,47 @@ class Connection(object):
             self.upload.got_not_interested()
         elif t == HAVE:
             if len(message) != 5:
-                self.close()
+                self.close("Invalid message length")
                 return
             i = toint(message[1:])
             if i >= self.encoder.numpieces:
-                self.close()
+                self.close("Piece index out of range")
                 return
             self.download.got_have(i)
         elif t == BITFIELD:
             try:
                 b = Bitfield(self.encoder.numpieces, message[1:])
             except ValueError:
-                self.close()
+                self.close("Bad Bitfield")
                 return
             self.download.got_have_bitfield(b)
         elif t == REQUEST:
             if len(message) != 13:
-                self.close()
+                self.close("Bad request length")
                 return
             i = toint(message[1:5])
             if i >= self.encoder.numpieces:
-                self.close()
+                self.close("Piece index out of range")
                 return
             self.upload.got_request(i, toint(message[5:9]),
                 toint(message[9:]))
         elif t == CANCEL:
             if len(message) != 13:
-                self.close()
+                self.close("Invalid message length")
                 return
             i = toint(message[1:5])
             if i >= self.encoder.numpieces:
-                self.close()
+                self.close("Piece index out of range")
                 return
             self.upload.got_cancel(i, toint(message[5:9]),
                 toint(message[9:]))
         elif t == PIECE:
             if len(message) <= 9:
-                self.close()
+                self.close("Bad message length")
                 return
             i = toint(message[1:5])
             if i >= self.encoder.numpieces:
-                self.close()
+                self.close("Piece index out of range")
                 return
             if self.download.got_piece(i, toint(message[5:9]), message[9:]):
                 for co in self.encoder.complete_connections:
@@ -345,17 +351,17 @@ class Connection(object):
                 i += 4
                 iv = plaintxt[i:i+ivlen]
             except IndexError:
-                self.close()
+                self.close("Bad message length")
                 return
             except RSAError:
-                # Bad decrypt, wrong private key?
-                pass
+                self.close("Bad decrypt, wrong private key?")
+                return
             except ValueError:
-                # Bad Checksum, possible MITM attack
-                pass
+                self.close("Bad encrypted message checksum")
+                return
             # Check that this NID isn't already taken
             if self.encoder.has_neighbor(nid):
-                self.close()
+                self.close("NID already assigned")
                 return
             self.id = nid
             self.encoder.add_neighbor(self.id, (self.ip, self.port), AESKey(key, iv))
@@ -365,7 +371,7 @@ class Connection(object):
             self.encoder.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
             self.encoder.connection_completed(self)
         else:
-            self.close()
+            self.close("Invalid message")
             return
 
     def _sever(self):
@@ -374,7 +380,6 @@ class Connection(object):
         del self.encoder.connections[self.connection]
         # self.encoder.replace_connection()
         if self.complete:
-            print "Severed"
             del self.encoder.complete_connections[self]
             self.download.disconnected()
             self.encoder.choker.connection_lost(self)
@@ -411,7 +416,7 @@ class Connection(object):
             try:
                 self._next_len = self._reader.next()
             except StopIteration:
-                self.close()
+                self.close("No more messages")
                 return
 
     def connection_lost(self, conn):
