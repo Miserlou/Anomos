@@ -239,7 +239,6 @@ class NetworkModel:
         @param s: Peer ID (str) of the start node
         @param d: Peer ID (str) of the end node
         
-        @type paths: dictionary of Peer IDs each mapped to lists of Peer IDs
         @return: list of Peer IDs
         """
         source = self.get(s)

@@ -218,7 +218,7 @@ class Rerequester(object):
             r = bdecode(data)
             if r.has_key('pke'):
                 r.update(bdecode(self.clientkey.decrypt(r['pke'])))
-                del r['pke']
+                del r['pke'] # Not necessary, but free some space.
             #TODO: update check_peers for Anomos
             #check_peers(r)
         except BTFailure, e:

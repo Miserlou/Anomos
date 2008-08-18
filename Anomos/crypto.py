@@ -28,9 +28,9 @@ class RSAPubKey:
     def __init__(self, keystring, exp=65537, data_dir='', crypto_dir='crypto'):
         """
         @param keystring: "n" value of pubkey to initialize new public key from
-        @param exponent: "e" value of pubkey, should always be 65537
+        @param exp: "e" value of pubkey, should almost always be 65537
         @type keystring: string
-        @type exponent: int
+        @type exp: int
         """
         self.pubkey = RSA.new_pub_key((toM2Exp(exp), keystring))
         self.pubkey.check_key()
@@ -77,11 +77,11 @@ class RSAKeyPair(RSAPubKey):
     def __init__(self, alias, data_dir='', crypto_dir='crypto', key_size=1024, padding=RSA.pkcs1_oaep_padding):
         """                
         @param alias: Unique name for the key, can be anything.
-        @type alias: string
         @param data_dir: Directory where data is stored
         @param crypto_dir: Directory (under data_dir) to store keys and randfiles in
         @param key_size: Size of keys (in bits) to generate
         @param padding: algorithm to use for padding
+        @type alias: string
         @type padding: string in ('pkcs1_oaep_padding', 'pkcs1_padding', 'sslv23_padding', 'no_padding')
         """
         self.alias = alias
@@ -130,15 +130,15 @@ class RSAKeyPair(RSAPubKey):
         """
         Returns the signature of a message.
         @param msg: The message to sign
-        @return signature: The signature of the message from the private key
+        @return: The signature of the message from the private key
         """
         dgst = sha.new(msg).digest()
         signature = self.pvtkey.private_encrypt(dgst, RSA.pkcs1_padding)
         return signature
 
     def verify(self, signature, digest):
-        """@param: signature: Signature of a document
-           @param: digest: the sha1 of that document
+        """@param signature: Signature of a document
+           @param digest: the sha1 of that document
            @return: true if verified; false if not
            @rtype: boolean
         """
@@ -217,10 +217,6 @@ class AESKey:
     
     def encrypt(self, text):
         """
-        @param key: Alias of key to encrypt with
-        @type key: string
-        @param iv: Initialization vector
-        @type iv: string
         @param text: Plaintext to encrypt
         @type text: string
         """
@@ -234,10 +230,6 @@ class AESKey:
     
     def decrypt(self, text):
         """
-        @param key: Alias of key to decrypt with
-        @type key: string
-        @param iv: Initialization vector
-        @type iv: string
         @param text: Ciphertext to decrypt
         @type text: string
         """
