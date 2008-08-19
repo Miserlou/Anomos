@@ -20,7 +20,7 @@ edge in the path.
 import random
 from sys import maxint as INFINITY
 from sha import sha
-from crypto import RSAPubKey, RSAKeyPair, getRand
+from Anomos.crypto import RSAPubKey, RSAKeyPair, getRand
 from M2Crypto import RSA
 
 DEBUG_ON = True
@@ -348,27 +348,28 @@ class NetworkModel:
                 message = peerobj.pubkey.encrypt(message, len(message))
             prev_neighbor = peerobj
         if len(message) < msglen:
-            message += getRand("randfile.dat", msglen-len(message))
+            message += getRand(msglen-len(message))
         return message
     
     def __repr__(self):
         return "\n".join(map(Vertex.printConnections, self.names.values()))
 
-try:
-    import psyco
-except ImportError:
-    pass
-else:
-    pass
-    #psyco.profile()
+#try:
+#    import psyco
+#except ImportError:
+#    pass
+#else:
+#    psyco.profile()
 
 ###########
 ##TESTING##
 ###########
 def tcTest(numnodes=1000, numedges=10000):
-    from binascii import b2a_hex
     import math
     import time
+    from binascii import b2a_hex
+    from Anomos.crypto import initCrypto
+    initCrypto('')
     G_ips = ['.'.join([str(i)]*4) for i in range(numnodes)]
     graph = NetworkModel()
     pk = RSAKeyPair('WampWamp') # All use same RSA key for testing.

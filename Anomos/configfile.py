@@ -106,6 +106,7 @@ def parse_configuration_and_args(defaults, uiname, arglist=[], minargs=0,
                                                maxargs, presets)
         rdir = os.path.join(datadir, 'resume')
         mdir = os.path.join(datadir, 'metainfo')
+        cdir = os.path.join(datadir, 'crypto')
         try:
             if not os.path.exists(datadir):
                 os.mkdir(datadir, 0700)
@@ -113,6 +114,8 @@ def parse_configuration_and_args(defaults, uiname, arglist=[], minargs=0,
                 os.mkdir(mdir, 0700)
             if not os.path.exists(rdir):
                 os.mkdir(rdir, 0700)
+            if not os.path.exists(cdir):
+                os.mkdir(cdir, 0700)
         except:
             pass
     return config, args

@@ -46,7 +46,7 @@ from Anomos.ConvertedMetainfo import set_filesystem_encoding
 from Anomos import version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
-from Anomos.crypto import RSAKeyPair, RSAPubKey, AESKeyManager
+from Anomos.crypto import RSAKeyPair, RSAPubKey, AESKeyManager, initCrypto
 
 class Feedback(object):
 
@@ -86,6 +86,7 @@ class Multitorrent(object):
                                         config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
                                                  errorfunc) 
+        initCrypto(self.config['data_dir'])
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'

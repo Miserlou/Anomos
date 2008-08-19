@@ -18,6 +18,28 @@ from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
 from Anomos import BTFailure
 
+
+def getRand(*args):
+    raise CryptoError("RNG not initialized")
+
+global_cryptodir = None
+global_randfile = None
+def initCrypto(data_dir):
+    '''Sets the directory in which to store crypto data/randfile'''
+    global getRand, global_cryptodir, global_randfile
+    if None not in (global_cryptodir, global_randfile):
+        return #TODO: Already initialized, log a warning here.
+    global_cryptodir = os.path.join(data_dir, 'crypto')
+    global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
+    if Rand.save_file(global_randfile) == 0:
+        raise CryptoError('Rand file not writable')
+    def randfunc(numBytes=32):
+        Rand.load_file(global_randfile, -1)
+        rb = Rand.rand_bytes(numBytes);
+        Rand.save_file(global_randfile)
+        return rb
+    getRand = randfunc
+
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
@@ -25,17 +47,18 @@ def toM2Exp(n):
     return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
 
 class RSAPubKey:
-    def __init__(self, keystring, exp=65537, data_dir='', crypto_dir='crypto'):
+    def __init__(self, keystring, exp=65537):
         """
         @param keystring: "n" value of pubkey to initialize new public key from
         @param exp: "e" value of pubkey, should almost always be 65537
         @type keystring: string
         @type exp: int
         """
+        if None in (global_cryptodir, global_randfile):
+            raise CryptoError('Crypto not initialized, call initCrypto first')
         self.pubkey = RSA.new_pub_key((toM2Exp(exp), keystring))
         self.pubkey.check_key()
-        self.crypto_path = os.path.join(data_dir, crypto_dir)
-        self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
+        self.randfile = global_randfile
     
     def keyID(self):
         """ 
@@ -61,7 +84,7 @@ class RSAPubKey:
         checksum = sha.new(sessionkey.key + bmsglen + data[:rmsglen]).digest()
         content = checksum + bmsglen + data
         padlen = 32-(len(content)%32)
-        padding = getRand(self.randfile, padlen)
+        padding = getRand(padlen)
         ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext
     
@@ -74,7 +97,7 @@ class RSAPubKey:
 ## keys in a directory called 'crypto/' within wherever the tracker was run.
 ## you can specify data_dir='somedir' to put it somewhere else.
 class RSAKeyPair(RSAPubKey):
-    def __init__(self, alias, data_dir='', crypto_dir='crypto', key_size=1024, padding=RSA.pkcs1_oaep_padding):
+    def __init__(self, alias, key_size=1024, padding=RSA.pkcs1_oaep_padding):
         """                
         @param alias: Unique name for the key, can be anything.
         @param data_dir: Directory where data is stored
@@ -84,16 +107,15 @@ class RSAKeyPair(RSAPubKey):
         @type alias: string
         @type padding: string in ('pkcs1_oaep_padding', 'pkcs1_padding', 'sslv23_padding', 'no_padding')
         """
+        if None in (global_cryptodir, global_randfile):
+            raise CryptoError('Crypto not initialized, call initCrypto first')
         self.alias = alias
-        self.crypto_path = os.path.join(data_dir, crypto_dir)
-        if not os.path.exists(self.crypto_path):
-            os.mkdir(self.crypto_path)
         self.key_size = key_size
         self.padding = padding
         
-        self.pvtkeyfilename = os.path.join(self.crypto_path, '%s-pvt.pem' % (self.alias))
-        self.pubkeyfilename = os.path.join(self.crypto_path, '%s-pub.pem' % (self.alias))
-        self.randfile = os.path.join(self.crypto_path, 'randpool.dat')
+        self.pvtkeyfilename = os.path.join(global_cryptodir, '%s-pvt.pem' % (self.alias))
+        self.pubkeyfilename = os.path.join(global_cryptodir, '%s-pub.pem' % (self.alias))
+        self.randfile = global_randfile
         
         self.pubkey = None
         self.pvtkey = None
@@ -184,15 +206,16 @@ class RSAKeyPair(RSAPubKey):
 
 
 class AESKey:
-    def __init__(self, key=None, iv=None, randfile='randpool.dat', algorithm='aes_256_cfb'):
+    def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):
         """
         @param randfile: Path to randfile
         @param algorithm: encryption algorithm to use
         @param key: 32 byte string to use as key
         @param iv: 32 byte initalization vector to use
         """
-        #TODO: Check if randfile exists
-        self.randfile=randfile
+        if None in (global_cryptofile, global_randfile):
+            raise CryptoError('RNG not initialized, call initCrypto first')
+        self.randfile=global_randfile
         self.algorithm = algorithm
         
         if key:
@@ -246,10 +269,10 @@ class AESKey:
         @return: 32byte AES key
         @rtype: string
         """
-        return getRand(self.randfile, 32)
+        return getRand()
     
     def newIV(self):
-        return getRand(self.randfile, 32)
+        return getRand()
 
 
 class AESKeyManager:
@@ -271,40 +294,30 @@ class AESKeyManager:
     def containsKey(self, alias):
         return self.aeskeys.has_key(alias)
 
-
-def getRand(randfile="randpool.dat", numBytes=32):
-    """
-    @param randfile: Full path to randfile
-    @type randfile: string
-    """
-    Rand.load_file(randfile, -1)
-    rb = Rand.rand_bytes(numBytes);
-    Rand.save_file(randfile)
-    return rb
-
 class CryptoError(BTFailure):
     pass
 
 if __name__ == "__main__":
-    def testCrypto():
-        secret = "Call me subwoofa cause I push so much base!"
-        # Test AESKey
-        key = AESKey(randfile='crypto/randpool.dat')
-        
-        print "Unencrypted:", secret
+    secret = "Call me subwoofa cause I push so much base!"
+    initCrypto('/home/john/.anomos/data')
+    getRand()
+    
+    # Test AESKey
+    key = AESKey()
+    
+    print "Plaintext:", secret
 
-        encrypted = key.encrypt(secret)
-        print len(encrypted)
-        print b2a_hex(encrypted)
-        print key.decrypt(encrypted)
-        
-        # Test RSAKeyPair
-        rsa = RSAKeyPair('tracker')
-        encrypted = rsa.encrypt(secret)
-        sig = rsa.sign(secret)
-        print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
-        dec = rsa.decrypt(encrypted)
-        dhash = sha.new(dec).digest()
-        print "Decrypted: ", rsa.decrypt(encrypted)
-        print "Verified: ", rsa.verify(sig, dhash)
-    testCrypto()
+    encrypted = key.encrypt(secret)
+    print "Ciphertext:", b2a_hex(encrypted)
+    print "Ciphertext length:", len(encrypted)
+    print "Decrypted:", key.decrypt(encrypted)
+    
+    # Test RSAKeyPair
+    rsa = RSAKeyPair('tracker')
+    encrypted = rsa.encrypt(secret)
+    sig = rsa.sign(secret)
+    print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
+    dec = rsa.decrypt(encrypted)
+    dhash = sha.new(dec).digest()
+    print "Decrypted: ", rsa.decrypt(encrypted)
+    print "Verified: ", rsa.verify(sig, dhash)

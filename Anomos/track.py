@@ -36,7 +36,7 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
 from Anomos import version
 
-from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey
+from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey, initCrypto
 from Anomos.NetworkModel import NetworkModel
 
 defaults = [
@@ -72,6 +72,7 @@ defaults = [
     ('keep_dead', 0, 'keep dead torrents after they expire (so they still show up on your /scrape and web page). Only matters if allowed_dir is not set'),
     ('scrape_allowed', 'full', 'scrape access allowed (can be none, specific or full)'),
     ('max_give', 200, 'maximum number of peers to give with any one request'),
+    ('data_dir', '', 'Directory in which to store cryptographic keys'),
     ]
 
 def statefiletemplate(x):
@@ -228,7 +229,8 @@ class Tracker(object):
         self.times = {}
         self.state = {}
         self.seedcount = {}
-              
+        
+        initCrypto(self.config['data_dir'])
         # Get tracker's rsa keys
         self.rsa = RSAKeyPair('tracker') # should probably use some unique id for the alias here.
         
