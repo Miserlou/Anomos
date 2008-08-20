@@ -76,7 +76,7 @@ class RSAPubKey:
         @return: ciphertext of data, format: {RSA encrypted session key}[Checksum(sessionkey, info, content)][msg length][content][padding]
         @rtype: string
         """
-        sessionkey = AESKey(randfile=self.randfile)
+        sessionkey = AESKey()
         # Encrypt the session key which we'll use to bulk encrypt the rest of the data
         esk = self.pubkey.public_encrypt(sessionkey.key+sessionkey.iv, RSA.pkcs1_oaep_padding)
         if rmsglen:
@@ -213,7 +213,7 @@ class AESKey:
         @param key: 32 byte string to use as key
         @param iv: 32 byte initalization vector to use
         """
-        if None in (global_cryptofile, global_randfile):
+        if None in (global_cryptodir, global_randfile):
             raise CryptoError('RNG not initialized, call initCrypto first')
         self.randfile=global_randfile
         self.algorithm = algorithm
