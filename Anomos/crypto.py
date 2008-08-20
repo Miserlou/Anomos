@@ -25,7 +25,10 @@ def getRand(*args):
 global_cryptodir = None
 global_randfile = None
 def initCrypto(data_dir):
-    '''Sets the directory in which to store crypto data/randfile'''
+    '''Sets the directory in which to store crypto data/randfile
+    @param data_dir: path to directory
+    @type data_dir: string
+    '''
     global getRand, global_cryptodir, global_randfile
     if None not in (global_cryptodir, global_randfile):
         return #TODO: Already initialized, log a warning here.
@@ -100,8 +103,6 @@ class RSAKeyPair(RSAPubKey):
     def __init__(self, alias, key_size=1024, padding=RSA.pkcs1_oaep_padding):
         """                
         @param alias: Unique name for the key, can be anything.
-        @param data_dir: Directory where data is stored
-        @param crypto_dir: Directory (under data_dir) to store keys and randfiles in
         @param key_size: Size of keys (in bits) to generate
         @param padding: algorithm to use for padding
         @type alias: string
@@ -208,7 +209,6 @@ class RSAKeyPair(RSAPubKey):
 class AESKey:
     def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):
         """
-        @param randfile: Path to randfile
         @param algorithm: encryption algorithm to use
         @param key: 32 byte string to use as key
         @param iv: 32 byte initalization vector to use
@@ -299,7 +299,7 @@ class CryptoError(BTFailure):
 
 if __name__ == "__main__":
     secret = "Call me subwoofa cause I push so much base!"
-    initCrypto('/home/john/.anomos/data')
+    initCrypto('crypto-test')
     getRand()
     
     # Test AESKey
