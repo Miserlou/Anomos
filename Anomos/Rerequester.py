@@ -15,7 +15,6 @@ from socket import error, gethostbyname
 from random import random, randrange
 from binascii import b2a_hex
 from base64 import urlsafe_b64encode
-from urlparse import urlparse, urlunparse
 
 from Anomos.platform import bttime
 from Anomos.zurllib import urlopen, quote, Request
@@ -34,12 +33,12 @@ class Rerequester(object):
             upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, clientkey, trackerkey=None):
     #I would like __init__ to look more like this one day
     #def __init__(self, url, context):
-        self.baseurl = url
+        self.url = url
+        self.basequery = None
         self.infohash = infohash
         self.peerid = None
         self.wanted_peerid = myid
         self.port = port
-        self.url = None
         self.config = config
         self.last = None
         #self.trackerid = None
@@ -70,11 +69,11 @@ class Rerequester(object):
         self.trackerkey = trackerkey
         self.send_key = True
     
-    def _makeurl(self, peerid, port):
+    def _makequery(self, peerid, port):
         print peerid, len(peerid)
-        return ('%s?info_hash=%s&peer_id=%s&port=%s&' %
-                (self.baseurl, quote(self.infohash), quote(peerid), str(port)))
-
+        return ('?info_hash=%s&peer_id=%s&port=%s&' %
+                (quote(self.infohash), quote(peerid), str(port)))
+    
     def change_port(self, peerid, port):
         self.wanted_peerid = peerid
         self.port = port
@@ -102,7 +101,7 @@ class Rerequester(object):
             return
         if self.peerid is None:
             self.peerid = self.wanted_peerid
-            self.url = self._makeurl(self.peerid, self.port)
+            self.basequery = self._makequery(self.peerid, self.port)
             self._announce(STARTED)
             return
         if self.peerid != self.wanted_peerid:
@@ -130,8 +129,8 @@ class Rerequester(object):
 
     def _announce(self, event=None):
         self.current_started = bttime()
-        s = ('%s&uploaded=%s&downloaded=%s&left=%s' %
-            (self.url, str(self.up() - self.previous_up),
+        s = ('uploaded=%s&downloaded=%s&left=%s' %
+            (str(self.up() - self.previous_up),
              str(self.down() - self.previous_down), str(self.amount_left())))
         if self.last is not None:
             s += '&last=' + quote(str(self.last))
@@ -148,7 +147,13 @@ class Rerequester(object):
         if self.send_key:
             s += '&pubkey=' + quote(self.clientkey.pub_bin())
             self.send_key = False
-        Thread(target=self._rerequest, args=[s, self.peerid, self.trackerkey]).start()
+        if self.trackerkey:
+            s = "?pke=" + urlsafe_b64encode(self.trackerkey.encrypt(s))
+        else:
+            #TODO: Do we allow unencrypted requests? or should we die here
+            pass
+        url = self.url+s
+        Thread(target=self._rerequest, args=[url, self.peerid]).start()
 
     # Must destroy all references that could cause reference circles
     def cleanup(self):
@@ -168,18 +173,10 @@ class Rerequester(object):
         self.clientkey = None
         self.trackerkey = None
 
-    def _rerequest(self, url, peerid, trackerkey=None):
+    def _rerequest(self, url, peerid):
         """ Make an HTTP GET request to the tracker 
             Note: This runs in its own thread.
         """
-        # Encrypt query here.
-        if trackerkey:
-            (scheme, netloc, path, pars, query, fragment) = urlparse(url)
-            query = "pke=" + urlsafe_b64encode(trackerkey.encrypt(query))
-            url = urlunparse((scheme, netloc, path, pars, query, fragment))
-        else:
-            #TODO: Do we allow unencrypted requests? or should we die here
-            pass
         request = Request(url)
         if self.config['tracker_proxy']:
             request.set_proxy(self.config['tracker_proxy'], 'http')
