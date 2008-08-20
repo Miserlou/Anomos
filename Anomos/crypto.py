@@ -187,7 +187,7 @@ class RSAKeyPair(RSAPubKey):
         tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
         sk = tmpsk[:32] # Session Key
         iv = tmpsk[32:] # IV
-        sessionkey = AESKey(sk, iv, self.randfile)
+        sessionkey = AESKey(sk, iv)
         # Decrypt the rest of the message with the session key
         content = sessionkey.decrypt(data[byte_key_size:])
         pos = sha.digestsize
