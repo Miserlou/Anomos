@@ -71,6 +71,7 @@ class Multitorrent(object):
     def __init__(self, config, doneflag, errorfunc, listen_fail_ok=False):
         self.config = dict(config)
         self.errorfunc = errorfunc
+        initCrypto(self.config['data_dir'])
         self.rsa = RSAKeyPair(config['identity'])
         self.keyring = AESKeyManager() # Holds our neighbor's AES keys
         self.rawserver = RawServer(doneflag, config, errorfunc=errorfunc,
@@ -86,7 +87,6 @@ class Multitorrent(object):
                                         config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
                                                  errorfunc) 
-        initCrypto(self.config['data_dir'])
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'
