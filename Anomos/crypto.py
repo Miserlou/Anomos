@@ -33,6 +33,10 @@ def initCrypto(data_dir):
     if None not in (global_cryptodir, global_randfile):
         return #TODO: Already initialized, log a warning here.
     global_cryptodir = os.path.join(data_dir, 'crypto')
+    if not os.path.exists(data_dir):
+        os.mkdir(data_dir)
+    if not os.path.exists(global_cryptodir):
+        os.mkdir(global_cryptodir)
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
     if Rand.save_file(global_randfile) == 0:
         raise CryptoError('Rand file not writable')
