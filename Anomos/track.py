@@ -36,7 +36,7 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
 from Anomos import version
 
-from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey, initCrypto
+from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey, initCrypto, CryptoError
 from Anomos.NetworkModel import NetworkModel
 
 defaults = [
@@ -785,7 +785,10 @@ class Tracker(object):
             if params('pke'):
                 # Decrypt the query
                 binpke = urlsafe_b64decode(params('pke'))
-                decquery = self.rsa.decrypt(binpke, returnpad=False)
+                try:
+                    decquery = self.rsa.decrypt(binpke, returnpad=False)
+                except CryptoError, e:
+                    raise ValueError(e)
                 # Update with the new params
                 paramslist.update(self.parseQuery(decquery))
                 del paramslist['pke']
@@ -832,8 +835,9 @@ class Tracker(object):
         data = {}
         if not stopped:
             data['peers'] = self.neighborlist(params('peer_id'))
-            if infohash:
-                data['tracking codes'] = self.getTCs(params('peer_id'), infohash, return_type, 3)
+            #TODO: Replace "3" with actual number of TCs to get
+            data['tracking codes'] = self.getTCs(params('peer_id'), infohash, 
+                                                 return_type, 3)
         #self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
 
         if paramslist.has_key('scrape'):

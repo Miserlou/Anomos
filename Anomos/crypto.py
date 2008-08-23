@@ -33,10 +33,12 @@ def initCrypto(data_dir):
     if None not in (global_cryptodir, global_randfile):
         return #TODO: Already initialized, log a warning here.
     global_cryptodir = os.path.join(data_dir, 'crypto')
+    prv_umask = os.umask(0)
     if not os.path.exists(data_dir):
-        os.mkdir(data_dir)
+        os.mkdir(data_dir, 700)
     if not os.path.exists(global_cryptodir):
-        os.mkdir(global_cryptodir)
+        os.mkdir(global_cryptodir, 700)
+    os.umask(prv_umask)
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
     if Rand.save_file(global_randfile) == 0:
         raise CryptoError('Rand file not writable')
@@ -188,7 +190,10 @@ class RSAKeyPair(RSAPubKey):
         """
         byte_key_size = self.key_size/8
         # Decrypt the session key and IV with our private key
-        tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
+        try:
+            tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
+        except RSA.RSAError:
+            raise CryptoError("Data encrypted with wrong public key")
         sk = tmpsk[:32] # Session Key
         iv = tmpsk[32:] # IV
         sessionkey = AESKey(sk, iv)
