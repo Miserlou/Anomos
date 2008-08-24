@@ -8,7 +8,7 @@
 # for the specific language governing rights and limitations under the
 # License.
 
-# Written by Bram Cohen
+# Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 from threading import Thread
 from socket import error, gethostbyname
@@ -129,8 +129,8 @@ class Rerequester(object):
 
     def _announce(self, event=None):
         self.current_started = bttime()
-        s = ('uploaded=%s&downloaded=%s&left=%s' %
-            (str(self.up() - self.previous_up),
+        s = ('%s&uploaded=%s&downloaded=%s&left=%s' %
+            (self.basequery, str(self.up() - self.previous_up),
              str(self.down() - self.previous_down), str(self.amount_left())))
         if self.last is not None:
             s += '&last=' + quote(str(self.last))
@@ -267,7 +267,7 @@ class Rerequester(object):
             for x in peers:
                 self.nbr_connect((x[0], x[1]), x[2])
             # Start downloads
-            for tc in r.get('tracking codes'):
+            for tc in r.get('tracking codes', []):
                 self.peer_connect(tc)
             if peerid == self.wanted_peerid:
                 self.successfunc()

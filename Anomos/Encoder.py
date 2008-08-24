@@ -8,16 +8,13 @@
 # for the specific language governing rights and limitations under the
 # License.
 
-# Written by Bram Cohen
+# Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 from socket import error as socketerror
 
-from Anomos.crypto import AESKeyManager
+import Anomos.crypto as crypto
 from Anomos.Connecter import Connection
 from Anomos import BTFailure
-
-
-# header, reserved, download id, my id, [length, message]
 
 
 class Encoder(object):
@@ -55,45 +52,37 @@ class Encoder(object):
                           self.config['keepalive_interval'])
         for c in self.complete_connections:
             c.send_keepalive()
-    
-    def send_trackingcode(self, nid, tc):
-        neighbor = self.neighbors.get(nid)
-        if neighbor:
-            self.start_connection(neighbor[0], nid)
-        
-        #Check nid is a neighbor
-        #send the TC
 
-    def start_connection(self, tc): #TODO: Error callback?
+    def start_connection(self, tc, errorfunc=None):
         if len(self.connections) >= self.config['max_initiate']:
             return
         nid = None
+        tclen = len(tc)
         try:
             #TODO: There will eventually be an extra piece of data in the TC to 
             # verify the tracker, get that here too.
             #TODO: Check the TC length
             nid, tc = self.rsakey.decrypt(tc, True)
-            if len(nid) == 1:
-                print "NID:", nid
-            #TODO: Pad the tc
         except ValueError, e:
             print "VALUE ERR: ", e
             return #Tampered With
         except Exception, e:
             print "OTHER EXCEPTION", e
             return #Probably a decryption error
+        else:
+            # Repad to original length
+            tc = tc + crypto.getRand(tclen-len(tc))
         loc = self.neighbors.get_location(nid)
         if not self.neighbors.is_complete(nid):
-            print "Scheduling"
-            self.neighbors.schedule_tc(nid, self.send_tc, tc)
-        elif not loc:
-                # We're no longer connected to this peer.
-                #TODO: Tell the tracker!
-                return
+            self.neighbors.schedule_tc(self.send_tc, nid, tc)
+        elif not loc and errorfunc is not None:
+            # No longer connected to this neighbor
+            errorfunc()
         else:
-            self.send_tc(nid, tc)
+            self.send_tc(nid, tc, relayer)
     
     def send_tc(self, nid, tc):
+        print "Sending TC"
         loc = self.neighbors.get_location(nid)
         print self.neighbors.neighbors
         print "LOCATION:", loc
@@ -107,24 +96,12 @@ class Encoder(object):
             self.connections[c] = con
             c.handler = con 
             con.send_tracking_code(tc)
-            #XXX: Connection_completed only here for testing
-            self.connection_completed(con)
 
     def connection_completed(self, c):
-        print "complete"
+        c.complete = True
         self.complete_connections.add(c)
-        #if not c.is_relay:
         c.upload = self.make_upload(c)
         c.download = self.downloader.make_download(c)
-        
-        #else:
-        #    r = Relayer(
-        #    c.upload = 
-        #we're a relayer
-        #Initialize outgoing connection: c_out
-        #Make a Relayer(c, c_out,...)
-        #c.upload = the relayer
-        #c.download = the relayer
         self.choker.connection_made(c)
 
     def ever_got_incoming(self):
@@ -168,7 +145,6 @@ class SingleportListener(object):
         self.torrents = {}
         self.connections = {}
         self.neighbors = neighbors
-        self.add_neighbor = neighbors.add_neighbor
         self.keyring = keyring
         self.rsakey = rsakey
         self.download_id = None
@@ -220,16 +196,18 @@ class SingleportListener(object):
         if infohash not in self.torrents:
             return
         self.torrents[infohash].singleport_connection(self, conn)
-
+    
+    def set_relayer(self, conn, neighborid):
+        conn.encoder = Relayer(self.rawserver, self.neighbors, conn, neighborid)
+    
     def external_connection_made(self, socket):
         """ 
         Connection came in.
-        @param connection: SingleSocket
+        @param socket: SingleSocket
         """
         nid = self.neighbors.lookup_loc(socket.ip)
-        if nid: 
+        if nid:
             # The incomming connection is one of our neighbors
-            print "Got an established conn"
             con = Connection(self, socket, nid, False, established=True)
             self.connections[socket] = con
         else:

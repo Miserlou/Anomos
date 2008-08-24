@@ -9,13 +9,15 @@
 # License.
 
 # Originally written by Bram Cohen, heavily modified by Uoti Urpala
+# Modified for Anomos by John Schanck and Rich Jones.
 
 # required for python 2.2
 from __future__ import generators
 
+import Anomos.crypto as crypto
+
 from binascii import b2a_hex
 from M2Crypto.RSA import RSAError
-from Anomos.crypto import AESKey, RSAPubKey, getRand
 from Anomos.bitfield import Bitfield
 from Anomos.obsoletepythonsupport import *
 from Anomos import protocol_name
@@ -48,6 +50,7 @@ PUBKEY = chr(10) # Sent before a pubkey to be used in an AES key exchange
 EXCHANGE = chr(11) # The data that follows is RSA encrypted AES data
 CONFIRM = chr(12)
 ENCRYPTED = chr(13) # The data that follows is AES encrypted
+RELAY = chr(14)
 
 class ConnectionError(Exception):
     pass
@@ -69,19 +72,15 @@ class Connection(object):
         self.next_upload = None
         self.upload = None
         self.download = None
-        self.is_relay = False
         self._buffer = ""
         self._reader = self._read_messages() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
         self._partial_message = None
         self._outqueue = []
         self.choke_sent = True
-        if self.locally_initiated: # This connection is sending data
-            #TODO: Write neighbor ID here.
+        if self.locally_initiated:
             connection.write(chr(len(protocol_name)) + protocol_name +
-                (chr(0) * 8)) #+ self.encoder.download_id)
-            #if self.id is not None:
-            #    connection.write(self.encoder.my_id)
+                (chr(0) * 8))
 
     def close(self, e=None):
         print "Closing the connection!"
@@ -160,7 +159,7 @@ class Connection(object):
         Sends the NeighborID and AES key for us and our neighbor to share 
         @param pubkey: RSAPubKey to encrypt data with
         """
-        aes = AESKey()
+        aes = crypto.AESKey()
         self.tmp_aes = aes
         msg = EXCHANGE + pubkey.encrypt(self.id + tobinary(len(aes.key)) + 
                                         aes.key + tobinary(len(aes.iv)) + 
@@ -170,11 +169,14 @@ class Connection(object):
     def send_tracking_code(self, trackcode):
         self._send_encrypted_message(TCODE + trackcode)
     
+    def send_relay_messgae(self, message):
+        self._send_encrypted_message(RELAY + message)
+    
     def get_aes_key(self):
         return self.encoder.keyring.getKey(self.id)
     
-    # yields the number of bytes it wants next, gets those in self._message
     def _read_messages(self):
+        '''Yields the number of bytes to read from the socket'''
         yield 1   # header length
         if ord(self._message) != len(protocol_name):
             return
@@ -189,46 +191,6 @@ class Connection(object):
                 # Respond with PubKey
                 pkmsg = PUBKEY + self.encoder.rsakey.pub_bin()
                 self._send_message(pkmsg)
-        #else:
-        #    if self.established:
-        #        self.encoder.connection_completed(self)
-                # Local Connection, check if we're starting a circuit
-         #       self.send_encrypted_message(TCODE + tracking_code)
-#        yield 20 # download id
-#        if self.encoder.download_id is None:  # incoming connection
-#            # modifies self.encoder if successful
-#            self.encoder.select_torrent(self, self._message)
-#            if self.encoder.download_id is None:
-#                return
-#        elif self._message != self.encoder.download_id:
-#            return
-#        if not self.locally_initiated:
-#            # Respond with our information.
-#            self.connection.write(chr(len(protocol_name)) + protocol_name +
-#                (chr(0) * 8) + self.encoder.download_id + self.encoder.my_id)
-
-#        yield 20  # peer id
-#        if not self.id:
-#            self.id = self._message
-#            if self.id == self.encoder.my_id:
-#                return
-#            for v in self.encoder.connections.itervalues():
-#                if v is not self:
-#                    if v.id == self.id:
-#                        return
-#                    if self.encoder.config['one_connection_per_ip'] and \
-#                           v.ip == self.ip:
-#                        return
-#            if self.locally_initiated:
-#                self.connection.write(self.encoder.my_id)
-#            else:
-#                self.encoder.everinc = True
-#        else:
-#            if self._message != self.id:
-#                return
-#        self.complete = True
-#        self.encoder.connection_completed(self)
-
         while True:
             yield 4   # message length
             l = toint(self._message)
@@ -259,6 +221,11 @@ class Connection(object):
             if key:
                 m = key.decrypt(message[1:])
                 self._got_message(m)
+        elif t == RELAY:
+            if not isinstance(self.encoder, Relayer):
+                self.close("Invalid message type")
+                return
+            self.encoder.relay_message(self, message[1:])
         elif t == CHOKE:
             self.download.got_choke()
         elif t == UNCHOKE:
@@ -315,15 +282,15 @@ class Connection(object):
                 for co in self.encoder.complete_connections:
                     co.send_have(i)
         elif t == TCODE:
+            print "Got TCODE"
             plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
-            if len(plaintext) == 1:
-                if self.upload is not None:
-                    #This is a new connection
-                    self.encoder.start_connection(None, plaintext, self)
-                padlen = (len(message)-1) - len(nextTC)
-                pad = getRand("randfile.dat", padlen)
+            if len(plaintext) == 1: # Single character, NID
+                print "Not for me!"
+                self.send_message(CONFIRM)
+                self.encoder.set_relayer(self, plaintext)
+                self.encoder.relay_message(self, nextTC)
             else:
-                # TC is for us
+                # TC ends at this peer, plaintext contains infohash, aes, iv
                 infohash = plaintext[:20]
                 aes = plaintext[20:52]
                 iv = plaintext[52:74]
@@ -332,10 +299,11 @@ class Connection(object):
                     # We don't have that torrent...
                     # TODO: handle this gracefully.
                     return
+                self._send_encrypted_message(CONFIRM)
                 self.encoder.connection_completed(self)
         elif t == PUBKEY:
             #TODO: Check size?
-            pub = RSAPubKey(message[1:])
+            pub = crypto.RSAPubKey(message[1:])
             self.send_key_exchange(pub)
         elif t == EXCHANGE:
             # Read in RSA encrypted data and extract NID, AES key and AES IV
@@ -364,11 +332,12 @@ class Connection(object):
                 self.close("NID already assigned")
                 return
             self.id = nid
-            self.encoder.add_neighbor(self.id, (self.ip, self.port), AESKey(key, iv))
+            self.encoder.add_neighbor(self.id, (self.ip, self.port), crypto.AESKey(key, iv))
             self._send_message(CONFIRM)
             self.encoder.connection_completed(self)
         elif t == CONFIRM:
-            self.encoder.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
+            if not self.established:
+                self.encoder.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
             self.encoder.connection_completed(self)
         else:
             self.close("Invalid message")
@@ -380,7 +349,8 @@ class Connection(object):
         del self.encoder.connections[self.connection]
         # self.encoder.replace_connection()
         if self.complete:
-            del self.encoder.complete_connections[self]
+            #XXX: Fails for NeighborManager connections.
+            self.encoder.complete_connections.discard(self)
             self.download.disconnected()
             self.encoder.choker.connection_lost(self)
             self.upload = self.download = None
@@ -397,6 +367,7 @@ class Connection(object):
         if not key:
             #TODO: Raise error here or some other warning
             return
+        #TODO: send message hash as well?
         self._send_message(ENCRYPTED + key.encrypt(message))
     
     def data_came_in(self, conn, s):

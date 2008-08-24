@@ -20,7 +20,7 @@ edge in the path.
 import random
 from sys import maxint as INFINITY
 from sha import sha
-from Anomos.crypto import RSAPubKey, RSAKeyPair, getRand
+import Anomos.crypto as crypto
 from M2Crypto import RSA
 
 DEBUG_ON = True
@@ -41,7 +41,7 @@ class SimPeer:
         @type pubkey: Anomos.crypto.RSAPubKey
         """
         self.name = name
-        self.pubkey = RSAPubKey(pubkey)
+        self.pubkey = crypto.RSAPubKey(pubkey)
         self.neighbors = {} # {PeerID: {dist:#, nid:#, loc:(#,#)}}
         self.id_map = {}    # {NeighborID : PeerID}
         self.loc = loc
@@ -296,7 +296,7 @@ class NetworkModel:
 #            last = cur
 #        return paths[dest.name]
     
-    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=False):
+    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=True):
         """
         Generate the tracking code for the shortest path from source to dest
         
@@ -339,7 +339,6 @@ class NetworkModel:
         prev_neighbor = None
         print "path:", pathByNames
         for peername in reversed(pathByNames):
-            print "BAABDDFA: ", peername
             peerobj = self.get(peername)
             if prev_neighbor:
                 tcnum = str(prev_neighbor.getNID(peername))
@@ -348,7 +347,7 @@ class NetworkModel:
                 message = peerobj.pubkey.encrypt(message, len(message))
             prev_neighbor = peerobj
         if len(message) < msglen:
-            message += getRand(msglen-len(message))
+            message += crypto.getRand(msglen-len(message))
         return message
     
     def __repr__(self):
@@ -368,11 +367,10 @@ def tcTest(numnodes=1000, numedges=10000):
     import math
     import time
     from binascii import b2a_hex
-    from Anomos.crypto import initCrypto
-    initCrypto('')
+    crypto.initCrypto('./')
     G_ips = ['.'.join([str(i)]*4) for i in range(numnodes)]
     graph = NetworkModel()
-    pk = RSAKeyPair('WampWamp') # All use same RSA key for testing.
+    pk = crypto.RSAKeyPair('WampWamp') # All use same RSA key for testing.
     for peerid in G_ips:
         graph.addPeer(peerid, pk.pub_bin(), (peerid, 8080), int(math.log(1000)//math.log(4)))
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
@@ -383,12 +381,12 @@ def tcTest(numnodes=1000, numedges=10000):
         tc = []
         m, p = pk.decrypt(x, True)
         repadlen = len(x) - len(p)
-        p += getRand("randfile.dat", repadlen)
+        p += crypto.getRand(repadlen)
         tc.append(m)
         while m != '#':
             plen = len(p)
             m, p = pk.decrypt(p, True)
-            p += getRand("randfile.dat", plen-len(p))
+            p += crypto.getRand(plen-len(p))
             tc.append(m)
         #print "Decrypted Tracking Code  ", ":".join(tc)
     print time.time() - t

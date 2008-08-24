@@ -155,10 +155,7 @@ class HTTPConnection(object):
         if self.command != 'HEAD':
             r.write(data)
         
-        #rsakey = self.handler.getrsakey(self.connection.ip)
-        #encrypted = rsakey.public_encrypt(r.getvalue(), pkcs1_oaep_repadding) ##encrypt string to send with ip's rsakey
-        #self.connection.write(encrypted)
-        self.connection.write(r.getvalue())                        ##old
+        self.connection.write(r.getvalue())
         if self.connection.is_flushed():
             self.connection.shutdown(1)
 

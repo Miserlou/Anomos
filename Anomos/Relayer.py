@@ -12,10 +12,10 @@ class Relayer(object):
         association between the incoming socket and the outgoing socket (so 
         that the TC only needs to be sent once).
     """
-    def __init__(self, incoming, outgoing, storage, uprate, downrate, choker, key):
+    def __init__(self, rawserver, neighbors, incoming, outnid):
+                    #storage, uprate, downrate, choker, key):
         """
         @param incoming: The connection to read data from
-        @param outgoing: The connection to write data to
         @param storage: Where we store data waiting to be sent
         @param uprate: Upload rate measurer
         @param downrate: Download rate measurer
@@ -25,8 +25,10 @@ class Relayer(object):
         @type downrate: Measure
         @param storage: StorageWrapper
         """
+        self.rawserver = rawserver
+        self.neighbors = neighbors
         self.incoming = incoming
-        self.outgoing = outgoing
+        self.outgoing = self.start_connection(outnid)
         self.storage = storage
         self.choker = choker
         self.relayparts = []
@@ -36,8 +38,29 @@ class Relayer(object):
         self.downrate = downrate            #statistical
         self.interested = False
         self.buffer = []
-        self.key = key
 
+    def start_connection(self, nid, tc):
+        loc = self.neighbors.get_location(nid)
+        try:
+            c = self.raw_server.start_connection(loc, None, self.context)
+        except socketerror:
+            pass
+        else:
+            # Make the local connection for receiving.
+            con = Connection(self, c, nid, True, established=True)
+            self.connections[c] = con
+            c.handler = con
+    
+    def relay_message(self, con, message):
+        outcon = None
+        if con == self.incomming:
+            outcon = self.outgoing
+        elif con == self.outgoing:
+            outcon = self.incomming
+        else:
+            return
+        outcon.send_relay_message(message)
+    
     def addPart(self, o):
         ##TODO: Where is this object coming from?
         p = key.decrypt(o)

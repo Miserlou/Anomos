@@ -845,6 +845,8 @@ class Tracker(object):
         return self.reply(200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data), params('peer_id'))
 
     def parseQuery(self, query):
+        if len(query) and query[0] == '?':
+            query = query[1:]
         params = {}
         for s in query.split('&'):
             if s != '':

@@ -21,6 +21,7 @@ class NeighborManager:
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
+        #self.complete_connections = set()
         self.waiting_tcs = {}
     
     def get_location(self, nid):
@@ -58,11 +59,12 @@ class NeighborManager:
         if not self.incomplete.has_key(con.id):
             # Completing a complete or non-existant connection...
             return
+        con.complete = True
         del self.incomplete[con.id]
         for task in self.waiting_tcs.get(con.id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
     
-    def schedule_tc(self, id, sendfunc, tc):
+    def schedule_tc(self, sendfunc, id, tc):
         '''Sometimes a tracking code is received before a neighbor is fully
         initialized. In those cases we schedule the TC to be sent once we get
         a "connection_completed" from the neighbor.'''
@@ -90,7 +92,7 @@ class NeighborManager:
             #
             self.incomplete[id] = loc
             # Make the local connection for receiving.
-            con = Connection(self, c, id, True)
+            con = Connection(self, c, id, True, established=False)
             self.connections[c] = con
             c.handler = con 
 
