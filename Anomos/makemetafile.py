@@ -47,6 +47,10 @@ def make_meta_files(url, pubkeyfilename, files, flag=Event(), progressfunc=dummy
         raise BTFailure("You can't specify the name of the .torrent file when "
                         "generating multiple torrents at once")
 
+    if(pubkeyfilename==None):
+        ##TODO: Instead, contact tracker and get pubkey
+        raise BTFailure('You need to supply a pubkey')
+
     if not filesystem_encoding:
         try:
             sys.getfilesystemencoding

@@ -212,6 +212,14 @@ class RSAKeyPair(RSAPubKey):
         else:
             return message
 
+    def getPubKey(self):
+        """
+        Gives the public key. This should return a string but it doesn't!
+        @return: pubkey instance
+        """
+        ##TODO: Get string value of this pubkey!
+        return self.pubkey
+
 
 class AESKey:
     def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):

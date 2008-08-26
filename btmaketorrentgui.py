@@ -24,13 +24,13 @@ from threading import Event
 import gtk
 import gobject
 
-from BitTorrent.GUI import *
-from BitTorrent import Desktop
-from BitTorrent import version
-from BitTorrent import configfile
-from BitTorrent.defaultargs import get_defaults
-from BitTorrent.makemetafile import make_meta_files
-from BitTorrent.parseargs import makeHelp
+from Anomos.GUI import *
+from Anomos import Desktop
+from Anomos import version
+from Anomos import configfile
+from Anomos.defaultargs import get_defaults
+from Anomos.makemetafile import make_meta_files
+from Anomos.parseargs import makeHelp
 
 defaults = get_defaults('btmaketorrentgui')
 defconfig = dict([(name, value) for (name, value, doc) in defaults])
@@ -242,12 +242,13 @@ class ProgressDialog(gtk.Dialog):
         self.set_border_width(SPACING)
         self.set_title('Building torrents...')
         self.file_list = file_list
+        self.trackerpubkey = '/home/rich/anomos/crypto/tracker-pub.pem'      ##TODO: Fetch pubkey from tracker itself! Alternately, how to get $HOME?
         self.announce_url = announce_url
         self.piece_length = piece_length
         self.flag = Event() # ???
 
         self.label = gtk.Label('Checking file sizes...')
-        self.label.set_line_wrap(gtk.TRUE)
+        self.label.set_line_wrap(True)
 
         self.vbox.set_spacing(SPACING)
         self.vbox.pack_start(lalign(self.label), expand=False, fill=False)
@@ -286,6 +287,8 @@ class ProgressDialog(gtk.Dialog):
     def complete(self):
         try:
             make_meta_files(self.announce_url,
+                        ##Contact tracker, get pubkey, put is argument here!
+                        self.trackerpubkey,
                         self.file_list,
                         self.flag,
                         self.set_progress_value,

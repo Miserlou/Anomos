@@ -284,12 +284,12 @@ class MessageDialog(gtk.MessageDialog):
                                    type, buttons, message)
 
         self.set_size_request(-1, -1)
-        self.set_resizable(gtk.FALSE)
+        self.set_resizable(False)
         self.set_title(title)
         if default is not None:
             self.set_default_response(default)
         
-        self.label.set_line_wrap(gtk.TRUE)
+        self.label.set_line_wrap(True)
 
         self.connect('response', self.callback)
 
@@ -317,8 +317,8 @@ class FileSelection(gtk.FileSelection):
     def __init__(self, main, title='', fullname='', got_location_func=None, no_location_func=None, got_multiple_location_func=None, show=True):
         gtk.FileSelection.__init__(self)
         self.main = main
-        self.set_modal(gtk.TRUE)
-        self.set_destroy_with_parent(gtk.TRUE)
+        self.set_modal(True)
+        self.set_destroy_with_parent(True)
         self.set_title(title)
         if (got_location_func is None and
             got_multiple_location_func is not None):
