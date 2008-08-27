@@ -24,11 +24,13 @@ def getRand(*args):
 
 global_cryptodir = None
 global_randfile = None
+dd = None
 def initCrypto(data_dir):
     '''Sets the directory in which to store crypto data/randfile
     @param data_dir: path to directory
     @type data_dir: string
     '''
+    dd = data_dir
     global getRand, global_cryptodir, global_randfile
     if None not in (global_cryptodir, global_randfile):
         return #TODO: Already initialized, log a warning here.
@@ -54,6 +56,7 @@ def toM2Exp(n):
     return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
 
 class RSAPubKey:
+   
     def __init__(self, keystring, exp=65537):
         """
         @param keystring: "n" value of pubkey to initialize new public key from
@@ -66,6 +69,14 @@ class RSAPubKey:
         self.pubkey = RSA.new_pub_key((toM2Exp(exp), keystring))
         self.pubkey.check_key()
         self.randfile = global_randfile
+
+    def saveNewPEM(self, alias):
+        """
+        Save public PEM
+        """
+        self.pubkeyfilename = os.path.join(dd, '%s-pub.pem' % (alias))
+        rsa.save_pub_key(self.pubkeyfilename)
+        return self.pubkeyfilename
     
     def keyID(self):
         """ 
@@ -214,12 +225,10 @@ class RSAKeyPair(RSAPubKey):
 
     def getPubKey(self):
         """
-        Gives the public key. This should return a string but it doesn't!
+        Gives the public key. To get as string, use b2a_hex(self.blahh.getPubKey().pub()[1])
         @return: pubkey instance
         """
-        ##TODO: Get string value of this pubkey!
         return self.pubkey
-
 
 class AESKey:
     def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):
