@@ -798,9 +798,8 @@ class Tracker(object):
             if path == 'scrape':
                 return self.get_scrape(paramslist)
             if (path == 'key'):
-                print self.rsa.getPubKey()
-                ## TODO: Get string value of self.rsa.getPubKey()!
-                ## return (200, 'OK', {'Content-Type' : 'text/plain'}, self.rsa.getPubKey())
+                pubic = b2a_hex(self.rsa.getPubKey().pub()[1])
+                return (200, 'OK', {'Content-Type' : 'text/plain'}, pubic)
             if (path == 'file'):
                 return self.get_file(params('info_hash'))
             if path == 'favicon.ico' and self.favicon is not None:
