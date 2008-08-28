@@ -797,12 +797,16 @@ class Tracker(object):
                 return self.get_infopage()
             if path == 'scrape':
                 return self.get_scrape(paramslist)
+            if (path == 'key'):
+                pubic = b2a_hex(self.rsa.getPubKey().pub()[1])
+                return (200, 'OK', {'Content-Type' : 'text/plain'}, pubic)
             if (path == 'file'):
                 return self.get_file(params('info_hash'))
             if path == 'favicon.ico' and self.favicon is not None:
                 return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
             if path != 'announce':
                 return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
+
             
             self.update_simpeer(paramslist, ip)
             self.validate_request(paramslist)
@@ -815,7 +819,6 @@ class Tracker(object):
             notallowed = self.check_allowed(infohash, paramslist)
             if notallowed:
                 return notallowed
-
             event = params('event')
 
             #rsize = self.add_data(infohash, event, ip, paramslist)

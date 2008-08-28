@@ -10,12 +10,13 @@
 # for the specific language governing rights and limitations under the
 # License.
 
-# Written by Bram Cohen
+# Written by Bram Cohen, modified by the Anomos Riot Induction Brigade
 
 from __future__ import division
 
 import os
 import sys
+import httplib
 from sha import sha
 from threading import Event
 
@@ -46,6 +47,15 @@ def make_meta_files(url, pubkeyfilename, files, flag=Event(), progressfunc=dummy
     if len(files) > 1 and target:
         raise BTFailure("You can't specify the name of the .torrent file when "
                         "generating multiple torrents at once")
+
+    if(pubkeyfilename==None):
+        ##If a filename isn't supplied, contact the tracker and get the pubkey
+        trackerconn = httplib.HTTPConnection(url)
+        trackerconn.request("GET", "/key")
+        respy = conn.getresponse()
+        tpkey = respy.read()
+        rsapk = RSAPubKey(tpkey)
+        pubkeyfilename = rsapk.saveNewPEM(url)
 
     if not filesystem_encoding:
         try:
