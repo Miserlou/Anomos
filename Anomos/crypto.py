@@ -24,14 +24,15 @@ def getRand(*args):
 
 global_cryptodir = None
 global_randfile = None
-dd = None
+global_dd = None
 def initCrypto(data_dir):
     '''Sets the directory in which to store crypto data/randfile
     @param data_dir: path to directory
     @type data_dir: string
     '''
-    dd = data_dir
-    global getRand, global_cryptodir, global_randfile
+    
+    global getRand, global_cryptodir, global_randfile, global_dd
+    global_dd = data_dir
     if None not in (global_cryptodir, global_randfile):
         return #TODO: Already initialized, log a warning here.
     global_cryptodir = os.path.join(data_dir, 'crypto')
@@ -74,7 +75,7 @@ class RSAPubKey:
         """
         Save public PEM
         """
-        self.pubkeyfilename = os.path.join(dd, '%s-pub.pem' % (alias))
+        self.pubkeyfilename = os.path.join(global_dd, '%s-pub.pem' % (alias))
         rsa.save_pub_key(self.pubkeyfilename)
         return self.pubkeyfilename
     
