@@ -29,28 +29,28 @@ def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
-CHOKE = chr(0)
-UNCHOKE = chr(1)
-INTERESTED = chr(2)
-NOT_INTERESTED = chr(3)
+CHOKE = chr(0x0)
+UNCHOKE = chr(0x1)
+INTERESTED = chr(0x2)
+NOT_INTERESTED = chr(0x3)
 # index
-HAVE = chr(4)
+HAVE = chr(0x4)
 # index, bitfield
-BITFIELD = chr(5)
+BITFIELD = chr(0x5)
 # index, begin, length
-REQUEST = chr(6)
+REQUEST = chr(0x6)
 # index, begin, piece
-PIECE = chr(7)
+PIECE = chr(0x7)
 # index, begin, piece
-CANCEL = chr(8)
+CANCEL = chr(0x8)
 
 ##Anomos Control Chars##
-TCODE = chr(9)
-PUBKEY = chr(10) # Sent before a pubkey to be used in an AES key exchange
-EXCHANGE = chr(11) # The data that follows is RSA encrypted AES data
-CONFIRM = chr(12)
-ENCRYPTED = chr(13) # The data that follows is AES encrypted
-RELAY = chr(14)
+TCODE = chr(0x9)
+PUBKEY = chr(0xA) # Sent before a pubkey to be used in an AES key exchange
+EXCHANGE = chr(0xB) # The data that follows is RSA encrypted AES data
+CONFIRM = chr(0xC)
+ENCRYPTED = chr(0xD) # The data that follows is AES encrypted
+RELAY = chr(0xE)
 
 class ConnectionError(Exception):
     pass
