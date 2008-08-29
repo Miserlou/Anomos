@@ -145,6 +145,7 @@ class SingleportListener(object):
         self.torrents = {}
         self.connections = {}
         self.neighbors = neighbors
+        self.lookup_loc = self.neighbors.lookup_loc
         self.keyring = keyring
         self.rsakey = rsakey
         self.download_id = None
@@ -192,7 +193,7 @@ class SingleportListener(object):
     def remove_torrent(self, infohash):
         del self.torrents[infohash]
 
-    def select_torrent(self, conn, infohash):
+    def set_torrent(self, conn, infohash):
         if infohash not in self.torrents:
             return
         self.torrents[infohash].singleport_connection(self, conn)
@@ -200,20 +201,18 @@ class SingleportListener(object):
     def set_relayer(self, conn, neighborid):
         conn.encoder = Relayer(self.rawserver, self.neighbors, conn, neighborid)
     
+    def set_neighbor(self, conn):
+        del self.connections[conn.connection]
+        conn.encoder = self.neighbors
+        self.neighbors.connections[conn.connection] = conn
+    
     def external_connection_made(self, socket):
         """ 
         Connection came in.
         @param socket: SingleSocket
         """
-        nid = self.neighbors.lookup_loc(socket.ip)
-        if nid:
-            # The incomming connection is one of our neighbors
-            con = Connection(self, socket, nid, False, established=True)
-            self.connections[socket] = con
-        else:
-            # It's a new neighbor, let the NeighborManager handle it.
-            con = Connection(self.neighbors, socket, None, False, established=False)
-            self.neighbors.connections[socket] = con
+        con = Connection(self, socket, None, False)
+        self.connections[socket] = con
         socket.handler = con
 
     def replace_connection(self):

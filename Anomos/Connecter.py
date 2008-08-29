@@ -178,6 +178,36 @@ class Connection(object):
     def get_aes_key(self):
         return self.encoder.keyring.getKey(self.id)
     
+    def try_all_keys(self, message):
+        '''This method handles conflict resolution when 2 or more of our 
+           neighbors are at the same IP address. We try decrypting the message with 
+           each of the neighbor's AES keys and check if the result is a TCODE.
+           There's an off chance (1/256) that it's a TCODE by chance, so if we
+           get more than one valid plaintext we check if any of the TCODES are
+           valid by decrypting each of them with our RSA key.
+        '''
+        nids = self.encoder.lookup_loc(self.connection.ip)
+        pts = {}
+        for id in nids:
+            plaintext = self.encoder.keyring.getKey(id).decrypt(message)
+            if plaintext[0] == TCODE:
+                pts[id] = plaintext
+        if len(pts) == 1:
+            self.id = pts.items()[0][0]
+            self.established = True
+            return pts.items()[0][1]
+        elif len(pts) > 1:
+            for id, text in pts.iteritems():
+                try:
+                    self.rsakey.decrypt(text)
+                except:
+                    pass
+                else:
+                    self.id = id
+                    self.established = True
+                    return text
+        self.close() # Apparently this message isn't for us.
+    
     def _read_header(self):
         '''Yield the number of bytes for each section of the header and sanity
            check the received values. If the connection doesn't have a header
@@ -191,13 +221,18 @@ class Connection(object):
             self._reader = self._read_messages()
             self._buffer = self._message + self._buffer
             yield self._reader.next()
+        
         yield len(protocol_name)
         if self._message != protocol_name:
             self._reader = self._read_messages()
             self._buffer = first + self._message + self._buffer
             yield self._reader.next()
+        
         yield 8  # reserved
+        # Got a full header => New Neighbor Connection
         if not self.locally_initiated:
+            # This is a new neighbor, so switch to a NeighborManager encoder
+            self.encoder.set_neighbor(self)
             self.connection.write(chr(len(protocol_name)) + protocol_name + (chr(0) * 8))
             if not self.established:
                 # Non-neighbor connection
@@ -238,6 +273,9 @@ class Connection(object):
             if key:
                 m = key.decrypt(message[1:])
                 self._got_message(m)
+            elif not self.id:
+                # This only happens if we have two+ neighbors at the same IP
+                self._got_message(self.try_all_keys(message[1:]))
         elif t == RELAY:
             if not isinstance(self.encoder, Relayer):
                 self.close("Invalid message type")
@@ -300,6 +338,7 @@ class Connection(object):
                     co.send_have(i)
         elif t == TCODE:
             print "Got TCODE"
+            #XXX: Decrypt might fail and raise an error.
             plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
                 print "Not for me!"
@@ -311,7 +350,7 @@ class Connection(object):
                 infohash = plaintext[:20]
                 aes = plaintext[20:52]
                 iv = plaintext[52:74]
-                self.encoder.select_torrent(self, infohash)
+                self.encoder.set_torrent(self, infohash)
                 if self.encoder.download_id is None:
                     # We don't have that torrent...
                     # TODO: handle this gracefully.

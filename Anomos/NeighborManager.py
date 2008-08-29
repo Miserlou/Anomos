@@ -29,9 +29,11 @@ class NeighborManager:
     
     def lookup_loc(self, loc):
         print "Looking up Loc", loc, self.neighbors
+        peers = []
         for nid, data in self.neighbors.iteritems():
             if data[0][0] == loc:
-                return nid
+                peers.append(nid)
+        return peers
     
     def get_key(self, nid):
         return self.neighbors.get(nid, [None, None])[1]
