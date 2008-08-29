@@ -303,7 +303,7 @@ class Connection(object):
             plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
                 print "Not for me!"
-                self.send_message(CONFIRM)
+                self._send_message(CONFIRM)
                 self.encoder.set_relayer(self, plaintext)
                 self.encoder.relay_message(self, nextTC)
             else:
