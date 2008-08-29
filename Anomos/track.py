@@ -798,7 +798,7 @@ class Tracker(object):
             if path == 'scrape':
                 return self.get_scrape(paramslist)
             if (path == 'key'):
-                pubic = b2a_hex(self.rsa.getPubKey().pub()[1])
+                pubic = self.rsa.pub_bin()
                 return (200, 'OK', {'Content-Type' : 'text/plain'}, pubic)
             if (path == 'file'):
                 return self.get_file(params('info_hash'))
