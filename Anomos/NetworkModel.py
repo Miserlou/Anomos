@@ -296,7 +296,7 @@ class NetworkModel:
 #            last = cur
 #        return paths[dest.name]
     
-    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=True):
+    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=False):
         """
         Generate the tracking code for the shortest path from source to dest
         
