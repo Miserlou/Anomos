@@ -1273,7 +1273,105 @@ class TorrentInfoWindow(object):
     def close(self):
         self.win.destroy()
 
+class RelayBox(gtk.EventBox):
+    
+    def __init__(self):
+        gtk.EventBox.__init__(self)
+        self.completion = .5
+        #self.main = main
 
+        self.uptotal   = self.main.torrents[self.relayer].uptotal           ##TODO:make this real
+        self.downtotal = self.main.torrents[self.relayer].downtotal 
+        if self.downtotal > 0:
+            self.up_down_ratio = self.uptotal / self.downtotal
+        else:
+            self.up_down_ratio = None
+
+        self.infowindow = None
+        self.filelistwindow = None
+        self.is_batch = metainfo.is_batch
+        self.menu = None
+        self.menu_handler = None
+
+        self.vbox = gtk.VBox(homogeneous=False, spacing=SPACING)
+        self.label = gtk.Label()
+        self.set_name()
+        
+        self.vbox.pack_start(lalign(self.label), expand=False, fill=False)
+
+        self.hbox = gtk.HBox(homogeneous=False, spacing=SPACING)
+
+        self.icon = gtk.Image()
+        self.icon.set_size_request(-1, 29)
+
+        self.iconbox = gtk.VBox()
+        self.iconevbox = gtk.EventBox()        
+        self.iconevbox.add(self.icon)
+        self.iconbox.pack_start(self.iconevbox, expand=False, fill=False)
+        self.hbox.pack_start(self.iconbox, expand=False, fill=False)
+        
+        self.vbox.pack_start(self.hbox)
+        
+        self.infobox = gtk.VBox(homogeneous=False)
+
+        self.progressbarbox = gtk.HBox(homogeneous=False, spacing=SPACING)
+        self.progressbar = gtk.ProgressBar()
+
+        if is_frozen_exe:
+            # Hack around broken GTK-Wimp theme:
+            # make progress bar text always black
+            # see task #694
+            style = self.progressbar.get_style().copy()
+            black = style.black
+            self.progressbar.modify_fg(gtk.STATE_PRELIGHT, black)
+        
+        if self.completion is not None:
+            self.progressbar.set_fraction(.5)
+            if self.completion >= 1:
+                done_label = self.make_done_label()
+                self.progressbar.set_text(done_label)
+            else:
+                self.progressbar.set_text('%.1f%%'%(self.completion*100))
+        else:
+            self.progressbar.set_text('?')
+            
+        self.progressbarbox.pack_start(self.progressbar,
+                                       expand=True, fill=True)
+
+        self.buttonevbox = gtk.EventBox()
+        self.buttonbox = gtk.HBox(homogeneous=True, spacing=SPACING)
+
+        self.drag_source_set(gtk.gdk.BUTTON1_MASK,
+                             [BT_TARGET],
+                             gtk.gdk.ACTION_MOVE)
+        self.connect('drag_data_get', self.drag_data_get)
+
+        self.connect('drag_begin' , self.drag_begin )
+        self.connect('drag_end'   , self.drag_end   )
+        self.cursor_handler_id = self.connect('enter_notify_event', self.change_cursors)
+
+    def change_cursors(self, *args):
+        # BUG: this is in a handler that is disconnected because the
+        # window attributes are None until after show_all() is called
+        self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
+        self.buttonevbox.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.LEFT_PTR))
+        self.disconnect(self.cursor_handler_id)
+
+    def drag_begin(self, *args):
+        pass
+
+    def drag_end(self, *args):
+        self.main.drag_end()
+
+    def make_done_label(self, statistics=None):
+        done_label = 'Running..'
+        return done_label
+        
+
+    def set_name(self):
+        self.label.set_text("Relay Info")
+
+    
 class TorrentBox(gtk.EventBox):
     
     def __init__(self, infohash, metainfo, dlpath, completion, main):
@@ -1330,7 +1428,7 @@ class TorrentBox(gtk.EventBox):
             self.progressbar.modify_fg(gtk.STATE_PRELIGHT, black)
         
         if self.completion is not None:
-            self.progressbar.set_fraction(self.completion)
+            self.progressbar.set_fraction(.5)
             if self.completion >= 1:
                 done_label = self.make_done_label()
                 self.progressbar.set_text(done_label)
@@ -2462,7 +2560,7 @@ class DownloadInfoFrame(object):
 
     def open_help(self,widget):
         if self.helpwindow is None:
-            msg = 'BitTorrent help is at \n'\
+            msg = 'Anomos help is at \n'\
                   '%s\n'\
                   'Would you like to go there now?'%HELP_URL
             self.helpwindow = MessageDialog(self.mainwindow,
@@ -2859,6 +2957,7 @@ class DownloadInfoFrame(object):
                                 nofunc=add_func,
                                 default=gtk.RESPONSE_YES)
 
+    ##Naggers!
     def nag(self):
         if ((self.config['donated'] != version) and
             (random.random() * NAG_FREQUENCY) < 1):
