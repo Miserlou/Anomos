@@ -132,8 +132,11 @@ class Connection(object):
             if s is None:
                 return 0
             index, begin, piece = s
-            self._partial_message = ''.join((tobinary(len(piece) + 9), PIECE,
-                                    tobinary(index), tobinary(begin), piece))
+            key = self.get_aes_key()
+            if not key:
+                return
+            msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
+            self._partial_message = tobinary(len(msg) + 1) + ENCRYPTED + key.encrypt(msg)
         if bytes < len(self._partial_message):
             self.connection.write(buffer(self._partial_message, 0, bytes))
             self._partial_message = buffer(self._partial_message, bytes)
