@@ -14,6 +14,7 @@ import sys
 import os
 import cStringIO
 import sha
+import os
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
 from Anomos import BTFailure
@@ -24,7 +25,7 @@ def getRand(*args):
 
 global_cryptodir = None
 global_randfile = None
-global_dd = None
+global_dd = None 
 def initCrypto(data_dir):
     '''Sets the directory in which to store crypto data/randfile
     @param data_dir: path to directory
@@ -65,8 +66,8 @@ class RSAPubKey:
         @type keystring: string
         @type exp: int
         """
-        if None in (global_cryptodir, global_randfile):
-            raise CryptoError('Crypto not initialized, call initCrypto first')
+        ##if None in (global_cryptodir, global_randfile):
+        ##    raise CryptoError('Crypto not initialized, call initCrypto first')
         self.pubkey = RSA.new_pub_key((toM2Exp(exp), keystring))
         self.pubkey.check_key()
         self.randfile = global_randfile
@@ -75,8 +76,9 @@ class RSAPubKey:
         """
         Save public PEM
         """
-        self.pubkeyfilename = os.path.join(global_dd, '%s-pub.pem' % (alias))
-        rsa.save_pub_key(self.pubkeyfilename)
+        ##XXX:Yuck.
+        self.pubkeyfilename = os.path.join(os.getcwd(), '%s-pub.pem' % (alias))
+        self.pubkey.save_pub_key(self.pubkeyfilename)
         return self.pubkeyfilename
     
     def keyID(self):

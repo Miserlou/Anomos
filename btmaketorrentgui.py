@@ -242,7 +242,7 @@ class ProgressDialog(gtk.Dialog):
         self.set_border_width(SPACING)
         self.set_title('Building torrents...')
         self.file_list = file_list
-        self.trackerpubkey = '/home/rich/anomos/crypto/tracker-pub.pem'      ##TODO: Fetch pubkey from tracker itself! Alternately, how to get $HOME?
+        self.trackerpubkey = None #'/home/rich/anomos/crypto/tracker-pub.pem'      ##TODO: Fetch pubkey from tracker itself! Alternately, how to get $HOME?
         self.announce_url = announce_url
         self.piece_length = piece_length
         self.flag = Event() # ???

@@ -17,6 +17,7 @@ from __future__ import division
 import os
 import sys
 import httplib
+from urlparse import urlparse
 from sha import sha
 from threading import Event
 
@@ -27,6 +28,7 @@ from Anomos.platform import bttime
 from Anomos.obsoletepythonsupport import *
 from Anomos import BTFailure
 from M2Crypto.RSA import load_pub_key
+from Anomos.crypto import RSAPubKey
 
 ignore = ['core', 'CVS', 'Thumbs.db']
 
@@ -50,12 +52,14 @@ def make_meta_files(url, pubkeyfilename, files, flag=Event(), progressfunc=dummy
 
     if(pubkeyfilename==None):
         ##If a filename isn't supplied, contact the tracker and get the pubkey
-        trackerconn = httplib.HTTPConnection(url)
+        o =  urlparse(url)
+        gurl = o.netloc
+        trackerconn = httplib.HTTPConnection(gurl)
         trackerconn.request("GET", "/key")
-        respy = conn.getresponse()
+        respy = trackerconn.getresponse()
         tpkey = respy.read()
         rsapk = RSAPubKey(tpkey)
-        pubkeyfilename = rsapk.saveNewPEM(url)
+        pubkeyfilename = rsapk.saveNewPEM(o.scheme) ##TODO: Sanitize gurl instead..
 
     if not filesystem_encoding:
         try:
