@@ -73,17 +73,17 @@ class Connection(object):
         self.upload = None
         self.download = None
         self._buffer = ""
-        self._reader = self._read_messages() # Starts the generator
+        self._reader = self._read_header() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
         self._partial_message = None
         self._outqueue = []
         self.choke_sent = True
-        if self.locally_initiated:
+        if self.locally_initiated and not self.established:
             connection.write(chr(len(protocol_name)) + protocol_name +
                 (chr(0) * 8))
 
     def close(self, e=None):
-        print "Closing the connection!"
+        print "Closing the connection!", e
         if not self.closed:
             self.connection.close()
             self._sever()
@@ -134,7 +134,7 @@ class Connection(object):
             index, begin, piece = s
             key = self.get_aes_key()
             if not key:
-                return
+                self.close()
             msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
             self._partial_message = tobinary(len(msg) + 1) + ENCRYPTED + key.encrypt(msg)
         if bytes < len(self._partial_message):
@@ -178,14 +178,24 @@ class Connection(object):
     def get_aes_key(self):
         return self.encoder.keyring.getKey(self.id)
     
-    def _read_messages(self):
-        '''Yields the number of bytes to read from the socket'''
+    def _read_header(self):
+        '''Yield the number of bytes for each section of the header and sanity
+           check the received values. If the connection doesn't have a header
+           (as in, it's already established) then switch to _read_message and
+           reenter the data we read off as if it just came in.
+        '''
         yield 1   # header length
+        first = self._message # Hack in case a headerless connection has the 
+                              # a first byte with value == len(protocol_name)
         if ord(self._message) != len(protocol_name):
-            return
+            self._reader = self._read_messages()
+            self._buffer = self._message + self._buffer
+            yield self._reader.next()
         yield len(protocol_name)
         if self._message != protocol_name:
-            return
+            self._reader = self._read_messages()
+            self._buffer = first + self._message + self._buffer
+            yield self._reader.next()
         yield 8  # reserved
         if not self.locally_initiated:
             self.connection.write(chr(len(protocol_name)) + protocol_name + (chr(0) * 8))
@@ -194,6 +204,10 @@ class Connection(object):
                 # Respond with PubKey
                 pkmsg = PUBKEY + self.encoder.rsakey.pub_bin()
                 self._send_message(pkmsg)
+        self._reader = self._read_messages()
+        yield self._reader.next()
+    
+    def _read_messages(self):
         while True:
             yield 4   # message length
             l = toint(self._message)
@@ -368,8 +382,7 @@ class Connection(object):
     def _send_encrypted_message(self, message):
         key = self.get_aes_key()
         if not key:
-            #TODO: Raise error here or some other warning
-            return
+            self.close("Tried to send encrypted message without key")
         #TODO: send message hash as well?
         self._send_message(ENCRYPTED + key.encrypt(message))
     
