@@ -839,8 +839,10 @@ class Tracker(object):
         if not stopped:
             data['peers'] = self.neighborlist(params('peer_id'))
             #TODO: Replace "3" with actual number of TCs to get
-            data['tracking codes'] = self.getTCs(params('peer_id'), infohash, 
-                                                 return_type, 3)
+            if params('left') and int(params('left')):
+                data['tracking codes'] = self.getTCs(params('peer_id'), infohash, return_type, 3)
+            else:
+                data['tracking codes'] = []
         #self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
 
         if paramslist.has_key('scrape'):
