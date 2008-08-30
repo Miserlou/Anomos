@@ -1278,7 +1278,7 @@ class RelayBox(gtk.EventBox):
     def __init__(self):
         gtk.EventBox.__init__(self)
         self.completion = .5
-        #self.main = main
+        self.main = main
 
         self.uptotal   = self.main.torrents[self.relayer].uptotal           ##TODO:make this real
         self.downtotal = self.main.torrents[self.relayer].downtotal 
@@ -1369,7 +1369,11 @@ class RelayBox(gtk.EventBox):
         
 
     def set_name(self):
-        self.label.set_text("Relay Info")
+        self.label.set_text('Relay Info')
+
+    def make_done_label(self, statistics=None):
+        done_label = 'There are ' + self.main.torrentqueue.getnumsocks() + ' total connections.'
+        return done_label
 
     
 class TorrentBox(gtk.EventBox):

@@ -360,3 +360,6 @@ class RawServer(object):
         s.socket = None
         self._make_wrapped_call(s.handler.connection_lost, (s,), s)
         s.handler = None
+
+    def numsockets(self):
+        return len(self.single_sockets)

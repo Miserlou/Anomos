@@ -157,6 +157,9 @@ class TorrentQueue(Feedback):
             return
         threading.Thread(target=self._version_thread).start()
 
+    def getnumsocks(self):
+        return self.rawserver.numsockets()
+
     def _version_thread(self):
         def error(level, text):
             def f():
@@ -190,7 +193,7 @@ class TorrentQueue(Feedback):
                 if my > new:
                     break
                 if my < new:
-                    download_url = 'http://bittorrent.com/download.html'
+                    download_url = 'http://www.anomos.info'
                     if hasattr(self.ui, 'new_version'):
                         self.run_ui_task(self.ui.new_version, s,
                                          download_url)
