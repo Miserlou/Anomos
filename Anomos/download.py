@@ -81,6 +81,8 @@ class Multitorrent(object):
                                                       self.neighbors, self.rsa, 
                                                       self.keyring)
         self._find_port(listen_fail_ok)
+        #XXX: PORT HACK
+        self.neighbors.port = self.singleport_listener.port
         self.filepool = FilePool(config['max_files_open'])
         self.ratelimiter = RateLimiter(self.rawserver.add_task)
         self.ratelimiter.set_parameters(config['max_upload_rate'],

@@ -21,26 +21,26 @@ class NeighborManager:
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
+        
+        #XXX: PORT HACK
+        self.port = None
         #self.complete_connections = set()
         self.waiting_tcs = {}
     
     def get_location(self, nid):
-        return self.neighbors.get(nid, [None, None])[0]
+        return self.neighbors.get(nid, None)
     
     def lookup_loc(self, loc):
         print "Looking up Loc", loc, self.neighbors
         peers = []
         for nid, data in self.neighbors.iteritems():
-            if data[0][0] == loc:
+            if data[0] == loc:
                 peers.append(nid)
         return peers
     
-    def get_key(self, nid):
-        return self.neighbors.get(nid, [None, None])[1]
-    
     def add_neighbor(self, id, location, key):
         print "ADDING NEIGHBOR:", hex(ord(id)), location
-        self.neighbors[id] = (location, key)
+        self.neighbors[id] = location
         self.keyring.addKey(id, key)
         print "neighbors: ", self.neighbors
     

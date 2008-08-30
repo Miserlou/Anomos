@@ -50,7 +50,6 @@ PUBKEY = chr(0xA) # Sent before a pubkey to be used in an AES key exchange
 EXCHANGE = chr(0xB) # The data that follows is RSA encrypted AES data
 CONFIRM = chr(0xC)
 ENCRYPTED = chr(0xD) # The data that follows is AES encrypted
-RELAY = chr(0xE)
 
 class ConnectionError(Exception):
     pass
@@ -61,10 +60,9 @@ class Connection(object):
         self.encoder = encoder
         self.connection = connection
         self.id = id
-        self.ip = connection.ip
-        #TODO: This port might not always be set
-        self.port = connection.port
         self.locally_initiated = is_local
+        self.ip = connection.ip
+        self.port = None
         self.established = established
         self.complete = False
         self.closed = False
@@ -72,6 +70,7 @@ class Connection(object):
         self.next_upload = None
         self.upload = None
         self.download = None
+        self.is_relay = False
         self._buffer = ""
         self._reader = self._read_header() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -80,7 +79,7 @@ class Connection(object):
         self.choke_sent = True
         if self.locally_initiated and not self.established:
             connection.write(chr(len(protocol_name)) + protocol_name +
-                (chr(0) * 8))
+                tobinary(self.encoder.port)[2:] + (chr(0) * 6))
 
     def close(self, e=None):
         print "Closing the connection!", e
@@ -134,7 +133,7 @@ class Connection(object):
             index, begin, piece = s
             key = self.get_aes_key()
             if not key:
-                self.close()
+                self.close("Encryption key not found")
             msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
             self._partial_message = tobinary(len(msg) + 1) + ENCRYPTED + key.encrypt(msg)
         if bytes < len(self._partial_message):
@@ -172,8 +171,8 @@ class Connection(object):
     def send_tracking_code(self, trackcode):
         self._send_encrypted_message(TCODE + trackcode)
     
-    def send_relay_messgae(self, message):
-        self._send_encrypted_message(RELAY + message)
+    def send_relay_message(self, message):
+        self._send_encrypted_message(message)
     
     def get_aes_key(self):
         return self.encoder.keyring.getKey(self.id)
@@ -189,13 +188,18 @@ class Connection(object):
         nids = self.encoder.lookup_loc(self.connection.ip)
         pts = {}
         for id in nids:
-            plaintext = self.encoder.keyring.getKey(id).decrypt(message)
+            key = self.encoder.keyring.getKey(id)
+            #Create a copy of the key so we don't screw up the cipher state
+            tmpkey = crypto.AESKey(key.key, key.iv)
+            plaintext = tmpkey.decrypt(message)
+            print "Attempted decrypt from:", b2a_hex(id), b2a_hex(plaintext[0])
             if plaintext[0] == TCODE:
                 pts[id] = plaintext
         if len(pts) == 1:
             self.id = pts.items()[0][0]
             self.established = True
-            return pts.items()[0][1]
+            #Decrypt with the real key to advance the cipher state
+            return self.encoder.keyring.getKey(self.id).decrypt(message)
         elif len(pts) > 1:
             for id, text in pts.iteritems():
                 try:
@@ -205,8 +209,10 @@ class Connection(object):
                 else:
                     self.id = id
                     self.established = True
-                    return text
-        self.close() # Apparently this message isn't for us.
+                    #Decrypt with the real key to advance the cipher state
+                    return self.encoder.keyring.getKey(self.id).decrypt(message)
+        # Apparently this message isn't for us.
+        self.close("Cannot decrypt message") 
     
     def _read_header(self):
         '''Yield the number of bytes for each section of the header and sanity
@@ -228,12 +234,16 @@ class Connection(object):
             self._buffer = first + self._message + self._buffer
             yield self._reader.next()
         
-        yield 8  # reserved
+        yield 2  # port number
+        self.port = toint(self._message)
+        yield 6  # reserved
         # Got a full header => New Neighbor Connection
         if not self.locally_initiated:
+            
             # This is a new neighbor, so switch to a NeighborManager encoder
             self.encoder.set_neighbor(self)
-            self.connection.write(chr(len(protocol_name)) + protocol_name + (chr(0) * 8))
+            #XXX: PORT HACK
+            self.connection.write(chr(len(protocol_name)) + protocol_name + tobinary(self.encoder.port)[2:] + (chr(0) * 6))
             if not self.established:
                 # Non-neighbor connection
                 # Respond with PubKey
@@ -272,15 +282,13 @@ class Connection(object):
             key = self.get_aes_key()
             if key:
                 m = key.decrypt(message[1:])
-                self._got_message(m)
             elif not self.id:
                 # This only happens if we have two+ neighbors at the same IP
-                self._got_message(self.try_all_keys(message[1:]))
-        elif t == RELAY:
-            if not isinstance(self.encoder, Relayer):
-                self.close("Invalid message type")
-                return
-            self.encoder.relay_message(self, message[1:])
+                m = self.try_all_keys(message[1:])
+            if self.is_relay:
+                self.encoder.relay_message(self, m)
+            else:
+                self._got_message(m)
         elif t == CHOKE:
             self.download.got_choke()
         elif t == UNCHOKE:
@@ -341,11 +349,13 @@ class Connection(object):
             #XXX: Decrypt might fail and raise an error.
             plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
-                print "Not for me!"
                 self._send_message(CONFIRM)
                 self.encoder.set_relayer(self, plaintext)
-                self.encoder.relay_message(self, nextTC)
+                self.encoder.connection_completed(self)
+                print "Relaying message"
+                self.encoder.relay_message(self, TCODE + nextTC)
             else:
+                print "Receiving TCODE"
                 # TC ends at this peer, plaintext contains infohash, aes, iv
                 infohash = plaintext[:20]
                 aes = plaintext[20:52]
@@ -402,7 +412,7 @@ class Connection(object):
     def _sever(self):
         self.closed = True
         self._reader = None
-        del self.encoder.connections[self.connection]
+        #del self.encoder.connections[self.connection]
         # self.encoder.replace_connection()
         if self.complete:
             #XXX: Fails for NeighborManager connections.
@@ -419,6 +429,9 @@ class Connection(object):
             self.connection.write(s)
     
     def _send_encrypted_message(self, message):
+        '''Sends a /link encrypted/ message. Messages must be end-to-end
+           encrypted prior to being passed to this method.
+        '''
         key = self.get_aes_key()
         if not key:
             self.close("Tried to send encrypted message without key")

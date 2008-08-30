@@ -6,13 +6,16 @@ and pass it to the next neighbor in the chain.
 @license: see License.txt
 """
 
+from socket import error as socketerror
+from Anomos.Connecter import Connection
+
 class Relayer(object):
     """ As a tracking code is being sent, each peer it reaches (other than the
         uploader and downloader) creates a Relayer object to maintain the 
         association between the incoming socket and the outgoing socket (so 
         that the TC only needs to be sent once).
     """
-    def __init__(self, rawserver, neighbors, incoming, outnid):
+    def __init__(self, rawserver, neighbors, incoming, outnid, config, keyring):
                     #storage, uprate, downrate, choker, key):
         """
         @param incoming: The connection to read data from
@@ -29,37 +32,41 @@ class Relayer(object):
         self.neighbors = neighbors
         self.incoming = incoming
         self.outgoing = self.start_connection(outnid)
-        self.storage = storage
-        self.choker = choker
+        self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
+        self.config = config
+        self.keyring = keyring
+        #self.storage = storage
+        #self.choker = choker
         self.relayparts = []
         self.choked = True
         self.unchoke_time = None
-        self.uprate = uprate
-        self.downrate = downrate            #statistical
+        #self.uprate = uprate
+        #self.downrate = downrate            #statistical
         self.interested = False
         self.buffer = []
+        self.complete = False
 
-    def start_connection(self, nid, tc):
+    def start_connection(self, nid):
         loc = self.neighbors.get_location(nid)
         try:
-            c = self.raw_server.start_connection(loc, None, self.context)
+            c = self.rawserver.start_connection(loc)
         except socketerror:
-            pass
+            self.incoming.close("Socket error on Relayer")
         else:
             # Make the local connection for receiving.
             con = Connection(self, c, nid, True, established=True)
-            self.connections[c] = con
+            print "Condeets:", con.ip, con.port
             c.handler = con
+            return con
     
-    def relay_message(self, con, message):
-        outcon = None
-        if con == self.incomming:
-            outcon = self.outgoing
-        elif con == self.outgoing:
-            outcon = self.incomming
-        else:
-            return
-        outcon.send_relay_message(message)
+    def relay_message(self, con, msg):
+        if self.connections.has_key(con) and self.connections[con] is not None:
+            self.connections[con].send_relay_message(msg)
+
+    def connection_completed(self, con):
+        print "Relay con complete"
+        con.complete = True
+        con.is_relay = True
     
     def addPart(self, o):
         ##TODO: Where is this object coming from?

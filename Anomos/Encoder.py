@@ -14,6 +14,7 @@ from socket import error as socketerror
 
 import Anomos.crypto as crypto
 from Anomos.Connecter import Connection
+from Anomos.Relayer import Relayer
 from Anomos import BTFailure
 
 
@@ -39,7 +40,10 @@ class Encoder(object):
         self.neighbors = context.neighbors
         self.keyring = context.keyring
         self.context = context
-
+        
+        #XXX: TEMPORARY HACK
+        self.port = context._singleport_listener.port
+        
         self.connections = {} # {socket : Connection}
         self.complete_connections = set()
         self.banned = set()
@@ -82,10 +86,8 @@ class Encoder(object):
             self.send_tc(nid, tc, relayer)
     
     def send_tc(self, nid, tc):
-        print "Sending TC"
         loc = self.neighbors.get_location(nid)
-        print self.neighbors.neighbors
-        print "LOCATION:", loc
+        print "Sending TC to", hex(ord(nid)), "at", loc
         try:
             c = self.raw_server.start_connection(loc, None, self.context)
         except socketerror:
@@ -199,7 +201,9 @@ class SingleportListener(object):
         self.torrents[infohash].singleport_connection(self, conn)
     
     def set_relayer(self, conn, neighborid):
-        conn.encoder = Relayer(self.rawserver, self.neighbors, conn, neighborid)
+        conn.encoder = Relayer(self.rawserver, self.neighbors, conn, neighborid,
+                                self.config, self.keyring)
+        conn.is_relay = True
     
     def set_neighbor(self, conn):
         del self.connections[conn.connection]

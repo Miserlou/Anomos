@@ -30,7 +30,7 @@ except ImportError:
 
 class SingleSocket(object):
 
-    def __init__(self, raw_server, sock, handler, context, ip=None, port=None):
+    def __init__(self, raw_server, sock, handler, context, ip=None):
         self.raw_server = raw_server
         self.socket = sock
         self.handler = handler
@@ -41,7 +41,6 @@ class SingleSocket(object):
         self.context = context
         if ip is not None:
             self.ip = ip
-            self.port = port
         else:
             try:
                 peername = self.socket.getpeername()
@@ -50,7 +49,6 @@ class SingleSocket(object):
             else:
                 try:
                     self.ip = peername[0]
-                    self.port = peername[1]
                 except:
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
@@ -212,7 +210,7 @@ class RawServer(object):
         #    sock.close()
         #    raise socket.error(str(e))
         self.poll.register(sock, POLLIN)
-        s = SingleSocket(self, sock, handler, context, dns[0], dns[1])
+        s = SingleSocket(self, sock, handler, context, dns[0])
         self.single_sockets[sock.fileno()] = s
         return s
 
