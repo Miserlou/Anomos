@@ -39,6 +39,8 @@ from Anomos import version
 from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey, initCrypto, CryptoError
 from Anomos.NetworkModel import NetworkModel
 
+allowedpath = os.getcwd()
+
 defaults = [
     ('port', 80, "Port to listen on."),
     ('dfile', None, 'file to store recent downloader info in'),
@@ -58,7 +60,7 @@ defaults = [
         'minimum time it must have been since the last flush to do another one'),
     ('min_time_between_cache_refreshes', 600.0,
         'minimum time in seconds before a cache is considered stale and is flushed'),
-    ('allowed_dir', '', 'only allow downloads for .torrents in this dir (and recursively in subdirectories of directories that have no .torrent files themselves). If set, torrents in this directory show up on infopage/scrape whether they have peers or not'),
+    ('allowed_dir', allowedpath, 'only allow downloads for .torrents in this dir (and recursively in subdirectories of directories that have no .torrent files themselves). If set, torrents in this directory show up on infopage/scrape whether they have peers or not'),
     ('parse_dir_interval', 60, 'how often to rescan the torrent directory, in seconds'),
     ('allowed_controls', 0, 'allow special keys in torrents in the allowed_dir to affect tracker access'),
     ('hupmonitor', 0, 'whether to reopen the log file upon receipt of HUP signal'),
@@ -369,6 +371,8 @@ class Tracker(object):
             else:
                 names = [ (None, infohash) for infohash in self.downloads]
             if not names:
+                s.write(str(self.allowed))
+                s.write(str(self.downloads))
                 s.write('<p>not tracking any files yet...</p>\n')
             else:
                 names.sort()

@@ -1275,21 +1275,20 @@ class TorrentInfoWindow(object):
 
 class RelayBox(gtk.EventBox):
     
-    def __init__(self):
+    def __init__(self, main):
         gtk.EventBox.__init__(self)
         self.completion = .5
         self.main = main
 
-        self.uptotal   = self.main.torrents[self.relayer].uptotal           ##TODO:make this real
-        self.downtotal = self.main.torrents[self.relayer].downtotal 
-        if self.downtotal > 0:
-            self.up_down_ratio = self.uptotal / self.downtotal
-        else:
-            self.up_down_ratio = None
+        ##self.uptotal   = self.main.torrents[self.relayer].uptotal           ##TODO:make this real
+        ##self.downtotal = self.main.torrents[self.relayer].downtotal 
+        ##if self.downtotal > 0:
+        ##    self.up_down_ratio = self.uptotal / self.downtotal
+        ##else:
+        ##    self.up_down_ratio = None
 
         self.infowindow = None
         self.filelistwindow = None
-        self.is_batch = metainfo.is_batch
         self.menu = None
         self.menu_handler = None
 
@@ -1316,6 +1315,7 @@ class RelayBox(gtk.EventBox):
 
         self.progressbarbox = gtk.HBox(homogeneous=False, spacing=SPACING)
         self.progressbar = gtk.ProgressBar()
+        self.tsent = 0
 
         if is_frozen_exe:
             # Hack around broken GTK-Wimp theme:
@@ -1363,16 +1363,34 @@ class RelayBox(gtk.EventBox):
     def drag_end(self, *args):
         self.main.drag_end()
 
-    def make_done_label(self, statistics=None):
-        done_label = 'Running..'
-        return done_label
-        
+    def drag_data_get(self, widget, context, selection, targetType, eventTime):
+        rstats = self.main.torrentqueue.get_relay_stats()
+        rate = rstats['rate']
+        size = rstats['size']
+        sent = rstats['sent']
+        r = "%.1f" % rate
+        snt = "%.1f" % sent
+        selection.set(selection.target, 8, snt)
 
     def set_name(self):
         self.label.set_text('Relay Info')
 
     def make_done_label(self, statistics=None):
-        done_label = 'There are ' + self.main.torrentqueue.getnumsocks() + ' total connections.'
+        rstats = self.main.torrentqueue.get_relay_stats()
+        rate = rstats['rate']
+        size = rstats['size']
+        sent = rstats['sent']
+        r = "%.1f" % rate
+        snt = "%.1f" % sent
+
+        print "We Run This!"
+
+        if snt != self.tsent:
+            done_label = "Running " + str(size) + " relays at " + str(r) + " KBps and relayed " + str(snt) + " of data."
+            self.tsent = snt
+        else:
+            done_label = "Running " + str(size) + " relays at 0.000 KBps and relayed " + str(snt) + " of data."
+
         return done_label
 
     
@@ -2398,6 +2416,10 @@ class DownloadInfoFrame(object):
 
         self.scrollbox.pack_start(SpacerBox(self), expand=True, fill=True) 
 
+        ##RELAY STUFF
+        self.relaybox = RelayBox(self)
+        self.scrollbox.pack_start(self.relaybox, expand=False, fill=False)
+
         self.mainscroll.add_with_viewport(self.scrollbox)
 
         self.paned.pack2(self.mainscroll, resize=True, shrink=False)
@@ -2425,7 +2447,6 @@ class DownloadInfoFrame(object):
 
         self.ssbutton.set_paused(self.config['pause'])
         self.rate_slider_box.start()
-        
         self.init_updates()
 
         try:
