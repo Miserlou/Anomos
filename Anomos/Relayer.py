@@ -8,6 +8,7 @@ and pass it to the next neighbor in the chain.
 
 from socket import error as socketerror
 from Anomos.Connecter import Connection
+from Anomos.CurrentRateMeasure import Measure
 
 class Relayer(object):
     """ As a tracking code is being sent, each peer it reaches (other than the
@@ -15,7 +16,7 @@ class Relayer(object):
         association between the incoming socket and the outgoing socket (so 
         that the TC only needs to be sent once).
     """
-    def __init__(self, rawserver, neighbors, incoming, outnid, config, keyring):
+    def __init__(self, rawserver, neighbors, incoming, outnid, config, keyring, max_rate_period=20.0):
                     #storage, uprate, downrate, choker, key):
         """
         @param incoming: The connection to read data from
@@ -40,8 +41,9 @@ class Relayer(object):
         self.relayparts = []
         self.choked = True
         self.unchoke_time = None
-        #self.uprate = uprate
-        #self.downrate = downrate            #statistical
+        self.uprate = Measure(max_rate_period)
+        self.downrate = Measure(max_rate_period)
+        self.sent = 0
         self.interested = False
         self.buffer = []
         self.complete = False
@@ -55,12 +57,14 @@ class Relayer(object):
         else:
             # Make the local connection for receiving.
             con = Connection(self, c, nid, True, established=True)
-            print "Condeets:", con.ip, con.port
+            print "Condeets: ", con.ip, con.port
             c.handler = con
             return con
     
     def relay_message(self, con, msg):
         if self.connections.has_key(con) and self.connections[con] is not None:
+            self.uprate.update_rate(len(msg))
+            self.sent += len(msg)
             self.connections[con].send_relay_message(msg)
 
     def connection_completed(self, con):
@@ -89,6 +93,9 @@ class Relayer(object):
 
     def get_rate(self):
         return self.uprate.get_rate()
+
+    def get_sent(self):
+        return self.sent
 
     def choke(self):
         if not self.choked:

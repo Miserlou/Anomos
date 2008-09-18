@@ -145,6 +145,7 @@ class SingleportListener(object):
         self.port = 0
         self.ports = {}
         self.torrents = {}
+        self.relayers = []
         self.connections = {}
         self.neighbors = neighbors
         self.lookup_loc = self.neighbors.lookup_loc
@@ -204,6 +205,23 @@ class SingleportListener(object):
         conn.encoder = Relayer(self.rawserver, self.neighbors, conn, neighborid,
                                 self.config, self.keyring)
         conn.is_relay = True
+        self.relayers.append(conn.encoder)
+        return conn.encoder
+
+    def get_relay_size(self):
+        return len(self.relayers)
+
+    def get_relay_rate(self):
+        rate = 0
+        for r in self.relayers:
+            rate  += r.get_rate()
+        return rate
+
+    def get_relay_sent(self):
+        sent = 0
+        for r in self.relayers:
+            sent  += r.get_sent()
+        return sent
     
     def set_neighbor(self, conn):
         del self.connections[conn.connection]

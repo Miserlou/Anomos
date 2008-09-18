@@ -11,7 +11,6 @@
 # License.
 
 # Written by Bram Cohen, Uoti Urpala and John Hoffman
-
 from __future__ import division
 
 import sys
@@ -79,6 +78,8 @@ class HeadlessDisplayer(object):
         self.downloadTo = ''
         self.fileSize = ''
         self.numpieces = 0
+        self.rsent = 0
+        self.rrate = 0
 
     def set_torrent_values(self, name, path, size, numpieces):
         self.file = name
@@ -195,6 +196,15 @@ class HeadlessDisplayer(object):
             s.write('\n')
         print s.getvalue()
 
+    def display_relay(self, rate, size, sent):
+        r = "%.3f" % rate
+        snt = "%.3f" % sent
+        if snt != self.rsent:
+            print "Running " + str(size) + " relays at " + str(r) + " KBps and relayed " + str(snt) + " of data."
+            self.rsent = snt
+        else:
+            print "Running " + str(size) + " relays at 0.000 KBps and relayed " + str(snt) + " of data."
+
 
 class DL(Feedback):
 
@@ -229,8 +239,12 @@ class DL(Feedback):
             print str(e)
             return
         self.get_status()
+        rate = self.multitorrent.get_relay_rate()
+        size = self.multitorrent.get_relay_size()
+        sent = self.multitorrent.get_relay_sent()
         self.multitorrent.rawserver.listen_forever()
         self.d.display({'activity':'shutting down', 'fractionDone':0})
+        self.d.display_relay(rate, size, sent)
         self.torrent.shutdown()
 
     def reread_config(self):
@@ -253,7 +267,11 @@ class DL(Feedback):
         self.multitorrent.rawserver.add_task(self.get_status,
                                              self.config['display_interval'])
         status = self.torrent.get_status(self.config['spew'])
+        rate = self.multitorrent.get_relay_rate()
+        size = self.multitorrent.get_relay_size()
+        sent = self.multitorrent.get_relay_sent()
         self.d.display(status)
+        self.d.display_relay(rate, size, sent)
 
     def global_error(self, level, text):
         self.d.error(text)
