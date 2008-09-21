@@ -38,7 +38,7 @@ def parsedir(directory, parsed, files, blocked, errfunc,
                 newtorrents = True
                 p = os.path.join(directory, f)
                 try:
-                    new_files[p] = [(os.path.getmtime(p),os.path.getsize(p)),0]
+                    new_files[p] = [(int(os.path.getmtime(p)),os.path.getsize(p)),0]
                 except (IOError, OSError), e:
                     errfunc("Could not stat " + p + " : " + str(e))
         if not newtorrents:
