@@ -60,7 +60,7 @@ class RateLimiter(object):
             except KeyboardInterrupt:
                 raise
             except Exception, e:
-                cur.encoder.context.got_exception(e)
+                cur.owner.context.got_exception(e)
                 bytes = 0
 
             self.offset_amount += bytes

@@ -34,7 +34,7 @@ from Anomos.StorageWrapper import StorageWrapper
 from Anomos.Uploader import Upload
 from Anomos.Downloader import Downloader
 from Anomos.Relayer import Relayer
-from Anomos.Encoder import Encoder, SingleportListener
+from Anomos.Encoder import EndPoint, SingleportListener
 from Anomos.RateLimiter import RateLimiter
 from Anomos.RawServer import RawServer
 from Anomos.Rerequester import Rerequester
@@ -344,7 +344,7 @@ class _SingleTorrent(object):
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
                         self.config['max_slice_length'], self.config['max_rate_period'], kee)
-        self._encoder = Encoder(make_upload, downloader, choker,
+        self._encoder = EndPoint(make_upload, downloader, choker,
                                 len(metainfo.hashes), schedfunc, self)
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:

@@ -56,8 +56,8 @@ class ConnectionError(Exception):
 
 class Connection(object):
 
-    def __init__(self, encoder, connection, id, is_local, established=False):
-        self.encoder = encoder
+    def __init__(self, owner, connection, id, is_local, established=False):
+        self.owner = owner
         self.connection = connection
         self.id = id
         self.locally_initiated = is_local
@@ -71,6 +71,8 @@ class Connection(object):
         self.upload = None
         self.download = None
         self.is_relay = False
+        self.link_key = None # Link encryption key
+        self.e2e_key = None # End-to-end encryption key
         self._buffer = ""
         self._reader = self._read_header() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -79,7 +81,7 @@ class Connection(object):
         self.choke_sent = True
         if self.locally_initiated and not self.established:
             connection.write(chr(len(protocol_name)) + protocol_name +
-                tobinary(self.encoder.port)[2:] + (chr(0) * 6))
+                tobinary(self.owner.port)[2:] + (chr(0) * 6))
 
     def close(self, e=None):
         print "Closing the connection!", e
@@ -90,52 +92,62 @@ class Connection(object):
             raise ConnectionError(e)
 
     def send_interested(self):
+        print "Send interested"
         self._send_encrypted_message(INTERESTED)
 
     def send_not_interested(self):
+        print "Send not interested"
         self._send_encrypted_message(NOT_INTERESTED)
 
     def send_choke(self):
+        print "Send choke"
         if self._partial_message is None:
             self._send_encrypted_message(CHOKE)
             self.choke_sent = True
             self.upload.sent_choke()
 
     def send_unchoke(self):
+        print "Send unchoke"
         if self._partial_message is None:
             self._send_encrypted_message(UNCHOKE)
             self.choke_sent = False
 
     def send_request(self, index, begin, length):
+        print "Send request"
         self._send_encrypted_message(REQUEST + tobinary(index) +
             tobinary(begin) + tobinary(length))
 
     def send_cancel(self, index, begin, length):
+        print "Send cancel"
         self._send_encrypted_message(CANCEL + tobinary(index) +
             tobinary(begin) + tobinary(length))
 
     def send_bitfield(self, bitfield):
+        print "Send bitfield"
         self._send_encrypted_message(BITFIELD + bitfield)
 
     def send_have(self, index):
+        print "Send have"
         self._send_encrypted_message(HAVE + tobinary(index))
 
     def send_keepalive(self):
+        print "Send keepalive"
         self._send_message('')
 
     def send_partial(self, bytes):
+        #XXX: This method is awful.
         if self.closed:
             return 0
+        key = self.get_link_aes()
         if self._partial_message is None:
             s = self.upload.get_upload_chunk()
             if s is None:
                 return 0
             index, begin, piece = s
-            key = self.get_aes_key()
             if not key:
                 self.close("Encryption key not found")
             msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
-            self._partial_message = tobinary(len(msg) + 1) + ENCRYPTED + key.encrypt(msg)
+            self._partial_message = tobinary(len(msg) + 2) + ENCRYPTED + key.encrypt(ENCRYPTED + self.e2e_key.encrypt(msg))
         if bytes < len(self._partial_message):
             self.connection.write(buffer(self._partial_message, 0, bytes))
             self._partial_message = buffer(self._partial_message, bytes)
@@ -145,14 +157,15 @@ class Connection(object):
         self._partial_message = None
         if self.choke_sent != self.upload.choked:
             if self.upload.choked:
-                self._outqueue.append(tobinary(1) + CHOKE)
+                self._outqueue.append(tobinary(3) + ENCRYPTED + key.encrypt(ENCRYPTED + self.e2e_key.encrypt(CHOKE)))
                 self.upload.sent_choke()
             else:
-                self._outqueue.append(tobinary(1) + UNCHOKE)
+                self._outqueue.append(tobinary(3) + ENCRYPTED + key.encrypt(ENCRYPTED + self.e2e_key.encrypt(UNCHOKE)))
             self.choke_sent = self.upload.choked
         queue.extend(self._outqueue)
         self._outqueue = []
         queue = ''.join(queue)
+        print "Sending Partial, ", len(queue)
         self.connection.write(queue)
         return len(queue)
     
@@ -169,13 +182,15 @@ class Connection(object):
         self._send_message(msg)
     
     def send_tracking_code(self, trackcode):
-        self._send_encrypted_message(TCODE + trackcode)
+        self._send_encrypted_message(TCODE + trackcode, False)
     
     def send_relay_message(self, message):
-        self._send_encrypted_message(message)
+        self._send_encrypted_message(message, False)
     
-    def get_aes_key(self):
-        return self.encoder.keyring.getKey(self.id)
+    def get_link_aes(self):
+        if self.link_key is None:
+            self.link_key = self.owner.keyring.getKey(self.id)
+        return self.link_key
     
     def try_all_keys(self, message):
         '''This method handles conflict resolution when 2 or more of our 
@@ -185,21 +200,20 @@ class Connection(object):
            get more than one valid plaintext we check if any of the TCODES are
            valid by decrypting each of them with our RSA key.
         '''
-        nids = self.encoder.lookup_loc(self.connection.ip)
+        nids = self.owner.lookup_loc(self.connection.ip)
         pts = {}
         for id in nids:
-            key = self.encoder.keyring.getKey(id)
+            key = self.owner.keyring.getKey(id)
             #Create a copy of the key so we don't screw up the cipher state
             tmpkey = crypto.AESKey(key.key, key.iv)
             plaintext = tmpkey.decrypt(message)
-            print "Attempted decrypt from:", b2a_hex(id), b2a_hex(plaintext[0])
             if plaintext[0] == TCODE:
                 pts[id] = plaintext
         if len(pts) == 1:
             self.id = pts.items()[0][0]
             self.established = True
             #Decrypt with the real key to advance the cipher state
-            return self.encoder.keyring.getKey(self.id).decrypt(message)
+            return self.owner.keyring.getKey(self.id).decrypt(message)
         elif len(pts) > 1:
             for id, text in pts.iteritems():
                 try:
@@ -210,9 +224,9 @@ class Connection(object):
                     self.id = id
                     self.established = True
                     #Decrypt with the real key to advance the cipher state
-                    return self.encoder.keyring.getKey(self.id).decrypt(message)
+                    return self.get_link_aes.decrypt(message)
         # Apparently this message isn't for us.
-        self.close("Cannot decrypt message") 
+        self.close("Cannot decrypt message")
     
     def _read_header(self):
         '''Yield the number of bytes for each section of the header and sanity
@@ -239,15 +253,14 @@ class Connection(object):
         yield 6  # reserved
         # Got a full header => New Neighbor Connection
         if not self.locally_initiated:
-            
-            # This is a new neighbor, so switch to a NeighborManager encoder
-            self.encoder.set_neighbor(self)
+            # This is a new neighbor, so switch owner to a NeighborManager
+            self.owner.set_neighbor(self)
             #XXX: PORT HACK
-            self.connection.write(chr(len(protocol_name)) + protocol_name + tobinary(self.encoder.port)[2:] + (chr(0) * 6))
+            self.connection.write(chr(len(protocol_name)) + protocol_name + tobinary(self.owner.port)[2:] + (chr(0) * 6))
             if not self.established:
                 # Non-neighbor connection
                 # Respond with PubKey
-                pkmsg = PUBKEY + self.encoder.rsakey.pub_bin()
+                pkmsg = PUBKEY + self.owner.rsakey.pub_bin()
                 self._send_message(pkmsg)
         self._reader = self._read_messages()
         yield self._reader.next()
@@ -256,10 +269,11 @@ class Connection(object):
         while True:
             yield 4   # message length
             l = toint(self._message)
-            if l > self.encoder.config['max_message_length']:
+            if l > self.owner.config['max_message_length']:
                 return
             if l > 0:
                 yield l
+                print "Length:",l
                 self._got_message(self._message)
 
     def _got_message(self, message):
@@ -279,14 +293,20 @@ class Connection(object):
             self.close("Invalid message length")
             return
         if t == ENCRYPTED:
-            key = self.get_aes_key()
+            # Decrypt the message, relay it if we're a relayer, decrypt with
+            # e2e key if we have it, then pass the decrypted message back into
+            # this method.
+            key = self.get_link_aes()
             if key:
                 m = key.decrypt(message[1:])
-            elif not self.id:
+            else:
                 # This only happens if we have two+ neighbors at the same IP
                 m = self.try_all_keys(message[1:])
             if self.is_relay:
-                self.encoder.relay_message(self, m)
+                self.owner.relay_message(self, m)
+            elif self.complete and self.e2e_key is not None:
+                m = self.e2e_key.decrypt(m[1:])
+                self._got_message(m)
             else:
                 self._got_message(m)
         elif t == CHOKE:
@@ -302,13 +322,13 @@ class Connection(object):
                 self.close("Invalid message length")
                 return
             i = toint(message[1:])
-            if i >= self.encoder.numpieces:
+            if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
                 return
             self.download.got_have(i)
         elif t == BITFIELD:
             try:
-                b = Bitfield(self.encoder.numpieces, message[1:])
+                b = Bitfield(self.owner.numpieces, message[1:])
             except ValueError:
                 self.close("Bad Bitfield")
                 return
@@ -318,7 +338,7 @@ class Connection(object):
                 self.close("Bad request length")
                 return
             i = toint(message[1:5])
-            if i >= self.encoder.numpieces:
+            if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
                 return
             self.upload.got_request(i, toint(message[5:9]),
@@ -328,7 +348,7 @@ class Connection(object):
                 self.close("Invalid message length")
                 return
             i = toint(message[1:5])
-            if i >= self.encoder.numpieces:
+            if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
                 return
             self.upload.got_cancel(i, toint(message[5:9]),
@@ -338,35 +358,34 @@ class Connection(object):
                 self.close("Bad message length")
                 return
             i = toint(message[1:5])
-            if i >= self.encoder.numpieces:
+            if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
                 return
             if self.download.got_piece(i, toint(message[5:9]), message[9:]):
-                for co in self.encoder.complete_connections:
+                for co in self.owner.complete_connections:
                     co.send_have(i)
         elif t == TCODE:
             print "Got TCODE"
             #XXX: Decrypt might fail and raise an error.
-            plaintext, nextTC = self.encoder.rsakey.decrypt(message[1:], True)
+            plaintext, nextTC = self.owner.rsakey.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
-                self._send_message(CONFIRM)
-                self.encoder.set_relayer(self, plaintext)
-                self.encoder.connection_completed(self)
-                print "Relaying message"
-                self.encoder.relay_message(self, TCODE + nextTC)
+                self.owner.set_relayer(self, plaintext)
+                self.owner.connection_completed(self)
+                self.owner.relay_message(self, TCODE + nextTC)
             else:
                 print "Receiving TCODE"
                 # TC ends at this peer, plaintext contains infohash, aes, iv
                 infohash = plaintext[:20]
                 aes = plaintext[20:52]
                 iv = plaintext[52:74]
-                self.encoder.set_torrent(self, infohash)
-                if self.encoder.download_id is None:
+                self.e2e_key = crypto.AESKey(aes,iv)
+                self.owner.set_torrent(self, infohash)
+                if self.owner.download_id is None:
                     # We don't have that torrent...
                     # TODO: handle this gracefully.
                     return
-                self._send_encrypted_message(CONFIRM)
-                self.encoder.connection_completed(self)
+                self._send_encrypted_message(CONFIRM, False)
+                self.owner.connection_completed(self)
         elif t == PUBKEY:
             #TODO: Check size?
             pub = crypto.RSAPubKey(message[1:])
@@ -374,7 +393,7 @@ class Connection(object):
         elif t == EXCHANGE:
             # Read in RSA encrypted data and extract NID, AES key and AES IV
             try:
-                plaintxt = self.encoder.rsakey.decrypt(message[1:])
+                plaintxt = self.owner.rsakey.decrypt(message[1:])
                 nid = plaintxt[0]
                 i = 1
                 keylen = toint(plaintxt[i:i+4])
@@ -394,32 +413,40 @@ class Connection(object):
                 self.close("Bad encrypted message checksum")
                 return
             # Check that this NID isn't already taken
-            if self.encoder.has_neighbor(nid):
+            if self.owner.has_neighbor(nid):
                 self.close("NID already assigned")
                 return
             self.id = nid
-            self.encoder.add_neighbor(self.id, (self.ip, self.port), crypto.AESKey(key, iv))
+            self.owner.add_neighbor(self.id, (self.ip, self.port), crypto.AESKey(key, iv))
             self._send_message(CONFIRM)
-            self.encoder.connection_completed(self)
+            self.owner.connection_completed(self)
         elif t == CONFIRM:
             if not self.established:
-                self.encoder.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
-            self.encoder.connection_completed(self)
+                self.owner.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
+            self.owner.connection_completed(self)
+            if self.is_relay:
+                self.owner.relay_message(self, CONFIRM)
         else:
+            print "invalid message from", b2a_hex(self.id), ord(self.id)," : ", b2a_hex(self._message)
+            if b2a_hex(self._message[0]) == "0d":
+                print "invalid:", b2a_hex(self.get_link_aes().decrypt(self._message[1:]))
             self.close("Invalid message")
             return
 
     def _sever(self):
         self.closed = True
         self._reader = None
-        #del self.encoder.connections[self.connection]
-        # self.encoder.replace_connection()
+        #del self.owner.connections[self.connection]
+        # self.owner.replace_connection()
         if self.complete:
-            #XXX: Fails for NeighborManager connections.
-            self.encoder.complete_connections.discard(self)
-            self.download.disconnected()
-            self.encoder.choker.connection_lost(self)
-            self.upload = self.download = None
+            #XXX: Make this work for all 3 connection types. (and remove try)
+            try:
+                self.owner.complete_connections.discard(self)
+                self.download.disconnected()
+                self.owner.choker.connection_lost(self)
+                self.upload = self.download = None
+            except:
+                pass
     
     def _send_message(self, message):
         s = tobinary(len(message)) + message
@@ -428,15 +455,18 @@ class Connection(object):
         else:
             self.connection.write(s)
     
-    def _send_encrypted_message(self, message):
+    def _send_encrypted_message(self, message, e2e_encrypt=True):
         '''Sends a /link encrypted/ message. Messages must be end-to-end
            encrypted prior to being passed to this method.
         '''
-        key = self.get_aes_key()
-        if not key:
-            self.close("Tried to send encrypted message without key")
+        if e2e_encrypt and self.e2e_key:
+            message = ENCRYPTED + self.e2e_key.encrypt(message)
+        link_key = self.get_link_aes()
+        if not link_key:
+            self.close("Tried to send encrypted message without link key")
         #TODO: send message hash as well?
-        self._send_message(ENCRYPTED + key.encrypt(message))
+        message = link_key.encrypt(message)
+        self._send_message(ENCRYPTED + message)
     
     def data_came_in(self, conn, s):
         while True:
@@ -466,4 +496,4 @@ class Connection(object):
         if self.complete:
             if self.next_upload is None and (self._partial_message is not None
                                              or self.upload.buffer):
-                self.encoder.ratelimiter.queue(self)
+                self.owner.ratelimiter.queue(self)

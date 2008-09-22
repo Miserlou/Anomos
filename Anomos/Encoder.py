@@ -18,7 +18,7 @@ from Anomos.Relayer import Relayer
 from Anomos import BTFailure
 
 
-class Encoder(object):
+class EndPoint(object):
     ''' Encoder objects exist at the torrent level. A client has an encoder
         object for each torrent they're downloading/seeding. The primary
         purpose of the encoder object is to initialize new connections by
@@ -57,7 +57,7 @@ class Encoder(object):
         for c in self.complete_connections:
             c.send_keepalive()
 
-    def start_connection(self, tc, errorfunc=None):
+    def start_connection(self, tc, aeskey, errorfunc=None):
         if len(self.connections) >= self.config['max_initiate']:
             return
         nid = None
@@ -78,14 +78,14 @@ class Encoder(object):
             tc = tc + crypto.getRand(tclen-len(tc))
         loc = self.neighbors.get_location(nid)
         if not self.neighbors.is_complete(nid):
-            self.neighbors.schedule_tc(self.send_tc, nid, tc)
+            self.neighbors.schedule_tc(self.send_tc, nid, tc, aeskey)
         elif not loc and errorfunc is not None:
             # No longer connected to this neighbor
             errorfunc()
         else:
-            self.send_tc(nid, tc, relayer)
+            self.send_tc(nid, tc, aeskey)
     
-    def send_tc(self, nid, tc):
+    def send_tc(self, nid, tc, aeskey):
         loc = self.neighbors.get_location(nid)
         print "Sending TC to", hex(ord(nid)), "at", loc
         try:
@@ -95,6 +95,7 @@ class Encoder(object):
         else:
             # Make the local connection for receiving.
             con = Connection(self, c, nid, True, established=True)
+            con.e2e_key = aeskey
             self.connections[c] = con
             c.handler = con 
             con.send_tracking_code(tc)
@@ -127,7 +128,7 @@ class Encoder(object):
             return
         self.connections[con.connection] = con
         del listener.connections[con.connection]
-        con.encoder = self
+        con.owner = self
         con.connection.context = self.context
 
     def ban(self, ip):
@@ -187,11 +188,11 @@ class SingleportListener(object):
             self.rawserver.stop_listening(serversocket)
             serversocket.close()
 
-    def add_torrent(self, infohash, encoder):
+    def add_torrent(self, infohash, endpoint):
         if infohash in self.torrents:
             raise BTFailure("Can't start two separate instances of the same "
                             "torrent")
-        self.torrents[infohash] = encoder
+        self.torrents[infohash] = endpoint
 
     def remove_torrent(self, infohash):
         del self.torrents[infohash]
@@ -202,11 +203,11 @@ class SingleportListener(object):
         self.torrents[infohash].singleport_connection(self, conn)
     
     def set_relayer(self, conn, neighborid):
-        conn.encoder = Relayer(self.rawserver, self.neighbors, conn, neighborid,
+        conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
                                 self.config, self.keyring)
         conn.is_relay = True
-        self.relayers.append(conn.encoder)
-        return conn.encoder
+        self.relayers.append(conn.owner)
+        return conn.owner
 
     def get_relay_size(self):
         return len(self.relayers)
@@ -225,7 +226,7 @@ class SingleportListener(object):
     
     def set_neighbor(self, conn):
         del self.connections[conn.connection]
-        conn.encoder = self.neighbors
+        conn.owner = self.neighbors
         self.neighbors.connections[conn.connection] = conn
     
     def external_connection_made(self, socket):

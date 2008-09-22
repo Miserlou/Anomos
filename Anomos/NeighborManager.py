@@ -66,12 +66,12 @@ class NeighborManager:
         for task in self.waiting_tcs.get(con.id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
     
-    def schedule_tc(self, sendfunc, id, tc):
+    def schedule_tc(self, sendfunc, id, tc, aeskey):
         '''Sometimes a tracking code is received before a neighbor is fully
         initialized. In those cases we schedule the TC to be sent once we get
         a "connection_completed" from the neighbor.'''
         def sendtc():
-            sendfunc(id, tc)
+            sendfunc(id, tc, aeskey)
         self.waiting_tcs.setdefault(id,[])
         self.waiting_tcs[id].append(sendtc)
         

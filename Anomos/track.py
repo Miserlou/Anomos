@@ -669,7 +669,7 @@ class Tracker(object):
             #TODO: design a good format for the request
             t = self.networkmodel.getTrackingCode(peerid, id, infohash + aes.key + aes.iv)
             if t:
-                tcs.append(t)
+                tcs.append([aes.key + aes.iv, t])
         return tcs
         
         

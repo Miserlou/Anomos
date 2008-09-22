@@ -21,6 +21,7 @@ from Anomos.zurllib import urlopen, quote, Request
 from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
+import Anomos.crypto as crypto
 
 STARTED=0
 COMPLETED=1
@@ -267,8 +268,9 @@ class Rerequester(object):
             for x in peers:
                 self.nbr_connect((x[0], x[1]), x[2])
             # Start downloads
-            for tc in r.get('tracking codes', []):
-                self.peer_connect(tc)
+            for aes, tc in r.get('tracking codes', []):
+                #TODO: add error callback
+                self.peer_connect(tc, crypto.AESKey(aes[:32], aes[32:]))
             if peerid == self.wanted_peerid:
                 self.successfunc()
             self._check()
