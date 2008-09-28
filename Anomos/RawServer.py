@@ -166,6 +166,7 @@ class RawServer(object):
     
     @staticmethod
     def create_serversocket(port, bind='', reuse=False, tos=0):
+        ##SSL  here
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if reuse and os.name != 'nt':
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -190,6 +191,7 @@ class RawServer(object):
         self.poll.unregister(serversocket)
 
     def start_connection(self, dns, handler=None, context=None, do_bind=True):
+        ##SSL Here?
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(0)
         if do_bind and self.bindaddr:
