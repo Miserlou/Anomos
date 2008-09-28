@@ -105,7 +105,7 @@ class HeadlessDisplayer(object):
         upRate = statistics.get('upRate')
         spew = statistics.get('spew')
 
-        print '\n\n\n\n'
+        #print '\n\n\n\n'
         if spew is not None:
             self.print_spew(spew)
 
@@ -143,15 +143,15 @@ class HeadlessDisplayer(object):
 
         for err in self.errors:
             print 'ERROR:\n' + err + '\n'
-        print 'saving:        ', self.file
+        #print 'saving:        ', self.file
         print 'percent done:  ', self.percentDone
-        print 'time left:     ', self.timeEst
-        print 'download to:   ', self.downloadTo
+        #print 'time left:     ', self.timeEst
+        #print 'download to:   ', self.downloadTo
         print 'download rate: ', self.downRate
         print 'upload rate:   ', self.upRate
-        print 'share rating:  ', self.shareRating
-        print 'seed status:   ', self.seedStatus
-        print 'peer status:   ', self.peerStatus
+        #print 'share rating:  ', self.shareRating
+        #print 'seed status:   ', self.seedStatus
+        #print 'peer status:   ', self.peerStatus
 
     def print_spew(self, spew):
         s = StringIO()

@@ -81,16 +81,6 @@ class Relayer(object):
     def returnPart(self):
         return relayparts.get()
 
-    def sendPart(self):
-        eprt = self.outgoing.pubkey.encrypt(returnPart())
-        self.outconnection.write(eprt)
-        self.uprate.update_rate(len(eprt))
-
-    def sendOutMessage(message):
-        encm = self.incoming.pubkey.encrypt(message)
-        self.inconnection.write(encm)
-        self.uprate.update_rate(len(encm))
-
     def get_rate(self):
         return self.uprate.get_rate()
 
