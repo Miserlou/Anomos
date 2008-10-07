@@ -15,6 +15,7 @@ import os
 import cStringIO
 import sha
 import os
+import pexpect
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
 from Anomos import BTFailure
@@ -56,6 +57,75 @@ def tobinary(i):
 
 def toM2Exp(n):
     return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
+
+
+###     Checks if we have a self-signed cert, if not, makes one
+##XXX:     LINUX ONLY NEED WINDOWS SOLUTION SOON
+def makeNewCert():
+
+    if os.path.exists(global_cryptodir+"/server.key") and os.path.exists(global_cryptodir+"/server.csr") and os.path.exists(global_cryptodir+"/server.crt"):
+        print "Certificates in place!"
+        return
+
+    print "\n\n Hello! We need to set up your cryptographic status. This open happens the first time Anomos is started. This may take a minute, please wait. \n\n"
+
+    ##TODO: Investigate DES3 vs AES trade-offs. AES256 v 128 v DES3?
+    shell = pexpect.spawn('openssl genrsa -aes128 -out ' + serverkey + ' 4096 ', timeout=5000)
+
+    shell.expect('Enter pass phrase for server.key:')
+    randpass = ''.join([choice(string.letters + string.digits) for i in xrange(10)])   
+    print randpass
+    shell.sendline(randpass)
+    shell.expect('Verifying - Enter pass phrase for server.key:')
+    shell.sendline(randpass)
+
+    print "\nKey generated, creating request: \n"
+    
+    serverkey = global_cryptodir + "/server.key"
+    servercsr = global_cryptodir + "/server.csr"
+
+    shell = pexpect.spawn('openssl req -new -key ' + serverkey + ' -out ' + servercsr, timeout=500000)
+    shell.expect('Enter pass phrase for ' + serverkey + ':')
+    shell.sendline(randpass)
+
+    shell.expect('.*')
+    shell.sendline('XX')
+    shell.expect('.*')
+    shell.sendline('XXXXXXX')
+    shell.expect('.*')
+    shell.sendline('XXXXXXX')
+    shell.expect('.*')
+    shell.sendline('XXXXXXX')
+    shell.expect('.*')
+    shell.sendline('XXXXXXX')
+    shell.expect('.*')
+    shell.sendline('XXX XXX')
+    shell.expect('.*')
+    shell.sendline('XXX@XXX.com')
+    shell.expect('.*')
+    shell.sendline('')
+    shell.expect('.*')
+    shell.sendline('')
+
+    print "\nRequest made, signing..\n"
+
+    servercrt = global_cryptodir + "/server.crt"
+
+    shell = pexpect.spawn('openssl x509 -req -days 3650 -in ' + servercsr + ' -signkey ' + serverkey + ' -out ' + servercrt )
+    shell.expect('.*Enter pass phrase for ' + serverkey + ':')
+    shell.sendline(randpass)
+
+    print "\nCertificate signed, organizing keys..\n"
+
+    serverkeyinsecure = serverkey + '.insecure'
+    serverkeysecure = serverkey + '.secure'
+
+    shell = pexpect.spawn('openssl rsa -in ' + serverkey + ' -out ' + serverkeyinsecure)
+    shell.expect('Enter pass phrase for ' + serverkey + ':')
+    shell.sendline(randpass)
+
+    shell = pexpect.spawn('mv ' + serverkey + ' ' + serverkeysecure)
+    shell = pexpect.spawn('mv ' + serverkeyinsecure + ' ' + serverkey)
 
 class RSAPubKey:
    
@@ -348,3 +418,5 @@ if __name__ == "__main__":
     dhash = sha.new(dec).digest()
     print "Decrypted: ", rsa.decrypt(encrypted)
     print "Verified: ", rsa.verify(sig, dhash)
+
+    makeNewCert()
