@@ -15,10 +15,13 @@ import os
 import cStringIO
 import sha
 import os
-import pexpect
+import string
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
 from Anomos import BTFailure
+from random import choice
+import pexpect
+import time
 
 
 def getRand(*args):
@@ -63,29 +66,34 @@ def toM2Exp(n):
 ##XXX:     LINUX ONLY NEED WINDOWS SOLUTION SOON
 def makeNewCert():
 
-    if os.path.exists(global_cryptodir+"/server.key") and os.path.exists(global_cryptodir+"/server.csr") and os.path.exists(global_cryptodir+"/server.crt"):
-        print "Certificates in place!"
-        return
+    if os.path.exists(global_cryptodir+"/server.crt"):
+         print "Certificates in place!"
+         return
 
     print "\n\n Hello! We need to set up your cryptographic status. This open happens the first time Anomos is started. This may take a minute, please wait. \n\n"
 
     ##TODO: Investigate DES3 vs AES trade-offs. AES256 v 128 v DES3?
-    shell = pexpect.spawn('openssl genrsa -aes128 -out ' + serverkey + ' 4096 ', timeout=5000)
-
-    shell.expect('Enter pass phrase for server.key:')
-    randpass = ''.join([choice(string.letters + string.digits) for i in xrange(10)])   
-    print randpass
-    shell.sendline(randpass)
-    shell.expect('Verifying - Enter pass phrase for server.key:')
-    shell.sendline(randpass)
-
-    print "\nKey generated, creating request: \n"
-    
     serverkey = global_cryptodir + "/server.key"
     servercsr = global_cryptodir + "/server.csr"
 
+    shell = pexpect.spawn('openssl genrsa -des3 -out ' + serverkey + ' 4096 ', timeout=5000)
+
+    shell.expect('Enter pass phrase for ' + serverkey +':')
+    randpass = ''.join([choice(string.letters + string.digits) for i in xrange(10)])   
+    shell.sendline(randpass)
+    shell.expect('Verifying - Enter pass phrase for ' + serverkey +':')
+    shell.sendline(randpass)
+
+    time.sleep(1)
+
+    if os.path.exists(global_cryptodir+"/server.key") : ##and os.path.getsize(global_cryptodir+"/server.key") > 0:
+        print "\nKey generated, creating request: \n"
+    else:
+        print "Fail.."
+        return
+
     shell = pexpect.spawn('openssl req -new -key ' + serverkey + ' -out ' + servercsr, timeout=500000)
-    shell.expect('Enter pass phrase for ' + serverkey + ':')
+    shell.expect('.*')
     shell.sendline(randpass)
 
     shell.expect('.*')
@@ -107,12 +115,14 @@ def makeNewCert():
     shell.expect('.*')
     shell.sendline('')
 
+    time.sleep(1)
+
     print "\nRequest made, signing..\n"
 
     servercrt = global_cryptodir + "/server.crt"
 
     shell = pexpect.spawn('openssl x509 -req -days 3650 -in ' + servercsr + ' -signkey ' + serverkey + ' -out ' + servercrt )
-    shell.expect('.*Enter pass phrase for ' + serverkey + ':')
+    shell.expect('.*')
     shell.sendline(randpass)
 
     print "\nCertificate signed, organizing keys..\n"
@@ -121,11 +131,17 @@ def makeNewCert():
     serverkeysecure = serverkey + '.secure'
 
     shell = pexpect.spawn('openssl rsa -in ' + serverkey + ' -out ' + serverkeyinsecure)
-    shell.expect('Enter pass phrase for ' + serverkey + ':')
+    shell.expect('.*')
     shell.sendline(randpass)
+
+    time.sleep(1)
 
     shell = pexpect.spawn('mv ' + serverkey + ' ' + serverkeysecure)
     shell = pexpect.spawn('mv ' + serverkeyinsecure + ' ' + serverkey)
+
+    time.sleep(1)
+
+    print "Done setting up crypto!"
 
 class RSAPubKey:
    
@@ -396,10 +412,11 @@ class CryptoError(BTFailure):
 
 if __name__ == "__main__":
     secret = "Call me subwoofa cause I push so much base!"
-    initCrypto('crypto-test')
+
+    initCrypto(os.getcwd())
     getRand()
     
-    # Test AESKey
+    '''# Test AESKey
     key = AESKey()
     
     print "Plaintext:", secret
@@ -417,6 +434,6 @@ if __name__ == "__main__":
     dec = rsa.decrypt(encrypted)
     dhash = sha.new(dec).digest()
     print "Decrypted: ", rsa.decrypt(encrypted)
-    print "Verified: ", rsa.verify(sig, dhash)
+    print "Verified: ", rsa.verify(sig, dhash)'''
 
     makeNewCert()
