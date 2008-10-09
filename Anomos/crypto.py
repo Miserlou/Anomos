@@ -76,7 +76,7 @@ def makeNewCert():
     serverkey = global_cryptodir + "/server.key"
     servercsr = global_cryptodir + "/server.csr"
 
-    shell = pexpect.spawn('openssl genrsa -des3 -out ' + serverkey + ' 4096 ', timeout=5000)
+    shell = pexpect.spawn('openssl genrsa -aes128 -out ' + serverkey + ' 4096 ', timeout=5000)
 
     shell.expect('Enter pass phrase for ' + serverkey +':')
     randpass = ''.join([choice(string.letters + string.digits) for i in xrange(10)])   
