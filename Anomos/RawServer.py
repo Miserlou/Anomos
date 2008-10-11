@@ -19,6 +19,8 @@ from traceback import print_exc
 from errno import EWOULDBLOCK, ENOBUFS
 from Anomos.platform import bttime
 from Anomos import CRITICAL, FAQ_URL
+from Anomos import crypto
+from M2Crypto.SSL import Connection
 
 try:
     from select import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
@@ -166,8 +168,26 @@ class RawServer(object):
     
     @staticmethod
     def create_serversocket(port, bind='', reuse=False, tos=0):
-        ##SSL  here
+
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if reuse and os.name != 'nt':
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.setblocking(0)
+        if tos != 0:
+            try:
+                server.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, tos)
+            except:
+                pass
+        server.bind((bind, port))
+        server.listen(5)
+        return server
+
+    def create_ssl_serversocket(port, bind='', reuse=False, tos=0):
+        ##SSL  here
+        sslsrvctx = crypto.getSSLServerContext()
+        server = Connection(sslsrvctx)
+        server.setup_ssl()
+        ##server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if reuse and os.name != 'nt':
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.setblocking(0)

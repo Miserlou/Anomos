@@ -16,6 +16,7 @@ import cStringIO
 import sha
 import os
 import string
+import M2Crypto.SSL
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, util, EVP
 from Anomos import BTFailure
@@ -142,6 +143,30 @@ def makeNewCert():
     time.sleep(1)
 
     print "Done setting up crypto!"
+
+def getSSLServerContext():
+
+    ctx = M2Crypto.SSL.Context()                             ##None = SSLv23
+    ctx.load_cert(global_cryptodir+'/server.crt', global_cryptodir+'/server.key')              ##Certchain..?
+    ctx.set_allow_unknown_ca(True)
+    ##ctx.load_verify_locations(cafile)       
+    ##ctx.set_client_CA_list_from_file(cafile)    
+    ##ctx.set_verify(verify, verify_depth)
+    #ctx.set_allow_unknown_ca(1)
+    ##ctx.set_session_id_ctx('echod')
+    ctx.set_info_callback()                     ##Hopefully won't have to use this..
+
+    return ctx
+
+def getSSLContext(pemloc):
+
+    ctx = M2Crypto.SSL.Context()                             ##None = SSLv23
+    ctx.load_cert_chain(pemloc)                               ##Certchain..?
+    ctx.set_allow_unknown_ca(True)
+    ctx.set_info_callback()                                         ##Hopefully won't have to use this..
+
+    return ctx
+
 
 class RSAPubKey:
    
