@@ -211,8 +211,38 @@ class RawServer(object):
         self.poll.unregister(serversocket)
 
     def start_connection(self, dns, handler=None, context=None, do_bind=True):
-        ##SSL Here?
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(0)
+        if do_bind and self.bindaddr:
+            sock.bind((self.bindaddr, 0))
+        if self.tos != 0:
+            try:
+                sock.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, self.tos)
+            except:
+                pass
+        try:
+            # This will be picked up on the receiving end by the client's passive socket
+            sock.connect_ex(dns) 
+        except socket.error:
+            sock.close()
+            raise
+        # Commenting this out, because it appears to not be necessary
+        #except Exception, e:
+        #    sock.close()
+        #    raise socket.error(str(e))
+        self.poll.register(sock, POLLIN)
+        s = SingleSocket(self, sock, handler, context, dns[0])
+        self.single_sockets[sock.fileno()] = s
+        return s
+
+    def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True, pem=None):
+        ##TODO: pem should not be None
+            ##if none, make key?
+        ##SSL Here!
+        ctx = getSSLContext(pem)
+        sock = Connection(sslsrvctx)
+        sock.setup_ssl()
+        ##sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(0)
         if do_bind and self.bindaddr:
             sock.bind((self.bindaddr, 0))

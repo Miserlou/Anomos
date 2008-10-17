@@ -166,7 +166,8 @@ class SingleportListener(object):
         if port in self.ports:
             self.port = port
             return
-        serversocket = self.rawserver.create_serversocket(
+        ##SSL here!
+        serversocket = self.rawserver.create_ssl_serversocket(
             port, config['bind'], reuse=True, tos=config['peer_socket_tos'])
         self.rawserver.start_listening(serversocket, self)
         oldport = self.port

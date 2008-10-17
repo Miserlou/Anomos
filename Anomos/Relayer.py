@@ -51,7 +51,8 @@ class Relayer(object):
     def start_connection(self, nid):
         loc = self.neighbors.get_location(nid)
         try:
-            c = self.rawserver.start_connection(loc)
+            ## TODO: SSL Here!
+            c = self.rawserver.start_ssl_connection(loc)
         except socketerror:
             self.incoming.close("Socket error on Relayer")
         else:

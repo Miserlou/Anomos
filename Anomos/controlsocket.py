@@ -111,6 +111,8 @@ class ControlSocket(object):
     def send_command_inet(self, rawserver, action, data = ''):
         r = MessageReceiver(lambda action, data: None)
         try:
+            ##WTF is this?
+            ##SSL?!
             conn = rawserver.start_connection(('127.0.0.1', 56881), r)
         except socket.error, e:
             raise BTFailure('Could not send command: ' + str(e))
