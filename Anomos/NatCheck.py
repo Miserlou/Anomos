@@ -30,6 +30,7 @@ class NatCheck(object):
         self.next_len = 1
         self.next_func = self.read_header_len
         try:
+            ##SSL THIS!
             self.connection = rawserver.start_connection((ip, port), self)
             self.connection.write(chr(len(protocol_name)) + protocol_name +
                 (chr(0) * 8) + downloadid)

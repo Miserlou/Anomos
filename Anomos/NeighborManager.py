@@ -87,6 +87,7 @@ class NeighborManager:
             #TODO: Resolve conflict
             return
         try:
+            ##SSL THIS
             c = self.rawserver.start_connection(loc)
         except socketerror:
             pass
