@@ -147,6 +147,7 @@ def makeNewCert():
 def getSSLServerContext():
 
     ctx = M2Crypto.SSL.Context()                             ##None = SSLv23
+    print global_cryptodir+'/server.crt'
     ctx.load_cert(global_cryptodir+'/server.crt', global_cryptodir+'/server.key')              ##Certchain..?
     ctx.set_allow_unknown_ca(True)
     ##ctx.load_verify_locations(cafile)       

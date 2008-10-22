@@ -182,6 +182,7 @@ class RawServer(object):
         server.listen(5)
         return server
 
+    @staticmethod
     def create_ssl_serversocket(port, bind='', reuse=False, tos=0):
         ##SSL  here
         sslsrvctx = crypto.getSSLServerContext()
