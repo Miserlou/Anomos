@@ -56,6 +56,8 @@ def initCrypto(data_dir):
         return rb
     getRand = randfunc
 
+    makeNewCert()
+
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
