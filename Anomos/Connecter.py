@@ -483,7 +483,7 @@ class Connection(object):
         self._sever()
 
     def connection_flushed(self, connection):
-        if self.complete:
+        if self.complete and not self.is_relay:
             if self.next_upload is None and (self._partial_message is not None
                                              or self.upload.buffer):
                 self.owner.ratelimiter.queue(self)

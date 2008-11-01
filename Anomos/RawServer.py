@@ -20,7 +20,7 @@ from errno import EWOULDBLOCK, ENOBUFS
 from Anomos.platform import bttime
 from Anomos import CRITICAL, FAQ_URL
 from Anomos import crypto
-from M2Crypto.SSL import Connection
+import M2Crypto.SSL.Connection
 
 try:
     from select import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
@@ -186,7 +186,7 @@ class RawServer(object):
     def create_ssl_serversocket(port, bind='', reuse=False, tos=0):
         ##SSL  here
         sslsrvctx = crypto.getSSLServerContext()
-        server = Connection(sslsrvctx)
+        server = M2Crypto.SSL.Connection(sslsrvctx)
         server.setup_ssl()
         ##server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if reuse and os.name != 'nt':
@@ -240,8 +240,8 @@ class RawServer(object):
         ##TODO: pem should not be None
             ##if none, make key?
         ##SSL Here!
-        ctx = getSSLContext(pem)
-        sock = Connection(sslsrvctx)
+        ctx = crypto.getSSLContext(pem)
+        sock = M2Crypto.SSL.Connection(ctx)
         sock.setup_ssl()
         ##sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(0)
@@ -254,7 +254,7 @@ class RawServer(object):
                 pass
         try:
             # This will be picked up on the receiving end by the client's passive socket
-            sock.connect_ex(dns) 
+            sock.connect(dns) 
         except socket.error:
             sock.close()
             raise

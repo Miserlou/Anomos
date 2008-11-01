@@ -164,7 +164,7 @@ def getSSLServerContext():
 def getSSLContext(pemloc):
 
     ctx = M2Crypto.SSL.Context()                             ##None = SSLv23
-    ctx.load_cert_chain(pemloc)                               ##Certchain..?
+    #ctx.load_cert_chain(pemloc)                               ##Certchain..?
     ctx.set_allow_unknown_ca(True)
     ctx.set_info_callback()                                         ##Hopefully won't have to use this..
 

@@ -90,8 +90,8 @@ class EndPoint(object):
         print "Sending TC to", hex(ord(nid)), "at", loc
         try:
             ##SSL THIS!
-            c = self.raw_server.start_connection(loc, None, self.context)
-        except socketerror:
+            c = self.raw_server.start_ssl_connection(loc, context=self.context)
+        except TypeError:
             pass
         else:
             # Make the local connection for receiving.

@@ -88,7 +88,7 @@ class NeighborManager:
             return
         try:
             ##SSL THIS
-            c = self.rawserver.start_connection(loc)
+            c = self.rawserver.start_ssl_connection(loc)
         except socketerror:
             pass
         else:
