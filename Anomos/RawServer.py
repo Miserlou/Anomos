@@ -21,6 +21,7 @@ from Anomos.platform import bttime
 from Anomos import CRITICAL, FAQ_URL
 from Anomos import crypto
 import M2Crypto.SSL.Connection
+from M2Crypto import SSL
 import random
 
 try:
@@ -185,7 +186,7 @@ class RawServer(object):
         server.listen(5)
         return server
 
-    @staticmethod
+    '''@staticmethod
     def create_fakesocket(reuse=False, tos=0):
 
         global fake_socket
@@ -206,9 +207,9 @@ class RawServer(object):
         server.listen(5)
 
         ##fake_socket[0] = fake_socket[0] + 1
-        return server
+        return server'''
 
-    @staticmethod
+    '''@staticmethod
     def create_ssl_serversocket(port, bind='', reuse=False, tos=0):
         ##SSL  here
 
@@ -225,7 +226,7 @@ class RawServer(object):
         server.accept_ssl()
 
         print "jaosdf"
-        return server
+        return server'''
     
     def start_listening(self, serversocket, handler, context=None):
         self.listening_handlers[serversocket.fileno()] = (handler, context)
@@ -318,16 +319,15 @@ class RawServer(object):
                         newsock, addr = s.accept()
                         newsock.setblocking(0)
 
-                        ##XXX: Need a way to tell if connection is SSL or HTTP! Or, scrap all non-SSL connections right now?
-
-                        ctx = crypto.getSSLServerContext()
-    
-                        server = M2Crypto.SSL.Connection(ctx, newsock)
-                        ##conn.set_post_connection_check_callback(post_connection_check)
-                        server.setup_addr(addr)
-                        server.set_accept_state()
-                        server.setup_ssl()
-                        server.accept_ssl()
+                    ##XXX: Need a way to tell if connection is SSL or HTTP! Or, scrap all non-SSL connections right now?
+                    ctx = crypto.getSSLServerContext()
+                    server = M2Crypto.SSL.Connection(ctx, newsock)
+                    ##conn.set_post_connection_check_callback(post_connection_check)
+                    server.setup_addr(addr)
+                    server.set_accept_state()
+                    server.setup_ssl()
+                    server.accept_ssl()
+                    server = newsock
 
                     except socket.error, e:
                         self.errorfunc(WARNING, "Error handling accepted "\
