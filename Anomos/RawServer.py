@@ -319,15 +319,15 @@ class RawServer(object):
                         newsock, addr = s.accept()
                         newsock.setblocking(0)
 
-                    ##XXX: Need a way to tell if connection is SSL or HTTP! Or, scrap all non-SSL connections right now?
-                    ctx = crypto.getSSLServerContext()
-                    server = M2Crypto.SSL.Connection(ctx, newsock)
-                    ##conn.set_post_connection_check_callback(post_connection_check)
-                    server.setup_addr(addr)
-                    server.set_accept_state()
-                    server.setup_ssl()
-                    server.accept_ssl()
-                    server = newsock
+                        ##XXX: Need a way to tell if connection is SSL or HTTP! Or, scrap all non-SSL connections right now?
+                        ctx = crypto.getSSLServerContext()
+                        server = M2Crypto.SSL.Connection(ctx, newsock)
+                        ##conn.set_post_connection_check_callback(post_connection_check)
+                        server.setup_addr(addr)
+                        server.set_accept_state()
+                        server.setup_ssl()
+                        server.accept_ssl()
+                        server = newsock
 
                     except socket.error, e:
                         self.errorfunc(WARNING, "Error handling accepted "\
