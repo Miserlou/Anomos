@@ -21,6 +21,7 @@ from Anomos.platform import bttime
 from Anomos import CRITICAL, FAQ_URL
 from Anomos import crypto
 import M2Crypto.SSL.Connection
+import random
 
 try:
     from select import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
@@ -28,7 +29,6 @@ try:
 except ImportError:
     from Anomos.selectpoll import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1
-
 
 class SingleSocket(object):
 
@@ -98,6 +98,9 @@ class SingleSocket(object):
             self.raw_server.poll.register(self.socket, POLLIN)
         else:
             self.raw_server.poll.register(self.socket, POLLIN | POLLOUT)
+
+    def getSocket(self):
+        return self.socket
 
 def default_error_handler(x, y):
     print x, y
@@ -183,22 +186,45 @@ class RawServer(object):
         return server
 
     @staticmethod
-    def create_ssl_serversocket(port, bind='', reuse=False, tos=0):
-        ##SSL  here
-        sslsrvctx = crypto.getSSLServerContext()
-        server = M2Crypto.SSL.Connection(sslsrvctx)
-        server.setup_ssl()
-        ##server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def create_fakesocket(reuse=False, tos=0):
+
+        global fake_socket
+        ##print fake_socket[0]
+
+        server = socket(AF_INET, SOCK_STREAM)
         if reuse and os.name != 'nt':
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.setblocking(0)
+            server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         if tos != 0:
             try:
                 server.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, tos)
             except:
+                print "exepted"
                 pass
-        server.bind((bind, port))
+        ri = random.randint(9000,9999)
+        print ri
+        server.bind(('', ri))        ## random.randint(9000,9999)) hackest hack that ever hacked.
         server.listen(5)
+
+        ##fake_socket[0] = fake_socket[0] + 1
+        return server
+
+    @staticmethod
+    def create_ssl_serversocket(port, bind='', reuse=False, tos=0):
+        ##SSL  here
+
+        oldsocket = RawServer.create_fakesocket()
+        conn, addr = oldsocket.accept()
+        
+        ctx = crypto.getSSLServerContext()
+    
+        server = M2Crypto.SSL.Connection(ctx, conn)
+        ##conn.set_post_connection_check_callback(post_connection_check)
+        server.setup_addr(addr)
+        server.set_accept_state()
+        server.setup_ssl()
+        server.accept_ssl()
+
+        print "jaosdf"
         return server
     
     def start_listening(self, serversocket, handler, context=None):
@@ -243,6 +269,7 @@ class RawServer(object):
         ctx = crypto.getSSLContext(pem)
         sock = M2Crypto.SSL.Connection(ctx)
         sock.setup_ssl()
+
         ##sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(0)
         if do_bind and self.bindaddr:
@@ -287,13 +314,26 @@ class RawServer(object):
                     try:
                         # Connection attempt
                         handler, context = self.listening_handlers[sock]
+                        
                         newsock, addr = s.accept()
                         newsock.setblocking(0)
+
+                        ##XXX: Need a way to tell if connection is SSL or HTTP! Or, scrap all non-SSL connections right now?
+
+                        ctx = crypto.getSSLServerContext()
+    
+                        server = M2Crypto.SSL.Connection(ctx, newsock)
+                        ##conn.set_post_connection_check_callback(post_connection_check)
+                        server.setup_addr(addr)
+                        server.set_accept_state()
+                        server.setup_ssl()
+                        server.accept_ssl()
+
                     except socket.error, e:
                         self.errorfunc(WARNING, "Error handling accepted "\
                                        "connection: " + str(e))
                     else:
-                        nss = SingleSocket(self, newsock, handler, context)
+                        nss = SingleSocket(self, server, handler, context)
                         self.single_sockets[newsock.fileno()] = nss
                         self.poll.register(newsock, POLLIN)
                         self._make_wrapped_call(handler.external_connection_made,\
