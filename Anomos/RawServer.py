@@ -192,7 +192,7 @@ class RawServer(object):
         global fake_socket
         ##print fake_socket[0]
 
-        server = socket(AF_INET, SOCK_STREAM)
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if reuse and os.name != 'nt':
             server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         if tos != 0:

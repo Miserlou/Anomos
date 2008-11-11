@@ -39,8 +39,6 @@ from Anomos import version
 from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey, initCrypto, CryptoError
 from Anomos.NetworkModel import NetworkModel
 
-allowedpath = os.getcwd()
-
 defaults = [
     ('port', 80, "Port to listen on."),
     ('dfile', None, 'file to store recent downloader info in'),
@@ -60,7 +58,7 @@ defaults = [
         'minimum time it must have been since the last flush to do another one'),
     ('min_time_between_cache_refreshes', 600.0,
         'minimum time in seconds before a cache is considered stale and is flushed'),
-    ('allowed_dir', allowedpath, 'only allow downloads for .torrents in this dir (and recursively in subdirectories of directories that have no .torrent files themselves). If set, torrents in this directory show up on infopage/scrape whether they have peers or not'),
+    ('allowed_dir', os.getcwd(), 'only allow downloads for .torrents in this dir (and recursively in subdirectories of directories that have no .torrent files themselves). If set, torrents in this directory show up on infopage/scrape whether they have peers or not'),
     ('parse_dir_interval', 60, 'how often to rescan the torrent directory, in seconds'),
     ('allowed_controls', 0, 'allow special keys in torrents in the allowed_dir to affect tracker access'),
     ('hupmonitor', 0, 'whether to reopen the log file upon receipt of HUP signal'),
@@ -149,10 +147,8 @@ def _get_forwarded_ip(headers):
         return headers['http_client_ip']
     if headers.has_key('http_via'):
         x = http_via_filter.search(headers['http_via'])
-        try:
+        if x.groups > 0:
             return x.group(1)
-        except:
-            pass
     if headers.has_key('http_from'):
         return headers['http_from']
     return None
@@ -235,8 +231,6 @@ class Tracker(object):
         initCrypto(self.config['data_dir'])
         # Get tracker's rsa keys
         self.rsa = RSAKeyPair('tracker') # should probably use some unique id for the alias here.
-        
-        self.aeskeys = AESKeyManager()
         
         self.networkmodel = NetworkModel()
         
@@ -331,12 +325,6 @@ class Tracker(object):
 
         self.uq_broken = unquote('+') != ' ' # This sucks!
         self.keep_dead = config['keep_dead']
-    
-    def storeAESKey(ucid, key):
-        self.aeskeys[ucid] = key
-
-    def getAESKey(ucid): ##do we actually ever need this?
-        return self.aeskeys[ucid]
 
     def allow_local_override(self, ip, given_ip):
         return is_valid_ipv4(given_ip) and (
@@ -991,13 +979,13 @@ def track(args):
 
 def size_format(s):
     if (s < 1024):
-        r = str(s) + 'B'
+        r = "%d B" % int(s)
     elif (s < 1048576):
-        r = str(int(s/1024)) + 'KiB'
+        r = "%.2f KiB" % (s/1024.0)
     elif (s < 1073741824):
-        r = str(int(s/1048576)) + 'MiB'
+        r = "%.2f MiB" % (s/1048576.0)
     elif (s < 1099511627776):
-        r = str(int((s/1073741824.0)*100.0)/100.0) + 'GiB'
+        r = "%.2f GiB" % (s/1073741824.0)
     else:
-        r = str(int((s/1099511627776.0)*100.0)/100.0) + 'TiB'
-    return(r)
+        r = "%.2f TiB" % (s/1099511627776.0)
+    return r
