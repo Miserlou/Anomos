@@ -192,7 +192,7 @@ class RawServer(object):
         global fake_socket
         ##print fake_socket[0]
 
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server = socket(AF_INET, SOCK_STREAM)
         if reuse and os.name != 'nt':
             server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         if tos != 0:
@@ -327,7 +327,7 @@ class RawServer(object):
                         server.set_accept_state()
                         server.setup_ssl()
                         server.accept_ssl()
-                        server = newsock
+                        ##server = newsock
 
                     except socket.error, e:
                         self.errorfunc(WARNING, "Error handling accepted "\
