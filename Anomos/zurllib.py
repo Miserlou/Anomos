@@ -16,7 +16,7 @@ import pprint
 
 from Anomos import version
 
-DEBUG=0
+DEBUG=1
 
 
 class HTTPContentEncodingHandler(HTTPHandler):

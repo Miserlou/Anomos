@@ -54,7 +54,7 @@ def make_meta_files(url, pubkeyfilename, files, flag=Event(), progressfunc=dummy
         ##If a filename isn't supplied, contact the tracker and get the pubkey
         o =  urlparse(url)
         gurl = o.netloc
-        trackerconn = httplib.HTTPConnection(gurl)
+        trackerconn = httplib.HTTPSConnection(gurl)
         trackerconn.request("GET", "/key")
         respy = trackerconn.getresponse()
         tpkey = respy.read()

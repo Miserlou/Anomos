@@ -339,6 +339,7 @@ class RawServer(object):
                         self._make_wrapped_call(handler.external_connection_made,\
                                                 (nss,), context=context)
             else:
+                data = ''
                 # Data came in on a single_socket
                 s = self.single_sockets.get(sock)
                 if s is None: # Not an external connection
@@ -353,7 +354,14 @@ class RawServer(object):
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
                     try:
-                        data = s.socket.recv(100000)
+                        data = s.socket.read(10000)
+                        if not data:
+                            break
+                    except SSL.SSLError, what:
+                        if str(what) == 'unexpected eof':
+                            self._close_socket(s)
+                        else:
+                            raise
                     except socket.error, e:
                         code, msg = e
                         if code != EWOULDBLOCK:
