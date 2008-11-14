@@ -168,7 +168,10 @@ class RawServer(object):
                 tokill.append(s)
         for k in tokill:
             if k.socket is not None:
-                self._close_socket(k)
+                if not s.socket.get_shutdown():
+                    self._clear_socket(s)
+                else:
+                    self._close_socket(s)
     
     @staticmethod
     def create_serversocket(port, bind='', reuse=False, tos=0):
@@ -349,7 +352,10 @@ class RawServer(object):
                     continue
                 s.connected = True
                 if event & POLLERR:
-                    self._close_socket(s)
+                    if not s.socket.get_shutdown():
+                        self._clear_socket(s)
+                    else:
+                        self._close_socket(s)
                     continue
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
@@ -360,7 +366,7 @@ class RawServer(object):
                         data = ndata
                     except SSL.SSLError, what:
                         if str(what) == 'unexpected eof':
-                            if s.socket.get_shutdown():
+                            if not s.socket.get_shutdown():
                                 self._clear_socket(s)
                                 continue
                         else:
@@ -368,11 +374,17 @@ class RawServer(object):
                     except socket.error, e:
                         code, msg = e
                         if code != EWOULDBLOCK:
-                            self._close_socket(s)
+                            if not s.socket.get_shutdown():
+                                    self._clear_socket(s)
+                            else:
+                                self._close_socket(s)
                         continue
                     print "Data!: " + data
                     if data == '':
-                        self._close_socket(s)
+                        if not s.socket.get_shutdown():
+                            self._clear_socket(s)
+                        else:
+                            self._close_socket(s)
                     else:
                         self._make_wrapped_call(s.handler.data_came_in, \
                                                     (s, data), s)
@@ -455,7 +467,10 @@ class RawServer(object):
             self.dead_from_write = []
             for s in old:
                 if s.socket is not None:
-                    self._close_socket(s)
+                    if not s.socket.get_shutdown():
+                        self._clear_socket(s)
+                    else:
+                        self._close_socket(s)
 
     def _close_socket(self, s):
         sock = s.socket.fileno()
