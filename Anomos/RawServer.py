@@ -252,7 +252,7 @@ class RawServer(object):
             # This will be picked up on the receiving end by the client's passive socket
             sock.connect_ex(dns) 
         except socket.error:
-            sock.close()
+            sock.clear()
             raise
         # Commenting this out, because it appears to not be necessary
         #except Exception, e:
@@ -284,7 +284,7 @@ class RawServer(object):
             # This will be picked up on the receiving end by the client's passive socket
             sock.connect(dns) 
         except socket.error:
-            sock.close()
+            sock.clear()
             raise
         # Commenting this out, because it appears to not be necessary
         #except Exception, e:
@@ -309,7 +309,7 @@ class RawServer(object):
                 s = self.serversockets[sock]
                 if event & (POLLHUP | POLLERR):
                     self.poll.unregister(s)
-                    s.close()
+                    s.clear()
                     self.errorfunc(CRITICAL, 'lost server socket')
                 else:
                     try:
@@ -339,7 +339,7 @@ class RawServer(object):
                         self._make_wrapped_call(handler.external_connection_made,\
                                                 (nss,), context=context)
             else:
-                data = ''
+                data = ""
                 # Data came in on a single_socket
                 s = self.single_sockets.get(sock)
                 if s is None: # Not an external connection
@@ -354,12 +354,13 @@ class RawServer(object):
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
                     try:
-                        data = s.socket.read(10000)
-                        if not data:
+                        ndata = s.socket.read()
+                        if not ndata:
                             break
+                        data = ndata
                     except SSL.SSLError, what:
                         if str(what) == 'unexpected eof':
-                            self._close_socket(s)
+                            1##self._close_socket(s)
                         else:
                             raise
                     except socket.error, e:
@@ -367,6 +368,7 @@ class RawServer(object):
                         if code != EWOULDBLOCK:
                             self._close_socket(s)
                         continue
+                    print "Data!: " + data
                     if data == '':
                         self._close_socket(s)
                     else:

@@ -347,6 +347,9 @@ class RSAKeyPair(RSAPubKey):
         """
         return self.pubkey
 
+    def getPubKeyLoc(self):
+        return self.pubkeyfilename
+
 class AESKey:
     def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):
         """

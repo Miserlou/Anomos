@@ -6,7 +6,7 @@
 # Software distributed under the License is distributed on an AS IS basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied.  See the License
 # for the specific language governing rights and limitations under the
-# License. HTTPConnection
+# License. No address associated with hostname
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
@@ -23,7 +23,8 @@ from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 
-from urllib2 import URLError, HTTPError
+##from urllib2 import urlopen, URLError, HTTPError
+##import urllib2
 
 STARTED=0
 COMPLETED=1
@@ -186,18 +187,16 @@ class Rerequester(object):
         if self.config['tracker_proxy']:
             request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
+            ##h = urllib2.urlopen(request)
             h = urlopen(request)
             data = h.read()
             h.close()
+            print "Data received: "
+            print data
+            
         # urllib2 can raise various crap that doesn't have a common base
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib
-        except HTTPError, e:
-            print 'The server couldn\'t fulfill the request.'
-            print 'Error code: ', e.code
-        except URLError, f:
-            print 'We failed to reach a server.'
-            print 'Reason: ', f.reason
         except Exception, g:
             def f(r='Problem connecting to tracker - ' + str(g)):
                 self._postrequest(errormsg=r, peerid=peerid)
