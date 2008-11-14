@@ -339,7 +339,7 @@ class RawServer(object):
                         self._make_wrapped_call(handler.external_connection_made,\
                                                 (nss,), context=context)
             else:
-                data = ""
+                data = ''
                 # Data came in on a single_socket
                 s = self.single_sockets.get(sock)
                 if s is None: # Not an external connection
@@ -354,7 +354,7 @@ class RawServer(object):
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
                     try:
-                        ndata = s.socket.read()
+                        ndata = s.socket.read(1000000)
                         if not ndata:
                             break
                         data = ndata
