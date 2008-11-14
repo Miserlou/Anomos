@@ -181,8 +181,6 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker 
             Note: This runs in its own thread.
         """
-        print "YOU ARE ELL"
-        print url
         request = Request(url)
         if self.config['tracker_proxy']:
             request.set_proxy(self.config['tracker_proxy'], 'http')
@@ -191,8 +189,7 @@ class Rerequester(object):
             h = urlopen(request)
             data = h.read()
             h.close()
-            print "Data received: "
-            print data
+            print "Data received."
             
         # urllib2 can raise various crap that doesn't have a common base
         # exception class especially when proxies are used, at least

@@ -354,13 +354,15 @@ class RawServer(object):
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
                     try:
-                        ndata = s.socket.read(1000000)
+                        ndata = s.socket.read(100000)
                         if not ndata:
                             break
                         data = ndata
                     except SSL.SSLError, what:
                         if str(what) == 'unexpected eof':
-                            1##self._close_socket(s)
+                            if s.socket.get_shutdown():
+                                self._clear_socket(s)
+                                continue
                         else:
                             raise
                     except socket.error, e:
@@ -458,6 +460,15 @@ class RawServer(object):
     def _close_socket(self, s):
         sock = s.socket.fileno()
         s.socket.close()
+        self.poll.unregister(sock)
+        del self.single_sockets[sock]
+        s.socket = None
+        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
+        s.handler = None
+
+    def _clear_socket(self, s):
+        sock = s.socket.fileno()
+        s.socket.clear()
         self.poll.unregister(sock)
         del self.single_sockets[sock]
         s.socket = None
