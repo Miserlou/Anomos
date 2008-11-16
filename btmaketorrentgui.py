@@ -287,8 +287,6 @@ class ProgressDialog(gtk.Dialog):
     def complete(self):
         try:
             make_meta_files(self.announce_url,
-                        ##Contact tracker, get pubkey, put is argument here!
-                        self.trackerpubkey,
                         self.file_list,
                         self.flag,
                         self.set_progress_value,

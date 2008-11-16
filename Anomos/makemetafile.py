@@ -43,23 +43,23 @@ for i in (0xFFFE, 0xFFFF):
 def dummy(v):
     pass
 
-def make_meta_files(url, pubkeyfilename, files, flag=Event(), progressfunc=dummy,
+def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
                     filefunc=dummy, piece_len_pow2=None, target=None,
                     comment=None, filesystem_encoding=None):
     if len(files) > 1 and target:
         raise BTFailure("You can't specify the name of the .torrent file when "
                         "generating multiple torrents at once")
 
-    if(pubkeyfilename==None):
+    #if(pubkeyfilename==None):
         ##If a filename isn't supplied, contact the tracker and get the pubkey
-        o =  urlparse(url)
-        gurl = o.netloc
-        trackerconn = httplib.HTTPSConnection(gurl)
-        trackerconn.request("GET", "/key")
-        respy = trackerconn.getresponse()
-        tpkey = respy.read()
-        rsapk = RSAPubKey(tpkey)
-        pubkeyfilename = rsapk.saveNewPEM(o.scheme) ##TODO: Sanitize gurl instead..
+        #o =  urlparse(url)
+        #gurl = o.netloc
+        #trackerconn = httplib.HTTPSConnection(gurl)
+        #trackerconn.request("GET", "/key")
+        #respy = trackerconn.getresponse()
+        #tpkey = respy.read()
+        #rsapk = RSAPubKey(tpkey)
+        #pubkeyfilename = rsapk.saveNewPEM(o.scheme) ##TODO: Sanitize gurl instead..
 
     if not filesystem_encoding:
         try:
@@ -98,11 +98,11 @@ def make_meta_files(url, pubkeyfilename, files, flag=Event(), progressfunc=dummy
         if t[1] == '':
             f = t[0]
         filefunc(f)
-        make_meta_file(f, url, pubkeyfilename, flag=flag, progress=callback,
+        make_meta_file(f, url, flag=flag, progress=callback,
                        piece_len_exp=piece_len_pow2, target=target,
                        comment=comment, encoding=filesystem_encoding)
 
-def make_meta_file(path, url, pubkeyfilename, piece_len_exp, flag=Event(), progress=dummy,
+def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
                    comment=None, target=None, encoding='ascii'):
     piece_length = 2 ** piece_len_exp
     a, b = os.path.split(path)
@@ -117,9 +117,8 @@ def make_meta_file(path, url, pubkeyfilename, piece_len_exp, flag=Event(), progr
     if flag.isSet():
         return
     check_info(info)
-    pubkey = load_pub_key(pubkeyfilename).pub()[1] # pub() returns (e,n)
     h = file(f, 'wb')
-    data = {'info': info, 'announce': url.strip(), 'pubkey':pubkey, 'creation date': int(bttime())}
+    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime())}
     if comment:
         data['comment'] = comment
     h.write(bencode(data))
