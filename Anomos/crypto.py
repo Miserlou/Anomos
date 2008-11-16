@@ -61,6 +61,7 @@ class Certificate:
             raise CryptoError('Crypto not initialized, call initCrypto first')
 
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
+        self.ikeyfile = os.path.join(global_cryptodir, '%s-key-insecure.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
         self.load()
     def load(self):
@@ -70,29 +71,39 @@ class Certificate:
             self.create()
             return
         self.rsakey = RSA.load_key(self.keyfile)
+        self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
     def create(self):
         Rand.load_file(global_randfile, -1)
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
-        #XXX: Should probably be something like:
-        #     self.rsakey.save_key(self.keyfilename, 'aes_256_cbc')
-        self.rsakey.save_key(self.keyfile)
+        # Save the key, aes 256 cbc encrypted
+        self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
+        # Save the key unencrypted.
+        # TODO: Find workaround, M2Crypto doesn't include the function to load
+        # a cert from memory, storing them unencrypted on disk isn't safe.
+        self.rsakey.save_key(self.ikeyfile, None)
         # Make the public key
         pkey = EVP.PKey()
         pkey.assign_rsa(self.rsakey)
-        # Make an X509 request 
-        self.request = X509.Request()
-        self.request.set_pubkey(pkey)
         # Generate the certificate 
         self.cert = X509.X509()
+        self.cert.set_serial_number(1) #TODO: Serial number should change each time cert is generated
+        self.cert.set_version(2)
         self.cert.set_pubkey(pkey)
+        notBefore = m2.x509_get_not_before(self.cert.x509)
+        notAfter = m2.x509_get_not_after(self.cert.x509)
+        m2.x509_gmtime_adj(notBefore, 0)
+        m2.x509_gmtime_adj(notAfter, 60*60*24*30) #TODO: How long should certs be valid?
+        ext = X509.new_extension('nsComment', 'Anomos generated certificate')
+        self.cert.add_ext(ext)
+        self.cert.sign(pkey, 'sha1')
         self.cert.save_pem(self.certfile)
         Rand.save_file(global_randfile)
 
     def getSSLContext(self):
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
-        ctx.load_cert(self.certfile, keyfile=self.keyfile)
+        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
         ctx.set_allow_unknown_ca(True)
         ctx.set_info_callback()
         return ctx
