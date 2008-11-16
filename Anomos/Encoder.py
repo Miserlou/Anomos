@@ -36,7 +36,7 @@ class EndPoint(object):
         self.raw_server = context._rawserver
         self.config = context.config
         self.download_id = context.infohash
-        self.rsakey = context.rsa
+        self.cert = context.certificate
         self.neighbors = context.neighbors
         self.keyring = context.keyring
         self.context = context
@@ -90,7 +90,7 @@ class EndPoint(object):
         print "Sending TC to", hex(ord(nid)), "at", loc
         try:
             ##SSL THIS!
-            c = self.raw_server.start_ssl_connection(loc, context=self.context)
+            c = self.raw_server.start_ssl_connection(loc, self.cert.getSSLContext())
         except TypeError:
             pass
         else:
@@ -141,7 +141,7 @@ class SingleportListener(object):
         is one per torrent), initializes connection objects, and determines
         what to do with the connection once some data has been read.
     '''
-    def __init__(self, rawserver, config, neighbors, rsakey, keyring):
+    def __init__(self, rawserver, config, neighbors, certificate, keyring):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
@@ -152,7 +152,7 @@ class SingleportListener(object):
         self.neighbors = neighbors
         self.lookup_loc = self.neighbors.lookup_loc
         self.keyring = keyring
-        self.rsakey = rsakey
+        self.certificate = certificate 
         self.download_id = None
     
     def _check_close(self, port):

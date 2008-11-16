@@ -10,19 +10,12 @@ AES cipher: aes_256_cfb
 for other functions used directly, look at RSA.py and EVP.py in M2Crypto
 """
 
-import sys
 import os
 import cStringIO
 import sha
-import os
-import string
-import M2Crypto.SSL
 from binascii import b2a_hex, a2b_hex
-from M2Crypto import m2, Rand, RSA, util, EVP
+from M2Crypto import m2, Rand, RSA, EVP, X509, SSL
 from Anomos import BTFailure
-from random import choice
-import pexpect
-import time
 
 
 def getRand(*args):
@@ -56,123 +49,61 @@ def initCrypto(data_dir):
         return rb
     getRand = randfunc
 
-    makeNewCert()
+def toM2Exp(n):
+    return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
-def toM2Exp(n):
-    return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
+class Certificate:
+    def __init__(self, loc):
+        if None in (global_cryptodir, global_randfile):
+            raise CryptoError('Crypto not initialized, call initCrypto first')
 
+        self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
+        self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
+        self.load()
+    def load(self):
+        """Attempts to load the certificate and key from self.certfile and self.keyfile,
+           Generates the certificate and key if they don't exist"""
+        if not os.path.exists(self.certfile) or not os.path.exists(self.keyfile):
+            self.create()
+            return
+        self.rsakey = RSA.load_key(self.keyfile)
+        self.cert = X509.load_cert(self.certfile)
+    def create(self):
+        Rand.load_file(global_randfile, -1)
+        # Make the RSA key
+        self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
+        #XXX: Should probably be something like:
+        #     self.rsakey.save_key(self.keyfilename, 'aes_256_cbc')
+        self.rsakey.save_key(self.keyfile)
+        # Make the public key
+        pkey = EVP.PKey()
+        pkey.assign_rsa(self.rsakey)
+        # Make an X509 request 
+        self.request = X509.Request()
+        self.request.set_pubkey(pkey)
+        # Generate the certificate 
+        self.cert = X509.X509()
+        self.cert.set_pubkey(pkey)
+        self.cert.save_pem(self.certfile)
+        Rand.save_file(global_randfile)
 
-###     Checks if we have a self-signed cert, if not, makes one
-##XXX:     LINUX ONLY NEED WINDOWS SOLUTION SOON
-def makeNewCert():
+    def getSSLContext(self):
+        ctx = SSL.Context("sslv23") # Defaults to SSLv23
+        ctx.load_cert(self.certfile, keyfile=self.keyfile)
+        ctx.set_allow_unknown_ca(True)
+        ctx.set_info_callback()
+        return ctx
+    
+    def getPub(self):
+        return self.rsakey.pub()[1]
 
-    if os.path.exists(global_cryptodir+"/server.crt"):
-         print "Certificates in place!"
-         return
-
-    print "\n\n Hello! We need to set up your cryptographic status. This open happens the first time Anomos is started. This may take a minute, please wait. \n\n"
-
-    ##TODO: Investigate DES3 vs AES trade-offs. AES256 v 128 v DES3?
-    serverkey = global_cryptodir + "/server.key"
-    servercsr = global_cryptodir + "/server.csr"
-
-    shell = pexpect.spawn('openssl genrsa -aes128 -out ' + serverkey + ' 4096 ', timeout=5000)
-
-    shell.expect('Enter pass phrase for ' + serverkey +':')
-    randpass = ''.join([choice(string.letters + string.digits) for i in xrange(10)])   
-    shell.sendline(randpass)
-    shell.expect('Verifying - Enter pass phrase for ' + serverkey +':')
-    shell.sendline(randpass)
-
-    time.sleep(1)
-
-    if os.path.exists(global_cryptodir+"/server.key") : ##and os.path.getsize(global_cryptodir+"/server.key") > 0:
-        print "\nKey generated, creating request: \n"
-    else:
-        print "Fail.."
-        return
-
-    shell = pexpect.spawn('openssl req -new -key ' + serverkey + ' -out ' + servercsr, timeout=500000)
-    shell.expect('.*')
-    shell.sendline(randpass)
-
-    shell.expect('.*')
-    shell.sendline('XX')
-    shell.expect('.*')
-    shell.sendline('XXXXXXX')
-    shell.expect('.*')
-    shell.sendline('XXXXXXX')
-    shell.expect('.*')
-    shell.sendline('XXXXXXX')
-    shell.expect('.*')
-    shell.sendline('XXXXXXX')
-    shell.expect('.*')
-    shell.sendline('XXX XXX')
-    shell.expect('.*')
-    shell.sendline('XXX@XXX.com')
-    shell.expect('.*')
-    shell.sendline('')
-    shell.expect('.*')
-    shell.sendline('')
-
-    time.sleep(1)
-
-    print "\nRequest made, signing..\n"
-
-    servercrt = global_cryptodir + "/server.crt"
-
-    shell = pexpect.spawn('openssl x509 -req -days 3650 -in ' + servercsr + ' -signkey ' + serverkey + ' -out ' + servercrt )
-    shell.expect('.*')
-    shell.sendline(randpass)
-
-    print "\nCertificate signed, organizing keys..\n"
-
-    serverkeyinsecure = serverkey + '.insecure'
-    serverkeysecure = serverkey + '.secure'
-
-    shell = pexpect.spawn('openssl rsa -in ' + serverkey + ' -out ' + serverkeyinsecure)
-    shell.expect('.*')
-    shell.sendline(randpass)
-
-    time.sleep(1)
-
-    shell = pexpect.spawn('mv ' + serverkey + ' ' + serverkeysecure)
-    shell = pexpect.spawn('mv ' + serverkeyinsecure + ' ' + serverkey)
-
-    time.sleep(1)
-
-    print "Done setting up crypto!"
-
-def getSSLServerContext():
-
-    ctx = M2Crypto.SSL.Context()                             ##None = SSLv23
-    print global_cryptodir+'/server.crt'
-    ctx.load_cert(global_cryptodir+'/server.crt', global_cryptodir+'/server.key')              ##Certchain..?
-    ctx.set_allow_unknown_ca(True)
-    ##ctx.load_verify_locations(cafile)       
-    ##ctx.set_client_CA_list_from_file(cafile)    
-    ##ctx.set_verify(verify, verify_depth)
-    #ctx.set_allow_unknown_ca(1)
-    ##ctx.set_session_id_ctx('echod')
-    ctx.set_info_callback()                     ##Hopefully won't have to use this..
-
-    return ctx
-
-def getSSLContext(pemloc):
-
-    ctx = M2Crypto.SSL.Context()                             ##None = SSLv23
-    #ctx.load_cert_chain(pemloc)                               ##Certchain..?
-    ctx.set_allow_unknown_ca(True)
-    ctx.set_info_callback()                                         ##Hopefully won't have to use this..
-
-    return ctx
-
+    def fingerprint(self):
+        return sha.new(self.rsakey.pub()[1]).hexdigest()
 
 class RSAPubKey:
-   
     def __init__(self, keystring, exp=65537):
         """
         @param keystring: "n" value of pubkey to initialize new public key from
@@ -349,7 +280,7 @@ class RSAKeyPair(RSAPubKey):
 
     def getPubKeyLoc(self):
         return self.pubkeyfilename
-
+    
 class AESKey:
     def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):
         """
@@ -442,29 +373,5 @@ class CryptoError(BTFailure):
     pass
 
 if __name__ == "__main__":
-    secret = "Call me subwoofa cause I push so much base!"
-
     initCrypto(os.getcwd())
-    getRand()
-    
-    '''# Test AESKey
-    key = AESKey()
-    
-    print "Plaintext:", secret
 
-    encrypted = key.encrypt(secret)
-    print "Ciphertext:", b2a_hex(encrypted)
-    print "Ciphertext length:", len(encrypted)
-    print "Decrypted:", key.decrypt(encrypted)
-    
-    # Test RSAKeyPair
-    rsa = RSAKeyPair('tracker')
-    encrypted = rsa.encrypt(secret)
-    sig = rsa.sign(secret)
-    print "Encrypted: ", b2a_hex(encrypted), len(encrypted)
-    dec = rsa.decrypt(encrypted)
-    dhash = sha.new(dec).digest()
-    print "Decrypted: ", rsa.decrypt(encrypted)
-    print "Verified: ", rsa.verify(sig, dhash)'''
-
-    makeNewCert()

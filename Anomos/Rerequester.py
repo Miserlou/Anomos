@@ -34,7 +34,7 @@ class Rerequester(object):
 
     def __init__(self, url, config, sched, neighbors, connect, externalsched,
             amount_left, up, down, port, myid, infohash, errorfunc, doneflag,
-            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, clientkey, trackerkey=None):
+            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, certificate):
     #I would like __init__ to look more like this one day
     #def __init__(self, url, context):
         self.url = url
@@ -69,13 +69,11 @@ class Rerequester(object):
         self.last_time = None
         self.previous_down = 0
         self.previous_up = 0
-        self.clientkey = clientkey
-        self.trackerkey = trackerkey
+        self.certificate = certificate 
         self.send_key = True
-    
     def _makequery(self, peerid, port):
         print peerid, len(peerid)
-        return ('?info_hash=%s&peer_id=%s&port=%s&' %
+        return ('?info_hash=%s&peer_id=%s&port=%s' %
                 (quote(self.infohash), quote(peerid), str(port)))
     
     def change_port(self, peerid, port):
@@ -149,13 +147,8 @@ class Rerequester(object):
         if self.config['ip']:
             s += '&ip=' + gethostbyname(self.config['ip'])
         if self.send_key:
-            s += '&pubkey=' + quote(self.clientkey.pub_bin())
+            s += '&pubkey=' + quote(self.certificate.getPub())
             self.send_key = False
-        if self.trackerkey:
-            s = "?pke=" + urlsafe_b64encode(self.trackerkey.encrypt(s))
-        else:
-            #TODO: Do we allow unencrypted requests? or should we die here
-            pass
         url = self.url+s
         Thread(target=self._rerequest, args=[url, self.peerid]).start()
 
@@ -174,9 +167,6 @@ class Rerequester(object):
         self.ever_got_incoming = None
         self.diefunc = None
         self.successfunc = None 
-        self.clientkey = None
-        self.trackerkey = None
-
     def _rerequest(self, url, peerid):
         """ Make an HTTP GET request to the tracker 
             Note: This runs in its own thread.
@@ -220,9 +210,9 @@ class Rerequester(object):
         try:
             # Here's where we receive/decrypt data from the tracker
             r = bdecode(data)
-            if r.has_key('pke'):
-                r.update(bdecode(self.clientkey.decrypt(r['pke'])))
-                del r['pke'] # Not necessary, but free some space.
+            #if r.has_key('pke'):
+            #    r.update(bdecode(self.clientkey.decrypt(r['pke'])))
+            #    del r['pke'] # Not necessary, but free some space.
             #TODO: update check_peers for Anomos
             #check_peers(r)
         except BTFailure, e:

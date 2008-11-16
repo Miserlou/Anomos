@@ -36,7 +36,7 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.zurllib import quote, unquote
 from Anomos import version
 
-from Anomos.crypto import RSAKeyPair, AESKeyManager, AESKey, initCrypto, CryptoError
+from Anomos.crypto import Certificate, AESKeyManager, AESKey, initCrypto, CryptoError
 from Anomos.NetworkModel import NetworkModel
 
 defaults = [
@@ -200,13 +200,13 @@ def params_factory(dictionary, default=None):
     """
     def params(key, default=default, d=dictionary):
         if d.has_key(key):
-            return d[key][0]
+            return d[key]
         return default
     return params
 
 class Tracker(object):
 
-    def __init__(self, config, rawserver):
+    def __init__(self, config, certificate, rawserver):
         self.config = config
         self.response_size = config['response_size']
         self.max_give = config['max_give']
@@ -228,10 +228,7 @@ class Tracker(object):
         self.state = {}
         self.seedcount = {}
         
-        initCrypto(self.config['data_dir'])
-        # Get tracker's rsa keys
-        self.rsa = RSAKeyPair('tracker') # should probably use some unique id for the alias here.
-        
+        self.certificate = certificate 
         self.networkmodel = NetworkModel()
         
         self.only_local_override_ip = config['only_local_override_ip']
@@ -500,7 +497,7 @@ class Tracker(object):
                 loc = (ip, int(params('port')))
                 simpeer = self.networkmodel.addPeer(params('peer_id'), 
                                                     params('pubkey'), loc)
-        if simpeer and params('event') == 'stopped':
+        elif params('event') == 'stopped':
             self.networkmodel.disconnect(peerid)
         # TODO: What if they don't give a pubkey
         #Verify the connecting peer is who they say they are.
@@ -625,7 +622,7 @@ class Tracker(object):
     def neighborlist(self, peerid):
         sim = self.networkmodel.get(peerid)
         if sim and not sim.id_map:
-            return {}
+            return []
         neighbors = []
         for p in sim.id_map.values():
             loc = sim.neighbors[p]['loc']
@@ -774,24 +771,24 @@ class Tracker(object):
             # param: ?pubkey=f83cd3aa....&some more stuff.
             
             paramslist.update(self.parseQuery(query))
-            if params('pke'):
-                # Decrypt the query
-                binpke = urlsafe_b64decode(params('pke'))
-                try:
-                    decquery = self.rsa.decrypt(binpke, returnpad=False)
-                except CryptoError, e:
-                    raise ValueError(e)
-                # Update with the new params
-                paramslist.update(self.parseQuery(decquery))
-                del paramslist['pke']
-            
+#            if params('pke'):
+#                # Decrypt the query
+#                binpke = urlsafe_b64decode(params('pke'))
+#                try:
+#                    decquery = self.rsa.decrypt(binpke, returnpad=False)
+#                except CryptoError, e:
+#                    raise ValueError(e)
+#                # Update with the new params
+#                paramslist.update(self.parseQuery(decquery))
+#                del paramslist['pke']
+#            
             if path == '' or path == 'index.html':
                 return self.get_infopage()
             if path == 'scrape':
                 return self.get_scrape(paramslist)
-            if (path == 'key'):
-                pubic = self.rsa.pub_bin()
-                return (200, 'OK', {'Content-Type' : 'text/plain'}, pubic)
+            #if (path == 'key'):
+            #    pubic = self.rsa.pub_bin()
+            #    return (200, 'OK', {'Content-Type' : 'text/plain'}, pubic)
             if (path == 'file'):
                 return self.get_file(params('info_hash'))
             if path == 'favicon.ico' and self.favicon is not None:
@@ -850,8 +847,7 @@ class Tracker(object):
                 key,val = s.split('=', 1) #Only split at the first "=" character
                 kw = unquote(key)
                 kw = kw.replace('+',' ') # TODO: find out if this is absolutely necessary
-                params.setdefault(kw, [])
-                params[kw] += [unquote(val),]
+                params[kw] = unquote(val)
         return params
 
     def natcheckOK(self, infohash, peerid, ip, port, not_seed):
@@ -951,12 +947,12 @@ class Tracker(object):
         @return: HTTP response, eg. (200, OK, {'Content-Type': 'text/plain'}, data)
         @rtype: tuple
         """
-        if peer_id: # Try to encrypt the response
-            simpeer = self.networkmodel.get(peer_id)
-            if simpeer and simpeer.pubkey:
-                if not isinstance(data, basestring):
-                    data = bencode(data)
-                data = bencode({'pke': simpeer.pubkey.encrypt(data)})
+#        if peer_id: # Try to encrypt the response
+#            simpeer = self.networkmodel.get(peer_id)
+#            if simpeer and simpeer.pubkey:
+#                if not isinstance(data, basestring):
+#                    data = bencode(data)
+#                data = bencode({'pke': simpeer.pubkey.encrypt(data)})
         return (code, message, headers, data)
 
 def track(args):
@@ -969,8 +965,11 @@ def track(args):
         print 'error: ' + str(e)
         print 'run with no arguments for parameter explanations'
         return
-    r = RawServer(Event(), config, bindaddr = config['bind'])
-    t = Tracker(config, r)
+
+    initCrypto(config['data_dir'])
+    servercert = Certificate("server") #XXX: make the name user defined
+    r = RawServer(Event(), config, servercert, bindaddr = config['bind'])
+    t = Tracker(config, servercert, r)
     s = r.create_serversocket(config['port'], config['bind'], True)
     r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))
     r.listen_forever()

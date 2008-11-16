@@ -109,10 +109,11 @@ def default_error_handler(x, y):
 
 class RawServer(object):
 
-    def __init__(self, doneflag, config, noisy=True,
+    def __init__(self, doneflag, config, certificate, noisy=True,
             errorfunc=default_error_handler, bindaddr='', tos=0):
         self.config = config
         self.bindaddr = bindaddr
+        self.cert = certificate
         self.tos = tos
         self.poll = poll()
         # {socket: SingleSocket}
@@ -266,12 +267,11 @@ class RawServer(object):
         self.single_sockets[sock.fileno()] = s
         return s
 
-    def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True, pem=None):
+    def start_ssl_connection(self, dns, sslctx, handler=None, context=None, do_bind=True):
         ##TODO: pem should not be None
             ##if none, make key?
         ##SSL Here!
-        ctx = crypto.getSSLContext(pem)
-        sock = M2Crypto.SSL.Connection(ctx)
+        sock = M2Crypto.SSL.Connection(sslctx)
         sock.setup_ssl()
 
         ##sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -322,9 +322,7 @@ class RawServer(object):
                         newsock, addr = s.accept()
                         newsock.setblocking(0)
 
-                        ##XXX: Need a way to tell if connection is SSL or HTTP! Or, scrap all non-SSL connections right now?
-                        ctx = crypto.getSSLServerContext()
-                        server = M2Crypto.SSL.Connection(ctx, newsock)
+                        server = M2Crypto.SSL.Connection(self.cert.getSSLContext(), newsock)
                         ##conn.set_post_connection_check_callback(post_connection_check)
                         server.setup_addr(addr)
                         server.set_accept_state()

@@ -46,7 +46,7 @@ from Anomos.ConvertedMetainfo import set_filesystem_encoding
 from Anomos import version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
-from Anomos.crypto import RSAKeyPair, RSAPubKey, AESKeyManager, initCrypto
+from Anomos.crypto import Certificate, AESKeyManager, initCrypto
 
 class Feedback(object):
 
@@ -72,13 +72,13 @@ class Multitorrent(object):
         self.config = dict(config)
         self.errorfunc = errorfunc
         initCrypto(self.config['data_dir'])
-        self.rsa = RSAKeyPair(config['identity'])
+        self.certificate = Certificate(self.config['identity'])
         self.keyring = AESKeyManager() # Holds our neighbor's AES keys
-        self.rawserver = RawServer(doneflag, config, errorfunc=errorfunc,
+        self.rawserver = RawServer(doneflag, config, self.certificate, errorfunc=errorfunc,
                                    bindaddr=config['bind'])
-        self.neighbors = NeighborManager(self.rawserver, config, self.rsa, self.keyring)
+        self.neighbors = NeighborManager(self.rawserver, config, self.certificate, self.keyring)
         self.singleport_listener = SingleportListener(self.rawserver, self.config, 
-                                                      self.neighbors, self.rsa, 
+                                                      self.neighbors, self.certificate, 
                                                       self.keyring)
         self._find_port(listen_fail_ok)
         #XXX: PORT HACK
@@ -111,7 +111,7 @@ class Multitorrent(object):
     def start_torrent(self, metainfo, config, feedback, filename):
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
                                  self.ratelimiter, self.filepool, config,
-                                 self.neighbors, self.keyring, self.rsa)
+                                 self.neighbors, self.keyring, self.certificate)
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
@@ -190,7 +190,7 @@ class Multitorrent(object):
 class _SingleTorrent(object):
 
     def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
-                 config, neighbors, keyring, rsa_key):
+                 config, neighbors, keyring, certificate):
         self._rawserver = rawserver
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
@@ -224,7 +224,7 @@ class _SingleTorrent(object):
         self.myid = None
         self.neighbors = neighbors
         self.keyring = keyring
-        self.rsa = rsa_key
+        self.certificate = certificate 
         self.tracker_pubkey = None
     
     def start_download(self, *args, **kwargs):
@@ -248,8 +248,8 @@ class _SingleTorrent(object):
         if not metainfo.reported_errors:
             metainfo.show_encoding_errors(self._error)
         
-        if metainfo.publickey:
-            self.tracker_pubkey = RSAPubKey(metainfo.publickey)
+#        if metainfo.publickey:
+#            self.tracker_pubkey = RSAPubKey(metainfo.publickey)
         
         self._make_id()
         def schedfunc(func, delay):
@@ -359,7 +359,7 @@ class _SingleTorrent(object):
             downmeasure.get_total, self.reported_port, self.myid,
             self.infohash, self._error, self.finflag, upmeasure.get_rate,
             downmeasure.get_rate, self._encoder.ever_got_incoming,
-            self.internal_shutdown, self._announce_done, self.rsa, self.tracker_pubkey)
+            self.internal_shutdown, self._announce_done, self.certificate)
             # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure.get_total
             #             downmeasure.get_total, upmeasure.get_rate, downmeasure.get_rate,
             #             self)
@@ -551,7 +551,8 @@ class _SingleTorrent(object):
         @rtype: string
         """
         myid = 'A' + version.split()[0].replace('.', '-')
-        self.myid = myid + sha(self.rsa.pub_bin()).hexdigest()[-(20-len(myid)):]
+        self.myid = myid + self.certificate.fingerprint()[-(20-len(myid)):]
+        #self.myid = myid + sha(self.rsa.pub_bin()).hexdigest()[-(20-len(myid)):]
 
     def _set_auto_uploads(self):
         uploads = self.config['max_uploads']

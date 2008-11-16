@@ -13,10 +13,10 @@ class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, rsakey, keyring):
+    def __init__(self, rawserver, config, certificate, keyring):
         self.rawserver = rawserver
         self.config = config
-        self.rsakey = rsakey
+        self.cert = certificate
         self.keyring = keyring
         self.neighbors = {}
         self.connections = {}
@@ -88,7 +88,8 @@ class NeighborManager:
             return
         try:
             ##SSL THIS
-            c = self.rawserver.start_ssl_connection(loc)
+            print self.cert.certfile
+            c = self.rawserver.start_ssl_connection(loc, self.cert.getSSLContext())
         except socketerror:
             pass
         else:
