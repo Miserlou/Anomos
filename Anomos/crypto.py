@@ -101,9 +101,10 @@ class Certificate:
         self.cert.save_pem(self.certfile)
         Rand.save_file(global_randfile)
 
-    def getSSLContext(self):
+    def getContext(self):
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
+        ctx.set_verify(SSL.verify_none,0)
         ctx.set_allow_unknown_ca(True)
         ctx.set_info_callback()
         return ctx

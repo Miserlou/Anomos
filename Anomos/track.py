@@ -970,7 +970,7 @@ def track(args):
     servercert = Certificate("server") #XXX: make the name user defined
     r = RawServer(Event(), config, servercert, bindaddr = config['bind'])
     t = Tracker(config, servercert, r)
-    s = r.create_serversocket(config['port'], config['bind'], True)
+    s = r.create_ssl_serversocket(config['port'], config['bind'], True)
     r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))
     r.listen_forever()
     t.save_dfile()

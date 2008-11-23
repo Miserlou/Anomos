@@ -3,9 +3,6 @@
 @license: see License.txt
 '''
 
-#XXX: In addition to their NID, we need to differentiate between neighbors 
-#     based on the tracker from which we received them.
-
 from socket import error as socketerror
 from Anomos.Connecter import Connection
 
@@ -24,7 +21,6 @@ class NeighborManager:
         
         #XXX: PORT HACK
         self.port = None
-        #self.complete_connections = set()
         self.waiting_tcs = {}
     
     def get_location(self, nid):
@@ -87,9 +83,7 @@ class NeighborManager:
             #TODO: Resolve conflict
             return
         try:
-            ##SSL THIS
-            print self.cert.certfile
-            c = self.rawserver.start_ssl_connection(loc, self.cert.getSSLContext())
+            c = self.rawserver.start_ssl_connection(loc, self.cert.getContext())
         except socketerror:
             pass
         else:
