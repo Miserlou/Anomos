@@ -41,7 +41,7 @@ class SimPeer:
         @type pubkey: Anomos.crypto.RSAPubKey
         """
         self.name = name
-        self.pubkey = crypto.RSAPubKey(pubkey)
+        self.pubkey = crypto.PeerCert(pubkey)
         self.neighbors = {} # {PeerID: {dist:#, nid:#, loc:(#,#)}}
         self.id_map = {}    # {NeighborID : PeerID}
         self.loc = loc
@@ -179,9 +179,10 @@ class NetworkModel:
                                 network is being attacked.")
     
     def randConnect(self, peerid, numpeers):
-        '''Assign 'numpeers' many randomly selected neighbors to 
+        """
+        Assign 'numpeers' many randomly selected neighbors to 
         peer with id == peerid 
-        '''
+        """
         peer = self.get(peerid)
         others = self.names.keys()
         others.remove(peerid) # Remove source peer

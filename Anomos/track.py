@@ -488,15 +488,15 @@ class Tracker(object):
                         params('peer_id'))
         return None
     
-    def update_simpeer(self, paramslist, ip):
+    def update_simpeer(self, paramslist, ip, peercert):
         params = params_factory(paramslist)
         peerid = params('peer_id')
         simpeer = self.networkmodel.get(peerid)
         if not simpeer:
-            if params('pubkey'): # New peer
-                loc = (ip, int(params('port')))
-                simpeer = self.networkmodel.addPeer(params('peer_id'), 
-                                                    params('pubkey'), loc)
+            #if params('pubkey'): # New peer
+            loc = (ip, int(params('port')))
+            simpeer = self.networkmodel.addPeer(params('peer_id'), 
+                                                    peercert, loc)
         elif params('event') == 'stopped':
             self.networkmodel.disconnect(peerid)
         # TODO: What if they don't give a pubkey
@@ -744,8 +744,8 @@ class Tracker(object):
         if left and int(left) < 0:
             raise ValueError('invalid amount left')
 
-    def get(self, connection, path, headers):
-        ip = connection.get_ip()
+    def get(self, handler, path, headers):
+        ip = handler.get_ip()
 
         nip = get_forwarded_ip(headers)
         if nip and not self.only_local_override_ip:
@@ -760,16 +760,6 @@ class Tracker(object):
                 path = path.replace('+',' ')
                 # query = query.replace('+',' ')
             path = unquote(path)[1:]
-            
-            # The client should already know the tracker's pubkey, so even the first
-            # request should be encrypted. Let's designate a query param "pke" that 
-            # signifies encrypted data. If it's not present we should return a 400
-            # bad request and tell them to use the pubkey. I've added a /key path as
-            # for requesting the key if it wasn't in the .torrent, but I don't think
-            # this is a good idea security wise (MITM attacks and whatnot).
-            # As for sending the key, this can be done, encrypted, as a normal query
-            # param: ?pubkey=f83cd3aa....&some more stuff.
-            
             paramslist.update(self.parseQuery(query))
 #            if params('pke'):
 #                # Decrypt the query
@@ -796,8 +786,8 @@ class Tracker(object):
             if path != 'announce':
                 return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
 
-            
-            self.update_simpeer(paramslist, ip)
+            context = handler.connection.socket.get_context()
+            self.update_simpeer(paramslist, ip, handler.connection.peer_cert)
             self.validate_request(paramslist)
             # main tracker function
             infohash = params('info_hash')

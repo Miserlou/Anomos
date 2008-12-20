@@ -22,7 +22,8 @@ from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
-
+from urlparse import urlparse, urlunparse
+from M2Crypto import httpslib
 ##from urllib2 import urlopen, URLError, HTTPError
 ##import urllib2
 
@@ -33,16 +34,24 @@ STOPPED=2
 class Rerequester(object):
 
     def __init__(self, url, config, sched, neighbors, connect, externalsched,
-            amount_left, up, down, port, myid, infohash, errorfunc, doneflag,
+            amount_left, up, down, local_port, myid, infohash, errorfunc, doneflag,
             upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, certificate):
-    #I would like __init__ to look more like this one day
-    #def __init__(self, url, context):
-        self.url = url
+        ### Tracker URL ###
+        parsed = urlparse(url)     # (<scheme>,<netloc>,<path>,<params>,<query>,<fragment>) 
+        self.url = parsed[1]
+        self.remote_port = 5555 # Assume port 5555 by default
+        if ":" in parsed[1]:                #   <netloc> = <url>:<port>
+            i = self.url.index(":")
+            self.remote_port = int(self.url[i+1:])
+            self.url = self.url[:i]
+        self.path = parsed[2] 
         self.basequery = None
+        
+        ### Peer info ### 
         self.infohash = infohash
         self.peerid = None
         self.wanted_peerid = myid
-        self.port = port
+        self.local_port = local_port
         self.config = config
         self.last = None
         #self.trackerid = None
@@ -70,7 +79,7 @@ class Rerequester(object):
         self.previous_down = 0
         self.previous_up = 0
         self.certificate = certificate 
-        self.send_key = True
+    
     def _makequery(self, peerid, port):
         print peerid, len(peerid)
         return ('?info_hash=%s&peer_id=%s&port=%s' %
@@ -103,7 +112,7 @@ class Rerequester(object):
             return
         if self.peerid is None:
             self.peerid = self.wanted_peerid
-            self.basequery = self._makequery(self.peerid, self.port)
+            self.basequery = self._makequery(self.peerid, self.remote_port)
             self._announce(STARTED)
             return
         if self.peerid != self.wanted_peerid:
@@ -131,26 +140,20 @@ class Rerequester(object):
 
     def _announce(self, event=None):
         self.current_started = bttime()
-        s = ('%s&uploaded=%s&downloaded=%s&left=%s' %
+        query = ('%s&uploaded=%s&downloaded=%s&left=%s' %
             (self.basequery, str(self.up() - self.previous_up),
              str(self.down() - self.previous_down), str(self.amount_left())))
         if self.last is not None:
-            s += '&last=' + quote(str(self.last))
-        #if self.trackerid is not None:
-        #    s += '&trackerid=' + quote(str(self.trackerid))
+            query += '&last=' + quote(str(self.last))
         if self.neighbors.count() >= self.config['max_initiate']:
-            s += '&numwant=0'
+            query += '&numwant=0'
         else:
-            s += '&compact=1'
+            query += '&compact=1'
         if event is not None:
-            s += '&event=' + ['started', 'completed', 'stopped'][event]
+            query += '&event=' + ['started', 'completed', 'stopped'][event]
         if self.config['ip']:
-            s += '&ip=' + gethostbyname(self.config['ip'])
-        if self.send_key:
-            s += '&pubkey=' + quote(self.certificate.getPub())
-            self.send_key = False
-        url = self.url+s
-        Thread(target=self._rerequest, args=[url, self.peerid]).start()
+            query += '&ip=' + gethostbyname(self.config['ip'])
+        Thread(target=self._rerequest, args=[query, self.peerid]).start()
 
     # Must destroy all references that could cause reference circles
     def cleanup(self):
@@ -167,20 +170,29 @@ class Rerequester(object):
         self.ever_got_incoming = None
         self.diefunc = None
         self.successfunc = None 
-    def _rerequest(self, url, peerid):
+
+    def _rerequest(self, query, peerid):
         """ Make an HTTP GET request to the tracker 
             Note: This runs in its own thread.
         """
-        request = Request(url)
-        if self.config['tracker_proxy']:
-            request.set_proxy(self.config['tracker_proxy'], 'http')
+        h = httpslib.HTTPSConnection(self.url, self.remote_port, query, 
+                                     ssl_context=self.certificate.getContext())
+        h.set_debuglevel(9)
+        h.putrequest('GET', self.path+query)
+        h.putheader('Accept', 'text/plain')
+        #h.putheader('Connection', 'close')
+        h.putheader('Content-type', 'text/plain')
+        h.putheader('Pragma', 'no-cache')
+        h.endheaders()
+        resp = h.getresponse()
+        #request = Request(url)
+        #TODO: Was tracker_proxy important, can we replace it with M2Crypto's HTTPSLib?
+        #if self.config['tracker_proxy']:
+        #    request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
-            ##h = urllib2.urlopen(request)
-            h = urlopen(request)
-            data = h.read()
+            data = resp.read()
+            resp.close()
             h.close()
-            print "Data received."
-            
         # urllib2 can raise various crap that doesn't have a common base
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib
@@ -262,6 +274,7 @@ class Rerequester(object):
                         self.last = None
             # Initialize any new neighbors
             for x in peers:
+                print "Doing the nbr thing"
                 self.nbr_connect((x[0], x[1]), x[2])
             # Start downloads
             for aes, tc in r.get('tracking codes', []):
