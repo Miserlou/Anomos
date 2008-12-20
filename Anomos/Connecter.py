@@ -46,8 +46,8 @@ CANCEL = chr(0x8)
 
 ##Anomos Control Chars##
 TCODE = chr(0x9)
-PUBKEY = chr(0xA) # Sent before a pubkey to be used in an AES key exchange
-EXCHANGE = chr(0xB) # The data that follows is RSA encrypted AES data
+#PUBKEY = chr(0xA) # Sent before a pubkey to be used in an AES key exchange
+#EXCHANGE = chr(0xB) # The data that follows is RSA encrypted AES data
 CONFIRM = chr(0xC)
 ENCRYPTED = chr(0xD) # The data that follows is AES encrypted
 
@@ -180,41 +180,41 @@ class Connection(object):
     #        self.link_key = self.owner.keyring.getKey(self.id)
     #    return self.link_key
     
-    def try_all_keys(self, message):
-        '''This method handles conflict resolution when 2 or more of our 
-           neighbors are at the same IP address. We try decrypting the message with 
-           each of the neighbor's AES keys and check if the result is a TCODE.
-           There's an off chance (1/256) that it's a TCODE by chance, so if we
-           get more than one valid plaintext we check if any of the TCODES are
-           valid by decrypting each of them with our RSA key.
-        '''
-        nids = self.owner.lookup_loc(self.connection.ip)
-        pts = {}
-        for id in nids:
-            key = self.owner.keyring.getKey(id)
-            #Create a copy of the key so we don't screw up the cipher state
-            tmpkey = crypto.AESKey(key.key, key.iv)
-            plaintext = tmpkey.decrypt(message)
-            if plaintext[0] == TCODE:
-                pts[id] = plaintext
-        if len(pts) == 1:
-            self.id = pts.items()[0][0]
-            self.established = True
-            #Decrypt with the real key to advance the cipher state
-            return self.owner.keyring.getKey(self.id).decrypt(message)
-        elif len(pts) > 1:
-            for id, text in pts.iteritems():
-                try:
-                    self.rsakey.decrypt(text)
-                except:
-                    pass
-                else:
-                    self.id = id
-                    self.established = True
-                    #Decrypt with the real key to advance the cipher state
-                    return self.get_link_aes.decrypt(message)
-        # Apparently this message isn't for us.
-        self.close("Cannot decrypt message")
+#    def try_all_keys(self, message):
+#        '''This method handles conflict resolution when 2 or more of our 
+#           neighbors are at the same IP address. We try decrypting the message with 
+#           each of the neighbor's AES keys and check if the result is a TCODE.
+#           There's an off chance (1/256) that it's a TCODE by chance, so if we
+#           get more than one valid plaintext we check if any of the TCODES are
+#           valid by decrypting each of them with our RSA key.
+#        '''
+#        nids = self.owner.lookup_loc(self.connection.ip)
+#        pts = {}
+#        for id in nids:
+#            key = self.owner.keyring.getKey(id)
+#            #Create a copy of the key so we don't screw up the cipher state
+#            tmpkey = crypto.AESKey(key.key, key.iv)
+#            plaintext = tmpkey.decrypt(message)
+#            if plaintext[0] == TCODE:
+#                pts[id] = plaintext
+#        if len(pts) == 1:
+#            self.id = pts.items()[0][0]
+#            self.established = True
+#            #Decrypt with the real key to advance the cipher state
+#            return self.owner.keyring.getKey(self.id).decrypt(message)
+#        elif len(pts) > 1:
+#            for id, text in pts.iteritems():
+#                try:
+#                    self.rsakey.decrypt(text)
+#                except:
+#                    pass
+#                else:
+#                    self.id = id
+#                    self.established = True
+#                    #Decrypt with the real key to advance the cipher state
+#                    return self.get_link_aes.decrypt(message)
+#        # Apparently this message isn't for us.
+#        self.close("Cannot decrypt message")
     
     def _read_header(self):
         '''Yield the number of bytes for each section of the header and sanity
@@ -245,11 +245,11 @@ class Connection(object):
             self.owner.set_neighbor(self)
             #XXX: PORT HACK
             self.connection.write(chr(len(protocol_name)) + protocol_name + tobinary(self.owner.port)[2:] + (chr(0) * 6))
-            if not self.established:
-                # Non-neighbor connection
-                # Respond with PubKey
-                pkmsg = PUBKEY + self.owner.rsakey.pub_bin()
-                self._send_message(pkmsg)
+#            if not self.established:
+#                # Non-neighbor connection
+#                # Respond with PubKey
+#                pkmsg = PUBKEY + self.owner.rsakey.pub_bin()
+#                self._send_message(pkmsg)
         self._reader = self._read_messages()
         yield self._reader.next()
     
@@ -357,7 +357,7 @@ class Connection(object):
         elif t == TCODE:
             print "Got TCODE"
             #XXX: Decrypt might fail and raise an error.
-            plaintext, nextTC = self.owner.rsakey.decrypt(message[1:], True)
+            plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
                 self.owner.set_relayer(self, plaintext)
                 self.owner.connection_completed(self)
@@ -376,40 +376,40 @@ class Connection(object):
                     return
                 self._send_encrypted_message(CONFIRM, False)
                 self.owner.connection_completed(self)
-        elif t == PUBKEY:
-            #TODO: Check size?
-            pub = crypto.RSAPubKey(message[1:])
-            self.send_key_exchange(pub)
-        elif t == EXCHANGE:
-            # Read in RSA encrypted data and extract NID, AES key and AES IV
-            try:
-                plaintxt = self.owner.rsakey.decrypt(message[1:])
-                nid = plaintxt[0]
-                i = 1
-                keylen = toint(plaintxt[i:i+4])
-                i += 4
-                key = plaintxt[i:i+keylen]
-                i += keylen
-                ivlen = toint(plaintxt[i:i+4])
-                i += 4
-                iv = plaintxt[i:i+ivlen]
-            except IndexError:
-                self.close("Bad message length")
-                return
-            except RSAError:
-                self.close("Bad decrypt, wrong private key?")
-                return
-            except ValueError:
-                self.close("Bad encrypted message checksum")
-                return
-            # Check that this NID isn't already taken
-            if self.owner.has_neighbor(nid):
-                self.close("NID already assigned")
-                return
-            self.id = nid
-            self.owner.add_neighbor(self.id, (self.ip, self.port), crypto.AESKey(key, iv))
-            self.owner.connection_completed(self)
-            self._send_message(CONFIRM)
+#        elif t == PUBKEY:
+#            #TODO: Check size?
+#            pub = crypto.RSAPubKey(message[1:])
+#            self.send_key_exchange(pub)
+#        elif t == EXCHANGE:
+#            # Read in RSA encrypted data and extract NID, AES key and AES IV
+#            try:
+#                plaintxt = self.owner.rsakey.decrypt(message[1:])
+#                nid = plaintxt[0]
+#                i = 1
+#                keylen = toint(plaintxt[i:i+4])
+#                i += 4
+#                key = plaintxt[i:i+keylen]
+#                i += keylen
+#                ivlen = toint(plaintxt[i:i+4])
+#                i += 4
+#                iv = plaintxt[i:i+ivlen]
+#            except IndexError:
+#                self.close("Bad message length")
+#                return
+#            except RSAError:
+#                self.close("Bad decrypt, wrong private key?")
+#                return
+#            except ValueError:
+#                self.close("Bad encrypted message checksum")
+#                return
+#            # Check that this NID isn't already taken
+#            if self.owner.has_neighbor(nid):
+#                self.close("NID already assigned")
+#                return
+#            self.id = nid
+#            self.owner.add_neighbor(self.id, (self.ip, self.port), crypto.AESKey(key, iv))
+#            self.owner.connection_completed(self)
+#            self._send_message(CONFIRM)
         elif t == CONFIRM:
             if not self.established:
                 self.owner.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
@@ -454,8 +454,7 @@ class Connection(object):
         #    self.close("Tried to send encrypted message without link key")
         #TODO: send message hash as well?
         #m = link_key.encrypt(message)
-        else:
-            self._send_message(message)
+        self._send_message(message)
         
     
     def data_came_in(self, conn, s):

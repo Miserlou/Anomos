@@ -25,7 +25,7 @@ months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 
 
 class HTTPConnection(object):
-
+    ### Can we get rid of this class?
     def __init__(self, handler, connection):
         self.handler = handler
         self.connection = connection

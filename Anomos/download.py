@@ -552,7 +552,6 @@ class _SingleTorrent(object):
         """
         myid = 'A' + version.split()[0].replace('.', '-')
         self.myid = myid + self.certificate.fingerprint()[-(20-len(myid)):]
-        #self.myid = myid + sha(self.rsa.pub_bin()).hexdigest()[-(20-len(myid)):]
 
     def _set_auto_uploads(self):
         uploads = self.config['max_uploads']

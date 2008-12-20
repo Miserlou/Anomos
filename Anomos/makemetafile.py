@@ -27,8 +27,6 @@ from Anomos.parseargs import parseargs, printHelp
 from Anomos.platform import bttime
 from Anomos.obsoletepythonsupport import *
 from Anomos import BTFailure
-from M2Crypto.RSA import load_pub_key
-from Anomos.crypto import RSAPubKey
 
 ignore = ['core', 'CVS', 'Thumbs.db']
 
@@ -49,17 +47,6 @@ def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
     if len(files) > 1 and target:
         raise BTFailure("You can't specify the name of the .torrent file when "
                         "generating multiple torrents at once")
-
-    #if(pubkeyfilename==None):
-        ##If a filename isn't supplied, contact the tracker and get the pubkey
-        #o =  urlparse(url)
-        #gurl = o.netloc
-        #trackerconn = httplib.HTTPSConnection(gurl)
-        #trackerconn.request("GET", "/key")
-        #respy = trackerconn.getresponse()
-        #tpkey = respy.read()
-        #rsapk = RSAPubKey(tpkey)
-        #pubkeyfilename = rsapk.saveNewPEM(o.scheme) ##TODO: Sanitize gurl instead..
 
     if not filesystem_encoding:
         try:
