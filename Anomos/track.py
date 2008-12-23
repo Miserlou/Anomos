@@ -628,6 +628,8 @@ class Tracker(object):
             loc = sim.neighbors[p]['loc']
             nid = sim.neighbors[p]['nid']
             neighbors.append({'ip':loc[0], 'port':loc[1], 'peer id':nid})
+        print "Neighbor list: "
+        print neighbors
         return neighbors
     
     def getTCs(self, peerid, infohash, return_type, count):
@@ -644,9 +646,9 @@ class Tracker(object):
         """
         #TODO: Update the cache system, and only get peers in infohash's swarm
         #cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
-        swarm = self.networkmodel.getNames()
+        allpeers = self.networkmodel.getNames()
         tcs = []
-        for id in sample(swarm, min(len(swarm), count)):
+        for id in sample(allpeers, min(len(allpeers), count)):
             if id == peerid:
                 continue
             print id, "To", peerid, "For", infohash

@@ -73,6 +73,7 @@ class HTTPConnection(object):
         self.headers = {}
         return self.read_header
 
+
     def read_header(self, data):
         data = data.strip()
         if data == '':
@@ -95,8 +96,11 @@ class HTTPConnection(object):
                 self.encoding = 'identity'
             r = self.handler.getfunc(self, self.path, self.headers)
             if r is not None:
+                print "HTTP Handling R is not none."
                 self.answer(r)
-            return None
+                return None
+            else:
+                print "R is none!"
         try:
             i = data.index(':')
         except ValueError:
@@ -154,10 +158,13 @@ class HTTPConnection(object):
             r.write('\r\n')
         if self.command != 'HEAD':
             r.write(data)
+
+        print r.getvalue()
         
         self.connection.write(r.getvalue())
         if self.connection.is_flushed():
             self.connection.shutdown(1)
+            print "connection shutdown called"
 
 
 class HTTPHandler(object):

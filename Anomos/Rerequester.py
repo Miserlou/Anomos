@@ -5,7 +5,7 @@
 #
 # Software distributed under the License is distributed on an AS IS basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied.  See the License
-# for the specific language governing rights and limitations under the
+# for the specific language governing rights and limitations under the reply:
 # License. No address associated with hostname
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
@@ -175,14 +175,11 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker 
             Note: This runs in its own thread.
         """
+        print "Rerequesting!"
         h = httpslib.HTTPSConnection(self.url, self.remote_port, query, 
                                      ssl_context=self.certificate.getContext())
-        h.set_debuglevel(9)
+        h.set_debuglevel(1)
         h.putrequest('GET', self.path+query)
-        h.putheader('Accept', 'text/plain')
-        #h.putheader('Connection', 'close')
-        h.putheader('Content-type', 'text/plain')
-        h.putheader('Pragma', 'no-cache')
         h.endheaders()
         resp = h.getresponse()
         #request = Request(url)
@@ -191,8 +188,10 @@ class Rerequester(object):
         #    request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
             data = resp.read()
+            print "data: " + data
             resp.close()
             h.close()
+            h = None
         # urllib2 can raise various crap that doesn't have a common base
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib

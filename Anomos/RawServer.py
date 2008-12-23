@@ -70,7 +70,7 @@ class SingleSocket(object):
         sock.close()
 
     def shutdown(self, val):
-        self.socket.shutdown(val)
+        self.socket.shutdown(1)
 
     def is_flushed(self):
         return len(self.buffer) == 0
@@ -287,7 +287,7 @@ class RawServer(object):
         return s
 
     def wrap_socket(self, sock, handler, context=None, ip=None):
-        sock.setblocking(0)
+        #sock.setblocking(0)
         self.poll.register(sock, POLLIN)
         s = SingleSocket(self, sock, handler, context, ip)
         self.single_sockets[sock.fileno()] = s
@@ -307,6 +307,7 @@ class RawServer(object):
                         # Connection attempt
                         handler, context = self.listening_handlers[sock]
                         
+                        print "Accepting" 
                         newsock, addr = s.accept()
                         #newsock.setblocking(0)
 
@@ -321,6 +322,7 @@ class RawServer(object):
                         self.errorfunc(WARNING, "Error handling accepted "\
                                        "connection: " + str(e))
                     else:
+                        print "Connection else"
                         nss = SingleSocket(self, newsock, handler, context)
                         self.single_sockets[newsock.fileno()] = nss
                         self.poll.register(newsock, POLLIN)
@@ -337,6 +339,7 @@ class RawServer(object):
                     continue
                 s.connected = True
                 if event & POLLERR:
+                    print "event and pollerr"
                     if not s.socket.get_shutdown():
                         self._clear_socket(s)
                     else:
@@ -345,10 +348,7 @@ class RawServer(object):
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
                     try:
-                        ndata = s.socket.read(100000)
-                        if not ndata:
-                            break
-                        data = ndata
+                        data = s.socket.recv(100000)
                     except SSL.SSLError, what:
                         if str(what) == 'unexpected eof':
                             if not s.socket.get_shutdown():
@@ -357,6 +357,7 @@ class RawServer(object):
                         else:
                             raise
                     except socket.error, e:
+                        print "Other error"
                         code, msg = e
                         if code != EWOULDBLOCK:
                             if not s.socket.get_shutdown():
