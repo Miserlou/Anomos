@@ -86,7 +86,7 @@ class Certificate:
         self.rsakey.save_key(self.ikeyfile, None)
         # Make the public key
         pkey = EVP.PKey()
-        pkey.assign_rsa(self.rsakey)
+        pkey.assign_rsa(self.rsakey, 0)
         # Generate the certificate 
         self.cert = X509.X509()
         #TODO: Serial number should change each time cert is generated
@@ -168,7 +168,8 @@ class Certificate:
 class PeerCert:
     def __init__(self, certObj):
         self.certificate = certObj
-        self.pubkey = certObj.get_pubkey()
+        tmp = X509.load_cert_string(certObj.as_pem()).get_pubkey().get_rsa()
+        self.pubkey = RSA.new_pub_key((tmp.e, tmp.n))
         self.randfile = global_randfile
     def verify():
         # Verify the certificate
