@@ -914,6 +914,12 @@ class Tracker(object):
                 del x[y][peerid]
         del self.times[infohash][peerid]
         del dls[peerid]
+        
+        for torrent in self.downloads:
+            if torrent[peerid] is not None:
+                return
+
+        self.networkmodel.disconnect(peerid)
 
     def expire_downloaders(self):
         for infohash, peertimes in self.times.items():
