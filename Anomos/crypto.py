@@ -24,6 +24,7 @@ def getRand(*args):
 global_cryptodir = None
 global_randfile = None
 global_dd = None 
+
 def initCrypto(data_dir):
     '''Sets the directory in which to store crypto data/randfile
     @param data_dir: path to directory
@@ -139,10 +140,11 @@ class Certificate:
         @return: tuple (decrypted message, padding) if returnpad is true, string otherwise
         @rtype: tuple
         """
-        byte_key_size = self.key_size/8
+        byte_key_size = len(self.rsakey)/8
+        print byte_key_size
         # Decrypt the session key and IV with our private key
         try:
-            tmpsk = self.rsakey.private_decrypt(data[:byte_key_size], self.padding)
+            tmpsk = self.rsakey.private_decrypt(data[:byte_key_size], RSA.pkcs1_oaep_padding)
         except RSA.RSAError:
             raise CryptoError("Data encrypted with wrong public key")
         sk = tmpsk[:32] # Session Key
