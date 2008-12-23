@@ -1,4 +1,4 @@
-# The contents of this file are subject to the BitTorrent Open Source License
+
 # Version 1.0 (the License).  You may not copy or use this file, in either
 # source code or executable form, except in compliance with the License.  You
 # may obtain a copy of the License at http://www.bittorrent.com/license/.
@@ -87,7 +87,7 @@ class Rerequester(object):
     
     def change_port(self, peerid, port):
         self.wanted_peerid = peerid
-        self.port = port
+        self.local_port = port
         self.last = None
         #self.trackerid = None
         self._check()
