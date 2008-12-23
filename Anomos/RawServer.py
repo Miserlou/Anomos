@@ -365,7 +365,7 @@ class RawServer(object):
                             else:
                                 self._close_socket(s)
                         continue
-                    print "Data!: " + data
+                    #print "Data!: " + data
                     if data == '':
                         if not s.socket.get_shutdown():
                             self._clear_socket(s)

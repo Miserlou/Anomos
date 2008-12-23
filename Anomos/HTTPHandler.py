@@ -159,7 +159,7 @@ class HTTPConnection(object):
         if self.command != 'HEAD':
             r.write(data)
 
-        print r.getvalue()
+        #print r.getvalue()
         
         self.connection.write(r.getvalue())
         if self.connection.is_flushed():

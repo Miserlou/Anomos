@@ -338,7 +338,6 @@ class NetworkModel:
         """
         message = plaintext # Some easy to check string for recipient to read
         prev_neighbor = None
-        print "path:", pathByNames
         for peername in reversed(pathByNames):
             peerobj = self.get(peername)
             if prev_neighbor:

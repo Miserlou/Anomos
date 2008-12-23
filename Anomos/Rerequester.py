@@ -175,7 +175,6 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker 
             Note: This runs in its own thread.
         """
-        print "Rerequesting!"
         h = httpslib.HTTPSConnection(self.url, self.remote_port, query, 
                                      ssl_context=self.certificate.getContext())
         h.set_debuglevel(1)
@@ -188,7 +187,6 @@ class Rerequester(object):
         #    request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
             data = resp.read()
-            print "data: " + data
             resp.close()
             h.close()
             h = None
@@ -273,7 +271,6 @@ class Rerequester(object):
                         self.last = None
             # Initialize any new neighbors
             for x in peers:
-                print "Doing the nbr thing"
                 self.nbr_connect((x[0], x[1]), x[2])
             # Start downloads
             for aes, tc in r.get('tracking codes', []):

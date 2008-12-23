@@ -628,8 +628,6 @@ class Tracker(object):
             loc = sim.neighbors[p]['loc']
             nid = sim.neighbors[p]['nid']
             neighbors.append({'ip':loc[0], 'port':loc[1], 'peer id':nid})
-        print "Neighbor list: "
-        print neighbors
         return neighbors
     
     def getTCs(self, peerid, infohash, return_type, count):
@@ -651,7 +649,7 @@ class Tracker(object):
         for id in sample(allpeers, min(len(allpeers), count)):
             if id == peerid:
                 continue
-            print id, "To", peerid, "For", infohash
+            print id, "To", peerid
             aes = AESKey()
             #TODO: design a good format for the request
             t = self.networkmodel.getTrackingCode(peerid, id, infohash + aes.key + aes.iv)
