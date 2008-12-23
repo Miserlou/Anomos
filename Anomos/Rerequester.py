@@ -6,7 +6,7 @@
 # Software distributed under the License is distributed on an AS IS basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied.  See the License
 # for the specific language governing rights and limitations under the reply:
-# License. No address associated with hostname
+# License. No address associated with hostname Data!:
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
@@ -112,7 +112,7 @@ class Rerequester(object):
             return
         if self.peerid is None:
             self.peerid = self.wanted_peerid
-            self.basequery = self._makequery(self.peerid, self.remote_port)
+            self.basequery = self._makequery(self.peerid, self.local_port)
             self._announce(STARTED)
             return
         if self.peerid != self.wanted_peerid:
