@@ -81,7 +81,7 @@ class Connection(object):
         self.choke_sent = True
         if self.locally_initiated and not self.established:
             connection.write(chr(len(protocol_name)) + protocol_name +
-                tobinary(self.owner.port)[2:] + (chr(0) * 6))
+                tobinary(self.owner.port)[2:] + self.id + (chr(0) * 5))
 
     def close(self, e=None):
         print "Closing the connection!", e
@@ -170,10 +170,10 @@ class Connection(object):
         self._send_message(msg)
     
     def send_tracking_code(self, trackcode):
-        self._send_encrypted_message(TCODE + trackcode, False)
+        self._send_message(TCODE + trackcode)
     
     def send_relay_message(self, message):
-        self._send_encrypted_message(message, False)
+        self._send_message(message)
     
     #def get_link_aes(self):
     #    if self.link_key is None:
@@ -238,13 +238,20 @@ class Connection(object):
         
         yield 2  # port number
         self.port = toint(self._message)
-        yield 6  # reserved
+        yield 1  # NID
+        self.id = self._message
+        #TODO: Check response id on locally_initiated connections?    
+        yield 5  # reserved
         # Got a full header => New Neighbor Connection
         if not self.locally_initiated:
             # This is a new neighbor, so switch owner to a NeighborManager
             self.owner.set_neighbor(self)
             #XXX: PORT HACK
-            self.connection.write(chr(len(protocol_name)) + protocol_name + tobinary(self.owner.port)[2:] + (chr(0) * 6))
+            self.connection.write(chr(len(protocol_name)) + protocol_name + tobinary(self.owner.port)[2:] + self.id + (chr(0) * 5))
+        else:
+            self.owner.add_neighbor(self.id, (self.ip, self.port))
+            self.owner.connection_completed(self)
+            self._send_message(CONFIRM)
 #            if not self.established:
 #                # Non-neighbor connection
 #                # Respond with PubKey
@@ -355,7 +362,6 @@ class Connection(object):
                 for co in self.owner.complete_connections:
                     co.send_have(i)
         elif t == TCODE:
-            print "Got TCODE"
             #XXX: Decrypt might fail and raise an error.
             plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
@@ -363,7 +369,6 @@ class Connection(object):
                 self.owner.connection_completed(self)
                 self.owner.relay_message(self, TCODE + nextTC)
             else:
-                print "Receiving TCODE"
                 # TC ends at this peer, plaintext contains infohash, aes, iv
                 infohash = plaintext[:20]
                 aes = plaintext[20:52]
@@ -374,45 +379,11 @@ class Connection(object):
                     # We don't have that torrent...
                     # TODO: handle this gracefully.
                     return
-                self._send_encrypted_message(CONFIRM, False)
+                self._send_message(CONFIRM)
                 self.owner.connection_completed(self)
-#        elif t == PUBKEY:
-#            #TODO: Check size?
-#            pub = crypto.RSAPubKey(message[1:])
-#            self.send_key_exchange(pub)
-#        elif t == EXCHANGE:
-#            # Read in RSA encrypted data and extract NID, AES key and AES IV
-#            try:
-#                plaintxt = self.owner.rsakey.decrypt(message[1:])
-#                nid = plaintxt[0]
-#                i = 1
-#                keylen = toint(plaintxt[i:i+4])
-#                i += 4
-#                key = plaintxt[i:i+keylen]
-#                i += keylen
-#                ivlen = toint(plaintxt[i:i+4])
-#                i += 4
-#                iv = plaintxt[i:i+ivlen]
-#            except IndexError:
-#                self.close("Bad message length")
-#                return
-#            except RSAError:
-#                self.close("Bad decrypt, wrong private key?")
-#                return
-#            except ValueError:
-#                self.close("Bad encrypted message checksum")
-#                return
-#            # Check that this NID isn't already taken
-#            if self.owner.has_neighbor(nid):
-#                self.close("NID already assigned")
-#                return
-#            self.id = nid
-#            self.owner.add_neighbor(self.id, (self.ip, self.port), crypto.AESKey(key, iv))
-#            self.owner.connection_completed(self)
-#            self._send_message(CONFIRM)
         elif t == CONFIRM:
             if not self.established:
-                self.owner.add_neighbor(self.id, (self.ip, self.port), self.tmp_aes)
+                self.owner.add_neighbor(self.id, (self.ip, self.port))
             self.owner.connection_completed(self)
             if self.is_relay:
                 self.owner.relay_message(self, CONFIRM)
@@ -442,20 +413,12 @@ class Connection(object):
         else:
             self.connection.write(s)
     
-    def _send_encrypted_message(self, message, e2e_encrypt=True):
+    def _send_encrypted_message(self, message):
         '''Sends a /link encrypted/ message. Messages must be end-to-end
            encrypted prior to being passed to this method.
         '''
-        if e2e_encrypt and self.e2e_key:
-            message = ENCRYPTED + self.e2e_key.encrypt(message)
-            self._send_message(message)
-        #link_key = self.get_link_aes()
-        #if not link_key:
-        #    self.close("Tried to send encrypted message without link key")
-        #TODO: send message hash as well?
-        #m = link_key.encrypt(message)
+        message = ENCRYPTED + self.e2e_key.encrypt(message)
         self._send_message(message)
-        
     
     def data_came_in(self, conn, s):
         while True:

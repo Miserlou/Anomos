@@ -32,7 +32,7 @@ class Relayer(object):
         self.rawserver = rawserver
         self.neighbors = neighbors
         self.incoming = incoming
-        self.outgoing = self.start_ssl_connection(outnid)
+        self.outgoing = self.start_connection(outnid)
         self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
         self.config = config
         self.keyring = keyring
@@ -51,7 +51,6 @@ class Relayer(object):
     def start_connection(self, nid):
         loc = self.neighbors.get_location(nid)
         try:
-            ## TODO: SSL Here!
             c = self.rawserver.start_ssl_connection(loc)
         except socketerror:
             self.incoming.close("Socket error on Relayer")

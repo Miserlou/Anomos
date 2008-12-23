@@ -14,7 +14,7 @@ class NeighborManager:
         self.rawserver = rawserver
         self.config = config
         self.cert = certificate
-        self.keyring = keyring
+        #self.keyring = keyring
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
@@ -34,10 +34,9 @@ class NeighborManager:
                 peers.append(nid)
         return peers
     
-    def add_neighbor(self, id, location, key):
+    def add_neighbor(self, id, location):
         print "ADDING NEIGHBOR:", hex(ord(id)), location
         self.neighbors[id] = location
-        self.keyring.addKey(id, key)
         print "neighbors: ", self.neighbors
     
     def has_neighbor(self, nid):
@@ -83,7 +82,7 @@ class NeighborManager:
             #TODO: Resolve conflict
             return
         try:
-            c = self.rawserver.start_ssl_connection(loc, self.cert.getContext())
+            c = self.rawserver.start_ssl_connection(loc)
         except socketerror:
             pass
         else:

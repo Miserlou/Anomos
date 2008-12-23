@@ -272,8 +272,8 @@ class RawServer(object):
 #        self.single_sockets[sock.fileno()] = s
 #        return s
 
-    def start_ssl_connection(self, dns, sslctx, handler=None, context=None, do_bind=True):
-        sock = SSL.Connection(sslctx)
+    def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
+        sock = SSL.Connection(self.certificate.getContext())
         sock.set_post_connection_check_callback(None)
         try:
             # This will be picked up on the receiving end by the client's passive socket

@@ -89,8 +89,7 @@ class EndPoint(object):
         loc = self.neighbors.get_location(nid)
         print "Sending TC to", hex(ord(nid)), "at", loc
         try:
-            ##SSL THIS!
-            c = self.raw_server.start_ssl_connection(loc, self.cert.getSSLContext())
+            c = self.raw_server.start_ssl_connection(loc)
         except TypeError:
             pass
         else:
