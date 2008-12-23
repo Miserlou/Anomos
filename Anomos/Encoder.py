@@ -66,7 +66,7 @@ class EndPoint(object):
             #TODO: There will eventually be an extra piece of data in the TC to 
             # verify the tracker, get that here too.
             #TODO: Check the TC length
-            nid, tc = self.rsakey.decrypt(tc, True)
+            nid, tc = self.cert.decrypt(tc, True)
         except ValueError, e:
             print "VALUE ERR: ", e
             return #Tampered With
