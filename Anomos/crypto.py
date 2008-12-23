@@ -14,7 +14,7 @@ import os
 import cStringIO
 import sha
 from binascii import b2a_hex, a2b_hex
-from M2Crypto import m2, Rand, RSA, EVP, X509, SSL
+from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading
 from Anomos import BTFailure
 
 
@@ -29,6 +29,8 @@ def initCrypto(data_dir):
     @param data_dir: path to directory
     @type data_dir: string
     '''
+
+    threading.init()
     
     global getRand, global_cryptodir, global_randfile, global_dd
     global_dd = data_dir
