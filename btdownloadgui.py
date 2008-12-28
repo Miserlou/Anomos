@@ -63,6 +63,7 @@ ui_options = 'max_upload_rate minport maxport '\
              'min_uploads max_uploads max_initiate '\
              'max_allow_in max_files_open display_interval '\
              'donated pause'.split()
+advanced_ui = 1
 advanced_ui_options_index = 10
 
 
@@ -3029,6 +3030,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     advanced_ui = config['advanced']
+    ##advanced UI always on!
+    advanced_ui = 1
 
     if config['responsefile']:
         if args:
