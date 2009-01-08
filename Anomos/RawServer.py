@@ -176,9 +176,9 @@ class RawServer(object):
                     self._close_socket(s)
     
     def create_ssl_serversocket(self, port, bind='', reuse=False, tos=0):
-        server = SSL.Connection(self.certificate.getContext())
-        server.set_post_connection_check_callback(None)
-        server.setblocking(0)
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#SSL.Connection(self.certificate.getContext())
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #server.set_post_connection_check_callback(None)
         server.bind((bind, port))
         server.listen(5)
         return server
@@ -309,21 +309,21 @@ class RawServer(object):
                         
                         print "Accepting" 
                         newsock, addr = s.accept()
-                        newsock.setblocking(0)
 
-                        server = SSL.Connection(self.certificate.getContext(), None)
-                        server.ssl = newsock
+                        conn = SSL.Connection(self.certificate.getContext(), newsock)
                         #conn.set_post_connection_check_callback(post_connection_check)
-                        server.setup_addr(addr)
-
+                        conn.setup_addr(addr)
+                        conn.set_accept_state()
+                        conn.setup_ssl()
+                        conn.accept_ssl()
                     except socket.error, e:
                         self.errorfunc(WARNING, "Error handling accepted "\
                                        "connection: " + str(e))
                     else:
                         print "Connection else"
-                        nss = SingleSocket(self, newsock, handler, context)
-                        self.single_sockets[newsock.fileno()] = nss
-                        self.poll.register(newsock, POLLIN)
+                        nss = SingleSocket(self, conn, handler, context)
+                        self.single_sockets[conn.fileno()] = nss
+                        self.poll.register(conn, POLLIN)
                         self._make_wrapped_call(handler.external_connection_made,\
                                                 (nss,), context=context)
             else:
@@ -346,7 +346,7 @@ class RawServer(object):
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
                     try:
-                        data = s.socket.recv(100000)
+                        data = s.socket.read()
                     except SSL.SSLError, what:
                         if str(what) == 'unexpected eof':
                             if not s.socket.get_shutdown():
@@ -354,15 +354,15 @@ class RawServer(object):
                                 continue
                         else:
                             raise
-                    except socket.error, e:
-                        print "Other error"
-                        code, msg = e
-                        if code != EWOULDBLOCK:
-                            if not s.socket.get_shutdown():
-                                    self._clear_socket(s)
-                            else:
-                                self._close_socket(s)
-                        continue
+#                    except socket.error, e:
+#                        print "Other error"
+#                        code, msg = e
+#                        if code != EWOULDBLOCK:
+#                            if not s.socket.get_shutdown():
+#                                    self._clear_socket(s)
+#                            else:
+#                                self._close_socket(s)
+#                        continue
                     #print "Data!: " + data
                     if data == '':
                         if not s.socket.get_shutdown():
