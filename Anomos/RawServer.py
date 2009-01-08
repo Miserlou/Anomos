@@ -309,14 +309,12 @@ class RawServer(object):
                         
                         print "Accepting" 
                         newsock, addr = s.accept()
-                        #newsock.setblocking(0)
+                        newsock.setblocking(0)
 
-                        #server = SSL.Connection(self.certificate.getContext(), newsock)
-                        ##conn.set_post_connection_check_callback(post_connection_check)
-                        #server.setup_addr(addr)
-                        #server.set_accept_state()
-                        #server.setup_ssl()
-                        #server.accept_ssl()
+                        server = SSL.Connection(self.certificate.getContext(), None)
+                        server.ssl = newsock
+                        #conn.set_post_connection_check_callback(post_connection_check)
+                        server.setup_addr(addr)
 
                     except socket.error, e:
                         self.errorfunc(WARNING, "Error handling accepted "\
@@ -477,4 +475,6 @@ class RawServer(object):
         s.handler = None
 
     def numsockets(self):
-        return len(self.single_sockets)
+        return len(self.single_sockets)#    conn = SSL.Connection(ctx, None)
+#    conn.ssl = ssl
+#    conn.setup_addr(addr)
