@@ -1,4 +1,4 @@
-# The contents of this file are subject to the BitTorrent Open Source License
+
 # Version 1.0 (the License).  You may not copy or use this file, in either
 # source code or executable form, except in compliance with the License.  You
 # may obtain a copy of the License at http://www.bittorrent.com/license/.
@@ -36,16 +36,16 @@ class SingleSocket(object):
         self.raw_server = raw_server
         self.socket = sock
         self.handler = handler
+        self.context = context
         self.buffer = []
         self.last_hit = bttime()
         self.fileno = sock.fileno()
         self.connected = False
-        self.context = context
         self.peer_cert = sock.get_peer_cert()
         print "Peer cert", self.peer_cert, sock
         if ip is not None:
             self.ip = ip
-        else:
+        else: # Try to get the IP from the socket 
             try:
                 peername = self.socket.getpeername()
             except socket.error:
@@ -57,20 +57,29 @@ class SingleSocket(object):
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
 
-    def getip(self):
-        return self.ip
+    def recv(self, bufsize=32768):
+        return self.socket.recv(bufsize)
 
-    def close(self):
-        sock = self.socket
+    def _set_shutdown(self, opt=SSL.SSL_RECEIVED_SHUTDOWN|SSL.SSL_SENT_SHUTDOWN):
+        self.socket.set_shutdown(opt)
+    
+    def _clear_state(self):
         self.socket = None
         self.buffer = []
-        del self.raw_server.single_sockets[self.fileno]
-        self.raw_server.poll.unregister(sock)
         self.handler = None
-        sock.close()
+        self.buffer = None
 
-    def shutdown(self, val):
-        self.socket.shutdown(1)
+    def close(self):
+        self._set_shutdown()
+        self.socket.close()
+        self._clear_state()
+        #del self.raw_server.single_sockets[self.fileno]
+        #self.raw_server.poll.unregister(sock)
+
+    def clear(self):
+        self._set_shutdown()
+        self.socket.clear()
+        self._clear_state()
 
     def is_flushed(self):
         return len(self.buffer) == 0
@@ -84,7 +93,7 @@ class SingleSocket(object):
     def try_write(self):
         if self.connected:
             try:
-                while self.buffer != []:
+                while self.buffer:
                     amount = self.socket.send(self.buffer[0])
                     if amount != len(self.buffer[0]):
                         if amount != 0:
@@ -101,9 +110,6 @@ class SingleSocket(object):
         else:
             self.raw_server.poll.register(self.socket, POLLIN | POLLOUT)
 
-    def getSocket(self):
-        return self.socket
-
 def default_error_handler(x, y):
     print x, y
 
@@ -117,7 +123,6 @@ class RawServer(object):
         self.certificate = certificate
         self.tos = tos
         self.poll = poll()
-        # {socket: SingleSocket}
         self.single_sockets = {}
         self.dead_from_write = []
         self.doneflag = doneflag
@@ -152,7 +157,7 @@ class RawServer(object):
             insort(self.funcs, (bttime() + delay, func, context))
 
     def external_add_task(self, func, delay, context=None):
-        '''Called from a thread other than RawServers, queues up tasks to be
+        '''Called from a thread other than RawServer's, queues up tasks to be
            in a threadsafe way
         '''
         self.externally_added_tasks.append((func, delay, context))
@@ -169,73 +174,15 @@ class RawServer(object):
             if s.last_hit < t:
                 tokill.append(s)
         for k in tokill:
-            if k.socket is not None:
-                if not s.socket.get_shutdown():
-                    self._clear_socket(s)
-                else:
-                    self._close_socket(s)
+            self._safe_shutdown(k)
     
     def create_ssl_serversocket(self, port, bind='', reuse=False, tos=0):
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#SSL.Connection(self.certificate.getContext())
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         #server.set_post_connection_check_callback(None)
         server.bind((bind, port))
-        server.listen(5)
+        server.listen(10)
         return server
-#        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#        if reuse and os.name != 'nt':
-#            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#        server.setblocking(0)
-#        if tos != 0:
-#            try:
-#                server.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, tos)
-#            except:
-#                pass
-#        server.bind((bind, port))
-#        server.listen(5)
-#        return server
-
-#    @staticmethod
-#    def create_fakesocket(reuse=False, tos=0):
-#
-#        global fake_socket
-#        ##print fake_socket[0]
-#
-#        server = socket(AF_INET, SOCK_STREAM)
-#        if reuse and os.name != 'nt':
-#            server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-#        if tos != 0:
-#            try:
-#                server.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, tos)
-#            except:
-#                print "exepted"
-#                pass
-#        ri = random.randint(9000,9999)
-#        print ri
-#        server.bind(('', ri))        ## random.randint(9000,9999)) hackest hack that ever hacked.
-#        server.listen(5)
-#
-#        ##fake_socket[0] = fake_socket[0] + 1
-#        return server
-#
-#    @staticmethod
-#    def create_ssl_serversocket(port, bind='', reuse=False, tos=0):
-#        ##SSL  here
-#
-#        oldsocket = RawServer.create_fakesocket()
-#        conn, addr = oldsocket.accept()
-#        
-#        ctx = crypto.getSSLServerContext()
-#    
-#        server = SSL.Connection(ctx, conn)
-#        ##conn.set_post_connection_check_callback(post_connection_check)
-#        server.setup_addr(addr)
-#        server.set_accept_state()
-#        server.setup_ssl()
-#        server.accept_ssl()
-#
-#        print "jaosdf"
-#        return server
     
     def start_listening(self, serversocket, handler, context=None):
         self.listening_handlers[serversocket.fileno()] = (handler, context)
@@ -247,89 +194,43 @@ class RawServer(object):
         del self.serversockets[serversocket.fileno()]
         self.poll.unregister(serversocket)
 
-#    def start_connection(self, dns, handler=None, context=None, do_bind=True):
-#        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
+        sock = SSL.Connection(self.certificate.getContext())
+        sock.setup_ssl()
+        sock.set_connect_state()
+        #TODO: post_connection_check should not be None!
+        sock.set_post_connection_check_callback(None)
+        try:
+            sock.connect(dns) 
+        except Exception, e:
+            print e,"\n\n"
+            sock.clear()
+        else:
+            self.poll.register(sock, POLLIN)
+            s = SingleSocket(self, sock, handler, context, dns[0])
+            self.single_sockets[sock.fileno()] = s
+            return s
+
+#    def wrap_socket(self, sock, handler, context=None, ip=None):
 #        sock.setblocking(0)
-#        if do_bind and self.bindaddr:
-#            sock.bind((self.bindaddr, 0))
-#        if self.tos != 0:
-#            try:
-#                sock.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, self.tos)
-#            except:
-#                pass
-#        try:
-#            # This will be picked up on the receiving end by the client's passive socket
-#            sock.connect_ex(dns) 
-#        except socket.error:
-#            sock.clear()
-#            raise
-#        # Commenting this out, because it appears to not be necessary
-#        #except Exception, e:
-#        #    sock.close()
-#        #    raise socket.error(str(e))
 #        self.poll.register(sock, POLLIN)
-#        s = SingleSocket(self, sock, handler, context, dns[0])
+#        s = SingleSocket(self, sock, handler, context, ip)
 #        self.single_sockets[sock.fileno()] = s
 #        return s
 
-    def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
-        sock = SSL.Connection(self.certificate.getContext())
-        sock.set_post_connection_check_callback(None)
-        try:
-            # This will be picked up on the receiving end by the client's passive socket
-            sock.connect(dns) 
-        except socket.error:
-            sock.clear()
-            raise
-        self.poll.register(sock, POLLIN)
-        s = SingleSocket(self, sock, handler, context, dns[0])
-        self.single_sockets[sock.fileno()] = s
-        return s
-
-    def wrap_socket(self, sock, handler, context=None, ip=None):
-        #sock.setblocking(0)
-        self.poll.register(sock, POLLIN)
-        s = SingleSocket(self, sock, handler, context, ip)
-        self.single_sockets[sock.fileno()] = s
-        return s
-
     def _handle_events(self, events):
         for sock, event in events:
-            if sock in self.serversockets:
-                # Data came in on a port's passive socket.
-                s = self.serversockets[sock]
+            s = self.serversockets.get(sock, None)
+            if s is not None:
                 if event & (POLLHUP | POLLERR):
-                    self.poll.unregister(s)
+                    self.stop_listening(s)
                     s.clear()
                     self.errorfunc(CRITICAL, 'lost server socket')
                 else:
-                    try:
-                        # Connection attempt
-                        handler, context = self.listening_handlers[sock]
-                        
-                        print "Accepting" 
-                        newsock, addr = s.accept()
-
-                        conn = SSL.Connection(self.certificate.getContext(), newsock)
-                        #conn.set_post_connection_check_callback(post_connection_check)
-                        conn.setup_addr(addr)
-                        conn.set_accept_state()
-                        conn.setup_ssl()
-                        conn.accept_ssl()
-                    except socket.error, e:
-                        self.errorfunc(WARNING, "Error handling accepted "\
-                                       "connection: " + str(e))
-                    else:
-                        print "Connection else"
-                        nss = SingleSocket(self, conn, handler, context)
-                        self.single_sockets[conn.fileno()] = nss
-                        self.poll.register(conn, POLLIN)
-                        self._make_wrapped_call(handler.external_connection_made,\
-                                                (nss,), context=context)
+                    self._handle_connection_attempt(sock)
             else:
-                data = ''
                 # Data came in on a single_socket
-                s = self.single_sockets.get(sock)
+                s = self.single_sockets.get(sock, None)
                 if s is None: # Not an external connection
                     if sock == self.wakeupfds[0]:
                         # Another thread wrote this just to wake us up.
@@ -337,25 +238,19 @@ class RawServer(object):
                     continue
                 s.connected = True
                 if event & POLLERR:
-                    print "event and pollerr"
-                    if not s.socket.get_shutdown():
-                        self._clear_socket(s)
-                    else:
-                        self._close_socket(s)
+                    self._safe_shutdown(s)
                     continue
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
                     try:
-                        data = s.socket.read()
-                    except SSL.SSLError, what:
-                        if str(what) == 'unexpected eof':
-                            if not s.socket.get_shutdown():
-                                self._clear_socket(s)
-                                continue
+                        data = s.recv()
+                    except SSL.SSLError, errstr:
+                        if str(errstr) == 'unexpected eof':
+                            self._safe_shutdown(s)
+                            continue
                         else:
                             raise
 #                    except socket.error, e:
-#                        print "Other error"
 #                        code, msg = e
 #                        if code != EWOULDBLOCK:
 #                            if not s.socket.get_shutdown():
@@ -364,20 +259,43 @@ class RawServer(object):
 #                                self._close_socket(s)
 #                        continue
                     #print "Data!: " + data
-                    if data == '':
-                        if not s.socket.get_shutdown():
-                            self._clear_socket(s)
-                        else:
-                            self._close_socket(s)
+                    if not data:
+                        self._safe_shutdown(s)
                     else:
                         self._make_wrapped_call(s.handler.data_came_in, \
                                                     (s, data), s)
+                    continue
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
                     s.try_write()
                     if s.is_flushed():
                         self._make_wrapped_call(s.handler.connection_flushed, \
                                                     (s,), s)
+
+    def _handle_connection_attempt(self, sock):
+        s = self.serversockets.get(sock, None)
+        if s is None:
+            return
+        handler, context = self.listening_handlers[sock]
+        try:
+            newsock, addr = s.accept()
+            conn = SSL.Connection(self.certificate.getContext(), newsock)
+            #TODO: Add post connection check
+            #conn.set_post_connection_check_callback(...)
+            conn.setup_addr(addr)
+            conn.set_accept_state()
+            conn.setup_ssl()
+            conn.accept_ssl()
+        except socket.error, e:
+            self.errorfunc(WARNING, "Error handling accepted "\
+                           "connection: " + str(e))
+        else:
+            print "Connection else"
+            nss = SingleSocket(self, conn, handler, context)
+            self.single_sockets[conn.fileno()] = nss
+            self.poll.register(conn, POLLIN)
+            self._make_wrapped_call(handler.external_connection_made,\
+                                    (nss,), context=context)
 
     def _pop_externally_added(self):
         while self.externally_added_tasks:
@@ -394,18 +312,18 @@ class RawServer(object):
                     period = max(0, self.funcs[0][0] - bttime())
                 events = self.poll.poll(period * timemult)
                 if self.doneflag.isSet():
-                    return
+                    break
                 while len(self.funcs) > 0 and self.funcs[0][0] <= bttime():
                     garbage, func, context = self.funcs.pop(0)
                     self._make_wrapped_call(func, (), context=context)
                 self._close_dead()
                 self._handle_events(events)
                 if self.doneflag.isSet():
-                    return
+                    break
                 self._close_dead()
             except error, e:
                 if self.doneflag.isSet():
-                    return
+                    break
                 # I can't find a coherent explanation for what the behavior
                 # should be here, and people report conflicting behavior,
                 # so I'll just try all the possibilities
@@ -417,14 +335,15 @@ class RawServer(object):
                     self.errorfunc(CRITICAL, "Have to exit due to the TCP " \
                                    "stack flaking out. " \
                                    "Please see the FAQ at %s"%FAQ_URL)
-                    return
+                    break
             except KeyboardInterrupt:
                 print_exc()
-                return
+                break
             except:
                 data = StringIO()
                 print_exc(file=data)
                 self.errorfunc(CRITICAL, data.getvalue())
+                break
 
     def _make_wrapped_call(self, function, args, socket=None, context=None):
         try:
@@ -450,31 +369,28 @@ class RawServer(object):
             old = self.dead_from_write
             self.dead_from_write = []
             for s in old:
-                if s.socket is not None:
-                    if not s.socket.get_shutdown():
-                        self._clear_socket(s)
-                    else:
-                        self._close_socket(s)
+                self._safe_shutdown(s)
+
+    def _safe_shutdown(self, s):
+        if s.socket is not None:
+            if not s.socket.get_shutdown():
+                self._clear_socket(s)
+            else:
+                self._close_socket(s)
 
     def _close_socket(self, s):
         sock = s.socket.fileno()
-        s.socket.close()
+        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
         self.poll.unregister(sock)
         del self.single_sockets[sock]
-        s.socket = None
-        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
-        s.handler = None
+        s.close()
 
     def _clear_socket(self, s):
         sock = s.socket.fileno()
-        s.socket.clear()
+        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
         self.poll.unregister(sock)
         del self.single_sockets[sock]
-        s.socket = None
-        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
-        s.handler = None
+        s.clear()
 
     def numsockets(self):
-        return len(self.single_sockets)#    conn = SSL.Connection(ctx, None)
-#    conn.ssl = ssl
-#    conn.setup_addr(addr)
+        return len(self.single_sockets)
