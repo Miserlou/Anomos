@@ -3,7 +3,6 @@
 @license: see License.txt
 '''
 
-from socket import error as socketerror
 from Anomos.Connecter import Connection
 
 class NeighborManager:
@@ -81,17 +80,12 @@ class NeighborManager:
         if self.has_neighbor(id) or self.incomplete.has_key(id):
             #TODO: Resolve conflict
             return
-        try:
-            c = self.rawserver.start_ssl_connection(loc)
-        except socketerror:
-            pass
-        else:
-            #
-            self.incomplete[id] = loc
-            # Make the local connection for receiving.
-            con = Connection(self, c, id, True, established=False)
-            self.connections[c] = con
-            c.handler = con 
+        c = self.rawserver.start_ssl_connection(loc)
+        self.incomplete[id] = loc
+        # Make the local connection for receiving.
+        con = Connection(self, c, id, True, established=False)
+        self.connections[c] = con
+        c.handler = con 
 
     #def send_keepalives(self):
     #   

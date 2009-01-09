@@ -117,7 +117,7 @@ class Certificate:
         ctx.set_verify(SSL.verify_peer | SSL.verify_client_once | SSL.verify_fail_if_no_peer_cert,0, lambda *x:True)
         ctx.set_allow_unknown_ca(True)
         #TODO: Update info callback when we switch to using Python's logging module
-        ctx.set_info_callback(lambda *x:None)
+        #ctx.set_info_callback(lambda *x:None)
         return ctx
     
     def getPub(self):
@@ -141,7 +141,6 @@ class Certificate:
         @rtype: tuple
         """
         byte_key_size = len(self.rsakey)/8
-        print byte_key_size
         # Decrypt the session key and IV with our private key
         try:
             tmpsk = self.rsakey.private_decrypt(data[:byte_key_size], RSA.pkcs1_oaep_padding)

@@ -25,7 +25,6 @@ months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 
 
 class HTTPConnection(object):
-    ### Can we get rid of this class?
     def __init__(self, handler, connection):
         self.handler = handler
         self.connection = connection
@@ -73,7 +72,6 @@ class HTTPConnection(object):
         self.headers = {}
         return self.read_header
 
-
     def read_header(self, data):
         data = data.strip()
         if data == '':
@@ -96,11 +94,8 @@ class HTTPConnection(object):
                 self.encoding = 'identity'
             r = self.handler.getfunc(self, self.path, self.headers)
             if r is not None:
-                print "HTTP Handling R is not none."
                 self.answer(r)
                 return None
-            else:
-                print "R is none!"
         try:
             i = data.index(':')
         except ValueError:
@@ -159,13 +154,9 @@ class HTTPConnection(object):
         if self.command != 'HEAD':
             r.write(data)
 
-        #print r.getvalue()
-        
         self.connection.write(r.getvalue())
         if self.connection.is_flushed():
-            self.connection.shutdown(1)
-            print "connection shutdown called"
-
+            self.connection.close()
 
 class HTTPHandler(object):
 
@@ -180,7 +171,7 @@ class HTTPHandler(object):
 
     def connection_flushed(self, connection):
         if self.connections[connection].done:
-            connection.shutdown(1)
+            connection.close()
 
     def connection_lost(self, connection):
         ec = self.connections[connection]
@@ -192,4 +183,4 @@ class HTTPHandler(object):
     def data_came_in(self, connection, data):
         c = self.connections[connection]
         if not c.data_came_in(data) and not c.closed:
-            c.connection.shutdown(1)
+            c.connection.close()

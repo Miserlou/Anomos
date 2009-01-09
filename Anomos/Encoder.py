@@ -10,13 +10,10 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from socket import error as socketerror
-
 import Anomos.crypto as crypto
 from Anomos.Connecter import Connection
 from Anomos.Relayer import Relayer
 from Anomos import BTFailure
-
 
 class EndPoint(object):
     ''' Encoder objects exist at the torrent level. A client has an encoder
@@ -203,7 +200,7 @@ class SingleportListener(object):
     
     def set_relayer(self, conn, neighborid):
         conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
-                                self.config, self.keyring)
+                                self.config)
         conn.is_relay = True
         self.relayers.append(conn.owner)
         return conn.owner

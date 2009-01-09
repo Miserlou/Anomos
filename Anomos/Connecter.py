@@ -175,47 +175,6 @@ class Connection(object):
     def send_relay_message(self, message):
         self._send_message(message)
     
-    #def get_link_aes(self):
-    #    if self.link_key is None:
-    #        self.link_key = self.owner.keyring.getKey(self.id)
-    #    return self.link_key
-    
-#    def try_all_keys(self, message):
-#        '''This method handles conflict resolution when 2 or more of our 
-#           neighbors are at the same IP address. We try decrypting the message with 
-#           each of the neighbor's AES keys and check if the result is a TCODE.
-#           There's an off chance (1/256) that it's a TCODE by chance, so if we
-#           get more than one valid plaintext we check if any of the TCODES are
-#           valid by decrypting each of them with our RSA key.
-#        '''
-#        nids = self.owner.lookup_loc(self.connection.ip)
-#        pts = {}
-#        for id in nids:
-#            key = self.owner.keyring.getKey(id)
-#            #Create a copy of the key so we don't screw up the cipher state
-#            tmpkey = crypto.AESKey(key.key, key.iv)
-#            plaintext = tmpkey.decrypt(message)
-#            if plaintext[0] == TCODE:
-#                pts[id] = plaintext
-#        if len(pts) == 1:
-#            self.id = pts.items()[0][0]
-#            self.established = True
-#            #Decrypt with the real key to advance the cipher state
-#            return self.owner.keyring.getKey(self.id).decrypt(message)
-#        elif len(pts) > 1:
-#            for id, text in pts.iteritems():
-#                try:
-#                    self.rsakey.decrypt(text)
-#                except:
-#                    pass
-#                else:
-#                    self.id = id
-#                    self.established = True
-#                    #Decrypt with the real key to advance the cipher state
-#                    return self.get_link_aes.decrypt(message)
-#        # Apparently this message isn't for us.
-#        self.close("Cannot decrypt message")
-    
     def _read_header(self):
         '''Yield the number of bytes for each section of the header and sanity
            check the received values. If the connection doesn't have a header
@@ -252,11 +211,6 @@ class Connection(object):
             self.owner.add_neighbor(self.id, (self.ip, self.port))
             self.owner.connection_completed(self)
             self._send_message(CONFIRM)
-#            if not self.established:
-#                # Non-neighbor connection
-#                # Respond with PubKey
-#                pkmsg = PUBKEY + self.owner.rsakey.pub_bin()
-#                self._send_message(pkmsg)
         self._reader = self._read_messages()
         yield self._reader.next()
     
@@ -293,12 +247,6 @@ class Connection(object):
             # Decrypt the message, relay it if we're a relayer, decrypt with
             # e2e key if we have it, then pass the decrypted message back into
             # this method.
-            #key = self.get_link_aes()
-            #if key:
-            #    m = key.decrypt(message[1:])
-            #else:
-                # This only happens if we have two+ neighbors at the same IP
-            #    m = self.try_all_keys(message[1:])
             if self.complete and self.e2e_key is not None:
                 # Message is link- and e2e-encrypted
                 m = self.e2e_key.decrypt(message[1:])
