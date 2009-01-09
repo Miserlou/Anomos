@@ -6,9 +6,9 @@ and pass it to the next neighbor in the chain.
 @license: see License.txt
 """
 
-from socket import error as socketerror
 from Anomos.Connecter import Connection
 from Anomos.CurrentRateMeasure import Measure
+from threading import Thread
 
 class Relayer(object):
     """ As a tracking code is being sent, each peer it reaches (other than the
@@ -16,7 +16,7 @@ class Relayer(object):
         association between the incoming socket and the outgoing socket (so 
         that the TC only needs to be sent once).
     """
-    def __init__(self, rawserver, neighbors, incoming, outnid, config, keyring, max_rate_period=20.0):
+    def __init__(self, rawserver, neighbors, incoming, outnid, config, max_rate_period=20.0):
                     #storage, uprate, downrate, choker, key):
         """
         @param incoming: The connection to read data from
@@ -32,10 +32,9 @@ class Relayer(object):
         self.rawserver = rawserver
         self.neighbors = neighbors
         self.incoming = incoming
-        self.outgoing = self.start_connection(outnid)
-        self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
+        self.outgoing = None
+        self.connections = {self.incoming:None}
         self.config = config
-        self.keyring = keyring
         #self.storage = storage
         #self.choker = choker
         self.relayparts = []
@@ -48,39 +47,49 @@ class Relayer(object):
         self.buffer = []
         self.complete = False
 
+        Thread(target=self.start_connection, args=[outnid,]).start()
+        self.rawserver.add_task(self.check_if_established, 1)
+    
+    def check_if_established(self):
+        if self.outgoing:
+            for msg in self.buffer:
+                self.relay_message(self.incoming, msg)
+            self.buffer = []
+        else:
+            self.rawserver.add_task(self.check_if_established, 1)
+
     def start_connection(self, nid):
         loc = self.neighbors.get_location(nid)
-        try:
-            c = self.rawserver.start_ssl_connection(loc)
-        except socketerror:
-            self.incoming.close("Socket error on Relayer")
-        else:
-            # Make the local connection for receiving.
-            con = Connection(self, c, nid, True, established=True)
-            print "Condeets: ", con.ip, con.port
-            c.handler = con
-            return con
-    
+        c = self.rawserver.start_ssl_connection(loc, handler=self)
+        if c is None:
+            print "This is an error"
+        con = Connection(self, c, nid, True, established=True)
+        c.handler = con
+        print "RELAY CONNECTION ESTABLISHED"
+        self.outgoing = con
+        self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
+
     def relay_message(self, con, msg):
         if self.connections.has_key(con) and self.connections[con] is not None:
             self.uprate.update_rate(len(msg))
             self.sent += len(msg)
             self.connections[con].send_relay_message(msg)
+        elif not self.complete: # 'con' is incomming connection, and the
+                                # connection isn't complete, which means the relay
+                                # connection hasn't been established yet. Buffer
+                                # messages until it has been.
+            #TODO: buffer size control, message rejection after a certain point.
+            self.buffer.append(msg)
+    
+    def connection_lost(self, sock):
+        self.incoming.close()
+        self.outgoing.close()
 
     def connection_completed(self, con):
         print "Relay con complete"
         con.complete = True
         con.is_relay = True
     
-    def addPart(self, o):
-        ##TODO: Where is this object coming from?
-        p = key.decrypt(o)
-        relayparts.put(p)
-        downrate.update_rate(len(o))
-
-    def returnPart(self):
-        return relayparts.get()
-
     def get_rate(self):
         return self.uprate.get_rate()
 
@@ -90,7 +99,7 @@ class Relayer(object):
     def choke(self):
         if not self.choked:
             self.choked = True
-            self.incoming.send_choke()
+            self.outgoing.send_choke()
 
     def unchoke(self, time):
         if self.choked:
@@ -100,13 +109,15 @@ class Relayer(object):
 
     def got_choke(self):
         self.choke(self)
+        self.incoming.send_choke()
 
     def got_unchoke(self, time):
         self.unchoke(time)
+        self.incoming.send_unchoke()
    
-    def sent_choke(self): 
-        assert self.choked
-        del self.buffer[:]
+    #def sent_choke(self): 
+    #    assert self.choked
+    #    del self.buffer[:]
 
     def has_queries(self):
         return len(self.buffer) > 0
