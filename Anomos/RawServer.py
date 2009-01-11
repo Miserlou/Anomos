@@ -58,7 +58,17 @@ class SingleSocket(object):
                     self.ip = peername # UNIX socket, not really ip
 
     def recv(self, bufsize=32768):
-        return self.socket.recv(bufsize)
+        if self.socket is not None:
+            return self.socket.recv(bufsize)
+        #XXX: This should never happen. Instead, this SingleSocket should be destroyed after the transfer was finished.
+        else:
+            print "No socket to recv from"
+            return ""
+
+    def has_socket(self):
+        if self.socket is not None:
+            return True
+        return False
 
     def _set_shutdown(self, opt=SSL.SSL_RECEIVED_SHUTDOWN|SSL.SSL_SENT_SHUTDOWN):
         self.socket.set_shutdown(opt)
@@ -242,14 +252,18 @@ class RawServer(object):
                     continue
                 if event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
-                    try:
-                        data = s.recv()
-                    except SSL.SSLError, errstr:
-                        if str(errstr) == 'unexpected eof':
-                            self._safe_shutdown(s)
-                            continue
-                        else:
-                            raise
+                    if s.has_socket():
+                        try:    
+                            data = s.recv()
+                        except SSL.SSLError, errstr:
+                           if str(errstr) == 'unexpected eof':
+                              self._safe_shutdown(s)
+                              continue
+                           else:
+                              raise
+                    else:
+                        self._safe_shutdown(s)
+                        continue
 #                    except socket.error, e:
 #                        code, msg = e
 #                        if code != EWOULDBLOCK:
