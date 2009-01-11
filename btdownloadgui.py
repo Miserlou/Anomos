@@ -1327,8 +1327,9 @@ class RelayBox(gtk.EventBox):
             self.progressbar.modify_fg(gtk.STATE_PRELIGHT, black)
         
         if self.completion is not None:
-            self.progressbar.set_fraction(.5)
+            self.progressbar.set_fraction(.1)
             if self.completion >= 1:
+                self.progressbar.set_fraction(.99)
                 done_label = self.make_done_label()
                 self.progressbar.set_text(done_label)
             else:
@@ -1820,9 +1821,12 @@ class RunningTorrentBox(DroppableTorrentBox):
 
         self.up_rate   = gtk.Label()
         self.down_rate = gtk.Label()
+        self.relay_rate = gtk.Label()
         self.rate_label_box.pack_start(lalign(self.up_rate  ),
                                        expand=True, fill=True)
         self.rate_label_box.pack_start(lalign(self.down_rate),
+                                       expand=True, fill=True)
+        self.rate_label_box.pack_start(lalign(self.relay_rate),
                                        expand=True, fill=True)
 
         self.infobox.pack_start(self.rate_label_box)        
@@ -1920,7 +1924,7 @@ class RunningTorrentBox(DroppableTorrentBox):
         if self.peerlistwindow is not None:
             self.peerlistwindow.close()
 
-    def update_status(self, statistics):
+    def update_status(self, statistics, rstats):
         fractionDone = statistics.get('fractionDone')
         activity = statistics.get('activity')
 
@@ -1962,10 +1966,13 @@ class RunningTorrentBox(DroppableTorrentBox):
         if 'numPeers' not in statistics:
             return
 
-        self.down_rate.set_text('Download'+rate_label %
+        self.down_rate.set_text('Download' + rate_label %
                                 Rate(statistics['downRate']))
-        self.up_rate.set_text  ('Upload'  +rate_label %
+        self.up_rate.set_text ('Upload'  + rate_label %
                                 Rate(statistics['upRate']))
+        self.relay_rate.set_text ('Relay'  + rate_label %
+                                Rate(rstats['rate']))
+
 
         if advanced_ui:
             self.labels[0].set_text(str(statistics['numPeers']))
@@ -2898,7 +2905,8 @@ class DownloadInfoFrame(object):
     def update_status(self, torrent, statistics):
         if self.config['pause']:
             return
-        self.running_torrents[torrent].widget.update_status(statistics)
+        rstats = self.torrentqueue.wrapped.get_relay_stats()
+        self.running_torrents[torrent].widget.update_status(statistics, rstats)
 
     def new_displayed_torrent(self, infohash, metainfo, dlpath, state,
                               completion=None, uptotal=0, downtotal=0):
