@@ -17,9 +17,7 @@ from __future__ import generators
 import Anomos.crypto as crypto
 
 from binascii import b2a_hex
-from M2Crypto.RSA import RSAError
 from Anomos.bitfield import Bitfield
-from Anomos.obsoletepythonsupport import *
 from Anomos import protocol_name
 
 def toint(s):
@@ -362,9 +360,7 @@ class Connection(object):
             self.connection.write(s)
     
     def _send_encrypted_message(self, message):
-        '''Sends a /link encrypted/ message. Messages must be end-to-end
-           encrypted prior to being passed to this method.
-        '''
+        '''End-to-End encrypts a message'''
         message = ENCRYPTED + self.e2e_key.encrypt(message)
         self._send_message(message)
     

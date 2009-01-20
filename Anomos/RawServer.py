@@ -57,18 +57,17 @@ class SingleSocket(object):
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
 
-    def recv(self, bufsize=32768):
+    def recv(self, bufsize=4096):
         if self.socket is not None:
             return self.socket.recv(bufsize)
         #XXX: This should never happen. Instead, this SingleSocket should be destroyed after the transfer was finished.
         else:
             print "No socket to recv from"
-            return ""
+            return None
 
     def has_socket(self):
-        if self.socket is not None:
-            return True
-        return False
+        return self.socket is not None
+
 
     def _set_shutdown(self, opt=SSL.SSL_RECEIVED_SHUTDOWN|SSL.SSL_SENT_SHUTDOWN):
         self.socket.set_shutdown(opt)
@@ -78,13 +77,12 @@ class SingleSocket(object):
         self.buffer = []
         self.handler = None
         self.buffer = None
+        self.connected = False
 
     def close(self):
         self._set_shutdown()
         self.socket.close()
         self._clear_state()
-        #del self.raw_server.single_sockets[self.fileno]
-        #self.raw_server.poll.unregister(sock)
 
     def clear(self):
         self._set_shutdown()
@@ -179,12 +177,8 @@ class RawServer(object):
         self.add_task(self.scan_for_timeouts, 
                       self.config['timeout_check_interval'])
         t = bttime() - self.config['socket_timeout']
-        tokill = []
-        for s in self.single_sockets.values():
-            if s.last_hit < t:
-                tokill.append(s)
-        for k in tokill:
-            self._safe_shutdown(k)
+        tokill = [s for s in self.single_sockets.values() if s.last_hit < t]
+        map(self._safe_shutdown, tokill)
     
     def create_ssl_serversocket(self, port, bind='', reuse=False, tos=0):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -249,36 +243,20 @@ class RawServer(object):
                 s.connected = True
                 if event & POLLERR:
                     self._safe_shutdown(s)
-                    continue
-                if event & (POLLIN | POLLHUP):
+                elif event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
-                    if s.has_socket():
-                        try:    
-                            data = s.recv()
-                        except SSL.SSLError, errstr:
-                           if str(errstr) == 'unexpected eof':
-                              self._safe_shutdown(s)
-                              continue
-                           else:
-                              raise
-                    else:
-                        self._safe_shutdown(s)
-                        continue
-#                    except socket.error, e:
-#                        code, msg = e
-#                        if code != EWOULDBLOCK:
-#                            if not s.socket.get_shutdown():
-#                                    self._clear_socket(s)
-#                            else:
-#                                self._close_socket(s)
-#                        continue
-                    #print "Data!: " + data
+                    try:
+                        data = s.recv()
+                    except SSL.SSLError, errstr:
+                        if str(errstr) == 'unexpected eof':
+                            self._safe_shutdown(s)
+                        else:
+                            raise
                     if not data:
                         self._safe_shutdown(s)
                     else:
                         self._make_wrapped_call(s.handler.data_came_in, \
                                                     (s, data), s)
-                    continue
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
                     s.try_write()
@@ -323,7 +301,9 @@ class RawServer(object):
                 if len(self.funcs) == 0:
                     period = 1e9
                 else:
-                    period = max(0, self.funcs[0][0] - bttime())
+                    period = self.funcs[0][0] - bttime()
+                    if period < 0:
+                        period = 0
                 events = self.poll.poll(period * timemult)
                 if self.doneflag.isSet():
                     break
@@ -382,8 +362,7 @@ class RawServer(object):
         while len(self.dead_from_write) > 0:
             old = self.dead_from_write
             self.dead_from_write = []
-            for s in old:
-                self._safe_shutdown(s)
+            map(self._safe_shutdown, old)
 
     def _safe_shutdown(self, s):
         if s.socket is not None:

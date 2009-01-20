@@ -175,14 +175,17 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker 
             Note: This runs in its own thread.
         """
-        h = httpslib.HTTPSConnection(self.url, self.remote_port, query, 
+        if self.config['tracker_proxy']:
+            #XXX: This is not finished. Need to specify destination host, port
+            h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'])
+        else:
+            h = httpslib.HTTPSConnection(self.url, self.remote_port,
                                      ssl_context=self.certificate.getContext())
         h.set_debuglevel(1)
         h.putrequest('GET', self.path+query)
         h.endheaders()
         resp = h.getresponse()
         #request = Request(url)
-        #TODO: Was tracker_proxy important, can we replace it with M2Crypto's HTTPSLib?
         #if self.config['tracker_proxy']:
         #    request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
