@@ -23,9 +23,19 @@ from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
-from M2Crypto import httpslib
+from M2Crypto import httpslib, SSL
 ##from urllib2 import urlopen, URLError, HTTPError
 ##import urllib2
+
+### XXX: HACK ###
+class unsafeHTTPSConnection(httpslib.HTTPSConnection):
+    def __init__(self, host, port=None, strict=None, **ssl):
+        httpslib.HTTPSConnection.__init__(self, host, port, strict, **ssl)
+    def connect(self):
+        self.sock = SSL.Connection(self.ssl_ctx)
+        self.sock.set_post_connection_check_callback(None)
+        self.sock.connect((self.host, self.port))
+############
 
 STARTED=0
 COMPLETED=1
@@ -179,7 +189,7 @@ class Rerequester(object):
             #XXX: This is not finished. Need to specify destination host, port
             h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'])
         else:
-            h = httpslib.HTTPSConnection(self.url, self.remote_port,
+            h = unsafeHTTPSConnection(self.url, self.remote_port,
                                      ssl_context=self.certificate.getContext())
         h.set_debuglevel(1)
         h.putrequest('GET', self.path+query)
