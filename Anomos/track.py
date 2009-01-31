@@ -10,34 +10,33 @@
 
 # Written by Bram Cohen and John Hoffman
 
-import sys
 import os
-import signal
 import re
-from threading import Event
-from urlparse import urlparse
-from traceback import print_exc
-from time import gmtime, strftime
-from random import shuffle, sample
-from types import StringType, IntType, LongType, ListType, DictType
-from binascii import b2a_hex, a2b_hex
-from cStringIO import StringIO
+import signal
+import sys
+
 from base64 import urlsafe_b64decode
+from binascii import b2a_hex
+from cStringIO import StringIO
+from random import shuffle, sample
+from threading import Event
+from time import gmtime, strftime
+from traceback import print_exc
+from types import StringType, IntType, LongType, ListType, DictType
+from urlparse import urlparse
 
-from Anomos.obsoletepythonsupport import *
-
-from Anomos.parseargs import parseargs, formatDefinitions
-from Anomos.RawServer import RawServer
+from Anomos import version
+from Anomos.bencode import bencode, bdecode, Bencached
+from Anomos.btformats import statefiletemplate
+from Anomos.crypto import Certificate, AESKeyManager, AESKey, initCrypto, CryptoError
 from Anomos.HTTPHandler import HTTPHandler
+from Anomos.NatCheck import NatCheck
+from Anomos.NetworkModel import NetworkModel
+from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
 from Anomos.platform import bttime
-from Anomos.NatCheck import NatCheck
-from Anomos.bencode import bencode, bdecode, Bencached
+from Anomos.RawServer import RawServer
 from Anomos.zurllib import quote, unquote
-from Anomos import version
-
-from Anomos.crypto import Certificate, AESKeyManager, AESKey, initCrypto, CryptoError
-from Anomos.NetworkModel import NetworkModel
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -74,55 +73,6 @@ defaults = [
     ('max_give', 200, 'maximum number of peers to give with any one request'),
     ('data_dir', '', 'Directory in which to store cryptographic keys'),
     ]
-
-def statefiletemplate(x):
-    if type(x) != DictType:
-        raise ValueError
-    for cname, cinfo in x.items():
-        if cname == 'peers':
-            for y in cinfo.values():      # The 'peers' key is a dictionary of SHA hashes (torrent ids)
-                 if type(y) != DictType:   # ... for the active torrents, and each is a dictionary
-                     raise ValueError
-                 for peerid, info in y.items(): # ... of client ids interested in that torrent
-                     if (len(peerid) != 20):
-                         raise ValueError
-                     if type(info) != DictType:  # ... each of which is also a dictionary
-                         raise ValueError # ... which has an IP, a Port, and a Bytes Left count for that client for that torrent
-                     if type(info.get('ip', '')) != StringType:
-                         raise ValueError
-                     port = info.get('port')
-                     if type(port) not in (IntType, LongType) or port < 0:
-                         raise ValueError
-                     left = info.get('left')
-                     if type(left) not in (IntType, LongType) or left < 0:
-                         raise ValueError
-        elif cname == 'completed':
-            if (type(cinfo) != DictType): # The 'completed' key is a dictionary of SHA hashes (torrent ids)
-                raise ValueError          # ... for keeping track of the total completions per torrent
-            for y in cinfo.values():      # ... each torrent has an integer value
-                if type(y) not in (IntType,LongType):
-                    raise ValueError      # ... for the number of reported completions for that torrent
-        elif cname == 'allowed':
-            if (type(cinfo) != DictType): # a list of info_hashes and included data
-                raise ValueError
-            if x.has_key('allowed_dir_files'):
-                adlist = [z[1] for z in x['allowed_dir_files'].values()]
-                for y in cinfo.keys():        # and each should have a corresponding key here
-                    if not y in adlist:
-                        raise ValueError
-        elif cname == 'allowed_dir_files':
-            if (type(cinfo) != DictType): # a list of files, their attributes and info hashes
-                raise ValueError
-            dirkeys = {}
-            for y in cinfo.values():      # each entry should have a corresponding info_hash
-                if not y[1]:
-                    continue
-                if not x['allowed'].has_key(y[1]):
-                    raise ValueError
-                if dirkeys.has_key(y[1]): # and each should have a unique info_hash
-                    raise ValueError
-                dirkeys[y[1]] = 1
-
 
 alas = 'your file may exist elsewhere in the universe\nbut alas, not here\n'
 
