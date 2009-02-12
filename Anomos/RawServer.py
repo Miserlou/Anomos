@@ -93,10 +93,12 @@ class SingleSocket(object):
         return len(self.buffer) == 0
 
     def write(self, s):
-        assert self.socket is not None
-        self.buffer.append(s)
-        if len(self.buffer) == 1:
-            self.try_write()
+        if self.socket is not None:
+            self.buffer.append(s)
+            if len(self.buffer) == 1:
+                self.try_write()
+        else:
+            self.raw_server.dead_from_write.append(self)
 
     def try_write(self):
         if self.connected:
@@ -248,6 +250,7 @@ class RawServer(object):
                     try:
                         data = s.recv()
                         if not data:
+                            s.handler.send_break()
                             self._safe_shutdown(s)
                         else:
                             self._make_wrapped_call(s.handler.data_came_in, \
@@ -362,8 +365,14 @@ class RawServer(object):
         while len(self.dead_from_write) > 0:
             old = self.dead_from_write
             self.dead_from_write = []
+            print "Dead sending breaks"
+            map(self._send_break, old)
             map(self._safe_shutdown, old)
 
+    def _send_break(self, s):
+        if s.socket is not None:
+            s.socket.handler.send_break()
+            
     def _safe_shutdown(self, s):
         if s.socket is not None:
             if not s.socket.get_shutdown():

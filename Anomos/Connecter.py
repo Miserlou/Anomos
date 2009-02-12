@@ -85,9 +85,6 @@ class Connection(object):
     def close(self, e=None):
         print "Closing the connection!", e
 
-        if self.is_relay:
-                self.owner.relay_message(self, BREAK)
-
         if not self.closed:
             self.connection.close()
             self._sever()
@@ -343,7 +340,7 @@ class Connection(object):
             print "Breaking"
             if self.is_relay:
                 self.owner.relay_message(self, BREAK)
-            self.close
+            self.close("Break detected")
         else:
             self.close("Invalid message " + b2a_hex(message))
             return
@@ -396,8 +393,6 @@ class Connection(object):
                 return
 
     def connection_lost(self, conn):
-        if self.is_relay:
-                self.owner.relay_message(self, BREAK)
         assert conn is self.connection
         self._sever()
 
@@ -406,3 +401,10 @@ class Connection(object):
             if self.next_upload is None and (self._partial_message is not None
                                              or self.upload.buffer):
                 self.owner.ratelimiter.queue(self)
+
+    def send_break(self):
+        print "Breaking"
+        if self.is_relay:
+            self.owner.relay_message(self, BREAK)
+        self.close("Break detected")
+        
