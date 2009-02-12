@@ -6,7 +6,7 @@
 # Software distributed under the License is distributed on an AS IS basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied.  See the License
 # for the specific language governing rights and limitations under the reply:
-# License. No address associated with hostname Data!:
+# License.
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
@@ -191,14 +191,14 @@ class Rerequester(object):
         else:
             h = unsafeHTTPSConnection(self.url, self.remote_port,
                                      ssl_context=self.certificate.getContext())
-        h.set_debuglevel(1)
-        h.putrequest('GET', self.path+query)
-        h.endheaders()
-        resp = h.getresponse()
         #request = Request(url)
         #if self.config['tracker_proxy']:
         #    request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
+            h.set_debuglevel(1)
+            h.putrequest('GET', self.path+query)
+            h.endheaders()
+            resp = h.getresponse()
             data = resp.read()
             resp.close()
             h.close()
