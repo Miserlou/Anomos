@@ -247,16 +247,16 @@ class RawServer(object):
                     s.last_hit = bttime()
                     try:
                         data = s.recv()
+                        if not data:
+                            self._safe_shutdown(s)
+                        else:
+                            self._make_wrapped_call(s.handler.data_came_in, \
+                                                    (s, data), s)
                     except SSL.SSLError, errstr:
                         if str(errstr) == 'unexpected eof':
                             self._safe_shutdown(s)
                         else:
                             raise
-                    if not data:
-                        self._safe_shutdown(s)
-                    else:
-                        self._make_wrapped_call(s.handler.data_came_in, \
-                                                    (s, data), s)
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
                     s.try_write()

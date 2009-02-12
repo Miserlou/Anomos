@@ -48,6 +48,7 @@ TCODE = chr(0x9)
 #EXCHANGE = chr(0xB) # The data that follows is RSA encrypted AES data
 CONFIRM = chr(0xC)
 ENCRYPTED = chr(0xD) # The data that follows is AES encrypted
+BREAK = chr(0xE)
 
 class ConnectionError(Exception):
     pass
@@ -83,6 +84,10 @@ class Connection(object):
 
     def close(self, e=None):
         print "Closing the connection!", e
+
+        if self.is_relay:
+                self.owner.relay_message(self, BREAK)
+
         if not self.closed:
             self.connection.close()
             self._sever()
@@ -332,7 +337,13 @@ class Connection(object):
                 self.owner.add_neighbor(self.id, (self.ip, self.port))
             self.owner.connection_completed(self)
             if self.is_relay:
+                print "Relaying a confirm"
                 self.owner.relay_message(self, CONFIRM)
+        elif t == BREAK:
+            print "Breaking"
+            if self.is_relay:
+                self.owner.relay_message(self, BREAK)
+            self.close
         else:
             self.close("Invalid message " + b2a_hex(message))
             return
@@ -385,6 +396,8 @@ class Connection(object):
                 return
 
     def connection_lost(self, conn):
+        if self.is_relay:
+                self.owner.relay_message(self, BREAK)
         assert conn is self.connection
         self._sever()
 
