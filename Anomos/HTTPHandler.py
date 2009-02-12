@@ -155,8 +155,6 @@ class HTTPConnection(object):
             r.write(data)
 
         self.connection.write(r.getvalue())
-        if self.connection.is_flushed():
-            self.connection.close()
 
 class HTTPHandler(object):
 
