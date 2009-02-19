@@ -18,7 +18,7 @@ from cStringIO import StringIO
 from traceback import print_exc
 from errno import EWOULDBLOCK, ENOBUFS
 from Anomos.platform import bttime
-from Anomos import CRITICAL, FAQ_URL
+from Anomos import CRITICAL, WARNING, FAQ_URL
 from Anomos import crypto
 from M2Crypto import SSL
 import random
