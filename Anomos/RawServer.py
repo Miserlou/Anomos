@@ -48,7 +48,7 @@ class SingleSocket(object):
         else: # Try to get the IP from the socket 
             try:
                 peername = self.socket.getpeername()
-            except socket.error:
+            except SSL.SSLError:
                 self.ip = 'unknown'
             else:
                 try:
@@ -57,7 +57,7 @@ class SingleSocket(object):
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
 
-    def recv(self, bufsize=4096):
+    def recv(self, bufsize=32768):
         if self.socket is not None:
             return self.socket.recv(bufsize)
         #XXX: This should never happen. Instead, this SingleSocket should be destroyed after the transfer was finished.
@@ -110,9 +110,10 @@ class SingleSocket(object):
                             self.buffer[0] = self.buffer[0][amount:]
                         break
                     del self.buffer[0]
-            except socket.error, e:
+            except SSL.SSLError, e:
                 code, msg = e
                 if code != EWOULDBLOCK:
+                    #self.raw_server.add_task(self.raw_server._safe_shutdown, self)
                     self.raw_server.dead_from_write.append(self)
                     return
         if self.buffer == []:
@@ -247,6 +248,7 @@ class RawServer(object):
                     self._safe_shutdown(s)
                 elif event & (POLLIN | POLLHUP):
                     s.last_hit = bttime()
+                    data = None
                     try:
                         data = s.recv()
                         if not data:
@@ -281,7 +283,7 @@ class RawServer(object):
             conn.set_accept_state()
             conn.setup_ssl()
             conn.accept_ssl()
-        except socket.error, e:
+        except SSL.SSLError, e:
             self.errorfunc(WARNING, "Error handling accepted "\
                            "connection: " + str(e))
         else:
@@ -375,10 +377,11 @@ class RawServer(object):
             
     def _safe_shutdown(self, s):
         if s.socket is not None:
-            if not s.socket.get_shutdown():
-                self._clear_socket(s)
-            else:
-                self._close_socket(s)
+             self._close_socket(s)
+#            if not s.socket.get_shutdown():
+#                self._clear_socket(s)
+#            else:
+#                self._close_socket(s)
 
     def _close_socket(self, s):
         sock = s.socket.fileno()
@@ -387,12 +390,12 @@ class RawServer(object):
         del self.single_sockets[sock]
         s.close()
 
-    def _clear_socket(self, s):
-        sock = s.socket.fileno()
-        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
-        self.poll.unregister(sock)
-        del self.single_sockets[sock]
-        s.clear()
+#    def _clear_socket(self, s):
+#        sock = s.socket.fileno()
+#        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
+#        self.poll.unregister(sock)
+#        del self.single_sockets[sock]
+#        s.clear()
 
     def numsockets(self):
         return len(self.single_sockets)
