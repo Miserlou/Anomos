@@ -102,7 +102,7 @@ class ControlSocket(object):
 
     def create_socket_inet(self):
         try:
-            controlsocket = RawServer.create_serversocket(56881,
+            controlsocket = RawServer.create_ssl_serversocket(56881,
                                                    '127.0.0.1', reuse=True)
         except socket.error, e:
             raise BTFailure("Could not create control socket: "+str(e))
