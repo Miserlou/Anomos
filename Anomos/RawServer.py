@@ -83,11 +83,13 @@ class SingleSocket(object):
         self._set_shutdown()
         self.socket.close()
         self._clear_state()
+        del self.raw_server.single_sockets[self.fileno]
+        self.raw_server.poll.unregister(self.fileno)
 
-    def clear(self):
-        self._set_shutdown()
-        self.socket.clear()
-        self._clear_state()
+#    def clear(self):
+#        self._set_shutdown()
+#        self.socket.clear()
+#        self._clear_state()
 
     def is_flushed(self):
         return len(self.buffer) == 0
@@ -210,8 +212,9 @@ class RawServer(object):
         try:
             sock.connect(dns) 
         except Exception, e:
+            #TODO: verify this is the correct behavior
             print e,"\n\n"
-            sock.clear()
+            sock.close()
         else:
             self.poll.register(sock, POLLIN)
             s = SingleSocket(self, sock, handler, context, dns[0])
@@ -230,8 +233,8 @@ class RawServer(object):
             s = self.serversockets.get(sock, None)
             if s is not None:
                 if event & (POLLHUP | POLLERR):
+                    s.close()
                     self.stop_listening(s)
-                    s.clear()
                     self.errorfunc(CRITICAL, 'lost server socket')
                 else:
                     self._handle_connection_attempt(sock)
@@ -252,7 +255,7 @@ class RawServer(object):
                     try:
                         data = s.recv()
                         if not data:
-                            s.handler.send_break()
+                            #s.handler.send_break()
                             self._safe_shutdown(s)
                         else:
                             self._make_wrapped_call(s.handler.data_came_in, \
@@ -368,7 +371,7 @@ class RawServer(object):
             old = self.dead_from_write
             self.dead_from_write = []
             print "Dead sending breaks"
-            map(self._send_break, old)
+#            map(self._send_break, old)
             map(self._safe_shutdown, old)
 
     def _send_break(self, s):
@@ -377,6 +380,7 @@ class RawServer(object):
             
     def _safe_shutdown(self, s):
         if s.socket is not None:
+             print "closing properly"
              self._close_socket(s)
 #            if not s.socket.get_shutdown():
 #                self._clear_socket(s)
@@ -386,8 +390,6 @@ class RawServer(object):
     def _close_socket(self, s):
         sock = s.socket.fileno()
         self._make_wrapped_call(s.handler.connection_lost, (s,), s)
-        self.poll.unregister(sock)
-        del self.single_sockets[sock]
         s.close()
 
 #    def _clear_socket(self, s):
