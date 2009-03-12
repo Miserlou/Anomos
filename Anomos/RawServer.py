@@ -189,6 +189,7 @@ class RawServer(object):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         #server.set_post_connection_check_callback(None)
+        server.setblocking(0)
         server.bind((bind, port))
         server.listen(10)
         return server
@@ -204,7 +205,12 @@ class RawServer(object):
         self.poll.unregister(serversocket)
 
     def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
+
+        print 'yo'
+        print dns, self.certificate.getContext()
+
         sock = SSL.Connection(self.certificate.getContext())
+        ## these sock. lines might not be necessary.
         sock.setup_ssl()
         sock.set_connect_state()
         #TODO: post_connection_check should not be None!
@@ -213,7 +219,7 @@ class RawServer(object):
             sock.connect(dns) 
         except Exception, e:
             #TODO: verify this is the correct behavior
-            print e,"\n\n"
+            print e,"\n\n Exception derp."
             sock.close()
         else:
             self.poll.register(sock, POLLIN)
