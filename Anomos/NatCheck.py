@@ -30,13 +30,16 @@ class NatCheck(object):
         self.next_len = 1
         self.next_func = self.read_header_len
         try:
+            print "Nat checking"
             ##SSL THIS!
-            self.connection = rawserver.start_connection((ip, port), self)
+            self.connection = rawserver.start_ssl_connection((ip, port), self)
             self.connection.write(chr(len(protocol_name)) + protocol_name +
                 (chr(0) * 8) + downloadid)
         except socketerror:
+            print "NAT socket error"
             self.answer(False)
         except IOError:
+            print "IOError"
             self.answer(False)
 
     def answer(self, result):

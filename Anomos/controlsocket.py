@@ -101,19 +101,31 @@ class ControlSocket(object):
                                   ControlsocketListener(callback))
 
     def create_socket_inet(self):
-        try:
-            controlsocket = RawServer.create_ssl_serversocket(56881,
-                                                   '127.0.0.1', reuse=True)
-        except socket.error, e:
-            raise BTFailure("Could not create control socket: "+str(e))
-        self.controlsocket = controlsocket
+       try:
+           reuse = True
+           tos = 0
+           server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+           if reuse and os.name != 'nt':
+               server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+           server.setblocking(0)
+           if tos != 0:
+              try:
+                  server.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, tos)
+              except:
+                  pass
+           server.bind(('127.0.0.1', 56881))
+           server.listen(5)
+           controlsocket = server
+       except socket.error, e:
+           raise BTFailure("Could not create control socket: "+str(e))
+       self.controlsocket = controlsocket
 
     def send_command_inet(self, rawserver, action, data = ''):
         r = MessageReceiver(lambda action, data: None)
         try:
             ##WTF is this?
             ##SSL?!
-            conn = rawserver.start_connection(('127.0.0.1', 56881), r)
+            conn = rawserver.start_ssl_connection(('127.0.0.1', 56881), r)
         except socket.error, e:
             raise BTFailure('Could not send command: ' + str(e))
         conn.write(tobinary(len(action)))

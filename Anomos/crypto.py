@@ -9,12 +9,11 @@ AES cipher: aes_256_cfb
 
 for other functions used directly, look at RSA.py and EVP.py in M2Crypto
 """
-
 import os
 import cStringIO
 import sha
 from binascii import b2a_hex, a2b_hex
-from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading
+from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading, util
 from Anomos import BTFailure
 
 
@@ -59,22 +58,28 @@ def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class Certificate:
-    def __init__(self, loc=None):
+    def __init__(self, loc=None, secure=False):
+        self.secure = secure
         if None in (global_cryptodir, global_randfile):
             raise CryptoError('Crypto not initialized, call initCrypto first')
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
         self.ikeyfile = os.path.join(global_cryptodir, '%s-key-insecure.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
         self._load()
+       
     def _load(self):
         """Attempts to load the certificate and key from self.certfile and self.keyfile,
            Generates the certificate and key if they don't exist"""
         if not os.path.exists(self.certfile) or not os.path.exists(self.keyfile):
             self._create()
             return
-        self.rsakey = RSA.load_key(self.keyfile)
+        if not self.secure :
+            self.rsakey = RSA.load_key(self.ikeyfile, util.no_passphrase_callback)
+        else:
+            self.rsakey = RSA.load_key(self.keyfile)
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
+
     def _create(self):
         Rand.load_file(global_randfile, -1)
         # Make the RSA key
