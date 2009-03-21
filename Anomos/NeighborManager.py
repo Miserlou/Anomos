@@ -81,6 +81,8 @@ class NeighborManager:
             #TODO: Resolve conflict
             return
         c = self.rawserver.start_ssl_connection(loc)
+        if not c:
+            return
         self.incomplete[id] = loc
         # Make the local connection for receiving.
         con = Connection(self, c, id, True, established=False)
