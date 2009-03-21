@@ -218,6 +218,8 @@ class RawServer(object):
         except Exception, e:
             #TODO: verify this is the correct behavior
             sock.close()
+            print "The error is of type...", type(e)
+            raise e
         else:
             self.poll.register(sock, POLLIN)
             s = SingleSocket(self, sock, handler, context, dns[0])

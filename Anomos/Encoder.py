@@ -87,15 +87,14 @@ class EndPoint(object):
         print "Sending TC to", hex(ord(nid)), "at", loc
         try:
             c = self.raw_server.start_ssl_connection(loc)
-        except TypeError:
-            pass
-        else:
-            # Make the local connection for receiving.
-            con = Connection(self, c, nid, True, established=True)
-            con.e2e_key = aeskey
-            self.connections[c] = con
-            c.handler = con 
-            con.send_tracking_code(tc)
+        except Exception,e:
+            return
+        # Make the local connection for receiving.
+        con = Connection(self, c, nid, True, established=True)
+        con.e2e_key = aeskey
+        self.connections[c] = con
+        c.handler = con 
+        con.send_tracking_code(tc)
 
     def connection_completed(self, c):
         c.complete = True

@@ -80,8 +80,10 @@ class NeighborManager:
         if self.has_neighbor(id) or self.incomplete.has_key(id):
             #TODO: Resolve conflict
             return
-        c = self.rawserver.start_ssl_connection(loc)
-        if not c:
+        try:
+            c = self.rawserver.start_ssl_connection(loc)
+        except Exception,e:
+            #TODO: Log failed connection
             return
         self.incomplete[id] = loc
         # Make the local connection for receiving.
