@@ -127,9 +127,12 @@ class SimPeer:
 
     def getNbrs(self):
         return self.neighbors.keys()
-    
+
     def getOrder(self):
         return len(self.neighbors)
+
+    def numTorrents(self):
+        return len(self.infohashes)
 
     def isSharing(self, infohash):
         return self.infohashes.has_key(infohash)

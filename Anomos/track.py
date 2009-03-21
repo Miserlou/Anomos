@@ -459,7 +459,7 @@ class Tracker(object):
         #TODO: What do we do when check fails?
         #if peercert.as_pem() != simpeer.pubkey.certificate.as_pem():
         simpeer.update(paramslist)
-        if params('event') == 'stopped' and simpeer.getOrder() == 0:
+        if params('event') == 'stopped' and simpeer.numTorrents() == 0:
             # Peer stopped their only/last torrent 
             self.networkmodel.disconnect(peerid)
     
