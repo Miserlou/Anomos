@@ -206,20 +206,17 @@ class RawServer(object):
 
     def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
 
-        print 'yo'
-        print dns, self.certificate.getContext()
-
         sock = SSL.Connection(self.certificate.getContext())
         ## these sock. lines might not be necessary.
         sock.setup_ssl()
         sock.set_connect_state()
         #TODO: post_connection_check should not be None!
         sock.set_post_connection_check_callback(None)
+
         try:
             sock.connect(dns) 
         except Exception, e:
             #TODO: verify this is the correct behavior
-            print e,"\n\n Exception derp."
             sock.close()
         else:
             self.poll.register(sock, POLLIN)

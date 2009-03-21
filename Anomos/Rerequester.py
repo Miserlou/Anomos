@@ -189,6 +189,7 @@ class Rerequester(object):
             #XXX: This is not finished. Need to specify destination host, port
             h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'])
         else:
+            ## Keung Pow's NAT says this should be local_port
             h = unsafeHTTPSConnection(self.url, self.remote_port,
                                      ssl_context=self.certificate.getContext())
         #request = Request(url)

@@ -56,6 +56,7 @@ class ConnectionError(Exception):
 class Connection(object):
 
     def __init__(self, owner, connection, id, is_local, established=False):
+
         self.owner = owner
         self.connection = connection
         self.id = id
