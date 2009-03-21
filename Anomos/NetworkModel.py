@@ -21,7 +21,16 @@ import random
 from sys import maxint as INFINITY
 from sha import sha
 import Anomos.crypto as crypto
+
+from Anomos.platform import bttime
 from M2Crypto import RSA
+
+# Use psyco if it's available.
+try:
+    import psyco
+    psyco.full()
+except ImportError:
+    pass
 
 DEBUG_ON = True
 def DEBUG(*args):
@@ -44,30 +53,49 @@ class SimPeer:
         self.pubkey = crypto.PeerCert(pubkey)
         self.neighbors = {} # {PeerID: {dist:#, nid:#, loc:(#,#)}}
         self.id_map = {}    # {NeighborID : PeerID}
-        self.loc = loc
+        self.loc = loc      # Client (ip, port)
         self.infohashes = {} # {infohash: (downloaded, left)}
+        self.last_seen = 0  # Time of last client announce
+        self.last_modified = bttime() # Time when client was last modified
+    
+    def needsUpdate(self):
+        return self.last_modified > self.last_seen
+
+    def update(self, params):
+        self.last_seen = bttime()
+        ihash = params.get('info_hash')
+        dl = params.get('downloaded')
+        left = params.get('left')
+        if params.get('event') == 'stopped':
+            if self.infohashes.has_key(ihash):
+                del self.infohashes[ihash]
+        elif None not in (ihash, dl, left):
+            # Input should have already been validated by
+            # tracker.
+            self.infohashes[ihash] = (int(dl), int(left))
+
     def addNeighbor(self, peerid, nid, loc):
         """
         Assign Neighbor ID to peer
-        
         @type peerid: string
         @type nid: int
         """
         #TODO: What happens if we get a new neighbor we're already connected to
         self.neighbors.setdefault(peerid, {'dist':1,'nid':nid,'loc':loc})
         self.id_map[nid] = peerid
-    
+        self.last_modified = bttime()
+
     def removeEdge(self, peerid):
         """
         Remove connection to neighbor
-        
         @type peerid: string
         """
-        edge = self.neighbors.get(peerid, {})
+        edge = self.neighbors.get(peerid)
         if edge:
             del self.id_map[edge['nid']]
             del self.neighbors[peerid]
-    
+            self.last_modified = bttime()
+
     def getAvailableNIDs(self):
         """
         @return: set object containing NIDs in range 0 -> 255 which are not in use
@@ -76,10 +104,7 @@ class SimPeer:
         used = set(self.id_map.keys())
         idrange = set([chr(i) for i in range(0, 256)])
         return idrange - used
-    
-    def degree(self):
-        return len(self.neighbors)
-    
+
     def reWeight(self, peerid, weight):
         """
         Reset the weight between this SimPeer and one referenced by peerid
@@ -88,28 +113,34 @@ class SimPeer:
         """
         if self.neighbors.has_key(peerid):
             self.neighbors[peerid]['dist'] = weight
-    
+
     def getWeight(self, nid):
         """
         Returns weight on edge between this peer and
         """
         return self.neighbors.get(nid, {}).get('dist', INFINITY)
-    
+
     def getNID(self, peerid, default=None):
         """ Return the relative ID associated with IP
             return default if the vertices aren't connected """
         return self.neighbors.get(peerid, {}).get('nid', default)
-    
+
     def getNbrs(self):
         return self.neighbors.keys()
     
-    def isConnected(self, peerid):
-        return self.neighbors.has_key(peerid)
-    
+    def getOrder(self):
+        return len(self.neighbors)
+
+    def isSharing(self, infohash):
+        return self.infohashes.has_key(infohash)
+
+    def isSeeding(self, infohash):
+        return self.isSharing(infohash) and self.infohashes[infohash][1] == 0
+
     def printConnections(self):
         """Debugging only. Returns IP-self: IP-0, IP-1, IP-2, ..., IP-n"""
         return self.name + ": " + ", ".join(map(str, self.edges.iteritems()))
-    
+
     def __str__(self):
         return self.name
 
@@ -118,7 +149,7 @@ class NetworkModel:
     """Simple Graph model of network"""
     def __init__(self):
         self.names = {}
-    
+
     def get(self, peerid):
         """
         @type peerid: string
@@ -126,13 +157,29 @@ class NetworkModel:
         @rtype: SimPeer
         """
         return self.names.get(peerid, None)
-    
+
+    def getSwarm(self, infohash, withSeeders=True):
+        """
+        @param infohash: specifies the torrent
+        @param withSeeders: specifies whether returned list should include
+        seeders
+        @returns: PeerID of each client in Swarm
+        """
+        return [k for k,v in self.names.iteritems() if v.isSharing(infohash)]
+
+    def getDownloadingPeers(self, infohash):
+        return [k for k,v in self.names.iteritems()
+                    if v.isSharing(infohash) and not v.isSeeding(infohash)]
+
+    def getSeedingPeers(self, infohash):
+        return [k for k,v in self.names.iteritems() if v.isSeeding(infohash)]
+
     def getNames(self):
         return self.names.keys()
-    
-    def getVertices(self):
-        return self.names.values()
-    
+
+#   def getVertices(self):
+#       return self.names.values()
+
     def addPeer(self, peerid, pubkey, loc, num_neighbors=4):
         """
         @type peerid: string
@@ -144,19 +191,19 @@ class NetworkModel:
         self.names[peerid] = SimPeer(peerid, pubkey, loc)
         self.randConnect(peerid, num_neighbors)
         return self.names[peerid]
-    
-    def order(self):
-        """
-        @return: Number of SimPeers in network
-        """
-        return len(self.names)
-    
-    def minDegree(self):
-        return min([v.degree() for v in self.getVertices()])
-    
-    def maxDegree(self):
-        return max([v.degree() for v in self.getVertices()])
-    
+
+#   def order(self):
+#       """
+#       @return: Number of SimPeers in network
+#       """
+#       return len(self.names)
+
+#   def minDegree(self):
+#       return min([v.degree() for v in self.getVertices()])
+
+#   def maxDegree(self):
+#       return max([v.degree() for v in self.getVertices()])
+
     def connect(self, v1, v2):
         """
         Creates connection between two nodes and selects Neighbor ID (NID).
@@ -177,16 +224,16 @@ class NetworkModel:
         else:
             raise RuntimeError("No available NeighborIDs. It's possible the \
                                 network is being attacked.")
-    
+
     def randConnect(self, peerid, numpeers):
         """
-        Assign 'numpeers' many randomly selected neighbors to 
-        peer with id == peerid 
+        Assign 'numpeers' many randomly selected neighbors to
+        peer with id == peerid
         """
         peer = self.get(peerid)
         others = self.names.keys()
         others.remove(peerid) # Remove source peer
-        for nid in peer.neighbors.keys(): # and the peers they're connected to
+        for nid in peer.neighbors.keys(): # and the peers already connected to
             others.remove(nid)
         for c in range(numpeers): # Connect to numpeers randomly selected peers
             if len(others) == 0: # Unless there aren't that many in the network.
@@ -194,7 +241,7 @@ class NetworkModel:
             otherpeerid = random.choice(others)
             self.connect(peerid, otherpeerid)
             others.remove(otherpeerid)
-    
+
     def disconnect(self, peerid):
         """
         Removes designated peer from network
@@ -204,49 +251,48 @@ class NetworkModel:
             for neighborOf in self.names[peerid].getNbrs():
                 self.names[neighborOf].removeEdge(peerid)
             del self.names[peerid]
-    
-    def bfConnected(self, source):
-        """
-        Breadth first search for all nodes connected to source
-        @param source: Peer ID of a node in the network
-        @type source: string
-        """
-        opened = [source]
-        closed = []
-        while opened:
-            n = opened.pop(0)
-            if n not in closed:
-                opened.extend(self.get(n).getNbrs())
-                closed.append(n)
-        return closed
-    
-    def isConnected(self):
-        """
-        @returns: True if graph is connected, false if not
-        @rtype:boolean
-        """
-        if self.order():
-            source = self.getNames()[0]
-            #Ensure that the number of vertices connected to any one vertex
-            #is equal to the total number of vertices in the network
-            if len(self.bfConnected(source)) == self.order():
-                return True
-        return False
-    
+
+#   def bfConnected(self, source):
+#       """
+#       Breadth first search for all nodes connected to source
+#       @param source: Peer ID of a node in the network
+#       @type source: string
+#       """
+#       opened = [source]
+#       closed = []
+#       while opened:
+#           n = opened.pop(0)
+#           if n not in closed:
+#               opened.extend(self.get(n).getNbrs())
+#               closed.append(n)
+#       return closed
+
+#   def isConnected(self):
+#       """
+#       @returns: True if graph is connected, false if not
+#       @rtype:boolean
+#       """
+#       if self.order():
+#           source = self.getNames()[0]
+#           #Ensure that the number of vertices connected to any one vertex
+#           #is equal to the total number of vertices in the network
+#           if len(self.bfConnected(source)) == self.order():
+#               return True
+#       return False
+
     def shortestPath(self, s, d):
         """
         Returns (Dijikstra) shortest path from s to d as a list of peer IDs
-        
         @param s: Peer ID (str) of the start node
         @param d: Peer ID (str) of the end node
-        
+
         @return: list of Peer IDs
         """
         source = self.get(s)
-        dest = self.get(d)     
+        dest = self.get(d)
         paths = dict.fromkeys(self.getNames(), [])
         distances = dict.fromkeys(self.getNames(), INFINITY)
-        
+
         distances[source.name] = 0 # The distance of the source to itself is 0
         dist_to_unknown = distances.copy() # Safe to destroy copy
         last = source
@@ -323,7 +369,7 @@ class NetworkModel:
             if len(pathByNames) == 1:
                 return None
         return self.encryptTC(pathByNames, plaintext)
-    
+
     def encryptTC(self, pathByNames, plaintext='#', msglen=1024):
         """
         Returns an encrypted tracking code
@@ -349,16 +395,10 @@ class NetworkModel:
         if len(message) < msglen:
             message += crypto.getRand(msglen-len(message))
         return message
-    
+
     def __repr__(self):
         return "\n".join(map(Vertex.printConnections, self.names.values()))
 
-#try:
-#    import psyco
-#except ImportError:
-#    pass
-#else:
-#    psyco.profile()
 
 ###########
 ##TESTING##

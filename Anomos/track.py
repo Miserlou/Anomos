@@ -36,7 +36,7 @@ from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
 from Anomos.platform import bttime
 from Anomos.RawServer import RawServer
-from Anomos.zurllib import quote, unquote
+from Anomos.zurllib import quote, unquote_plus as unquote
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -134,11 +134,11 @@ def is_local_ip(ip):
     try:
         v = [int(x) for x in ip.split('.')]
         if v[0] == 10 or v[0] == 127 or v[:2] in ([192, 168], [169, 254]):
-            return 1
+            return True
         if v[0] == 172 and v[1] >= 16 and v[1] <= 31:
-            return 1
+            return True
     except ValueError:
-        return 0
+        return False
 
 def params_factory(dictionary, default=None):
     """ 
@@ -162,15 +162,18 @@ class Tracker(object):
         self.max_give = config['max_give']
         self.dfile = config['dfile']
         self.natcheck = config['nat_check']
+        
+        # Set the favicon
         favicon = config['favicon']
         self.favicon = None
         if favicon:
             try:
-                h = open(favicon,'r')
+                h = open(favicon,'rb')
                 self.favicon = h.read()
                 h.close()
             except:
                 print "**warning** specified favicon file -- %s -- does not exist." % favicon
+
         self.rawserver = rawserver
         self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
         self.cached_t = {}  # format: infohash: [time, cache]
@@ -206,13 +209,14 @@ class Tracker(object):
                             # becache[infohash][2]=> Compact => "" ""
         for infohash, ds in self.downloads.items():
             self.seedcount[infohash] = 0
-            for x,y in ds.items():
-                if not y.get('nat',-1):
-                    ip = y.get('given_ip')
-                    if not (ip and self.allow_local_override(y['ip'], ip)):
-                        ip = y['ip']
-                    self.natcheckOK(infohash,x,ip,y['port'],y['left'])
-                if not y['left']:
+            for peerid,info in ds.items():
+                if not info.get('nat',-1):
+                    ip = info.get('given_ip')
+                    if not (ip and self.allow_local_override(info['ip'], ip)):
+                        ip = info['ip']
+                                   #infohash, peerid, ip, port, not_seed):
+                    self.natcheckOK(infohash,peerid,ip,info['port'],info['left'])
+                if not info['left']:
                     self.seedcount[infohash] += 1
 
         for infohash in self.downloads:
@@ -270,7 +274,6 @@ class Tracker(object):
                 pass
             self.allowed = None
 
-        self.uq_broken = unquote('+') != ' ' # This sucks!
         self.keep_dead = config['keep_dead']
 
     def allow_local_override(self, ip, given_ip):
@@ -387,10 +390,9 @@ class Tracker(object):
         fs = {}
         if params('info_hash'):
             if self.config['scrape_allowed'] not in ['specific', 'full']:
-                return self.reply(400, 'Not Authorized', \
+                return (400, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
-                    bencode({'failure reason': 'specific scrape function is not available with this tracker.'}), \
-                    params('peer_id'))
+                    bencode({'failure reason': 'specific scrape function is not available with this tracker.'}))
             for infohash in params('info_hash'):
                 if self.allowed is not None and infohash not in self.allowed:
                     continue
@@ -398,24 +400,25 @@ class Tracker(object):
                     fs[infohash] = self.scrapedata(infohash)
         else:
             if self.config['scrape_allowed'] != 'full':
-                return self.reply(400, 'Not Authorized', \
+                return (400, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
-                    bencode({'failure reason': 'full scrape function is not available with this tracker.'}), \
-                    params('peer_id'))
+                    bencode({'failure reason': 'full scrape function is not available with this tracker.'}))
             if self.allowed is not None:
                 hashes = self.allowed
             else:
                 hashes = self.downloads
             for infohash in hashes:
                 fs[infohash] = self.scrapedata(infohash)
-        return self.reply(200, 'OK', {'Content-Type': 'text/plain'}, bencode({'files': fs}), params('peer_id'))
+        return (200, 'OK', {'Content-Type': 'text/plain'}, bencode({'files': fs}))
 
     def get_file(self, infohash):
          if not self.allow_get:
-             return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
-                 'get function is not available with this tracker.')
+             return (401, 'Not Authorized', {'Content-Type': 'text/plain',
+                                             'Pragma': 'no-cache'},
+                         'get function is not available with this tracker.')
          if not self.allowed.has_key(infohash):
-             return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
+             return (404, 'Not Found', {'Content-Type': 'text/plain', \
+                                        'Pragma': 'no-cache'}, alas)
          fname = self.allowed[infohash]['file']
          fpath = self.allowed[infohash]['path']
          return (200, 'OK', {'Content-Type': 'application/x-bittorrent',
@@ -426,193 +429,212 @@ class Tracker(object):
         params = params_factory(paramslist)
         if self.allowed is not None:
             if not self.allowed.has_key(infohash):
-                return self.reply(200, 'Not Authorized', \
+                return (200, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
-                    bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}), \
-                    params('peer_id'))
+                    bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}))
             if self.config['allowed_controls']:
                 if self.allowed[infohash].has_key('failure reason'):
-                    return self.reply(200, 'Not Authorized', \
+                    return (200, 'Not Authorized', \
                         {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
-                        bencode({'failure reason': self.allowed[infohash]['failure reason']}), \
-                        params('peer_id'))
+                        bencode({'failure reason': self.allowed[infohash]['failure reason']}))
         return None
     
     def update_simpeer(self, paramslist, ip, peercert):
+        """
+        @param paramslist: Parameters from client's GET request
+        @param ip: Client's IP address
+        @param peercert:
+        @type paramslist: list
+        @type ip: string
+        @type peercert: M2Crypto.X509.X509 
+        """
         params = params_factory(paramslist)
         peerid = params('peer_id')
         simpeer = self.networkmodel.get(peerid)
-        if not simpeer:
+        if not simpeer: # Tracker hasn't seen this peer before
             #if params('pubkey'): # New peer
             loc = (ip, int(params('port')))
-            simpeer = self.networkmodel.addPeer(params('peer_id'), 
-                                                    peercert, loc)
-        elif params('event') == 'stopped':
+            simpeer = self.networkmodel.addPeer(peerid, peercert, loc)
+        #Check that peer certificate matches.
+        #TODO: What do we do when check fails?
+        #if peercert.as_pem() != simpeer.pubkey.certificate.as_pem():
+        simpeer.update(paramslist)
+        if params('event') == 'stopped' and simpeer.getOrder() == 0:
+            # Peer stopped their only/last torrent 
             self.networkmodel.disconnect(peerid)
-        # TODO: What if they don't give a pubkey
-        #Verify the connecting peer is who they say they are.
-        #Update any changed information
     
-    def add_data(self, infohash, event, ip, paramslist):
-        peers = self.downloads.setdefault(infohash, {})
-        ts = self.times.setdefault(infohash, {})
-        self.completed.setdefault(infohash, 0)
-        self.seedcount.setdefault(infohash, 0)
+## Deprecated
+#    def add_data(self, infohash, event, ip, paramslist):
+#        peers = self.downloads.setdefault(infohash, {})
+#        ts = self.times.setdefault(infohash, {})
+#        self.completed.setdefault(infohash, 0)
+#        self.seedcount.setdefault(infohash, 0)
+#
+#        params = params_factory(paramslist)
+#
+#        myid = params('peer_id','')
+#        if len(myid) != 20:
+#            raise ValueError('id not of length 20')
+#        if event not in ['started', 'completed', 'stopped', None]:
+#            raise ValueError('invalid event')
+#        port = int(params('port',''))
+#        if not (0 < port < 65535):
+#            raise ValueError('invalid port')
+#        left = int(params('left',''))
+#        if left < 0:
+#            raise ValueError('invalid amount left')
+#
+#        peer = peers.get(myid)
+#        #I'm getting rid of the old key field, it was used as a quasi identity
+#        #for each peer but it's obsoleted by signing and encryption.
+#        #mykey = params('key')
+#        #auth = not peer or peer.get('key', -1) == mykey or peer.get('ip') == ip
+#        auth = not peer or peer.get('ip') == ip
+#        
+#        gip = params('ip')
+#        local_override = gip and self.allow_local_override(ip, gip)
+#        if local_override:
+#            ip1 = gip
+#        else:
+#            ip1 = ip
+#        if not auth and local_override and self.only_local_override_ip:
+#            auth = True
+#
+#        if params('numwant') is not None:
+#            rsize = min(int(params('numwant')), self.max_give)
+#        else:
+#            rsize = self.response_size
+#
+#        if event == 'stopped':
+#            if peer and auth:
+#                self.delete_peer(infohash,myid)
+#
+#        elif not peer:
+#            ts[myid] = bttime()
+#            peer = {'ip': ip, 'port': port, 'left': left}
+#            if gip:
+#                peer['given ip'] = gip
+#            if port:
+#                if not self.natcheck or (local_override and self.only_local_override_ip):
+#                    peer['nat'] = 0
+#                    self.natcheckOK(infohash,myid,ip1,port,left)
+#                else:
+#                    NatCheck(self.connectback_result,infohash,myid,ip1,port,self.rawserver)
+#            else:
+#                peer['nat'] = 2**30
+#            if event == 'completed':
+#                self.completed[infohash] += 1
+#            if not left:
+#                self.seedcount[infohash] += 1
+#
+#            peers[myid] = peer
+#
+#        else:
+#            if not auth:
+#                return rsize    # return w/o changing stats
+#
+#            ts[myid] = bttime()
+#            if not left and peer['left']:
+#                # Peer has a complete file, count them as a seeder.
+#                self.completed[infohash] += 1
+#                self.seedcount[infohash] += 1
+#                if not peer.get('nat', -1):
+#                    # Move their becache data from downloader to seeder array.
+#                    for bc in self.becache[infohash]:
+#                        bc[1][myid] = bc[0][myid]
+#                        del bc[0][myid]
+#            if peer['left']:
+#                peer['left'] = left
+#
+#            recheck = False
+#            if ip != peer['ip']:
+#                peer['ip'] = ip
+#                recheck = True
+#            if gip != peer.get('given ip'):
+#                if gip:
+#                    peer['given ip'] = gip
+#                elif peer.has_key('given ip'):
+#                    del peer['given ip']
+#                if local_override:
+#                    if self.only_local_override_ip:
+#                        self.natcheckOK(infohash,myid,ip1,port,left)
+#                    else:
+#                        recheck = True
+#
+#            if port and self.natcheck:
+#                if recheck:
+#                    if peer.has_key('nat'):
+#                        if not peer['nat']:
+#                            l = self.becache[infohash]
+#                            y = not peer['left']
+#                            for x in l:
+#                                del x[y][myid]
+#                        del peer['nat'] # restart NAT testing
+#                else:
+#                    natted = peer.get('nat', -1)
+#                    if natted and natted < self.natcheck:
+#                        recheck = True
+#
+#                if recheck:
+#                    NatCheck(self.connectback_result,infohash,myid,ip1,port,self.rawserver)
+#
+#        return rsize
 
-        params = params_factory(paramslist)
-
-        myid = params('peer_id','')
-        if len(myid) != 20:
-            raise ValueError('id not of length 20')
-        if event not in ['started', 'completed', 'stopped', None]:
-            raise ValueError('invalid event')
-        port = int(params('port',''))
-        if not (0 < port < 65535):
-            raise ValueError('invalid port')
-        left = int(params('left',''))
-        if left < 0:
-            raise ValueError('invalid amount left')
-
-        peer = peers.get(myid)
-        #I'm getting rid of the old key field, it was used as a quasi identity
-        #for each peer but it's obsoleted by signing and encryption.
-        #mykey = params('key')
-        #auth = not peer or peer.get('key', -1) == mykey or peer.get('ip') == ip
-        auth = not peer or peer.get('ip') == ip
-        
-        gip = params('ip')
-        local_override = gip and self.allow_local_override(ip, gip)
-        if local_override:
-            ip1 = gip
-        else:
-            ip1 = ip
-        if not auth and local_override and self.only_local_override_ip:
-            auth = True
-
-        if params('numwant') is not None:
-            rsize = min(int(params('numwant')), self.max_give)
-        else:
-            rsize = self.response_size
-
-        if event == 'stopped':
-            if peer and auth:
-                self.delete_peer(infohash,myid)
-
-        elif not peer:
-            ts[myid] = bttime()
-            peer = {'ip': ip, 'port': port, 'left': left}
-            if gip:
-                peer['given ip'] = gip
-            if port:
-                if not self.natcheck or (local_override and self.only_local_override_ip):
-                    peer['nat'] = 0
-                    self.natcheckOK(infohash,myid,ip1,port,left)
-                else:
-                    NatCheck(self.connectback_result,infohash,myid,ip1,port,self.rawserver)
-            else:
-                peer['nat'] = 2**30
-            if event == 'completed':
-                self.completed[infohash] += 1
-            if not left:
-                self.seedcount[infohash] += 1
-
-            peers[myid] = peer
-
-        else:
-            if not auth:
-                return rsize    # return w/o changing stats
-
-            ts[myid] = bttime()
-            if not left and peer['left']:
-                # Peer has a complete file, count them as a seeder.
-                self.completed[infohash] += 1
-                self.seedcount[infohash] += 1
-                if not peer.get('nat', -1):
-                    # Move their becache data from downloader to seeder array.
-                    for bc in self.becache[infohash]:
-                        bc[1][myid] = bc[0][myid]
-                        del bc[0][myid]
-            if peer['left']:
-                peer['left'] = left
-
-            recheck = False
-            if ip != peer['ip']:
-                peer['ip'] = ip
-                recheck = True
-            if gip != peer.get('given ip'):
-                if gip:
-                    peer['given ip'] = gip
-                elif peer.has_key('given ip'):
-                    del peer['given ip']
-                if local_override:
-                    if self.only_local_override_ip:
-                        self.natcheckOK(infohash,myid,ip1,port,left)
-                    else:
-                        recheck = True
-
-            if port and self.natcheck:
-                if recheck:
-                    if peer.has_key('nat'):
-                        if not peer['nat']:
-                            l = self.becache[infohash]
-                            y = not peer['left']
-                            for x in l:
-                                del x[y][myid]
-                        del peer['nat'] # restart NAT testing
-                else:
-                    natted = peer.get('nat', -1)
-                    if natted and natted < self.natcheck:
-                        recheck = True
-
-                if recheck:
-                    NatCheck(self.connectback_result,infohash,myid,ip1,port,self.rawserver)
-
-        return rsize
-    
     def neighborlist(self, peerid):
+        """
+        @param peerid: The peer to get the neighbors of
+        @returns: {'ip': string, 'port': int, 'nid': chr} for each neighbor
+        @rtype: list
+        """
         sim = self.networkmodel.get(peerid)
-        if sim and not sim.id_map:
+        if not sim:
             return []
-        neighbors = []
-        for p in sim.id_map.values():
-            loc = sim.neighbors[p]['loc']
-            nid = sim.neighbors[p]['nid']
-            neighbors.append({'ip':loc[0], 'port':loc[1], 'peer id':nid})
-        return neighbors
-    
-    def getTCs(self, peerid, infohash, return_type, count):
+        return [{'ip':vals['loc'][0],   \
+                 'port':vals['loc'][1], \
+                 'peer id':vals['nid']} for vals in sim.neighbors.values()]
+
+    def getTCs(self, peerid, infohash, is_seed, count):
         """
         Gets a set of tracking codes from the specified peer to 'count' random
         peers with 'infohash'.
         @param peerid: PeerID of requesting peer
         @param infohash: Infohash of requested file
         @param count: Number of peers requested
-        @param return_type: Temporary arg for BT compatibility, will be removed.
+        @param is_seed: Whether or not this peer is a seeder.
         @type peerid: str
         @type infohash: str
         @type count: int
+        @type is_seed: bool
         """
         #TODO: Update the cache system, and only get peers in infohash's swarm
         #cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
-        allpeers = self.networkmodel.getNames()
+
+        # If is_seed then get the swarm without seeders
+        if is_seed:
+            swarm = self.networkmodel.getDownloadingPeers(infohash)
+        else:
+            swarm = self.networkmodel.getSwarm(infohash)
         tcs = []
-        for id in sample(allpeers, min(len(allpeers), count)):
+        for id in sample(swarm, min(len(swarm), count)):
             if id == peerid:
                 continue
             print id, "To", peerid
+            #Geneterate the AESKey to use, default algorith is aes_256_cfb
             aes = AESKey()
-            #TODO: design a good format for the request
+            #TODO: Peers should only depend on the Tracker to distribute the
+            #      AES key, IV could be generated separately so that bad
+            #      tracker's can't recover the full stream.
             t = self.networkmodel.getTrackingCode(peerid, id, infohash + aes.key + aes.iv)
             if t:
                 tcs.append([aes.key + aes.iv, t])
         return tcs
-        
-        
+
+
 #    def peerlist(self, peerid, infohash, stopped, is_seed, return_type, rsize):
-#        """ Return a set of Tracking Codes 
+#        """ Return a set of Tracking Codes
 #        @param peerid: PeerID of source peer
 #        @param infohash: File requested
-#        @param stopped: 
+#        @param stopped:
 #        """
 #        data = {}    # data to be returned
 #        seeds = self.seedcount[infohash]
@@ -679,6 +701,12 @@ class Tracker(object):
 #        return data
 
     def validate_request(self, paramslist):
+        """
+        NOTE: MUST be called on input before it is passed to
+              other methods.
+        @param paramslist: get request from client which has
+                           been passed through parseQuery
+        """
         params = params_factory(paramslist)
         infohash = params('info_hash')
         if infohash and len(infohash) != 20:
@@ -690,104 +718,105 @@ class Tracker(object):
         port = int(params('port',-1))
         if not (0 < port < 65535):
             raise ValueError('invalid or unspecified port')
+        dl = params('downloaded')
+        if dl and int(dl) < 0:
+            raise ValueError('invalid amount downloaded')
         left = params('left')
         if left and int(left) < 0:
             raise ValueError('invalid amount left')
 
     def get(self, handler, path, headers):
-        ip = handler.get_ip()
+        paramslist = {}
+        params = params_factory(paramslist)
 
+        # Parse the requested URL
+        (scheme, netloc, path, pars, query, fragment) = urlparse(path)
+        # unquote and strip leading / from path
+        path = unquote(path).lstrip("/")
+        paramslist.update(self.parseQuery(query))
+
+        ip = handler.get_ip()
         nip = get_forwarded_ip(headers)
         if nip and not self.only_local_override_ip:
             ip = nip
-        
-        paramslist = {}
-        params = params_factory(paramslist)
-        
+
+        # Handle non-announce connections. ie: Tracker scrapes, favicon
+        # requests, .torrent file requests
+        hbc = self.handleBrowserConnections(path)
+        if hbc:
+            return hbc
+
+        # Validate the GET request
         try: 
-            (scheme, netloc, path, pars, query, fragment) = urlparse(path)
-            if self.uq_broken == 1:
-                path = path.replace('+',' ')
-                # query = query.replace('+',' ')
-            path = unquote(path)[1:]
-            paramslist.update(self.parseQuery(query))
-#            if params('pke'):
-#                # Decrypt the query
-#                binpke = urlsafe_b64decode(params('pke'))
-#                try:
-#                    decquery = self.rsa.decrypt(binpke, returnpad=False)
-#                except CryptoError, e:
-#                    raise ValueError(e)
-#                # Update with the new params
-#                paramslist.update(self.parseQuery(decquery))
-#                del paramslist['pke']
-#            
-            if path == '' or path == 'index.html':
-                return self.get_infopage()
-            if path == 'scrape':
-                return self.get_scrape(paramslist)
-            #if (path == 'key'):
-            #    pubic = self.rsa.pub_bin()
-            #    return (200, 'OK', {'Content-Type' : 'text/plain'}, pubic)
-            if (path == 'file'):
-                return self.get_file(params('info_hash'))
-            if path == 'favicon.ico' and self.favicon is not None:
-                return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
-            if path != 'announce':
-                return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
-
-            context = handler.connection.socket.get_context()
-            self.update_simpeer(paramslist, ip, handler.connection.peer_cert)
             self.validate_request(paramslist)
-            # main tracker function
-            infohash = params('info_hash')
-            #Quite alright not to send an infohash now.
-            #if not infohash:
-            #    raise ValueError('no info hash')
-
-            notallowed = self.check_allowed(infohash, paramslist)
-            if notallowed:
-                return notallowed
-            event = params('event')
-
-            #rsize = self.add_data(infohash, event, ip, paramslist)
-
         except ValueError, e:
-            return self.reply(400, 'Bad Request', {'Content-Type': 'text/plain'},
-                'you sent me garbage - ' + str(e), params('peer_id'))
+            return (400, 'Bad Request', {'Content-Type': 'text/plain'},
+                'you sent me garbage - ' + str(e))
 
+        # Update Tracker's information about the peer
+        self.update_simpeer(paramslist, ip, handler.connection.peer_cert)
+
+        infohash = params('info_hash')
+
+        # Check if Tracker allows this torrent
+        notallowed = self.check_allowed(infohash, paramslist)
+        if notallowed:
+            return notallowed
+        event = params('event')
+
+        #rsize = self.add_data(infohash, event, ip, paramslist)
+
+        #TODO: deprecate return type
         if params('compact'):
             return_type = 2
         elif params('no_peer_id'):
             return_type = 1
         else:
             return_type = 0
-        
-        stopped = event == 'stopped'
+
         data = {}
-        if not stopped:
+        if event != 'stopped':
             data['peers'] = self.neighborlist(params('peer_id'))
             #TODO: Replace "3" with actual number of TCs to get
-            if params('left') and int(params('left')):
-                data['tracking codes'] = self.getTCs(params('peer_id'), infohash, return_type, 3)
-            else:
-                data['tracking codes'] = []
-        #self.peerlist(infohash, event=='stopped',  not params('left'), return_type, rsize)
+            data['tracking codes'] = self.getTCs(params('peer_id'), infohash,
+                                                 not int(params('left')), 3)
+#            if params('left') and int(params('left')):
+#                data['tracking codes'] = self.getTCs(params('peer_id'),
+#                        infohash, True, 3)
+#            else:
+#                data['tracking codes'] = []
 
         if paramslist.has_key('scrape'):
             data['scrape'] = self.scrapedata(infohash, False)
-        return self.reply(200, 'OK', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, bencode(data), params('peer_id'))
+
+        return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma':\
+                            'no-cache'}, bencode(data))
+
+    def handleBrowserConnections(self, path):
+        if path == '' or path == 'index.html':
+            return self.get_infopage()
+        if path == 'scrape':
+            return self.get_scrape(paramslist)
+        if (path == 'file'):
+            return self.get_file(params('info_hash'))
+        if path == 'favicon.ico' and self.favicon is not None:
+            return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
+        if path != 'announce':
+            return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
+        return None
 
     def parseQuery(self, query):
-        if len(query) and query[0] == '?':
-            query = query[1:]
-        params = {}
-        for s in query.split('&'):
-            if s != '':
-                key,val = s.split('=', 1) #Only split at the first "=" character
-                kw = unquote(key)
-                kw = kw.replace('+',' ') # TODO: find out if this is absolutely necessary
-                params[kw] = unquote(val)
+        """
+        @param query: has form "?p1=v1&p2=v2&...&pn=vn"
+        @returns: {p1:v1, p2:v2, ..., pn:vn}
+        """
+        query = query.lstrip('?') # Strip leading '?'
+        params = {} # Dictionary of param:value pairs to be returned
+        for s in query.split('&'): #params are &-delimited
+            if s == '':
+                continue
+            key,val = unquote(s).split('=', 1)
+            params[key] = val
         return params
 
     def natcheckOK(self, infohash, peerid, ip, port, not_seed):
@@ -812,10 +841,9 @@ class Tracker(object):
             return
         if self.config['log_nat_checks']:
             if result:
-                x = 200
+                self.natchecklog(peerid, ip, port, 200)
             else:
-                x = 503
-            self.natchecklog(peerid, ip, port, x)
+                self.natchecklog(peerid, ip, port, 503)
         if not record.has_key('nat'):
             record['nat'] = int(not result)
             if result:
@@ -886,21 +914,6 @@ class Tracker(object):
                     del self.seedcount[key]
         self.rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
     
-    def reply(self, code, message, headers, data, peer_id=None):
-        """ 
-        Craft an HTTP response.
-        If peer_id is present this function will attempt to encrypt the data.
-        @return: HTTP response, eg. (200, OK, {'Content-Type': 'text/plain'}, data)
-        @rtype: tuple
-        """
-#        if peer_id: # Try to encrypt the response
-#            simpeer = self.networkmodel.get(peer_id)
-#            if simpeer and simpeer.pubkey:
-#                if not isinstance(data, basestring):
-#                    data = bencode(data)
-#                data = bencode({'pke': simpeer.pubkey.encrypt(data)})
-        return (code, message, headers, data)
-
 def track(args):
     if len(args) == 0:
         print formatDefinitions(defaults, 80)
