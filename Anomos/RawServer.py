@@ -206,6 +206,8 @@ class RawServer(object):
 
     def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
 
+        print dns, self.certificate.getContext()
+
         sock = SSL.Connection(self.certificate.getContext())
         ## these sock. lines might not be necessary.
         sock.setup_ssl()

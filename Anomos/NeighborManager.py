@@ -1,5 +1,5 @@
 '''
-@author: John Schanck
+@author: John Schanck, Rich Jones
 @license: see License.txt
 '''
 
@@ -41,6 +41,13 @@ class NeighborManager:
     def has_neighbor(self, nid):
         #TODO: Make this tracker specific.
         return self.neighbors.has_key(nid)
+
+    def have_loc(self, loc):
+        try:
+            j = self.neighbors[loc]
+            return True
+        except:
+            return False
     
     def is_complete(self, nid):
         #TODO: Make this tracker specific.
@@ -76,6 +83,9 @@ class NeighborManager:
         @type loc: tuple
         @type id: int
         """
+        if self.have_loc(loc):
+            return
+
         # Connection is established if they're one of this peer's neighbors
         if self.has_neighbor(id) or self.incomplete.has_key(id):
             #TODO: Resolve conflict
@@ -83,6 +93,7 @@ class NeighborManager:
         try:
             c = self.rawserver.start_ssl_connection(loc)
         except Exception,e:
+            print "Possible network misconfiguration. Are your ports forwarded?"
             #TODO: Log failed connection
             return
         self.incomplete[id] = loc
@@ -90,6 +101,7 @@ class NeighborManager:
         con = Connection(self, c, id, True, established=False)
         self.connections[c] = con
         c.handler = con 
+
 
     #def send_keepalives(self):
     #   
