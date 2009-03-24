@@ -47,7 +47,8 @@ class Relayer(object):
         self.buffer = []
         self.complete = False
 
-        Thread(target=self.start_connection, args=[outnid,]).start()
+        self.tmpnid = outnid
+        self.start_connection(outnid)
         self.rawserver.add_task(self.check_if_established, 1)
     
     def check_if_established(self):
@@ -60,14 +61,21 @@ class Relayer(object):
 
     def start_connection(self, nid):
         loc = self.neighbors.get_location(nid)
-        c = self.rawserver.start_ssl_connection(loc, handler=self)
-        if c is None:
-            print "This is an error"
-        con = Connection(self, c, nid, True, established=True)
-        c.handler = con
+        self.rawserver.start_ssl_connection(loc, handler=self)
+
+    def sock_success(self, sock, loc):
+        if self.connections.has_key(sock):
+            return
+        con = Connection(self, sock, self.tmpnid, True, established=True)
+        sock.handler = con
         print "RELAY CONNECTION ESTABLISHED"
         self.outgoing = con
         self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
+
+    def sock_fail(self, loc, err=None):
+        if self.incomplete.has_key(loc):
+            del self.incomplete[loc]
+        #TODO: Do something with error message
 
     def relay_message(self, con, msg):
         if self.connections.has_key(con) and self.connections[con] is not None:

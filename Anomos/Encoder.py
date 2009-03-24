@@ -43,6 +43,7 @@ class EndPoint(object):
         
         self.connections = {} # {socket : Connection}
         self.complete_connections = set()
+        self.incomplete = {}
         self.banned = set()
         self.everinc = False
         # XXX: Send keepalives on full chains or just neighbor to neighbor?
@@ -81,20 +82,30 @@ class EndPoint(object):
             errorfunc()
         else:
             self.send_tc(nid, tc, aeskey)
-    
+
     def send_tc(self, nid, tc, aeskey):
         loc = self.neighbors.get_location(nid)
         print "Sending TC to", hex(ord(nid)), "at", loc
-        try:
-            c = self.raw_server.start_ssl_connection(loc)
-        except Exception,e:
+        self.incomplete[loc] = (nid, tc, aeskey)
+        self.raw_server.start_ssl_connection(loc, handler=self)
+
+    def sock_success(self, sock, loc):
+        if self.connections.has_key(sock):
             return
+        if not self.incomplete.has_key(loc):
+            return
+        id, tc, aeskey = self.incomplete[loc]
         # Make the local connection for receiving.
-        con = Connection(self, c, nid, True, established=True)
+        con = Connection(self, sock, id, True, established=True)
         con.e2e_key = aeskey
-        self.connections[c] = con
-        c.handler = con 
+        self.connections[sock] = con
+        sock.handler = con
         con.send_tracking_code(tc)
+
+    def sock_fail(self, loc, err=None):
+        if self.incomplete.has_key(loc):
+            del self.incomplete[loc]
+        #TODO: Do something with the error msg
 
     def connection_completed(self, c):
         c.complete = True

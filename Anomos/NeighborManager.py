@@ -9,11 +9,10 @@ class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate, keyring):
+    def __init__(self, rawserver, config, certificate):
         self.rawserver = rawserver
         self.config = config
         self.cert = certificate
-        #self.keyring = keyring
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
@@ -35,23 +34,22 @@ class NeighborManager:
     
     def add_neighbor(self, id, location):
         print "ADDING NEIGHBOR:", hex(ord(id)), location
-        self.neighbors[id] = location
+        if self.has_loc(location):
+            pass
+        else:
+            self.neighbors[id] = location
         print "neighbors: ", self.neighbors
     
     def has_neighbor(self, nid):
         #TODO: Make this tracker specific.
         return self.neighbors.has_key(nid)
 
-    def have_loc(self, loc):
-        try:
-            j = self.neighbors[loc]
-            return True
-        except:
-            return False
+    def has_loc(self, loc):
+        return loc in self.neighbors.values()
     
     def is_complete(self, nid):
         #TODO: Make this tracker specific.
-        return not self.incomplete.has_key(nid)
+        return self.neighbors.has_key(nid)
     
     def count(self, tracker=None):
         #TODO: Make this tracker specific.
@@ -83,24 +81,38 @@ class NeighborManager:
         @type loc: tuple
         @type id: int
         """
-        if self.have_loc(loc):
-            return
-
         # Connection is established if they're one of this peer's neighbors
-        if self.has_neighbor(id) or self.incomplete.has_key(id):
+        if self.has_neighbor(id) or \
+                self.incomplete.has_key(id) or \
+                self.has_loc(loc):
             #TODO: Resolve conflict
             return
-        try:
-            c = self.rawserver.start_ssl_connection(loc)
-        except Exception,e:
-            print "Possible network misconfiguration. Are your ports forwarded?"
-            #TODO: Log failed connection
-            return
+
         self.incomplete[id] = loc
-        # Make the local connection for receiving.
-        con = Connection(self, c, id, True, established=False)
-        self.connections[c] = con
-        c.handler = con 
+        self.rawserver.start_ssl_connection(loc, handler=self)
+
+    def sock_success(self, sock, loc):
+        """
+        @param sock: SingleSocket object for the newly created socket
+        """
+        if self.connections.has_key(sock):
+            # sock_success already called on this socket
+            return
+        for id,v in self.incomplete.iteritems():
+            if v == loc: break
+        else: return #loc wasn't found
+        # Make the local Connection for receiving.
+        con = Connection(self, sock, id, True, established=False)
+        self.connections[sock] = con
+        sock.handler = con
+
+    def sock_fail(self, loc, err=None):
+        #Remove nid,loc pair from incomplete
+        for k,v in self.incomplete.items():
+            if v == loc:
+                del self.incomplete[k]
+                break
+        #TODO: Do something with the error msg.
 
 
     #def send_keepalives(self):

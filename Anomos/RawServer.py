@@ -21,6 +21,7 @@ from Anomos.platform import bttime
 from Anomos import CRITICAL, WARNING, FAQ_URL
 from Anomos import crypto
 from M2Crypto import SSL
+from threading import Thread
 import random
 
 try:
@@ -205,28 +206,38 @@ class RawServer(object):
         self.poll.unregister(serversocket)
 
     def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
+        t = Thread(target=self._start_ssl_connection, args=(dns, handler, context,
+                    do_bind))
+        t.start()
 
+    def _start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
         print dns, self.certificate.getContext()
 
         sock = SSL.Connection(self.certificate.getContext())
-        sock.setblocking(0)
-        ## these sock. lines might not be necessary.
-        sock.setup_ssl()
-        sock.set_connect_state()
         #TODO: post_connection_check should not be None!
         sock.set_post_connection_check_callback(None)
         try:
-            sock.connect(dns) 
-        except :
+            sock.connect(dns)
+        except socket.error, e:
             #TODO: verify this is the correct behavior
             sock.close()
-            print "The error is of type...", type(e)
-            raise
+            if handler:
+                def fail():
+                    handler.sock_fail(dns, e)
+                self.external_add_task(fail, 0)
         else:
-            self.poll.register(sock, POLLIN)
-            s = SingleSocket(self, sock, handler, context, dns[0])
-            self.single_sockets[sock.fileno()] = s
-            return s
+            def reg(): #dummy function for external_add_task
+                self.register_sock(sock, dns, handler, context)
+            self.external_add_task(reg, 0)
+
+    def register_sock(self, sock, dns, handler=None, context=None):
+        self.poll.register(sock, POLLIN)
+        s = SingleSocket(self, sock, handler, context, dns[0])
+        self.single_sockets[sock.fileno()] = s
+        if handler:
+            handler.sock_success(s, dns)
+        return s
+
 
 #    def wrap_socket(self, sock, handler, context=None, ip=None):
 #        sock.setblocking(0)
