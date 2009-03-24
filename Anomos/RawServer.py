@@ -209,19 +209,19 @@ class RawServer(object):
         print dns, self.certificate.getContext()
 
         sock = SSL.Connection(self.certificate.getContext())
+        sock.setblocking(0)
         ## these sock. lines might not be necessary.
         sock.setup_ssl()
         sock.set_connect_state()
         #TODO: post_connection_check should not be None!
         sock.set_post_connection_check_callback(None)
-
         try:
             sock.connect(dns) 
-        except Exception, e:
+        except :
             #TODO: verify this is the correct behavior
             sock.close()
             print "The error is of type...", type(e)
-            raise e
+            raise
         else:
             self.poll.register(sock, POLLIN)
             s = SingleSocket(self, sock, handler, context, dns[0])
@@ -377,7 +377,7 @@ class RawServer(object):
         while len(self.dead_from_write) > 0:
             old = self.dead_from_write
             self.dead_from_write = []
-            print "Dead sending breaks"
+#            print "Dead sending breaks"
 #            map(self._send_break, old)
             map(self._safe_shutdown, old)
 
