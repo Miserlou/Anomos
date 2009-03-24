@@ -30,7 +30,7 @@ common_options = [
         'maximum number of connections to allow, after this new incoming connections will be immediately closed'),
     ('check_hashes', 1,
         'whether to check hashes on disk'),
-    ('max_upload_rate', 0,
+    ('max_upload_rate', 500,
         'maximum kB/s to upload at, 0 means no limit'),
     ('min_uploads', 2,
         "the number of uploads to fill out to with extra optimistic unchokes"),
