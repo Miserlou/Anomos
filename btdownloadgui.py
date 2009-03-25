@@ -2812,7 +2812,6 @@ class DownloadInfoFrame(object):
             l.insert(queuepos, infohash)
         if t.state == ASKING_LOCATION:
             self.save_location(infohash, t.metainfo)
-            self.nag()
             return
         elif t.state == RUNNING:
             self.running_torrents[infohash] = t
@@ -2993,6 +2992,7 @@ class DownloadInfoFrame(object):
 
     ##Naggers!
     def nag(self):
+        return
         if ((self.config['donated'] != version) and
             (random.random() * NAG_FREQUENCY) < 1):
             title = 'Have you donated?'
