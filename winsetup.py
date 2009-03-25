@@ -18,10 +18,10 @@ import glob
 
 opts = {
     "py2exe": {
-    "includes":"pango,atk,gobject"
+    "includes":"cairo, pango, pangocairo, atk, gobject"
                ",encodings,encodings.*"
 #               ",cjkcodecs,cjkcodecs.*"
-               ",dns,dns.rdtypes.ANY.*,dns.rdtypes.IN.*"
+#               ",dns,dns.rdtypes.ANY.*,dns.rdtypes.IN.*"
     ,
 
 # Uncomment the following lines if you want a dist\ directory build by
