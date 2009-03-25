@@ -424,26 +424,6 @@ class AESKey:
     def newIV(self):
         return getRand()
 
-
-class AESKeyManager:
-    def __init__(self):
-        self.aeskeys = {}
-    
-    def addKey(self, alias, key):
-        """
-        Add key to keyring with name alias, if no key given, generate a new one.
-        @type alias: string
-        @type key: AESKey
-        """
-        if not self.containsKey(alias):
-            self.aeskeys[alias] = key
-
-    def getKey(self, alias):
-        return self.aeskeys.get(alias, None)
-    
-    def containsKey(self, alias):
-        return self.aeskeys.has_key(alias)
-
 class CryptoError(BTFailure):
     pass
 

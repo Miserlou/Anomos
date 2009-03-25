@@ -65,7 +65,7 @@ class BadDataGuard(object):
 
 class SingleDownload(object):
 
-    def __init__(self, downloader, connection, key):
+    def __init__(self, downloader, connection):
         self.downloader = downloader
         self.connection = connection
         self.choked = True
@@ -79,7 +79,6 @@ class SingleDownload(object):
         self.example_interest = None
         self.backlog = 2
         self.guard = BadDataGuard(self)
-        self.key = key
 
     def _backlog(self):
         backlog = 2 + int(4 * self.measure.get_rate() /
@@ -309,7 +308,7 @@ class SingleDownload(object):
 class Downloader(object):
 
     def __init__(self, config, storage, picker, numpieces, downmeasure,
-                 measurefunc, kickfunc, banfunc, keyring):
+                 measurefunc, kickfunc, banfunc):
         self.config = config
         self.storage = storage
         self.picker = picker
@@ -324,7 +323,6 @@ class Downloader(object):
         self.perip = {}
         self.bad_peers = {}
         self.discarded_bytes = 0
-        self.keyring = keyring
 
     def make_download(self, connection):
         ip = connection.ip
@@ -333,9 +331,7 @@ class Downloader(object):
             perip = PerIPStats()
             self.perip[ip] = perip
         perip.numconnections += 1
-        # The key most likely does not exist yet...
-        kee = self.keyring.getKey(connection.ip)
-        d = SingleDownload(self, connection, kee)
+        d = SingleDownload(self, connection)
         perip.lastdownload = d
         perip.peerid = connection.id
         self.downloads.append(d)
