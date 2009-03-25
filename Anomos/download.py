@@ -46,7 +46,7 @@ from Anomos.ConvertedMetainfo import set_filesystem_encoding
 from Anomos import version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
-from Anomos.crypto import Certificate, AESKeyManager, initCrypto
+from Anomos.crypto import Certificate, initCrypto
 
 class Feedback(object):
 
@@ -73,13 +73,11 @@ class Multitorrent(object):
         self.errorfunc = errorfunc
         initCrypto(self.config['data_dir'])
         self.certificate = Certificate(self.config['identity'])
-        self.keyring = AESKeyManager() # Holds our neighbor's AES keys
         self.rawserver = RawServer(doneflag, config, self.certificate, errorfunc=errorfunc,
                                    bindaddr=config['bind'])
         self.neighbors = NeighborManager(self.rawserver, config, self.certificate)
         self.singleport_listener = SingleportListener(self.rawserver, self.config, 
-                                                      self.neighbors, self.certificate, 
-                                                      self.keyring)
+                                                      self.neighbors, self.certificate)
         self._find_port(listen_fail_ok)
         #XXX: PORT HACK
         self.neighbors.port = self.singleport_listener.port
@@ -111,7 +109,7 @@ class Multitorrent(object):
     def start_torrent(self, metainfo, config, feedback, filename):
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
                                  self.ratelimiter, self.filepool, config,
-                                 self.neighbors, self.keyring, self.certificate)
+                                 self.neighbors, self.certificate)
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
@@ -190,7 +188,7 @@ class Multitorrent(object):
 class _SingleTorrent(object):
 
     def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
-                 config, neighbors, keyring, certificate):
+                 config, neighbors, certificate):
         self._rawserver = rawserver
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
@@ -223,7 +221,6 @@ class _SingleTorrent(object):
         self.errors = []
         self.myid = None
         self.neighbors = neighbors
-        self.keyring = keyring
         self.certificate = certificate 
         self.tracker_pubkey = None
     
@@ -338,12 +335,11 @@ class _SingleTorrent(object):
             self._encoder.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
-                                kickpeer, banpeer, self.keyring)
+                                kickpeer, banpeer)
         def make_upload(connection):
-            kee = self.keyring.getKey(connection.ip)
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
-                        self.config['max_slice_length'], self.config['max_rate_period'], kee)
+                        self.config['max_slice_length'], self.config['max_rate_period'])
         self._encoder = EndPoint(make_upload, downloader, choker,
                                 len(metainfo.hashes), schedfunc, self)
         self.reported_port = self.config['forwarded_port']

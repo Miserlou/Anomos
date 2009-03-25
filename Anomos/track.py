@@ -28,7 +28,7 @@ from urlparse import urlparse
 from Anomos import version
 from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.btformats import statefiletemplate
-from Anomos.crypto import Certificate, AESKeyManager, AESKey, initCrypto, CryptoError
+from Anomos.crypto import Certificate, AESKey, initCrypto, CryptoError
 from Anomos.HTTPHandler import HTTPHandler
 from Anomos.NatCheck import NatCheck
 from Anomos.NetworkModel import NetworkModel

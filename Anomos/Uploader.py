@@ -16,7 +16,7 @@ from Anomos.CurrentRateMeasure import Measure
 class Upload(object):
 
     def __init__(self, connection, ratelimiter, totalup, totalup2, choker,
-                 storage, max_slice_length, max_rate_period, key):
+                 storage, max_slice_length, max_rate_period):
         self.connection = connection
         self.ratelimiter = ratelimiter
         self.totalup = totalup
@@ -30,7 +30,6 @@ class Upload(object):
         self.interested = False
         self.buffer = []
         self.measure = Measure(max_rate_period)
-        self.key = key
         if storage.do_I_have_anything():
             connection.send_bitfield(storage.get_have_list())
 

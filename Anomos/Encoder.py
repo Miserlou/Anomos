@@ -35,7 +35,6 @@ class EndPoint(object):
         self.download_id = context.infohash
         self.cert = context.certificate
         self.neighbors = context.neighbors
-        self.keyring = context.keyring
         self.context = context
         
         #XXX: TEMPORARY HACK
@@ -147,7 +146,7 @@ class SingleportListener(object):
         is one per torrent), initializes connection objects, and determines
         what to do with the connection once some data has been read.
     '''
-    def __init__(self, rawserver, config, neighbors, certificate, keyring):
+    def __init__(self, rawserver, config, neighbors, certificate):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
@@ -157,7 +156,6 @@ class SingleportListener(object):
         self.connections = {}
         self.neighbors = neighbors
         self.lookup_loc = self.neighbors.lookup_loc
-        self.keyring = keyring
         self.certificate = certificate 
         self.download_id = None
     

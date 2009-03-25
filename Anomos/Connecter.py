@@ -157,19 +157,7 @@ class Connection(object):
         queue = ''.join(queue)
         self.connection.write(queue)
         return len(queue)
-    
-    def send_key_exchange(self, pubkey):
-        """
-        Sends the NeighborID and AES key for us and our neighbor to share 
-        @param pubkey: RSAPubKey to encrypt data with
-        """
-        aes = crypto.AESKey()
-        self.tmp_aes = aes
-        msg = EXCHANGE + pubkey.encrypt(self.id + tobinary(len(aes.key)) + 
-                                        aes.key + tobinary(len(aes.iv)) + 
-                                        aes.iv)
-        self._send_message(msg)
-    
+
     def send_tracking_code(self, trackcode):
         self._send_message(TCODE + trackcode)
     
