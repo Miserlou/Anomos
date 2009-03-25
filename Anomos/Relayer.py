@@ -73,8 +73,7 @@ class Relayer(object):
         self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
 
     def sock_fail(self, loc, err=None):
-        if self.incomplete.has_key(loc):
-            del self.incomplete[loc]
+        if err: print err
         #TODO: Do something with error message
 
     def relay_message(self, con, msg):
