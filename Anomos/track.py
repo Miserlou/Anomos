@@ -15,14 +15,12 @@ import re
 import signal
 import sys
 
-from base64 import urlsafe_b64decode
 from binascii import b2a_hex
 from cStringIO import StringIO
-from random import shuffle, sample
+from random import sample
 from threading import Event
 from time import gmtime, strftime
 from traceback import print_exc
-from types import StringType, IntType, LongType, ListType, DictType
 from urlparse import urlparse
 
 from Anomos import version
