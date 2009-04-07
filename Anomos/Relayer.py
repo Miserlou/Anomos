@@ -93,7 +93,7 @@ class Relayer(object):
         self.outgoing.close()
 
     def connection_completed(self, con):
-        print "Relay con complete"
+        print "Relay connection complete"
         con.complete = True
         con.is_relay = True
     
@@ -128,3 +128,9 @@ class Relayer(object):
 
     def has_queries(self):
         return len(self.buffer) > 0
+
+    def set_owner(self, obj):
+        self.owner = obj
+
+    def get_owner(self):
+        return self.owner

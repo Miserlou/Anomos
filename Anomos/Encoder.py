@@ -213,6 +213,9 @@ class SingleportListener(object):
         self.relayers.append(conn.owner)
         return conn.owner
 
+    def remove_relayer(self, relayer):
+        self.relayers.remove(relayer)
+
     def get_relay_size(self):
         return len(self.relayers)
 

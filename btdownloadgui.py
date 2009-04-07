@@ -3038,6 +3038,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if sys.platform is 'win32':
+        sys.stdout = open("logfile.txt", "w")
         sys.stderr = open("logfile.txt", "w")
 
     advanced_ui = config['advanced']

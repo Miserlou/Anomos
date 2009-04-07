@@ -302,8 +302,10 @@ class Connection(object):
             #XXX: Decrypt might fail and raise an error.
             plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
+                #ownr = self.owner
                 self.owner.set_relayer(self, plaintext)
-                self.owner.connection_completed(self)
+                self.owner.connection_completed(self)                                           #this changes the value of owner
+                #self.owner.set_owner(ownr)
                 self.owner.relay_message(self, TCODE + nextTC)
             else:
                 # TC ends at this peer, plaintext contains infohash, aes, iv
@@ -339,6 +341,9 @@ class Connection(object):
         self._reader = None
         #del self.owner.connections[self.connection]
         # self.owner.replace_connection()
+        #if self.is_relay:
+       #     o = self.owner.get_owner()                      #this is horrible
+         #   o.remove_relayer(self.owner)                 # and I'm sorry.
         if self.complete:
             #XXX: Make this work for all 3 connection types. (and remove try)
             try:
