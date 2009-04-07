@@ -200,10 +200,10 @@ class HeadlessDisplayer(object):
         r = "%.3f" % rate
         snt = sent
         if snt != self.rsent:
-            print "Running " + str(size) + " relays at " + str(r) + " KBps and relayed " + str(snt) + " B of data."
+            print "Having run " + str(size) + " relays at " + str(r) + " KBps and relayed " + str(snt) + " B of data."
             self.rsent = snt
         else:
-            print "Running " + str(size) + " relays at 0.000 KBps and relayed " + str(snt) + " B of data."
+            print "Having run " + str(size) + " relays at 0.000 KBps and relayed " + str(snt) + " B of data."
 
 
 class DL(Feedback):
