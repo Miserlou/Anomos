@@ -88,7 +88,7 @@ class Size(long):
         return self
 
     def __init__(self, value, precision=0):
-        long.__init__(self, value)
+        long.__init__(value)
         self.precision = precision
 
     def __str__(self, precision=None):
