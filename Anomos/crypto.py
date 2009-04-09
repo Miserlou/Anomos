@@ -11,7 +11,7 @@ for other functions used directly, look at RSA.py and EVP.py in M2Crypto
 """
 import os
 import cStringIO
-import sha
+import hashlib
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading, util
 from Anomos import BTFailure
@@ -129,7 +129,7 @@ class Certificate:
         return self.rsakey.pub()[1]
 
     def fingerprint(self):
-        return sha.new(self.getPub()).hexdigest()
+        return hashlib.sha1(self.getPub()).hexdigest()
 
     def decrypt(self, data, returnpad=False):
         """
@@ -156,14 +156,15 @@ class Certificate:
         sessionkey = AESKey(sk, iv)
         # Decrypt the rest of the message with the session key
         content = sessionkey.decrypt(data[byte_key_size:])
-        pos = sha.digestsize
+        #pos = sha.digestsize
+        pos = 20
         givenchksum = content[:pos] # first 20 bytes
         smsglen = content[pos:pos+4] # next 4 bytes
         imsglen = int(b2a_hex(smsglen), 16)
         pos += 4
         message = content[pos:pos+imsglen]
         pos += imsglen
-        mychksum = sha.new(sk+smsglen+message).digest()
+        mychksum = hashlib.sha1(sk+smsglen+message).digest()
         if givenchksum != mychksum:
             raise ValueError("Bad Checksum - Data may have been tampered with") 
         if returnpad:
@@ -194,7 +195,7 @@ class PeerCert:
         else:
             rmsglen = len(data)
             bmsglen = tobinary(len(data))
-        checksum = sha.new(sessionkey.key + bmsglen + data[:rmsglen]).digest()
+        checksum = hashlib.sha1(sessionkey.key + bmsglen + data[:rmsglen]).digest()
         content = checksum + bmsglen + data
         padlen = 32-(len(content)%32)
         padding = getRand(padlen)
@@ -227,7 +228,7 @@ class RSAPubKey:
         else:
             rmsglen = len(data)
             bmsglen = tobinary(len(data))
-        checksum = sha.new(sessionkey.key + bmsglen + data[:rmsglen]).digest()
+        checksum = hashlib.sha1(sessionkey.key + bmsglen + data[:rmsglen]).digest()
         content = checksum + bmsglen + data
         padlen = 32-(len(content)%32)
         padding = getRand(padlen)
