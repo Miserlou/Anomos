@@ -18,7 +18,7 @@ import os
 import sys
 import httplib
 from urlparse import urlparse
-from sha import sha
+import hashlib
 from threading import Event
 
 from Anomos.bencode import bencode
@@ -136,7 +136,7 @@ def makeinfo(path, piece_length, flag, progress, encoding):
         subs = subfiles(path)
         subs.sort()
         pieces = []
-        sh = sha()
+        sh = hashlib.sha1()
         done = 0
         fs = []
         totalsize = 0.0
@@ -162,7 +162,7 @@ def makeinfo(path, piece_length, flag, progress, encoding):
                 if done == piece_length:
                     pieces.append(sh.digest())
                     done = 0
-                    sh = sha()
+                    sh = hashlib.sha1()
                 progress(a)
             h.close()
         if done > 0:
@@ -179,7 +179,7 @@ def makeinfo(path, piece_length, flag, progress, encoding):
             x = h.read(min(piece_length, size - p))
             if flag.isSet():
                 return
-            pieces.append(sha(x).digest())
+            pieces.append(hashlib.sha1(x).digest())
             p += piece_length
             if p > size:
                 p = size

@@ -15,7 +15,7 @@ from __future__ import generators
 
 import os
 import sys
-from sha import sha
+import hashlib
 
 from Anomos.obsoletepythonsupport import *
 
@@ -165,7 +165,7 @@ class ConvertedMetainfo(object):
         self.announce = metainfo['announce']
         self.hashes = [info['pieces'][x:x+20] for x in xrange(0,
             len(info['pieces']), 20)]
-        self.infohash = sha(bencode(info)).digest()
+        self.infohash = hashlib.sha1(bencode(info)).digest()
 
     def show_encoding_errors(self, errorfunc):
         self.reported_errors = True

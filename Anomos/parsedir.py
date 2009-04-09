@@ -11,7 +11,7 @@
 # Written by John Hoffman and Uoti Urpala
 
 import os
-from sha import sha
+import hashlib
 
 from Anomos.bencode import bencode, bdecode
 from Anomos.btformats import check_message
@@ -92,7 +92,7 @@ def parsedir(directory, parsed, files, blocked, errfunc,
             ff = open(p, 'rb')
             d = bdecode(ff.read())
             check_message(d)
-            h = sha(bencode(d['info'])).digest()
+            h = hashlib.sha1(bencode(d['info'])).digest()
             new_file[1] = h
             if new_parsed.has_key(h):
                 errfunc('**warning** '+ p +

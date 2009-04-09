@@ -1356,7 +1356,8 @@ class RelayBox(gtk.EventBox):
         # BUG: this is in a handler that is disconnected because the
         # window attributes are None until after show_all() is called
         self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
-        self.buttonevbox.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.LEFT_PTR))
+        if self.buttonevbox.window is not None:
+            self.buttonevbox.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.LEFT_PTR))
         self.disconnect(self.cursor_handler_id)
 
     def drag_begin(self, *args):

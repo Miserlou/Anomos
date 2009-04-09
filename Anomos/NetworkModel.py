@@ -19,7 +19,7 @@ edge in the path.
 
 import random
 from sys import maxint as INFINITY
-from sha import sha
+import hashlib
 import Anomos.crypto as crypto
 
 from Anomos.platform import bttime

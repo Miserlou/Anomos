@@ -12,7 +12,7 @@
 
 from __future__ import division
 
-from sha import sha
+import hashlib
 from array import array
 from binascii import b2a_hex
 
@@ -140,7 +140,7 @@ class StorageWrapper(object):
                 self.rplaces[i] = ALLOCATED
             else:
                 data = self.storage.read(piece_size * i, self._piecelen(i))
-                sh = sha(buffer(data, 0, lastlen))
+                sh = hashlib.sha1(buffer(data, 0, lastlen))
                 sp = sh.digest()
                 sh.update(buffer(data, lastlen))
                 s = sh.digest()
@@ -248,7 +248,7 @@ class StorageWrapper(object):
         if not self.have[piece]:
             return
         data = data[:self._piecelen(piece)]
-        if sha(data).digest() != self.hashes[piece]:
+        if hashlib.sha1(data).digest() != self.hashes[piece]:
             raise BTFailure('data corrupted on disk - '
                             'maybe you have two copies running?')
 
@@ -351,7 +351,7 @@ class StorageWrapper(object):
             del self.stat_new[index]
         if not self.inactive_requests[index] and not self.numactive[index]:
             del self.stat_dirty[index]
-            if sha(self.storage.read(self.piece_size * self.places[index], self._piecelen(index))).digest() == self.hashes[index]:
+            if hashlib.sha1(self.storage.read(self.piece_size * self.places[index], self._piecelen(index))).digest() == self.hashes[index]:
                 self.have[index] = True
                 self.storage.downloaded(index * self.piece_size,
                                         self._piecelen(index))
@@ -401,7 +401,7 @@ class StorageWrapper(object):
         if not self.have[index]:
             return None
         if not self.waschecked[index]:
-            if sha(self.storage.read(self.piece_size * self.places[index], self._piecelen(index))).digest() != self.hashes[index]:
+            if hashlib.sha1(self.storage.read(self.piece_size * self.places[index], self._piecelen(index))).digest() != self.hashes[index]:
                 raise BTFailure, 'told file complete on start-up, but piece failed hash check'
             self.waschecked[index] = True
         if begin + length > self._piecelen(index):
