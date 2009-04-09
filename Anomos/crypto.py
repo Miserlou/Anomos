@@ -85,7 +85,7 @@ class Certificate:
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
         # Save the key, aes 256 cbc encrypted
-        self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
+        self.rsakey.save_key(self.keyfile, 'aes_256_cbc', util.no_passphrase_callback)
         # Save the key unencrypted.
         # TODO: Find workaround, M2Crypto doesn't include the function to load
         # a cert from memory, storing them unencrypted on disk isn't safe.
