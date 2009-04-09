@@ -18,7 +18,6 @@ import os
 import sys
 import threading
 import gc
-from sha import sha
 from socket import error as socketerror
 from cStringIO import StringIO
 from traceback import print_exc
