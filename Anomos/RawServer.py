@@ -277,7 +277,6 @@ class RawServer(object):
                     try:
                         data = s.recv()
                         if not data:
-                            #s.handler.send_break()
                             self._safe_shutdown(s)
                         else:
                             self._make_wrapped_call(s.handler.data_came_in, \
@@ -390,14 +389,8 @@ class RawServer(object):
         while len(self.dead_from_write) > 0:
             old = self.dead_from_write
             self.dead_from_write = []
-#            print "Dead sending breaks"
-#            map(self._send_break, old)
             map(self._safe_shutdown, old)
 
-    def _send_break(self, s):
-        if s.socket is not None:
-            s.socket.handler.send_break()
-            
     def _safe_shutdown(self, s):
         if s.socket is not None:
              print "closing properly"
