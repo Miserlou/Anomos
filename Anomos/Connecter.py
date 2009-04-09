@@ -46,9 +46,9 @@ CANCEL = chr(0x8)
 TCODE = chr(0x9)
 #PUBKEY = chr(0xA) # Sent before a pubkey to be used in an AES key exchange
 #EXCHANGE = chr(0xB) # The data that follows is RSA encrypted AES data
-CONFIRM = chr(0xC)
-ENCRYPTED = chr(0xD) # The data that follows is AES encrypted
-BREAK = chr(0xE)
+CONFIRM = chr(0xA)
+ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
+BREAK = chr(0xC)
 
 class ConnectionError(Exception):
     pass
