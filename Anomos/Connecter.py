@@ -50,9 +50,6 @@ CONFIRM = chr(0xA)
 ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
 BREAK = chr(0xC)
 
-_MSGLENS = {CHOKE: 1, UNCHOKE: 1, INTERESTED: 1, NOT_INTERESTED: 1, BREAK: 1, \
-            HAVE: 5, REQUEST: 13, CANCEL: 13}
-
 class ConnectionError(Exception):
     pass
 
@@ -93,7 +90,6 @@ class Connection(object):
             self.connection.close()
             self._sever()
         if e:
-            #Is this really the behavior we want?
             raise ConnectionError(e)
 
     def send_interested(self):
@@ -131,8 +127,10 @@ class Connection(object):
         self._send_message('')
 
     def send_partial(self, bytes):
+        #XXX: This method is awful.
         if self.closed:
             return 0
+        #key = self.get_link_aes()
         if self._partial_message is None:
             s = self.upload.get_upload_chunk()
             if s is None:
@@ -162,19 +160,9 @@ class Connection(object):
 
     def send_tracking_code(self, trackcode):
         self._send_message(TCODE + trackcode)
-
+    
     def send_relay_message(self, message):
         self._send_message(message)
-
-    def send_break(self):
-        print "Breaking"
-        if self.is_relay:
-            self.owner.relay_message(self, BREAK)
-        #TODO:
-        #else:
-        #    Lost uploader, schedule announce for new one..
-        if not self.closed:
-            self.close()
     
     def _read_header(self):
         '''Yield the number of bytes for each section of the header and sanity
@@ -228,15 +216,6 @@ class Connection(object):
                 else:
                     self._got_message(self._message)
 
-    def _valid_msg_len(self, m):
-        validp = True
-        if m[0] in _MSGLENS:
-            if len(m) != _MSGLENS[m[0]]:
-                validp = False
-        elif m[0] == PIECE and len(m) <= 9:
-            validp = False
-        return validp
-
     def _got_message(self, message):
         """ Handles an incoming message. First byte designates message type,
             may be any one of (CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, 
@@ -249,7 +228,8 @@ class Connection(object):
         #    self.close()
         #    return
         self.got_anything = True
-        if not self._valid_msg_len(message):
+        if (t in [CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED] and
+                len(message) != 1):
             self.close("Invalid message length")
             return
         if t == ENCRYPTED:
@@ -271,10 +251,10 @@ class Connection(object):
             self.upload.got_interested()
         elif t == NOT_INTERESTED:
             self.upload.got_not_interested()
-        elif t == BREAK:
-            # Relay a break message
-            self.send_break()
         elif t == HAVE:
+            if len(message) != 5:
+                self.close("Invalid message length")
+                return
             i = toint(message[1:])
             if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
@@ -288,6 +268,9 @@ class Connection(object):
                 return
             self.download.got_have_bitfield(b)
         elif t == REQUEST:
+            if len(message) != 13:
+                self.close("Bad request length")
+                return
             i = toint(message[1:5])
             if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
@@ -295,6 +278,9 @@ class Connection(object):
             self.upload.got_request(i, toint(message[5:9]),
                 toint(message[9:]))
         elif t == CANCEL:
+            if len(message) != 13:
+                self.close("Invalid message length")
+                return
             i = toint(message[1:5])
             if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
@@ -302,6 +288,9 @@ class Connection(object):
             self.upload.got_cancel(i, toint(message[5:9]),
                 toint(message[9:]))
         elif t == PIECE:
+            if len(message) <= 9:
+                self.close("Bad message length")
+                return
             i = toint(message[1:5])
             if i >= self.owner.numpieces:
                 self.close("Piece index out of range")
@@ -310,15 +299,13 @@ class Connection(object):
                 for co in self.owner.complete_connections:
                     co.send_have(i)
         elif t == TCODE:
-            try:
-                plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
-            except CryptoError, e:
-                # Break?
-                self.close("Encryption Error: ", e)
+            #XXX: Decrypt might fail and raise an error.
+            plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
             if len(plaintext) == 1: # Single character, NID
+                #ownr = self.owner
                 self.owner.set_relayer(self, plaintext)
-                self.owner.connection_completed(self)   #this changes the value of owner
-                assert self.is_relay
+                self.owner.connection_completed(self)                                           #this changes the value of owner
+                #self.owner.set_owner(ownr)
                 self.owner.relay_message(self, TCODE + nextTC)
             else:
                 # TC ends at this peer, plaintext contains infohash, aes, iv
@@ -328,7 +315,8 @@ class Connection(object):
                 self.e2e_key = crypto.AESKey(aes,iv)
                 self.owner.set_torrent(self, infohash)
                 if self.owner.download_id is None:
-                    self.close("Requested torrent not found")
+                    # We don't have that torrent...
+                    # TODO: handle this gracefully.
                     return
                 self._send_message(CONFIRM)
                 self.owner.connection_completed(self)
@@ -339,6 +327,11 @@ class Connection(object):
             if self.is_relay:
                 print "Relaying a confirm"
                 self.owner.relay_message(self, CONFIRM)
+        elif t == BREAK:
+            print "Breaking"
+            if self.is_relay:
+                self.owner.relay_message(self, BREAK)
+            self.close("Break detected")
         else:
             self.close("Invalid message " + b2a_hex(message))
             return
@@ -348,8 +341,7 @@ class Connection(object):
         self._reader = None
         #del self.owner.connections[self.connection]
         # self.owner.replace_connection()
-        if self.is_relay:
-            self.send_break()
+        #if self.is_relay:
        #     o = self.owner.get_owner()                      #this is horrible
          #   o.remove_relayer(self.owner)                 # and I'm sorry.
         if self.complete:
@@ -404,3 +396,9 @@ class Connection(object):
                                              or self.upload.buffer):
                 self.owner.ratelimiter.queue(self)
 
+    def send_break(self):
+        print "Breaking"
+        if self.is_relay:
+            self.owner.relay_message(self, BREAK)
+        self.close("Break detected")
+        
