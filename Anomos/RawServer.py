@@ -20,7 +20,6 @@ from Anomos.platform import bttime
 from Anomos import INFO, CRITICAL, WARNING, FAQ_URL
 from Anomos import crypto
 from M2Crypto import SSL
-from M2Crypto.SSL.timeout import timeout
 from threading import Thread
 import random
 
@@ -215,8 +214,9 @@ class RawServer(object):
         self.errorfunc(INFO, "Starting SSL Connection to %s" % str(dns))
 
         sock = SSL.Connection(self.certificate.getContext())
-        timeo = sock.get_socket_read_timeout()
-        sock.set_socket_read_timeout(timeout(10)) #Is 10 seconds enough? Too much?
+        #timeo = sock.get_socket_read_timeout()
+        sock.set_socket_read_timeout(SSL.timeout(timeout))
+        sock.set_socket_write_timeout(SSL.timeout(timeout))
         #TODO: Better post connection check, this just ensures that the peer
         #      returned a cert
         sock.set_post_connection_check_callback(lambda x,y: x != None)
@@ -230,7 +230,7 @@ class RawServer(object):
                     handler.sock_fail(dns, e)
                 self.external_add_task(fail, 0)
         else:
-            sock.set_socket_read_timeout(timeo)
+            #sock.set_socket_read_timeout(timeo)
             def reg(): #dummy function for external_add_task
                 self.register_sock(sock, dns, handler, context)
             self.external_add_task(reg, 0)
