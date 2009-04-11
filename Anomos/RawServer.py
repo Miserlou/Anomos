@@ -1,4 +1,3 @@
-
 # Version 1.0 (the License).  You may not copy or use this file, in either
 # source code or executable form, except in compliance with the License.  You
 # may obtain a copy of the License at http://www.bittorrent.com/license/.
@@ -21,6 +20,7 @@ from Anomos.platform import bttime
 from Anomos import CRITICAL, WARNING, FAQ_URL
 from Anomos import crypto
 from M2Crypto import SSL
+from M2Crypto.SSL.timeout import timeout
 from threading import Thread
 import random
 
@@ -214,11 +214,14 @@ class RawServer(object):
         print dns, self.certificate.getContext()
 
         sock = SSL.Connection(self.certificate.getContext())
-        #TODO: post_connection_check should not be None!
-        sock.set_post_connection_check_callback(None)
+        timeo = sock.get_socket_read_timeout()
+        sock.set_socket_read_timeout(timeout(10)) #Is 10 seconds enough? Too much?
+        #TODO: Better post connection check, this just ensures that the peer
+        #      returned a cert
+        sock.set_post_connection_check_callback(lambda x,y: x != None)
         try:
             sock.connect(dns)
-        except socket.error, e:
+        except Exception, e:
             #TODO: verify this is the correct behavior
             sock.close()
             if handler:
@@ -226,6 +229,7 @@ class RawServer(object):
                     handler.sock_fail(dns, e)
                 self.external_add_task(fail, 0)
         else:
+            sock.set_socket_read_timeout(timeo)
             def reg(): #dummy function for external_add_task
                 self.register_sock(sock, dns, handler, context)
             self.external_add_task(reg, 0)
@@ -279,10 +283,8 @@ class RawServer(object):
                             self._make_wrapped_call(s.handler.data_came_in, \
                                                     (s, data), s)
                     except SSL.SSLError, errstr:
-                        if str(errstr) == 'unexpected eof':
-                            self._safe_shutdown(s)
-                        else:
-                            raise
+                        #TODO: Log error message
+                        self._safe_shutdown(s)
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
                     s.try_write()
