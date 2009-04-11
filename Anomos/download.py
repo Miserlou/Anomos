@@ -473,6 +473,7 @@ class _SingleTorrent(object):
         self.closed = True
         self._rawserver.remove_context(self)
         self._doneflag.set()
+        self._error(INFO, "Closing connections, please wait...")
         if self._announced:
             self._rerequest.announce_stop()
             self._rerequest.cleanup()

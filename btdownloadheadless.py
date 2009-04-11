@@ -141,17 +141,19 @@ class HeadlessDisplayer(object):
                     statistics['numCopies'], nextCopies)
             self.peerStatus = '%d seen now' % statistics['numPeers']
 
-        for err in self.errors:
-            print 'ERROR:\n' + err + '\n'
         #print 'saving:        ', self.file
-        print 'percent done:  ', self.percentDone
+        print '| percent done:  ', self.percentDone
         #print 'time left:     ', self.timeEst
         #print 'download to:   ', self.downloadTo
-        print 'download rate: ', self.downRate
-        print 'upload rate:   ', self.upRate
+        print '| download rate: ', self.downRate
+        print '| upload rate:   ', self.upRate
         #print 'share rating:  ', self.shareRating
         #print 'seed status:   ', self.seedStatus
         #print 'peer status:   ', self.peerStatus
+        print '|-'
+        for i in range(len(self.errors)):
+            print 'Log:\n' + self.errors.pop() + '\n'
+
 
     def print_spew(self, spew):
         s = StringIO()
@@ -200,10 +202,10 @@ class HeadlessDisplayer(object):
         r = "%.3f" % rate
         snt = sent
         if snt != self.rsent:
-            print "Having run " + str(size) + " relays at " + str(r) + " KBps and relayed " + str(snt) + " B of data."
+            print "| Having run " + str(size) + " relays at " + str(r) + " KBps and relayed " + str(snt) + " B of data."
             self.rsent = snt
         else:
-            print "Having run " + str(size) + " relays at 0.000 KBps and relayed " + str(snt) + " B of data."
+            print "| Having run " + str(size) + " relays at 0.000 KBps and relayed " + str(snt) + " B of data."
 
 
 class DL(Feedback):
@@ -243,8 +245,8 @@ class DL(Feedback):
         size = self.multitorrent.get_relay_size()
         sent = self.multitorrent.get_relay_sent()
         self.multitorrent.rawserver.listen_forever()
-        self.d.display({'activity':'shutting down', 'fractionDone':0})
         self.d.display_relay(rate, size, sent)
+        self.d.display({'activity':'shutting down', 'fractionDone':0})
         self.torrent.shutdown()
 
     def reread_config(self):
@@ -270,8 +272,8 @@ class DL(Feedback):
         rate = self.multitorrent.get_relay_rate()
         size = self.multitorrent.get_relay_size()
         sent = self.multitorrent.get_relay_sent()
-        self.d.display(status)
         self.d.display_relay(rate, size, sent)
+        self.d.display(status)
 
     def global_error(self, level, text):
         self.d.error(text)
