@@ -1453,7 +1453,7 @@ class TorrentBox(gtk.EventBox):
             self.progressbar.modify_fg(gtk.STATE_PRELIGHT, black)
         
         if self.completion is not None:
-            self.progressbar.set_fraction(.5)
+            self.progressbar.set_fraction(0)
             if self.completion >= 1:
                 done_label = self.make_done_label()
                 self.progressbar.set_text(done_label)
