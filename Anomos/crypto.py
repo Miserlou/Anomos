@@ -66,17 +66,17 @@ class Certificate:
         self.ikeyfile = os.path.join(global_cryptodir, '%s-key-insecure.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
         self._load()
-       
+
     def _load(self):
         """Attempts to load the certificate and key from self.certfile and self.keyfile,
            Generates the certificate and key if they don't exist"""
         if not os.path.exists(self.certfile) or not os.path.exists(self.keyfile):
             self._create()
             return
-        if not self.secure :
-            self.rsakey = RSA.load_key(self.ikeyfile, util.no_passphrase_callback)
-        else:
+        if self.secure :
             self.rsakey = RSA.load_key(self.keyfile)
+        else:
+            self.rsakey = RSA.load_key(self.keyfile, util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
 
@@ -85,11 +85,14 @@ class Certificate:
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
         # Save the key, aes 256 cbc encrypted
-        self.rsakey.save_key(self.keyfile, 'aes_256_cbc', util.no_passphrase_callback)
-        # Save the key unencrypted.
-        # TODO: Find workaround, M2Crypto doesn't include the function to load
-        # a cert from memory, storing them unencrypted on disk isn't safe.
-        self.rsakey.save_key(self.ikeyfile, None)
+        if self.secure:
+            self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
+        else:
+            # Save the key unencrypted.
+            # TODO: Find workaround, M2Crypto doesn't include the function to load
+            # a cert from memory, storing them unencrypted on disk isn't safe.
+            self.rsakey.save_key(self.keyfile, None, callback=util.no_passphrase_callback)
+        self.rsakey.save_key(self.ikeyfile, None, callback=util.no_passphrase_callback)
         # Make the public key
         pkey = EVP.PKey()
         pkey.assign_rsa(self.rsakey, 0)
