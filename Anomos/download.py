@@ -74,7 +74,8 @@ class Multitorrent(object):
         self.certificate = Certificate(self.config['identity'])
         self.rawserver = RawServer(doneflag, config, self.certificate, errorfunc=errorfunc,
                                    bindaddr=config['bind'])
-        self.neighbors = NeighborManager(self.rawserver, config, self.certificate)
+        self.neighbors = NeighborManager(self.rawserver, config,
+                                   self.certificate, self.errorfunc)
         self.singleport_listener = SingleportListener(self.rawserver, self.config, 
                                                       self.neighbors, self.certificate)
         self._find_port(listen_fail_ok)

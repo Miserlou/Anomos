@@ -87,8 +87,6 @@ class Connection(object):
                 tobinary(self.owner.port)[2:] + self.id + (chr(0) * 5))
 
     def close(self, e=None):
-        print "Closing the connection!", e
-
         if not self.closed:
             self.connection.close()
             self._sever()
@@ -167,7 +165,6 @@ class Connection(object):
         self._send_message(message)
 
     def send_break(self):
-        print "Breaking"
         if self.is_relay:
             self.owner.relay_message(self, BREAK)
         #TODO:
@@ -337,7 +334,6 @@ class Connection(object):
                 self.owner.add_neighbor(self.id, (self.ip, self.port))
             self.owner.connection_completed(self)
             if self.is_relay:
-                print "Relaying a confirm"
                 self.owner.relay_message(self, CONFIRM)
         else:
             self.close("Invalid message " + b2a_hex(message))

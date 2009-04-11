@@ -8,6 +8,7 @@ and pass it to the next neighbor in the chain.
 
 from Anomos.Connecter import Connection
 from Anomos.CurrentRateMeasure import Measure
+from Anomos import INFO, CRITICAL, WARNING
 from threading import Thread
 
 class Relayer(object):
@@ -31,6 +32,7 @@ class Relayer(object):
         """
         self.rawserver = rawserver
         self.neighbors = neighbors
+        self.errorfunc = rawserver.errorfunc
         self.incoming = incoming
         self.outgoing = None
         self.connections = {self.incoming:None}
@@ -68,12 +70,13 @@ class Relayer(object):
             return
         con = Connection(self, sock, self.tmpnid, True, established=True)
         sock.handler = con
-        print "RELAY CONNECTION ESTABLISHED"
+        self.errorfunc(INFO, "Relay connection started")
         self.outgoing = con
         self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
 
     def sock_fail(self, loc, err=None):
-        if err: print err
+        if err:
+            self.errorfunc(WARNING, err)
         #TODO: Do something with error message
 
     def relay_message(self, con, msg):
@@ -93,7 +96,7 @@ class Relayer(object):
         self.outgoing.close()
 
     def connection_completed(self, con):
-        print "Relay connection complete"
+        self.errorfunc(INFO, "Relay connection established")
         con.complete = True
         con.is_relay = True
     

@@ -91,7 +91,7 @@ class Rerequester(object):
         self.certificate = certificate 
     
     def _makequery(self, peerid, port):
-        print peerid, len(peerid)
+        self.errorfunc(INFO, "Connecting with PeerID: %s" %peerid)
         return ('?info_hash=%s&peer_id=%s&port=%s' %
                 (quote(self.infohash), quote(peerid), str(port)))
     
@@ -189,14 +189,13 @@ class Rerequester(object):
             #XXX: This is not finished. Need to specify destination host, port
             h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'])
         else:
-            ## Keung Pow's NAT says this should be local_port
             h = unsafeHTTPSConnection(self.url, self.remote_port,
                                      ssl_context=self.certificate.getContext())
         #request = Request(url)
         #if self.config['tracker_proxy']:
         #    request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
-            h.set_debuglevel(1)
+            #h.set_debuglevel(1)
             h.putrequest('GET', self.path+query)
             h.endheaders()
             resp = h.getresponse()

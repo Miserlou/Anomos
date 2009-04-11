@@ -22,15 +22,15 @@ import os
 import threading
 from time import time, strftime
 
-from BitTorrent.download import Feedback, Multitorrent
-from BitTorrent.defaultargs import get_defaults
-from BitTorrent.parseargs import parseargs, printHelp
-from BitTorrent.zurllib import urlopen
-from BitTorrent.bencode import bdecode
-from BitTorrent.ConvertedMetainfo import ConvertedMetainfo
-from BitTorrent import configfile
-from BitTorrent import BTFailure
-from BitTorrent import version
+from Anomos.download import Feedback, Multitorrent
+from Anomos.defaultargs import get_defaults
+from Anomos.parseargs import parseargs, printHelp
+from Anomos.zurllib import urlopen
+from Anomos.bencode import bdecode
+from Anomos.ConvertedMetainfo import ConvertedMetainfo
+from Anomos import configfile
+from Anomos import BTFailure
+from Anomos import version
 
 
 try:
@@ -242,7 +242,7 @@ class CursesDisplayer(object):
         if not spew:
             errsize = self.spewh
             if self.errors:
-                self.spewwin.addnstr(0, 0, "error(s):", self.speww, curses.A_BOLD)
+                self.spewwin.addnstr(0, 0, "Log:", self.speww, curses.A_BOLD)
                 errsize = len(self.errors)
                 displaysize = min(errsize, self.spewh)
                 displaytop = errsize - displaysize
@@ -421,6 +421,6 @@ if __name__ == '__main__':
     curses_wrapper(dl.run)
 
     if errlist:
-       print "These errors occurred during execution:"
+       print "These messages were logged during execution:"
        for error in errlist:
           print error

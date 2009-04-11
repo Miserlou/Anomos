@@ -17,7 +17,7 @@ from cStringIO import StringIO
 from traceback import print_exc
 from errno import EWOULDBLOCK, ENOBUFS
 from Anomos.platform import bttime
-from Anomos import CRITICAL, WARNING, FAQ_URL
+from Anomos import INFO, CRITICAL, WARNING, FAQ_URL
 from Anomos import crypto
 from M2Crypto import SSL
 from M2Crypto.SSL.timeout import timeout
@@ -33,8 +33,8 @@ except ImportError:
 
 class SingleSocket(object):
 
-    def __init__(self, raw_server, sock, handler, context, ip=None):
-        self.raw_server = raw_server
+    def __init__(self, rawserver, sock, handler, context, ip=None):
+        self.rawserver = rawserver
         self.socket = sock
         self.handler = handler
         self.context = context
@@ -43,7 +43,7 @@ class SingleSocket(object):
         self.fileno = sock.fileno()
         self.connected = False
         self.peer_cert = sock.get_peer_cert()
-        print "Peer cert", self.peer_cert, sock
+        self.rawserver.errorfunc(INFO, "Got peer cert from %s" % ip)
         if ip is not None:
             self.ip = ip
         else: # Try to get the IP from the socket 
@@ -63,7 +63,7 @@ class SingleSocket(object):
             return self.socket.recv(bufsize)
         #XXX: This should never happen. Instead, this SingleSocket should be destroyed after the transfer was finished.
         else:
-            print "No socket to recv from"
+            self.rawserver.errorfunc(WARNING, "recv with no socket")
             return None
 
     def has_socket(self):
@@ -84,8 +84,8 @@ class SingleSocket(object):
         self._set_shutdown()
         self.socket.close()
         self._clear_state()
-        del self.raw_server.single_sockets[self.fileno]
-        self.raw_server.poll.unregister(self.fileno)
+        del self.rawserver.single_sockets[self.fileno]
+        self.rawserver.poll.unregister(self.fileno)
 
 #    def clear(self):
 #        self._set_shutdown()
@@ -101,7 +101,7 @@ class SingleSocket(object):
             if len(self.buffer) == 1:
                 self.try_write()
         else:
-            self.raw_server.dead_from_write.append(self)
+            self.rawserver.dead_from_write.append(self)
 
     def try_write(self):
         if self.connected:
@@ -116,13 +116,13 @@ class SingleSocket(object):
             except SSL.SSLError, e:
                 code, msg = e
                 if code != EWOULDBLOCK:
-                    #self.raw_server.add_task(self.raw_server._safe_shutdown, self)
-                    self.raw_server.dead_from_write.append(self)
+                    #self.rawserver.add_task(self.rawserver._safe_shutdown, self)
+                    self.rawserver.dead_from_write.append(self)
                     return
         if self.buffer == []:
-            self.raw_server.poll.register(self.socket, POLLIN)
+            self.rawserver.poll.register(self.socket, POLLIN)
         else:
-            self.raw_server.poll.register(self.socket, POLLIN | POLLOUT)
+            self.rawserver.poll.register(self.socket, POLLIN | POLLOUT)
 
 def default_error_handler(x, y):
     print x, y
@@ -210,8 +210,9 @@ class RawServer(object):
                     do_bind))
         t.start()
 
-    def _start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
-        print dns, self.certificate.getContext()
+    def _start_ssl_connection(self, dns, handler=None, context=None,
+            do_bind=True, timeout=15): #TODO: Is timeout long enough?
+        self.errorfunc(INFO, "Starting SSL Connection to %s" % str(dns))
 
         sock = SSL.Connection(self.certificate.getContext())
         timeo = sock.get_socket_read_timeout()
@@ -309,7 +310,6 @@ class RawServer(object):
             self.errorfunc(WARNING, "Error handling accepted "\
                            "connection: " + str(e))
         else:
-            print "Connection else"
             nss = SingleSocket(self, conn, handler, context)
             self.single_sockets[conn.fileno()] = nss
             self.poll.register(conn, POLLIN)
@@ -393,7 +393,6 @@ class RawServer(object):
 
     def _safe_shutdown(self, s):
         if s.socket is not None:
-             print "closing properly"
              self._close_socket(s)
 #            if not s.socket.get_shutdown():
 #                self._clear_socket(s)

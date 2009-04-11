@@ -4,15 +4,17 @@
 '''
 
 from Anomos.Connecter import Connection
+from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
 class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate):
+    def __init__(self, rawserver, config, certificate, errorfunc):
         self.rawserver = rawserver
         self.config = config
         self.cert = certificate
+        self.errorfunc = errorfunc
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
@@ -25,7 +27,8 @@ class NeighborManager:
         return self.neighbors.get(nid, None)
     
     def lookup_loc(self, loc):
-        print "Looking up Loc", loc, self.neighbors
+        self.errorfunc(INFO, "Looking up location: %s\nNeighbors: %s" 
+                                % (loc, self.neighbors))
         peers = []
         for nid, data in self.neighbors.iteritems():
             if data[0] == loc:
@@ -33,12 +36,12 @@ class NeighborManager:
         return peers
     
     def add_neighbor(self, id, location):
-        print "ADDING NEIGHBOR:", hex(ord(id)), location
+        self.errorfunc(INFO, "Adding Neighbor: (\\x%02x, %s)" 
+                                % (ord(id), location))
         if self.has_loc(location):
             pass
         else:
             self.neighbors[id] = location
-        print "neighbors: ", self.neighbors
     
     def has_neighbor(self, nid):
         #TODO: Make this tracker specific.
