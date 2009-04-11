@@ -140,7 +140,7 @@ class Certificate:
         @param returnpad: return "junk" decrypted padding as well as message. Default: False
         @type returnpad: boolean
         
-        @raise ValueError: Bad Checksum
+        @raise CryptoError: Priv. decrypt fail or Bad Checksum
         
         @return: tuple (decrypted message, padding) if returnpad is true, string otherwise
         @rtype: tuple
@@ -166,7 +166,7 @@ class Certificate:
         pos += imsglen
         mychksum = hashlib.sha1(sk+smsglen+message).digest()
         if givenchksum != mychksum:
-            raise ValueError("Bad Checksum - Data may have been tampered with") 
+            raise CryptoError("Bad Checksum - Data may have been tampered with") 
         if returnpad:
             return (message, content[pos:])
         else:
