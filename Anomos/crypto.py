@@ -51,9 +51,6 @@ def initCrypto(data_dir):
         return rb
     getRand = randfunc
 
-def toM2Exp(n):
-    return m2.bn_to_mpi(m2.bin_to_bn(tobinary(n)))
-
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
@@ -205,161 +202,6 @@ class PeerCert:
         ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext
 
-class RSAPubKey:
-    def __init__(self, keystring, exp=65537):
-        """
-        @param keystring: "n" value of pubkey to initialize new public key from
-        @param exp: "e" value of pubkey, should almost always be 65537
-        @type keystring: string
-        @type exp: int
-        """
-        self.pubkey = RSA.new_pub_key((toM2Exp(exp), keystring))
-        self.pubkey.check_key()
-        self.randfile = global_randfile
-
-    def encrypt(self, data, rmsglen=None):
-        """
-        @type data: string
-        @return: ciphertext of data, format: {RSA encrypted session key}[Checksum(sessionkey, info, content)][msg length][content][padding]
-        @rtype: string
-        """
-        sessionkey = AESKey()
-        # Encrypt the session key which we'll use to bulk encrypt the rest of the data
-        esk = self.pubkey.public_encrypt(sessionkey.key+sessionkey.iv, RSA.pkcs1_oaep_padding)
-        if rmsglen:
-            bmsglen = tobinary(rmsglen)
-        else:
-            rmsglen = len(data)
-            bmsglen = tobinary(len(data))
-        checksum = hashlib.sha1(sessionkey.key + bmsglen + data[:rmsglen]).digest()
-        content = checksum + bmsglen + data
-        padlen = 32-(len(content)%32)
-        padding = getRand(padlen)
-        ciphertext = sessionkey.encrypt(content+padding)
-        return esk + ciphertext
-
-### Apparently the tracker doesn't use the data_dir like clients do. So I'm storing
-### keys in a directory called 'crypto/' within wherever the tracker was run.
-### you can specify data_dir='somedir' to put it somewhere else.
-#class RSAKeyPair(RSAPubKey):
-#    def __init__(self, alias, key_size=1024, padding=RSA.pkcs1_oaep_padding):
-#        """                
-#        @param alias: Unique name for the key, can be anything.
-#        @param key_size: Size of keys (in bits) to generate
-#        @param padding: algorithm to use for padding
-#        @type alias: string
-#        @type padding: string in ('pkcs1_oaep_padding', 'pkcs1_padding', 'sslv23_padding', 'no_padding')
-#        """
-#        if None in (global_cryptodir, global_randfile):
-#            raise CryptoError('Crypto not initialized, call initCrypto first')
-#        self.alias = alias
-#        self.key_size = key_size
-#        self.padding = padding
-#        
-#        self.pvtkeyfilename = os.path.join(global_cryptodir, '%s-pvt.pem' % (self.alias))
-#        self.pubkeyfilename = os.path.join(global_cryptodir, '%s-pub.pem' % (self.alias))
-#        self.randfile = global_randfile
-#        
-#        self.pubkey = None
-#        self.pvtkey = None
-#        try:
-#            self.loadKeysFromPEM()
-#        except IOError:
-#            self.saveNewPEM()
-#    
-#    def saveNewPEM(self):
-#        """
-#        Generate new RSA key, save it to file, and sets this objects 
-#        pvtkey and pubkey.
-#        """
-#        Rand.load_file(self.randfile, -1)
-#        rsa = RSA.gen_key(self.key_size, m2.RSA_F4)
-#        self.pvtkey = rsa
-#        self.pubkey = RSA.new_pub_key(self.pvtkey.pub())
-#        rsa.save_key(self.pvtkeyfilename)
-#        rsa.save_pub_key(self.pubkeyfilename)
-#        Rand.save_file(self.randfile)
-#
-#    def loadKeysFromPEM(self):
-#        """
-#        @raise IOError: If (pvt|pub)keyfilename does not exist
-#        @raise RSA.RSAError: If wrong password is given
-#        """
-#        self.pvtkey = RSA.load_key(self.pvtkeyfilename)
-#        self.pubkey = RSA.new_pub_key(self.pvtkey.pub())
-#    
-#    # Inherits encrypt function from RSAPubKey
-#    # def encrypt(self, data)
-#
-#    def sign(self, msg):
-#        """
-#        Returns the signature of a message.
-#        @param msg: The message to sign
-#        @return: The signature of the message from the private key
-#        """
-#        dgst = sha.new(msg).digest()
-#        signature = self.pvtkey.private_encrypt(dgst, RSA.pkcs1_padding)
-#        return signature
-#
-#    def verify(self, signature, digest):
-#        """@param signature: Signature of a document
-#           @param digest: the sha1 of that document
-#           @return: true if verified; false if not
-#           @rtype: boolean
-#        """
-#        ptxt=self.pubkey.public_decrypt(signature, RSA.pkcs1_padding)
-#        return ptxt == digest
-#    
-#    def decrypt(self, data, returnpad=False):
-#        """
-#        Decrypts data encrypted with this public key
-#        
-#        @param data: The data, padding and all, to be decrypted
-#        @type data: string
-#        @param returnpad: return "junk" decrypted padding as well as message. Default: False
-#        @type returnpad: boolean
-#        
-#        @raise ValueError: Bad Checksum
-#        
-#        @return: tuple (decrypted message, padding) if returnpad is true, string otherwise
-#        @rtype: tuple
-#        """
-#        byte_key_size = self.key_size/8
-#        # Decrypt the session key and IV with our private key
-#        try:
-#            tmpsk = self.pvtkey.private_decrypt(data[:byte_key_size], self.padding)
-#        except RSA.RSAError:
-#            raise CryptoError("Data encrypted with wrong public key")
-#        sk = tmpsk[:32] # Session Key
-#        iv = tmpsk[32:] # IV
-#        sessionkey = AESKey(sk, iv)
-#        # Decrypt the rest of the message with the session key
-#        content = sessionkey.decrypt(data[byte_key_size:])
-#        pos = sha.digestsize
-#        givenchksum = content[:pos] # first 20 bytes
-#        smsglen = content[pos:pos+4] # next 4 bytes
-#        imsglen = int(b2a_hex(smsglen), 16)
-#        pos += 4
-#        message = content[pos:pos+imsglen]
-#        pos += imsglen
-#        mychksum = sha.new(sk+smsglen+message).digest()
-#        if givenchksum != mychksum:
-#            raise ValueError("Bad Checksum - Data may have been tampered with") 
-#        if returnpad:
-#            return (message, content[pos:])
-#        else:
-#            return message
-#
-#    def getPubKey(self):
-#        """
-#        Gives the public key. To get as string, use b2a_hex(self.blahh.getPubKey().pub()[1])
-#        @return: pubkey instance
-#        """
-#        return self.pubkey
-#
-#    def getPubKeyLoc(self):
-#        return self.pubkeyfilename
-    
 class AESKey:
     def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):
         """
@@ -371,7 +213,7 @@ class AESKey:
             raise CryptoError('RNG not initialized, call initCrypto first')
         self.randfile=global_randfile
         self.algorithm = algorithm
-        
+
         if key:
             self.key = key
         else:
@@ -384,14 +226,14 @@ class AESKey:
         ##keep the ciphers warm, iv only needs to be used once
         self.encCipher = EVP.Cipher(self.algorithm, self.key, self.iv, 1)
         self.decCipher = EVP.Cipher(self.algorithm, self.key, self.iv, 0)
-        
+
     ##this is where the actual ciphering is done
     def cipher_filter(self, cipher, inf, outf):
         buf=inf.read()
         outf.write(cipher.update(buf))
         outf.write(cipher.final())
         return outf.getvalue()
-    
+
     def encrypt(self, text):
         """
         @param text: Plaintext to encrypt
@@ -404,7 +246,7 @@ class AESKey:
         sbuf.close()
         obuf.close()
         return encrypted
-    
+
     def decrypt(self, text):
         """
         @param text: Ciphertext to decrypt
@@ -417,14 +259,14 @@ class AESKey:
         sbuf.close()
         obuf.close()
         return decrypted
-    
+
     def newAES(self):
         """
         @return: 32byte AES key
         @rtype: string
         """
         return getRand()
-    
+
     def newIV(self):
         return getRand()
 
