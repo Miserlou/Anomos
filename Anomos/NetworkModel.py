@@ -251,9 +251,8 @@ class NetworkModel:
         others = self.names.keys()
         others.remove(peerid) # Remove source peer
         for pid in peer.neighbors.keys(): # and the peers already connected to
-            others.remove(nid)
+            others.remove(pid)
         for pid in peer.failedNeighbors:
-            print pid
             others.remove(pid)
         for c in range(numpeers): # Connect to numpeers randomly selected peers
             if len(others) == 0: # Unless there aren't that many in the network.
