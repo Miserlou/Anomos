@@ -22,7 +22,12 @@ class NeighborManager:
         #XXX: PORT HACK
         self.port = None
         self.waiting_tcs = {}
+
+        self.failedPeers = []
     
+    def failed_connections(self):
+        return self.failedPeers
+
     def get_location(self, nid):
         return self.neighbors.get(nid, None)
     
@@ -113,6 +118,7 @@ class NeighborManager:
         #Remove nid,loc pair from incomplete
         for k,v in self.incomplete.items():
             if v == loc:
+                self.failedPeers.append(k)
                 del self.incomplete[k]
                 break
         #TODO: Do something with the error msg.

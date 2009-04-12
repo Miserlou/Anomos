@@ -57,15 +57,22 @@ class SimPeer:
         self.infohashes = {} # {infohash: (downloaded, left)}
         self.last_seen = 0  # Time of last client announce
         self.last_modified = bttime() # Time when client was last modified
+        self.failedNeighbors = []
+        self.needsNeighbors = 0
     
     def needsUpdate(self):
         return self.last_modified > self.last_seen
+
+    def numNeeded(self):
+        return self.needsNeighbors
 
     def update(self, params):
         self.last_seen = bttime()
         ihash = params.get('info_hash')
         dl = params.get('downloaded')
         left = params.get('left')
+        for x in params.get('failed', []):
+            self.failed(x)
         if params.get('event') == 'stopped':
             if self.infohashes.has_key(ihash):
                 del self.infohashes[ihash]
@@ -85,16 +92,23 @@ class SimPeer:
         self.id_map[nid] = peerid
         self.last_modified = bttime()
 
-    def removeEdge(self, peerid):
+    def rmNeighbor(self, peerid):
         """
         Remove connection to neighbor
         @type peerid: string
         """
         edge = self.neighbors.get(peerid)
         if edge:
+            print "rmNeighbor", peerid
             del self.id_map[edge['nid']]
             del self.neighbors[peerid]
             self.last_modified = bttime()
+
+    def failed(self, nid):
+        if self.id_map.has_key(nid):
+            self.failedNeighbors.append(self.id_map[nid])
+            self.rmNeighbor(self.id_map[nid])
+            self.needsNeighbors += 1
 
     def getAvailableNIDs(self):
         """
@@ -183,7 +197,7 @@ class NetworkModel:
 #   def getVertices(self):
 #       return self.names.values()
 
-    def addPeer(self, peerid, pubkey, loc, num_neighbors=4):
+    def initPeer(self, peerid, pubkey, loc, num_neighbors=4):
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
@@ -236,8 +250,11 @@ class NetworkModel:
         peer = self.get(peerid)
         others = self.names.keys()
         others.remove(peerid) # Remove source peer
-        for nid in peer.neighbors.keys(): # and the peers already connected to
+        for pid in peer.neighbors.keys(): # and the peers already connected to
             others.remove(nid)
+        for pid in peer.failedNeighbors:
+            print pid
+            others.remove(pid)
         for c in range(numpeers): # Connect to numpeers randomly selected peers
             if len(others) == 0: # Unless there aren't that many in the network.
                 break
@@ -252,7 +269,7 @@ class NetworkModel:
         """
         if peerid in self.names:
             for neighborOf in self.names[peerid].getNbrs():
-                self.names[neighborOf].removeEdge(peerid)
+                self.names[neighborOf].rmNeighbor(peerid)
             del self.names[peerid]
 
 #   def bfConnected(self, source):
@@ -415,7 +432,7 @@ def tcTest(numnodes=1000, numedges=10000):
     graph = NetworkModel()
     pk = crypto.RSAKeyPair('WampWamp') # All use same RSA key for testing.
     for peerid in G_ips:
-        graph.addPeer(peerid, pk.pub_bin(), (peerid, 8080), int(math.log(1000)//math.log(4)))
+        graph.initPeer(peerid, pk.pub_bin(), (peerid, 8080), int(math.log(1000)//math.log(4)))
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
     t = time.time()
     for i in range(20):

@@ -141,7 +141,9 @@ class Rerequester(object):
             return
         if self.last_time > bttime() - self.config['rerequest_interval']:
             return
-        if self.ever_got_incoming():
+        if self.neighbors.failed_connections():
+            getmore = True
+        elif self.ever_got_incoming():
             getmore = self.neighbors.count() <= self.config['min_peers'] / 3
         else:
             getmore = self.neighbors.count() < self.config['min_peers']
@@ -163,6 +165,9 @@ class Rerequester(object):
             query += '&event=' + ['started', 'completed', 'stopped'][event]
         if self.config['ip']:
             query += '&ip=' + gethostbyname(self.config['ip'])
+        failedPeers = self.neighbors.failed_connections()
+        if failedPeers:
+            query += '&failed=' + quote(''.join(failedPeers))
         Thread(target=self._rerequest, args=[query, self.peerid]).start()
 
     # Must destroy all references that could cause reference circles

@@ -452,7 +452,7 @@ class Tracker(object):
         if not simpeer: # Tracker hasn't seen this peer before
             #if params('pubkey'): # New peer
             loc = (ip, int(params('port')))
-            simpeer = self.networkmodel.addPeer(peerid, peercert, loc)
+            simpeer = self.networkmodel.initPeer(peerid, peercert, loc)
         #Check that peer certificate matches.
         #TODO: What do we do when check fails?
         #if peercert.as_pem() != simpeer.pubkey.certificate.as_pem():
@@ -460,7 +460,11 @@ class Tracker(object):
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
             # Peer stopped their only/last torrent 
             self.networkmodel.disconnect(peerid)
-    
+        else:
+            needs = simpeer.numNeeded()
+            if needs:
+                self.networkmodel.randConnect(simpeer.name, needs)
+
 ## Deprecated
 #    def add_data(self, infohash, event, ip, paramslist):
 #        peers = self.downloads.setdefault(infohash, {})
