@@ -247,7 +247,6 @@ class DL(Feedback):
         sent = self.multitorrent.get_relay_sent()
         self.multitorrent.rawserver.listen_forever()
         self.d.display({'activity':'shutting down', 'fractionDone':0})
-        #self.d.display_relay(rate, size, sent)
         self.torrent.shutdown()
 
     def reread_config(self):
