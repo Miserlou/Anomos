@@ -150,7 +150,7 @@ class HeadlessDisplayer(object):
         #print 'share rating:  ', self.shareRating
         #print 'seed status:   ', self.seedStatus
         #print 'peer status:   ', self.peerStatus
-        print '|-'
+        #print '|-'
         for i in range(len(self.errors)):
             print 'Log:\n' + self.errors.pop() + '\n'
 
@@ -202,11 +202,12 @@ class HeadlessDisplayer(object):
         r = "%.3f" % rate
         snt = sent
         if snt != self.rsent:
-            print "| Having run " + str(size) + " relays at " + str(r) + " KBps and relayed " + str(snt) + " B of data."
+            print "| relay rate:     " + str(r) + " KB/s (" + str(size) + ")"
             self.rsent = snt
+            print '|-'
         else:
-            print "| Having run " + str(size) + " relays at 0.000 KBps and relayed " + str(snt) + " B of data."
-
+            print "| relay rate:     0.0 KB/s (" + str(size) + ")"
+            print '|-'
 
 class DL(Feedback):
 
@@ -245,8 +246,8 @@ class DL(Feedback):
         size = self.multitorrent.get_relay_size()
         sent = self.multitorrent.get_relay_sent()
         self.multitorrent.rawserver.listen_forever()
-        self.d.display_relay(rate, size, sent)
         self.d.display({'activity':'shutting down', 'fractionDone':0})
+        #self.d.display_relay(rate, size, sent)
         self.torrent.shutdown()
 
     def reread_config(self):
@@ -272,8 +273,8 @@ class DL(Feedback):
         rate = self.multitorrent.get_relay_rate()
         size = self.multitorrent.get_relay_size()
         sent = self.multitorrent.get_relay_sent()
-        self.d.display_relay(rate, size, sent)
         self.d.display(status)
+        self.d.display_relay(rate, size, sent)
 
     def global_error(self, level, text):
         self.d.error(text)
