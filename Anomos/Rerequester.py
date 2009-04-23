@@ -69,7 +69,6 @@ class Rerequester(object):
         self.sched = sched
         self.neighbors = neighbors
         #self.howmany = howmany
-        self.nbr_connect = neighbors.start_connection
         self.peer_connect = connect
         self.externalsched = externalsched
         self.amount_left = amount_left
@@ -288,8 +287,9 @@ class Rerequester(object):
                     if r.get('num peers', 1000) > ps * 1.2:
                         self.last = None
             # Initialize any new neighbors
-            for x in peers:
-                self.nbr_connect((x[0], x[1]), x[2])
+            self.neighbors.update_neighbor_list(peers)
+            #for x in peers:
+            #    self.nbr_connect((x[0], x[1]), x[2])
             # Start downloads
             for aes, tc in r.get('tracking codes', []):
                 #TODO: add error callback

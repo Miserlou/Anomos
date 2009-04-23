@@ -47,7 +47,18 @@ class NeighborManager:
             pass
         else:
             self.neighbors[id] = location
-    
+
+    def rm_neighbor(self, nid):
+        if nid in self.failedPeers:
+            self.failedPeers.remove(nid)
+        elif self.incomplete.has_key(nid):
+            self.incomplete.pop(nid)
+        elif self.connections.has_key(nid):
+            self.connections[nid].handler.close()
+            self.connections.pop(nid)
+        if self.has_neighbor(nid):
+            self.neighbors.pop(nid)
+
     def has_neighbor(self, nid):
         #TODO: Make this tracker specific.
         return self.neighbors.has_key(nid)
@@ -123,6 +134,16 @@ class NeighborManager:
                 break
         #TODO: Do something with the error msg.
 
+    def update_neighbor_list(self, list):
+        freshids = dict([(i[2],(i[0],i[1])) for i in list])
+        # Remove neighbors not found in freshids
+        for id in self.neighbors:
+            if not freshids.has_key(id):
+                self.rm_neighbor(id)
+        # Add new neighbors in freshids
+        for id,loc in freshids.iteritems():
+            if not self.neighbors.has_key(id):
+                self.add_neighbor(id, loc)
 
     #def send_keepalives(self):
     #   
