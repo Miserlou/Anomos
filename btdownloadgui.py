@@ -276,6 +276,23 @@ class RateSliderBox(gtk.VBox):
         self.torrentqueue.set_config(option, value)
         self.rate_slider_label.set_text(self.value_to_label(int(value)))
 
+class OpenFileButton(gtk.Button):
+    start_tip = 'Open a file'
+
+    def __init__(self, main):
+        gtk.Button.__init__(self)
+        self.main = main
+        self.connect('clicked', self.open_file)
+
+        self.open_image = gtk.Image()
+        self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
+        self.open_image.show()
+
+        self.has_image = True
+
+    def open_file(self, widget):
+        self.set_paused(not self.main.config['pause'])
+
 
 class StopStartButton(gtk.Button):
     stop_tip  = 'Temporarily stop all running torrents'
@@ -550,7 +567,7 @@ class LogBuffer(gtk.TextBuffer):
 
 class SettingsWindow(object):
 
-    def __init__(self, main, config, setfunc):
+    def __init__(self, main, config, setfunc, torrentqueue):
         self.main = main
         self.setfunc = setfunc
         self.config = config
@@ -558,8 +575,17 @@ class SettingsWindow(object):
         self.win.connect("destroy", lambda w: main.window_closed('settings'))
         self.win.set_title('%s Settings'%app_name)
         self.win.set_border_width(SPACING)
+        self.torrentqueue = torrentqueue
 
         self.vbox = gtk.VBox(spacing=SPACING)
+
+        self.rate_frame = gtk.Frame('Upload rate:')
+        self.rate_box = gtk.VBox()
+        self.rate_box.set_border_width(SPACING)
+        self.rate_slider = RateSliderBox(self.config, self.torrentqueue)
+        self.rate_box.pack_start(self.rate_slider, expand=False, fill=False)
+        self.rate_frame.add(self.rate_box)
+        self.vbox.pack_start(self.rate_frame, expand=False, fill=False)
 
         self.dnd_frame = gtk.Frame('Starting additional torrents manually:')
         self.dnd_box = gtk.VBox(spacing=SPACING, homogeneous=True)
@@ -695,7 +721,7 @@ class SettingsWindow(object):
         self.ip_box.set_border_width(SPACING)
         self.ip_field = IPValidator('ip', self.config, self.setfunc)
         self.main.tooltips.set_tip(self.ip_field,
-                                   'Has no effect unless you are on the\nsame local network as the tracker')
+                                   'If you want to connect through Tor')
         self.ip_box.pack_start(self.ip_field, expand=False, fill=False)
         #self.ip_box.pack_start(lalign(gtk.Label('()')), expand=False, fill=False)
         self.ip_frame.add(self.ip_box)
@@ -2329,6 +2355,8 @@ class DownloadInfoFrame(object):
         self.box1.pack_start(self.menubar, expand=False, fill=False)
 
         self.ssbutton = StopStartButton(self)
+    
+        #self.ofbutton = OpenFileButton(self)
 
         file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
 
@@ -2379,16 +2407,21 @@ class DownloadInfoFrame(object):
         
         self.rate_slider_box = RateSliderBox(self.config, self.torrentqueue)
 
+        #self.ofb = gtk.VBox()
+        #self.ofb.pack_start(self.ofbutton, expand=False, fill=True)
+
         self.ssb = gtk.VBox()
         self.ssb.pack_end(self.ssbutton, expand=False, fill=True)
 
         self.controlbox = gtk.HBox(homogeneous=False)
+
+        #self.controlbox.pack_start(self.ofb, expand=False, fill=False)
          
         self.controlbox.pack_start(self.ssb, expand=False, fill=False)
-        self.controlbox.pack_start(self.rate_slider_box,
-                                   expand=True, fill=True,
-                                   padding=SPACING//2)
-        self.controlbox.pack_start(get_logo(32), expand=False, fill=False,
+        #self.controlbox.pack_start(self.rate_slider_box,
+        #                           expand=True, fill=True,
+        #                           padding=SPACING//2)
+        self.controlbox.pack_end(get_logo(32), expand=False, fill=False,
                                    padding=SPACING)
 
         self.box2.pack_start(self.controlbox, expand=False, fill=False, padding=0)
@@ -2565,7 +2598,7 @@ class DownloadInfoFrame(object):
         elif window_name == 'help'    :
             self.child_windows[window_name] = HelpWindow(self, makeHelp('btdownloadgui', defaults))
         elif window_name == 'settings':
-            self.child_windows[window_name] = SettingsWindow(self, self.config, self.set_config)
+            self.child_windows[window_name] = SettingsWindow(self, self.config, self.set_config, self.torrentqueue)
         elif window_name == 'version' :
             self.child_windows[window_name] = VersionWindow(self, *args)
         elif window_name == 'openfile':
