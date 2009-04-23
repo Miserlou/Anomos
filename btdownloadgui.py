@@ -277,7 +277,7 @@ class RateSliderBox(gtk.VBox):
         self.rate_slider_label.set_text(self.value_to_label(int(value)))
 
 class OpenFileButton(gtk.Button):
-    start_tip = 'Open a file'
+    open_tip = 'Open a torrent'
 
     def __init__(self, main):
         gtk.Button.__init__(self)
@@ -288,8 +288,7 @@ class OpenFileButton(gtk.Button):
         self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
         self.open_image.show()
         self.add(self.open_image)
-
-        self.has_image = False
+        self.main.tooltips.set_tip(self, self.open_tip)
 
     def open_file(self, widget):
         self.main.select_torrent_to_open(widget)
