@@ -100,7 +100,7 @@ class EndPoint(object):
             return
         if not self.incomplete.has_key(loc):
             return
-        id, tc, aeskey = self.incomplete[loc]
+        id, tc, aeskey = self.incomplete.pop(loc)
         # Make the local connection for receiving.
         con = Connection(self, sock, id, True, established=True)
         con.e2e_key = aeskey
