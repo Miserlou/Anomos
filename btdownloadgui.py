@@ -276,6 +276,23 @@ class RateSliderBox(gtk.VBox):
         self.torrentqueue.set_config(option, value)
         self.rate_slider_label.set_text(self.value_to_label(int(value)))
 
+class OpenFileButton(gtk.Button):
+    start_tip = 'Open a file'
+
+    def __init__(self, main):
+        gtk.Button.__init__(self)
+        self.main = main
+        self.connect('clicked', self.open_file)
+
+        self.open_image = gtk.Image()
+        self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
+        self.open_image.show()
+
+        self.has_image = True
+
+    def open_file(self, widget):
+        self.set_paused(not self.main.config['pause'])
+
 
 class StopStartButton(gtk.Button):
     stop_tip  = 'Temporarily stop all running torrents'
@@ -2338,6 +2355,8 @@ class DownloadInfoFrame(object):
         self.box1.pack_start(self.menubar, expand=False, fill=False)
 
         self.ssbutton = StopStartButton(self)
+    
+        #self.ofbutton = OpenFileButton(self)
 
         file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
 
@@ -2388,10 +2407,15 @@ class DownloadInfoFrame(object):
         
         self.rate_slider_box = RateSliderBox(self.config, self.torrentqueue)
 
+        #self.ofb = gtk.VBox()
+        #self.ofb.pack_start(self.ofbutton, expand=False, fill=True)
+
         self.ssb = gtk.VBox()
         self.ssb.pack_end(self.ssbutton, expand=False, fill=True)
 
         self.controlbox = gtk.HBox(homogeneous=False)
+
+        #self.controlbox.pack_start(self.ofb, expand=False, fill=False)
          
         self.controlbox.pack_start(self.ssb, expand=False, fill=False)
         #self.controlbox.pack_start(self.rate_slider_box,
