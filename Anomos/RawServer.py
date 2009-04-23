@@ -57,7 +57,7 @@ class SingleSocket(object):
                     assert isinstance(peername, basestring)
                     self.ip = peername # UNIX socket, not really ip
 
-    def recv(self, bufsize=32768):
+    def recv(self, bufsize=65536):
         if self.socket is not None:
             return self.socket.recv(bufsize)
         #XXX: This should never happen. Instead, this SingleSocket should be destroyed after the transfer was finished.
