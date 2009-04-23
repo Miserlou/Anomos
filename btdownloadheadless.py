@@ -93,7 +93,7 @@ class HeadlessDisplayer(object):
         self.display({'activity':'download succeeded', 'fractionDone':1})
 
     def error(self, errormsg):
-        newerrmsg = strftime('[%H:%M:%S] ') + errormsg
+        newerrmsg = strftime('[%H:%M:%S] ') + str(errormsg)
         self.errors.append(newerrmsg)
         self.display({})
 
