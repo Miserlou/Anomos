@@ -42,7 +42,6 @@ class SingleSocket(object):
         self.fileno = sock.fileno()
         self.connected = False
         self.peer_cert = sock.get_peer_cert()
-        self.rawserver.errorfunc(INFO, "Got peer cert from %s" % ip)
         if ip is not None:
             self.ip = ip
         else: # Try to get the IP from the socket 
