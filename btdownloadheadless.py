@@ -202,7 +202,7 @@ class HeadlessDisplayer(object):
         r = "%.3f" % rate
         snt = sent
         if snt != self.rsent:
-            print "| relay rate:     " + str(r) + " KB/s (" + str(size) + ")"
+            print "| relay rate:     " + str((r/1024)) + " KB/s (" + str(size) + ")"
             self.rsent = snt
             print '|-'
         else:
