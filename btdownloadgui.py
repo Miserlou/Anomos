@@ -287,11 +287,12 @@ class OpenFileButton(gtk.Button):
         self.open_image = gtk.Image()
         self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
         self.open_image.show()
+        self.add(self.open_image)
 
-        self.has_image = True
+        self.has_image = False
 
     def open_file(self, widget):
-        self.set_paused(not self.main.config['pause'])
+        self.main.select_torrent_to_open(widget)
 
 
 class StopStartButton(gtk.Button):
@@ -304,11 +305,11 @@ class StopStartButton(gtk.Button):
         self.connect('clicked', self.toggle)
 
         self.stop_image = gtk.Image()
-        self.stop_image.set_from_stock('bt-pause', gtk.ICON_SIZE_BUTTON)
+        self.stop_image.set_from_stock(gtk.STOCK_MEDIA_PAUSE, gtk.ICON_SIZE_BUTTON)
         self.stop_image.show()
 
         self.start_image = gtk.Image()
-        self.start_image.set_from_stock('bt-play', gtk.ICON_SIZE_BUTTON)
+        self.start_image.set_from_stock(gtk.STOCK_MEDIA_PLAY, gtk.ICON_SIZE_BUTTON)
         self.start_image.show()
 
         self.has_image = False
@@ -2356,7 +2357,7 @@ class DownloadInfoFrame(object):
 
         self.ssbutton = StopStartButton(self)
     
-        #self.ofbutton = OpenFileButton(self)
+        self.ofbutton = OpenFileButton(self)
 
         file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
 
@@ -2407,15 +2408,15 @@ class DownloadInfoFrame(object):
         
         self.rate_slider_box = RateSliderBox(self.config, self.torrentqueue)
 
-        #self.ofb = gtk.VBox()
-        #self.ofb.pack_start(self.ofbutton, expand=False, fill=True)
+        self.ofb = gtk.VBox()
+        self.ofb.pack_end(self.ofbutton, expand=False, fill=True)
 
         self.ssb = gtk.VBox()
         self.ssb.pack_end(self.ssbutton, expand=False, fill=True)
-
+        
         self.controlbox = gtk.HBox(homogeneous=False)
 
-        #self.controlbox.pack_start(self.ofb, expand=False, fill=False)
+        self.controlbox.pack_start(self.ofb, expand=False, fill=False)
          
         self.controlbox.pack_start(self.ssb, expand=False, fill=False)
         #self.controlbox.pack_start(self.rate_slider_box,
