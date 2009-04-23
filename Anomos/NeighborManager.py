@@ -137,7 +137,7 @@ class NeighborManager:
     def update_neighbor_list(self, list):
         freshids = dict([(i[2],(i[0],i[1])) for i in list])
         # Remove neighbors not found in freshids
-        for id in self.neighbors:
+        for id in self.neighbors.keys():
             if not freshids.has_key(id):
                 self.rm_neighbor(id)
         # Add new neighbors in freshids
