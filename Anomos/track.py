@@ -450,7 +450,6 @@ class Tracker(object):
         peerid = params('peer_id')
         simpeer = self.networkmodel.get(peerid)
         if not simpeer: # Tracker hasn't seen this peer before
-            #if params('pubkey'): # New peer
             loc = (ip, int(params('port')))
             simpeer = self.networkmodel.initPeer(peerid, peercert, loc)
         #Check that peer certificate matches.

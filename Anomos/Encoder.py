@@ -54,7 +54,7 @@ class EndPoint(object):
         for c in self.complete_connections:
             c.send_keepalive()
 
-    def start_connection(self, tc, aeskey, errorfunc=None):
+    def start_connection(self, tc, aeskey):
         if len(self.connections) >= self.config['max_initiate']:
             return
         nid = None
@@ -76,9 +76,6 @@ class EndPoint(object):
         loc = self.neighbors.get_location(nid)
         if not self.neighbors.is_complete(nid):
             self.neighbors.schedule_tc(self.send_tc, nid, tc, aeskey)
-        elif not loc and errorfunc is not None:
-            # No longer connected to this neighbor
-            errorfunc()
         else:
             self.send_tc(nid, tc, aeskey)
 

@@ -50,16 +50,16 @@ class SimPeer:
         @type pubkey: Anomos.crypto.RSAPubKey
         """
         self.name = name
+        self.loc = loc      # Client (ip, port)
         self.pubkey = crypto.PeerCert(pubkey)
         self.neighbors = {} # {PeerID: {dist:#, nid:#, loc:(#,#)}}
         self.id_map = {}    # {NeighborID : PeerID}
-        self.loc = loc      # Client (ip, port)
         self.infohashes = {} # {infohash: (downloaded, left)}
         self.last_seen = 0  # Time of last client announce
         self.last_modified = bttime() # Time when client was last modified
         self.failedNeighbors = []
         self.needsNeighbors = 0
-    
+
     def needsUpdate(self):
         return self.last_modified > self.last_seen
 
@@ -314,6 +314,8 @@ class NetworkModel:
 
         distances[source.name] = 0 # The distance of the source to itself is 0
         dist_to_unknown = distances.copy() # Safe to destroy copy
+        print distances
+        print dist_to_unknown
         last = source
         while last.name != dest.name:
             # Select the next vertex to explore, which is not yet fully explored and which 
