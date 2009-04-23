@@ -15,6 +15,7 @@ import hashlib
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading, util
 from Anomos import BTFailure
+from Anomos.platform import bttime
 
 
 def getRand(*args):
@@ -96,7 +97,7 @@ class Certificate:
         # Generate the certificate 
         self.cert = X509.X509()
         #TODO: Serial number should change each time cert is generated
-        self.cert.set_serial_number(1)
+        self.cert.set_serial_number(long(bttime()))
         self.cert.set_version(2)
         self.cert.set_pubkey(pkey)
         # Set the name on the certificate
