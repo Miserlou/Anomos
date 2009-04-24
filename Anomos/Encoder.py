@@ -82,10 +82,11 @@ class EndPoint(object):
     def send_tc(self, nid, tc, aeskey):
         loc = self.neighbors.get_location(nid)
         if self.incomplete.has_key(loc):
-            print "Already waiting for TC response from %s" % str(loc)
-            print "  Retrying in 30 seconds"
+            #print "Already waiting for TC response from %s" % str(loc)
+            #print "  Retrying in 30 seconds"
             def retry():
                 self.send_tc(nid,tc,aeskey)
+            #TODO: Verify this 30 second rate or make it configurable
             self.raw_server.add_task(retry, 30)
         else:
             print "Sending TC to", hex(ord(nid)), "at", loc
