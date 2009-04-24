@@ -59,7 +59,7 @@ def try_all(excludes = [], excluded_paths=[]):
 def try_single(m):
     """
     tests a single module
-    
+
     accepts either a module object or a module name in string form
     """
     if type(m) is str:

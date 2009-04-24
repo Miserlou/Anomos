@@ -83,10 +83,10 @@ def parse_configuration_and_args(defaults, uiname, arglist=[], minargs=0,
         print version
         sys.exit(0)
 
-    if arglist[0:] in (['--help'], ['-h'], ['--usage'], ['-?']): 
+    if arglist[0:] in (['--help'], ['-h'], ['--usage'], ['-?']):
         parseargs.printHelp(uiname, defaults)
         sys.exit(0)
-    
+
     presets = get_config(defconfig, uiname)
     config, args = parseargs.parseargs(arglist, defaults, minargs, maxargs,
                                        presets)

@@ -92,10 +92,10 @@ class ConvertedMetainfo(object):
         self.total_bytes = 0
         self.sizes = []
         self.publickey = None
-        
+
         if metainfo.has_key('pubkey'):
             self.publickey = metainfo['pubkey'] # just loads the public key string
-        
+
         btformats.check_message(metainfo, check_paths=False)
         info = metainfo['info']
         if info.has_key('length'):

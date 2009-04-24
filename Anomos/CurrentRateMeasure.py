@@ -25,7 +25,7 @@ class Measure(object):
     def update_rate(self, amount):
         self.total += amount
         t = bttime()
-        self.rate = (self.rate * (self.last - self.ratesince) + 
+        self.rate = (self.rate * (self.last - self.ratesince) +
             amount) / (t - self.ratesince)
         self.last = t
         if self.ratesince < t - self.max_rate_period:
