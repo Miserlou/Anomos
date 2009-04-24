@@ -7,8 +7,8 @@ network at all times, and uses it to control the flow
 of file chunks. Each peer is represented by a Vertex
 object; the connections between peers are called edges and
 are tuples of the form (IP address, weight). Each Vertex
-assigns relative IDs to its edges. The IP addresses these 
-relative IDs represent are only known by the Anomos tracker 
+assigns relative IDs to its edges. The IP addresses these
+relative IDs represent are only known by the Anomos tracker
 and the peer which the Vertex object represents.
 
 To determine how a chunk should get from uploader to downloader, the
@@ -318,7 +318,7 @@ class NetworkModel:
         print dist_to_unknown
         last = source
         while last.name != dest.name:
-            # Select the next vertex to explore, which is not yet fully explored and which 
+            # Select the next vertex to explore, which is not yet fully explored and which
             # minimizes the already-known distances.
             cur_name = min([(v, k) for (k, v) in dist_to_unknown.iteritems()])[1]
             cur = self.get(cur_name)
@@ -341,12 +341,12 @@ class NetworkModel:
 #        paths = dict.fromkeys(self.getNames(), [])
 #        distances = dict.fromkeys(self.getNames(), INFINITY)
 #        complete_paths = {}
-#        
+#
 #        distances[source.name] = 0 # The distance of the source to itself is 0
 #        dist_to_unknown = distances.copy() # Safe to destroy copy
 #        last = source
 #        while dist_to_unknown:
-#            # Select the next vertex to explore, which is not yet fully explored and which 
+#            # Select the next vertex to explore, which is not yet fully explored and which
 #            # minimizes the already-known distances.
 #            cur_name = min([(v, k) for (k, v) in dist_to_unknown.iteritems()])[1]
 #            cur = self.get(cur_name)
@@ -363,26 +363,26 @@ class NetworkModel:
 #                del dist_to_unknown[cur_name]
 #            last = cur
 #        return paths[dest.name]
-    
+
     def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=True):
         """
         Generate the tracking code for the shortest path from source to dest
-        
+
         @param source: Peer ID (str) of the start node
         @param dest: Peer ID (str) of the end node
         @return: See NetworkModel.encryptTC
         @rtype: string
-        
+
         @todo: Some error checking.
         """
-        
+
         v_source = self.get(source)
         v_dest = self.get(dest)
-        
+
         # Block direct connections from source to dest
         if block_direct_connections:
             sd_temp = v_source.getWeight(dest)
-            v_source.reWeight(dest, INFINITY)         
+            v_source.reWeight(dest, INFINITY)
         pathByNames = [source] + self.shortestPath(source,dest)
         DEBUG(pathByNames)
         if block_direct_connections:
@@ -395,7 +395,7 @@ class NetworkModel:
         """
         Returns an encrypted tracking code
         @see: http://anomos.info/wp/2008/06/19/tracking-codes-revised/
-        
+
         @param pathByNames: List of peer id's belonging to members of chain
         @type pathByNames:  list
         @param plaintext:   Message to be encrypted at innermost onion layer.

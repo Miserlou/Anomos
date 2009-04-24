@@ -36,7 +36,7 @@ else:
             #desktop = shell.SHGetPathFromIDList(shell.SHGetSpecialFolderLocation(0, shellcon.CSIDL_DESKTOPDIRECTORY))
             reg_desktop = None
             import _winreg as wreg
-            try: 
+            try:
                 key = wreg.OpenKey(wreg.HKEY_CURRENT_USER,
                                r'Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders')
                 d = wreg.QueryValueEx(key, 'Desktop')

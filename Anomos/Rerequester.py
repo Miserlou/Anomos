@@ -47,17 +47,18 @@ class Rerequester(object):
             amount_left, up, down, local_port, myid, infohash, errorfunc, doneflag,
             upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, certificate):
         ### Tracker URL ###
-        parsed = urlparse(url)     # (<scheme>,<netloc>,<path>,<params>,<query>,<fragment>) 
+        parsed = urlparse(url)     # (<scheme>,<netloc>,<path>,<params>,<query>,<fragment>)
         self.url = parsed[1]
         self.remote_port = 5555 # Assume port 5555 by default
+
         if ":" in parsed[1]:                #   <netloc> = <url>:<port>
             i = self.url.index(":")
             self.remote_port = int(self.url[i+1:])
             self.url = self.url[:i]
-        self.path = parsed[2] 
+        self.path = parsed[2]
         self.basequery = None
-        
-        ### Peer info ### 
+
+        ### Peer info ###
         self.infohash = infohash
         self.peerid = None
         self.wanted_peerid = myid
@@ -87,13 +88,13 @@ class Rerequester(object):
         self.last_time = None
         self.previous_down = 0
         self.previous_up = 0
-        self.certificate = certificate 
-    
+        self.certificate = certificate
+
     def _makequery(self, peerid, port):
         self.errorfunc(INFO, "Connecting with PeerID: %s" %peerid)
         return ('?info_hash=%s&peer_id=%s&port=%s' %
                 (quote(self.infohash), quote(peerid), str(port)))
-    
+
     def change_port(self, peerid, port):
         self.wanted_peerid = peerid
         self.local_port = port
@@ -183,10 +184,10 @@ class Rerequester(object):
         self.downratefunc = None
         self.ever_got_incoming = None
         self.diefunc = None
-        self.successfunc = None 
+        self.successfunc = None
 
     def _rerequest(self, query, peerid):
-        """ Make an HTTP GET request to the tracker 
+        """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.
         """
         if self.config['tracker_proxy']:

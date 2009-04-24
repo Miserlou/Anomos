@@ -76,7 +76,7 @@ class Multitorrent(object):
                                    bindaddr=config['bind'])
         self.neighbors = NeighborManager(self.rawserver, config,
                                    self.certificate, self.errorfunc)
-        self.singleport_listener = SingleportListener(self.rawserver, self.config, 
+        self.singleport_listener = SingleportListener(self.rawserver, self.config,
                                                       self.neighbors, self.certificate)
         self._find_port(listen_fail_ok)
         #XXX: PORT HACK
@@ -86,7 +86,7 @@ class Multitorrent(object):
         self.ratelimiter.set_parameters(config['max_upload_rate'],
                                         config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
-                                                 errorfunc) 
+                                                 errorfunc)
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'
@@ -221,9 +221,9 @@ class _SingleTorrent(object):
         self.errors = []
         self.myid = None
         self.neighbors = neighbors
-        self.certificate = certificate 
+        self.certificate = certificate
         self.tracker_pubkey = None
-    
+
     def start_download(self, *args, **kwargs):
         it = self._start_download(*args, **kwargs)
         def cont():
@@ -244,10 +244,10 @@ class _SingleTorrent(object):
         self.total_bytes = metainfo.total_bytes
         if not metainfo.reported_errors:
             metainfo.show_encoding_errors(self._error)
-        
+
 #        if metainfo.publickey:
 #            self.tracker_pubkey = RSAPubKey(metainfo.publickey)
-        
+
         self._make_id()
         def schedfunc(func, delay):
             self._rawserver.add_task(func, delay, self)

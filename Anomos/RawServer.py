@@ -44,7 +44,7 @@ class SingleSocket(object):
         self.peer_cert = sock.get_peer_cert()
         if ip is not None:
             self.ip = ip
-        else: # Try to get the IP from the socket 
+        else: # Try to get the IP from the socket
             try:
                 peername = self.socket.getpeername()
             except SSL.SSLError:
@@ -70,7 +70,7 @@ class SingleSocket(object):
 
     def _set_shutdown(self, opt=SSL.SSL_RECEIVED_SHUTDOWN|SSL.SSL_SENT_SHUTDOWN):
         self.socket.set_shutdown(opt)
-    
+
     def _clear_state(self):
         self.socket = None
         self.buffer = []
@@ -178,12 +178,12 @@ class RawServer(object):
             os.write(self.wakeupfds[1], 'X')
 
     def scan_for_timeouts(self):
-        self.add_task(self.scan_for_timeouts, 
+        self.add_task(self.scan_for_timeouts,
                       self.config['timeout_check_interval'])
         t = bttime() - self.config['socket_timeout']
         tokill = [s for s in self.single_sockets.values() if s.last_hit < t]
         map(self._safe_shutdown, tokill)
-    
+
     def create_ssl_serversocket(self, port, bind='', reuse=False, tos=0):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -192,7 +192,7 @@ class RawServer(object):
         server.bind((bind, port))
         server.listen(10)
         return server
-    
+
     def start_listening(self, serversocket, handler, context=None):
         self.listening_handlers[serversocket.fileno()] = (handler, context)
         self.serversockets[serversocket.fileno()] = serversocket

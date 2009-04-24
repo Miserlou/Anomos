@@ -36,10 +36,10 @@ class EndPoint(object):
         self.cert = context.certificate
         self.neighbors = context.neighbors
         self.context = context
-        
+
         #XXX: TEMPORARY HACK
         self.port = context._singleport_listener.port
-        
+
         self.connections = {} # {socket : Connection}
         self.complete_connections = set()
         self.incomplete = {}
@@ -60,7 +60,7 @@ class EndPoint(object):
         nid = None
         tclen = len(tc)
         try:
-            #TODO: There will eventually be an extra piece of data in the TC to 
+            #TODO: There will eventually be an extra piece of data in the TC to
             # verify the tracker, get that here too.
             #TODO: Check the TC length
             nid, tc = self.cert.decrypt(tc, True)
@@ -160,9 +160,9 @@ class SingleportListener(object):
         self.connections = {}
         self.neighbors = neighbors
         self.lookup_loc = self.neighbors.lookup_loc
-        self.certificate = certificate 
+        self.certificate = certificate
         self.download_id = None
-    
+
     def _check_close(self, port):
         if not port or self.port == port or self.ports[port][1] > 0:
             return
@@ -209,7 +209,7 @@ class SingleportListener(object):
         if infohash not in self.torrents:
             return
         self.torrents[infohash].singleport_connection(self, conn)
-    
+
     def set_relayer(self, conn, neighborid):
         conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
                                 self.config)
@@ -234,14 +234,14 @@ class SingleportListener(object):
         for r in self.relayers:
             sent  += r.get_sent()
         return sent
-    
+
     def set_neighbor(self, conn):
         del self.connections[conn.connection]
         conn.owner = self.neighbors
         self.neighbors.connections[conn.connection] = conn
-    
+
     def external_connection_made(self, socket):
-        """ 
+        """
         Connection came in.
         @param socket: SingleSocket
         """

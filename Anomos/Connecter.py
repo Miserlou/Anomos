@@ -172,7 +172,7 @@ class Connection(object):
         #    Lost uploader, schedule announce for new one..
         if not self.closed:
             self.close()
-    
+
     def _read_header(self):
         '''Yield the number of bytes for each section of the header and sanity
            check the received values. If the connection doesn't have a header
@@ -180,24 +180,24 @@ class Connection(object):
            reenter the data we read off as if it just came in.
         '''
         yield 1   # header length
-        first = self._message # Hack in case a headerless connection has the 
+        first = self._message # Hack in case a headerless connection has the
                               # a first byte with value == len(protocol_name)
         if ord(self._message) != len(protocol_name):
             self._reader = self._read_messages()
             self._buffer = self._message + self._buffer
             yield self._reader.next()
-        
+
         yield len(protocol_name)
         if self._message != protocol_name:
             self._reader = self._read_messages()
             self._buffer = first + self._message + self._buffer
             yield self._reader.next()
-        
+
         yield 2  # port number
         self.port = toint(self._message)
         yield 1  # NID
         self.id = self._message
-        #TODO: Check response id on locally_initiated connections?    
+        #TODO: Check response id on locally_initiated connections?
         yield 5  # reserved
         # Got a full header => New Neighbor Connection
         if not self.locally_initiated:
@@ -211,7 +211,7 @@ class Connection(object):
             self._send_message(CONFIRM)
         self._reader = self._read_messages()
         yield self._reader.next()
-    
+
     def _read_messages(self):
         while True:
             yield 4   # message length
@@ -236,8 +236,8 @@ class Connection(object):
 
     def _got_message(self, message):
         """ Handles an incoming message. First byte designates message type,
-            may be any one of (CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, 
-            HAVE, BITFIELD, REQUEST, PIECE, CANCEL, PUBKEY, EXCHANGE, 
+            may be any one of (CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED,
+            HAVE, BITFIELD, REQUEST, PIECE, CANCEL, PUBKEY, EXCHANGE,
             CONFIRM, ENCRYPTED)
         """
         t = message[0]
@@ -357,19 +357,19 @@ class Connection(object):
                 self.upload = self.download = None
             except:
                 pass
-    
+
     def _send_message(self, message):
         s = tobinary(len(message)) + message
         if self._partial_message is not None:
             self._outqueue.append(s)
         else:
             self.connection.write(s)
-    
+
     def _send_encrypted_message(self, message):
         '''End-to-End encrypts a message'''
         message = ENCRYPTED + self.e2e_key.encrypt(message)
         self._send_message(message)
-    
+
     def data_came_in(self, conn, s):
         while True:
             if self.closed:

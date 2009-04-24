@@ -139,8 +139,8 @@ def is_local_ip(ip):
         return False
 
 def params_factory(dictionary, default=None):
-    """ 
-    Function factory that lets us easily get info from dictionaries of the 
+    """
+    Function factory that lets us easily get info from dictionaries of the
     form { key : [value], ... }
     @param dictionary: the dict to index into
     @param default: the default value to return if key is not found
@@ -160,7 +160,7 @@ class Tracker(object):
         self.max_give = config['max_give']
         self.dfile = config['dfile']
         self.natcheck = config['nat_check']
-        
+
         # Set the favicon
         favicon = config['favicon']
         self.favicon = None
@@ -178,10 +178,10 @@ class Tracker(object):
         self.times = {}
         self.state = {}
         self.seedcount = {}
-        
-        self.certificate = certificate 
+
+        self.certificate = certificate
         self.networkmodel = NetworkModel()
-        
+
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
             self.only_local_override_ip = not config['nat_check']
@@ -436,7 +436,7 @@ class Tracker(object):
                         {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
         return None
-    
+
     def update_simpeer(self, paramslist, ip, peercert):
         """
         @param paramslist: Parameters from client's GET request
@@ -444,7 +444,7 @@ class Tracker(object):
         @param peercert:
         @type paramslist: list
         @type ip: string
-        @type peercert: M2Crypto.X509.X509 
+        @type peercert: M2Crypto.X509.X509
         """
         params = params_factory(paramslist)
         peerid = params('peer_id')
@@ -457,7 +457,7 @@ class Tracker(object):
         #if peercert.as_pem() != simpeer.pubkey.certificate.as_pem():
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
-            # Peer stopped their only/last torrent 
+            # Peer stopped their only/last torrent
             self.networkmodel.disconnect(peerid)
         else:
             needs = simpeer.numNeeded()
@@ -491,7 +491,7 @@ class Tracker(object):
 #        #mykey = params('key')
 #        #auth = not peer or peer.get('key', -1) == mykey or peer.get('ip') == ip
 #        auth = not peer or peer.get('ip') == ip
-#        
+#
 #        gip = params('ip')
 #        local_override = gip and self.allow_local_override(ip, gip)
 #        if local_override:
@@ -650,7 +650,7 @@ class Tracker(object):
 #        if stopped or not rsize:     # save some bandwidth
 #            data['peers'] = []
 #            return data
-#        
+#
 #        bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
 #        len_l = len(bc[0][0]) # Number of downloaders
 #        len_s = len(bc[0][1]) # Number of seeders
@@ -748,7 +748,7 @@ class Tracker(object):
             return hbc
 
         # Validate the GET request
-        try: 
+        try:
             self.validate_request(paramslist)
         except ValueError, e:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
@@ -828,7 +828,7 @@ class Tracker(object):
         bc[2][not not_seed][peerid] = compact_peer_info(ip, port)
 
     def natchecklog(self, peerid, ip, port, result):
-        
+
         print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
             ip, quote(peerid), strftime("[%d/%b/%Y:%H:%M:%S]"), ip, port, result)
 
@@ -893,7 +893,7 @@ class Tracker(object):
                 del x[y][peerid]
         del self.times[infohash][peerid]
         del dls[peerid]
-        
+
         for torrent in self.downloads:
             if torrent[peerid] is not None:
                 return
@@ -914,7 +914,7 @@ class Tracker(object):
                     del self.downloads[key]
                     del self.seedcount[key]
         self.rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
-    
+
 def track(args):
     if len(args) == 0:
         print formatDefinitions(defaults, 80)
