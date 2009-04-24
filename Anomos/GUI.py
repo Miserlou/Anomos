@@ -42,7 +42,7 @@ def align(obj,x,y):
     a = gtk.Alignment(x,y,0,0)
     a.add(obj)
     return a
-    
+
 def halign(obj, amt):
     return align(obj,amt,0.5)
 
@@ -65,7 +65,7 @@ for n in 'broken finished info pause paused play queued running remove'.split():
     fn = os.path.join(image_root, ("%s.png"%n))
 
     pixbuf = gtk.gdk.pixbuf_new_from_file(fn)
-    
+
     set = gtk.IconSet(pixbuf)
 
     factory.add('bt-%s'%n, set)
@@ -80,7 +80,7 @@ def get_logo(size=32):
 
 class Size(long):
     """displays size in human-readable format"""
-    size_labels = ['','K','M','G','T','P','E','Z','Y']    
+    size_labels = ['','K','M','G','T','P','E','Z','Y']
     radix = 2**10
 
     def __new__(cls, value, precision=None):
@@ -138,7 +138,7 @@ class IconButton(gtk.Button):
         gtk.Button.__init__(self)
 
         self.hbox = gtk.HBox(spacing=5)
-        
+
         self.icon = gtk.Image()
         if stock is not None:
             self.icon.set_from_stock(stock, gtk.ICON_SIZE_BUTTON)
@@ -168,7 +168,7 @@ class HelpWindow(Window):
         self.set_border_width(SPACING)
 
         self.vbox = gtk.VBox(spacing=SPACING)
-        
+
         self.faq_box = gtk.HBox(spacing=SPACING)
         self.faq_box.pack_start(gtk.Label("Frequently Asked Questions:"), expand=False, fill=False)
         self.faq_url = gtk.Entry()
@@ -189,28 +189,28 @@ class HelpWindow(Window):
         self.cmdline_sw.set_size_request(self.cmdline_args.size_request()[0]+SCROLLBAR_WIDTH, 200)
 
         self.vbox.pack_start(self.cmdline_sw)
-        
+
         self.add(self.vbox)
 
         self.show_all()
-        
+
         if self.main is not None:
             self.connect('destroy', lambda w: self.main.window_closed('help'))
         else:
             self.connect('destroy', lambda w: gtk.main_quit())
             gtk.main()
-                        
+
 
 
     def close(self, widget=None):
-        self.destroy()    
+        self.destroy()
 
 
 class ScrolledWindow(gtk.ScrolledWindow):
     def scroll_to_bottom(self):
         child_height = self.child.child.size_request()[1]
         self.scroll_to(0, child_height)
-        
+
     def scroll_by(self, dx=0, dy=0):
         v = self.get_vadjustment()
         new_y = min(v.upper, v.value + dy)
@@ -261,9 +261,9 @@ class AutoScrollingWindow(ScrolledWindow):
 
     def start_scrolling(self, amount):
         if self.vscrolltimeout is not None:
-            gobject.source_remove(self.vscrolltimeout)            
+            gobject.source_remove(self.vscrolltimeout)
         self.scroll_and_wait(amount, True)
-        
+
     def stop_scrolling(self):
         if self.vscrolltimeout is not None:
             #print "removing timeout", self.vscrolltimeout
@@ -272,7 +272,7 @@ class AutoScrollingWindow(ScrolledWindow):
 
 class MessageDialog(gtk.MessageDialog):
     flags = gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT
-    
+
     def __init__(self, parent, title, message,
                  type=gtk.MESSAGE_ERROR,
                  buttons=gtk.BUTTONS_OK,
@@ -288,7 +288,7 @@ class MessageDialog(gtk.MessageDialog):
         self.set_title(title)
         if default is not None:
             self.set_default_response(default)
-        
+
         self.label.set_line_wrap(True)
 
         self.connect('response', self.callback)
@@ -354,7 +354,7 @@ class FileSelection(gtk.FileSelection):
         if self.got_multiple_location_func is not None:
             names = self.get_selections()
             self.got_multiple_location_func(names)
-            
+
     def destroy(self, widget=None):
         gtk.FileSelection.destroy(self)
 
@@ -392,7 +392,7 @@ if os.name == 'nt':
             self.got_location_func = got_location_func
             self.no_location_func  = no_location_func
             self.got_multiple_location_func = got_multiple_location_func
-            
+
 
             if (got_location_func is None and
                 got_multiple_location_func is not None):
@@ -406,7 +406,7 @@ if os.name == 'nt':
             self.thread = threading.Thread(target=self.run)
             if show:
                 self.show()
-            
+
         def show(self):
             self.thread.start()
 
@@ -424,7 +424,7 @@ if os.name == 'nt':
             else:
                 if self.no_location_func is not None:
                     self.no_location_func()
-            
+
 
         def close_child_windows(self):
             self.destroy()
@@ -434,7 +434,7 @@ if os.name == 'nt':
 
         def close(self):
             self.destroy()
-        
+
     class OpenFileSelection(BaseFileSelection):
         _klass = comdlg.OpenFileDialog
         _flags = comdlg.OFN_FILEMUSTEXIST|comdlg.OFN_PATHMUSTEXIST
@@ -451,7 +451,7 @@ class PaddedHSeparator(gtk.VBox):
         self.sep = gtk.HSeparator()
         self.pack_start(self.sep, expand=False, fill=False, padding=spacing)
         self.show_all()
-        
+
 
 class HSeparatedBox(gtk.VBox):
 

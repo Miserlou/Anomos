@@ -1,5 +1,5 @@
 """
-Relayer objects, like Uploader and Downloader, serve to take incoming information, store it, 
+Relayer objects, like Uploader and Downloader, serve to take incoming information, store it,
 and pass it to the next neighbor in the chain.
 
 @author: Rich Jones, John Schanck
@@ -13,8 +13,8 @@ from threading import Thread
 
 class Relayer(object):
     """ As a tracking code is being sent, each peer it reaches (other than the
-        uploader and downloader) creates a Relayer object to maintain the 
-        association between the incoming socket and the outgoing socket (so 
+        uploader and downloader) creates a Relayer object to maintain the
+        association between the incoming socket and the outgoing socket (so
         that the TC only needs to be sent once).
     """
     def __init__(self, rawserver, neighbors, incoming, outnid, config, max_rate_period=20.0):
@@ -52,7 +52,7 @@ class Relayer(object):
         self.tmpnid = outnid
         self.start_connection(outnid)
         self.rawserver.add_task(self.check_if_established, 1)
-    
+
     def check_if_established(self):
         if self.outgoing:
             for msg in self.buffer:
@@ -90,7 +90,7 @@ class Relayer(object):
                                 # messages until it has been.
             #TODO: buffer size control, message rejection after a certain point.
             self.buffer.append(msg)
-    
+
     def connection_lost(self, sock):
         self.incoming.close()
         self.outgoing.close()
@@ -99,7 +99,7 @@ class Relayer(object):
         self.errorfunc(INFO, "Relay connection established")
         con.complete = True
         con.is_relay = True
-    
+
     def get_rate(self):
         return self.uprate.get_rate()
 
@@ -124,8 +124,8 @@ class Relayer(object):
     def got_unchoke(self, time):
         self.unchoke(time)
         self.incoming.send_unchoke()
-   
-    #def sent_choke(self): 
+
+    #def sent_choke(self):
     #    assert self.choked
     #    del self.buffer[:]
 

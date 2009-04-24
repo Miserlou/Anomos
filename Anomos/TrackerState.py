@@ -9,7 +9,7 @@ class TrackerState:
         self.file = pathtofile
         if self.file != "":
             self.load()
-    
+
     def load(self):
         try:
             sfile = open(location, "rb")
@@ -31,24 +31,24 @@ class TrackerState:
         except TypeError, ValueError:
             return False
         return True
-    
+
     def _verify(self):
         """
         @raise TypeError: If some part of state file doesn't match format
         @raise ValueError: If invalid value found
-        
+
         Checks the format of the state file
         Expected format of state file:
-            { "peers" : { Infohash (str) : { peerid : 
-                                                { "ip" : str, 
-                                                  "port" : int, 
+            { "peers" : { Infohash (str) : { peerid :
+                                                { "ip" : str,
+                                                  "port" : int,
                                                   "left" : int } } }
               "completed" : { Infohash (str) : int}
               "allowed" : { Infohash (str) : }
               "allowed_dir_files" : {path : [(modification time, size), hash]}
         """
         checkType(state, dict)
-        
+
         # state['Peers']:
         peers = state.get("peers", None)
         checkType(peers, dict)
@@ -65,13 +65,13 @@ class TrackerState:
                 checkType(info.get('left'), (int, long))
                 if info.get('left', -1) < 0:
                     raise ValueError
-        
+
         # state['Completed']:
         completed = state.get("completed", None)
         checkType(completed, dict)
         for y in completed.values():
             checkType(y, (int, long))
-        
+
         # state['Allowed'] / state['Allowed_dir_files']:
         allowed = state.get("allowed", None)
         checkType(allowed, dict)
@@ -84,7 +84,7 @@ class TrackerState:
         #for fle in allowed_dir_files.values():
         #    if not fle[1]: # Hash is 0, .torrent didn't parse
         #        continue
-        #    if not 
+        #    if not
 
 def checkType(obj, type):
     """

@@ -25,7 +25,7 @@ class poll(object):
     def __init__(self):
         self.rlist = []
         self.wlist = []
-        
+
     def register(self, f, t):
         if type(f) != IntType:
             f = f.fileno()
@@ -37,7 +37,7 @@ class poll(object):
             insert(self.wlist, f)
         else:
             remove(self.wlist, f)
-        
+
     def unregister(self, f):
         if type(f) != IntType:
             f = f.fileno()

@@ -5,7 +5,7 @@
 # compression and then decompress the output if a compressed response is
 # received while maintaining the API.
 #
-# by Robert Stone 2/22/2003 
+# by Robert Stone 2/22/2003
 #
 
 from urllib import *
@@ -26,13 +26,13 @@ class HTTPContentEncodingHandler(HTTPHandler):
         # support gzip encoding (identity is assumed)
         req.add_header("Accept-Encoding","gzip")
         req.add_header('User-Agent', 'Anomos/' + version)
-        if DEBUG: 
-            print "Sending:" 
+        if DEBUG:
+            print "Sending:"
             print req.headers
             print "\n"
         fp = HTTPHandler.http_open(self,req)
         headers = fp.headers
-        if DEBUG: 
+        if DEBUG:
              pprint.pprint(headers.dict)
         url = fp.url
         resp = addinfourldecompress(fp, headers, url)
@@ -103,7 +103,7 @@ class GzipStream(StringIO):
         # close our utility files
         compressed.close()
         gz.close()
-        # init our stringio selves with the string 
+        # init our stringio selves with the string
         StringIO.__init__(self, str)
         del str
 

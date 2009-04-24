@@ -76,7 +76,7 @@ class HTTPConnection(object):
         data = data.strip()
         if data == '':
             self.donereading = True
-            # check for Accept-Encoding: header, pick a 
+            # check for Accept-Encoding: header, pick a
             if self.headers.has_key('accept-encoding'):
                 ae = self.headers['accept-encoding']
                 if DEBUG:
@@ -90,7 +90,7 @@ class HTTPConnection(object):
             if ae.find('gzip') != -1:
                 self.encoding = 'gzip'
             else:
-                #default to identity. 
+                #default to identity.
                 self.encoding = 'identity'
             r = self.handler.getfunc(self, self.path, self.headers)
             if r is not None:
@@ -115,7 +115,7 @@ class HTTPConnection(object):
             gz = GzipFile(fileobj = compressed, mode = 'wb', compresslevel = 9)
             gz.write(data)
             gz.close()
-            compressed.seek(0,0) 
+            compressed.seek(0,0)
             cdata = compressed.read()
             compressed.close()
             if len(cdata) >= len(data):
@@ -165,7 +165,7 @@ class HTTPHandler(object):
         self.getfunc = getfunc
         self.minflush = minflush
         self.lastflush = bttime()
-    
+
     def external_connection_made(self, connection):
         self.connections[connection] = HTTPConnection(self, connection)
 

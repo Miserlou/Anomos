@@ -18,30 +18,30 @@ class NeighborManager:
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
-        
+
         #XXX: PORT HACK
         self.port = None
         self.waiting_tcs = {}
 
         self.failedPeers = []
-    
+
     def failed_connections(self):
         return self.failedPeers
 
     def get_location(self, nid):
         return self.neighbors.get(nid, None)
-    
+
     def lookup_loc(self, loc):
-        self.errorfunc(INFO, "Looking up location: %s\nNeighbors: %s" 
+        self.errorfunc(INFO, "Looking up location: %s\nNeighbors: %s"
                                 % (loc, self.neighbors))
         peers = []
         for nid, data in self.neighbors.iteritems():
             if data[0] == loc:
                 peers.append(nid)
         return peers
-    
+
     def add_neighbor(self, id, location):
-        self.errorfunc(INFO, "Adding Neighbor: (\\x%02x, %s)" 
+        self.errorfunc(INFO, "Adding Neighbor: (\\x%02x, %s)"
                                 % (ord(id), location))
         if self.has_loc(location):
             pass
@@ -65,15 +65,15 @@ class NeighborManager:
 
     def has_loc(self, loc):
         return loc in self.neighbors.values()
-    
+
     def is_complete(self, nid):
         #TODO: Make this tracker specific.
         return self.neighbors.has_key(nid)
-    
+
     def count(self, tracker=None):
         #TODO: Make this tracker specific.
         return len(self.neighbors)
-    
+
     def connection_completed(self, con):
         #TODO: Make this tracker specific.
         if not self.incomplete.has_key(con.id):
@@ -83,7 +83,7 @@ class NeighborManager:
         del self.incomplete[con.id]
         for task in self.waiting_tcs.get(con.id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
-    
+
     def schedule_tc(self, sendfunc, id, tc, aeskey):
         '''Sometimes a tracking code is received before a neighbor is fully
         initialized. In those cases we schedule the TC to be sent once we get
@@ -92,7 +92,7 @@ class NeighborManager:
             sendfunc(id, tc, aeskey)
         self.waiting_tcs.setdefault(id,[])
         self.waiting_tcs[id].append(sendtc)
-        
+
     def start_connection(self, loc, id):
         """
         @param loc: (IP, Port)
@@ -146,4 +146,4 @@ class NeighborManager:
                 self.add_neighbor(id, loc)
 
     #def send_keepalives(self):
-    #   
+    #

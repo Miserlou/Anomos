@@ -23,7 +23,7 @@ def getRand(*args):
 
 global_cryptodir = None
 global_randfile = None
-global_dd = None 
+global_dd = None
 
 def initCrypto(data_dir):
     '''Sets the directory in which to store crypto data/randfile
@@ -32,7 +32,7 @@ def initCrypto(data_dir):
     '''
 
     threading.init()
-    
+
     global getRand, global_cryptodir, global_randfile, global_dd
     global_dd = data_dir
     if None not in (global_cryptodir, global_randfile):
@@ -94,7 +94,7 @@ class Certificate:
         # Make the public key
         pkey = EVP.PKey()
         pkey.assign_rsa(self.rsakey, 0)
-        # Generate the certificate 
+        # Generate the certificate
         self.cert = X509.X509()
         #TODO: Serial number should change each time cert is generated
         self.cert.set_serial_number(long(bttime()))
@@ -125,7 +125,7 @@ class Certificate:
         #TODO: Update info callback when we switch to using Python's logging module
         #ctx.set_info_callback(lambda *x:None)
         return ctx
-    
+
     def getPub(self):
         return self.rsakey.pub()[1]
 
@@ -135,14 +135,14 @@ class Certificate:
     def decrypt(self, data, returnpad=False):
         """
         Decrypts data encrypted with this public key
-        
+
         @param data: The data, padding and all, to be decrypted
         @type data: string
         @param returnpad: return "junk" decrypted padding as well as message. Default: False
         @type returnpad: boolean
-        
+
         @raise CryptoError: Priv. decrypt fail or Bad Checksum
-        
+
         @return: tuple (decrypted message, padding) if returnpad is true, string otherwise
         @rtype: tuple
         """
@@ -167,7 +167,7 @@ class Certificate:
         pos += imsglen
         mychksum = hashlib.sha1(sk+smsglen+message).digest()
         if givenchksum != mychksum:
-            raise CryptoError("Bad Checksum - Data may have been tampered with") 
+            raise CryptoError("Bad Checksum - Data may have been tampered with")
         if returnpad:
             return (message, content[pos:])
         else:
