@@ -1409,7 +1409,7 @@ class RelayBox(gtk.EventBox):
         rate = rstats['rate']
         size = rstats['size']
         sent = rstats['sent']
-        r = "%.1f" % rate
+        r = "%.1f" % str(float(rate/1024.0))
         snt = "%.1f" % sent
 
         print "We Run This!"
