@@ -115,12 +115,16 @@ class Certificate:
         self.cert.save_pem(self.certfile)
         Rand.save_file(global_randfile)
 
+    #TODO: will need separate contexts for talking to trackers and for talking
+    #      to other peers. Peers don't get verified, trackers should have
+    #      pubkey in verify_location
     def getContext(self):
         #XXX: This is almost definitely not secure.
         #for instance, ctx.set_verify needs a proper callback.
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
         ctx.set_verify(SSL.verify_peer | SSL.verify_client_once | SSL.verify_fail_if_no_peer_cert,0, lambda *x:True)
+        #TODO: Set this to false and add ctx.load_verify_locations
         ctx.set_allow_unknown_ca(True)
         #TODO: Update info callback when we switch to using Python's logging module
         #ctx.set_info_callback(lambda *x:None)
