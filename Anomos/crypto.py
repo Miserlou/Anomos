@@ -154,8 +154,8 @@ class Certificate:
         # Decrypt the session key and IV with our private key
         try:
             tmpsk = self.rsakey.private_decrypt(data[:byte_key_size], RSA.pkcs1_oaep_padding)
-        except RSA.RSAError:
-            raise CryptoError("Data encrypted with wrong public key")
+        except RSA.RSAError, e:
+            raise CryptoError("A decryption error occurred", e)
         sk = tmpsk[:32] # Session Key
         iv = tmpsk[32:] # IV
         sessionkey = AESKey(sk, iv)

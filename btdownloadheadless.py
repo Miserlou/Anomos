@@ -198,9 +198,8 @@ class HeadlessDisplayer(object):
             s.write('\n')
         print s.getvalue()
 
-    def display_relay(self, rate, size, sent):
-        r = float(rate)/1024.0
-        snt = sent
+    def display_relay(self, rate, size, snt):
+        r = "%.1f" % (float(rate)/1024.0)
         if snt != self.rsent:
             print "| relay rate:     " + str(r) + " KB/s (" + str(size) + ")"
             self.rsent = snt

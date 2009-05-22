@@ -312,7 +312,7 @@ class Connection(object):
                 plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
             except CryptoError, e:
                 # Break?
-                self.close("Encryption Error: ", e)
+                self.close("Encryption Error: " + str(e))
             if len(plaintext) == 1: # Single character, NID
                 self.owner.set_relayer(self, plaintext)
                 self.owner.connection_completed(self)   #this changes the value of owner
