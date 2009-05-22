@@ -15,6 +15,7 @@
 from __future__ import generators
 
 import Anomos.crypto as crypto
+from crypto import CryptoError
 
 from binascii import b2a_hex
 from Anomos.bitfield import Bitfield
