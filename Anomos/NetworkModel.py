@@ -405,6 +405,10 @@ class NetworkModel:
         """
         message = plaintext # Some easy to check string for recipient to read
         prev_neighbor = None
+        print "[",
+        for peername in pathByNames:
+            print peername+", "+self.get(peername).loc+"=>",
+        print "]"
         for peername in reversed(pathByNames):
             peerobj = self.get(peername)
             if prev_neighbor:
