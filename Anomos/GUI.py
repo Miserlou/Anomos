@@ -22,7 +22,7 @@ from __init__ import image_root, app_name, FAQ_URL
 
 SPACING = 8
 WINDOW_TITLE_LENGTH = 128 # do we need this?
-WINDOW_WIDTH = 600
+WINDOW_WIDTH = 650
 MAX_WINDOW_HEIGHT = 600 # BUG: can we get this from the user's screen size?
 MAX_WINDOW_WIDTH  = 600 # BUG: can we get this from the user's screen size?
 MIN_MULTI_PANE_HEIGHT = 160

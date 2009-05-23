@@ -2437,7 +2437,7 @@ class DownloadInfoFrame(object):
         self.knownbox.set_border_width(SPACING)
 
         self.knownscroll.add_with_viewport(self.knownbox)
-        self.paned.pack1(self.knownscroll, resize=False, shrink=True)
+        self.paned.pack1(self.knownscroll, resize=True, shrink=True)
 
         
         self.mainscroll = AutoScrollingWindow()
