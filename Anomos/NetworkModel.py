@@ -407,7 +407,7 @@ class NetworkModel:
         prev_neighbor = None
         print "[",
         for peername in pathByNames:
-            print peername+", "+self.get(peername).loc+"=>",
+            print peername+", "+str(self.get(peername).loc)+"=>",
         print "]"
         for peername in reversed(pathByNames):
             peerobj = self.get(peername)
