@@ -10,6 +10,8 @@ AES cipher: aes_256_cfb
 for other functions used directly, look at RSA.py and EVP.py in M2Crypto
 """
 import os
+import shutil
+import sys
 import cStringIO
 import hashlib
 from binascii import b2a_hex, a2b_hex
@@ -24,6 +26,8 @@ def getRand(*args):
 global_cryptodir = None
 global_randfile = None
 global_dd = None
+global_certpath = None
+
 
 def initCrypto(data_dir):
     '''Sets the directory in which to store crypto data/randfile
@@ -34,8 +38,10 @@ def initCrypto(data_dir):
     threading.init()
 
     global getRand, global_cryptodir, global_randfile, global_dd
+    
     global_dd = data_dir
     if None not in (global_cryptodir, global_randfile):
+        copyDefCerts() #just in case
         return #TODO: Already initialized, log a warning here.
     global_cryptodir = os.path.join(data_dir, 'crypto')
     if not os.path.exists(data_dir):
@@ -51,6 +57,33 @@ def initCrypto(data_dir):
         Rand.save_file(global_randfile)
         return rb
     getRand = randfunc
+    copyDefCerts()
+    
+def copyDefCerts():
+    ##If we haven't done it yet, move the default certificates to the user's data folder
+    
+    global global_certpath, global_dd
+    global_certpath = os.path.join(global_cryptodir, 'default_certificates')
+    
+    if not os.path.exists(global_certpath):
+        app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
+        shutil.copytree(os.path.join(app_root, 'default_certificates'), global_certpath)
+    
+def getDefaultCerts():
+    global global_certpath, global_dd
+    global_certpath = os.path.join(global_cryptodir, 'default_certificates')
+    return os.listdir(global_certpath)
+    
+def getCertPath():
+    global global_certpath
+    return global_certpath
+    
+def compareCerts(c1, c2):
+    if (c1.get_fingerprint('sha256') == c2.get_fingerprint('sha256')):
+        return True
+    else:
+        return False
+    
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
