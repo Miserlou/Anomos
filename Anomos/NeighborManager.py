@@ -3,7 +3,7 @@
 @license: see License.txt
 '''
 
-from Anomos.Connecter import Connection
+from Anomos.Connecter import AnomosFwdLink
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
 class NeighborManager:
@@ -19,7 +19,6 @@ class NeighborManager:
         self.connections = {}
         self.incomplete = {}
 
-        #XXX: PORT HACK
         self.port = None
         self.waiting_tcs = {}
 
@@ -120,8 +119,8 @@ class NeighborManager:
         for id,v in self.incomplete.iteritems():
             if v == loc: break
         else: return #loc wasn't found
-        # Make the local Connection for receiving.
-        con = Connection(self, sock, id, True, established=False)
+        # Exchange the header and hold the connection open
+        con = AnomosFwdLink(self, sock, id, established=False)
         self.connections[sock] = con
         sock.handler = con
 

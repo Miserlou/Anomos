@@ -6,7 +6,7 @@ and pass it to the next neighbor in the chain.
 @license: see License.txt
 """
 
-from Anomos.Connecter import Connection
+from Anomos.Connecter import AnomosFwdLink
 from Anomos.CurrentRateMeasure import Measure
 from Anomos import INFO, CRITICAL, WARNING
 from threading import Thread
@@ -19,17 +19,6 @@ class Relayer(object):
     """
     def __init__(self, rawserver, neighbors, incoming, outnid, config, max_rate_period=20.0):
                     #storage, uprate, downrate, choker, key):
-        """
-        @param incoming: The connection to read data from
-        @param storage: Where we store data waiting to be sent
-        @param uprate: Upload rate measurer
-        @param downrate: Download rate measurer
-        @type incoming: Connection
-        @type outgoing: Connection
-        @type uprate: Measure
-        @type downrate: Measure
-        @param storage: StorageWrapper
-        """
         self.rawserver = rawserver
         self.neighbors = neighbors
         self.errorfunc = rawserver.errorfunc
@@ -68,7 +57,7 @@ class Relayer(object):
     def sock_success(self, sock, loc):
         if self.connections.has_key(sock):
             return
-        con = Connection(self, sock, self.tmpnid, True, established=True)
+        con = AnomosFwdLink(self, sock, self.tmpnid, established=True)
         sock.handler = con
         self.errorfunc(INFO, "Relay connection started")
         self.outgoing = con

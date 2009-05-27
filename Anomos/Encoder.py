@@ -11,7 +11,7 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 import Anomos.crypto as crypto
-from Anomos.Connecter import Connection
+from Anomos.Connecter import AnomosFwdLink, AnomosRevLink
 from Anomos.Relayer import Relayer
 from Anomos import BTFailure
 
@@ -36,9 +36,6 @@ class EndPoint(object):
         self.cert = context.certificate
         self.neighbors = context.neighbors
         self.context = context
-
-        #XXX: TEMPORARY HACK
-        self.port = context._singleport_listener.port
 
         self.connections = {} # {socket : Connection}
         self.complete_connections = set()
@@ -89,7 +86,6 @@ class EndPoint(object):
             #TODO: Verify this 30 second rate or make it configurable
             self.raw_server.add_task(retry, 30)
         else:
-            print "Sending TC to", hex(ord(nid)), "at", loc
             self.incomplete[loc] = (nid, tc, aeskey)
             self.raw_server.start_ssl_connection(loc, handler=self)
 
@@ -99,11 +95,10 @@ class EndPoint(object):
         if not self.incomplete.has_key(loc):
             return
         id, tc, aeskey = self.incomplete.pop(loc)
+        print "Sending TC to", hex(ord(id)), "at", loc
         # Make the local connection for receiving.
-        con = Connection(self, sock, id, True, established=True)
-        con.e2e_key = aeskey
+        con = AnomosFwdLink(self, sock, id, established=True, e2e=aeskey)
         self.connections[sock] = con
-        sock.handler = con
         con.send_tracking_code(tc)
 
     def sock_fail(self, loc, err=None):
@@ -180,6 +175,7 @@ class SingleportListener(object):
         self.rawserver.start_listening(serversocket, self)
         oldport = self.port
         self.port = port
+        self.neighbors.port = port
         self.ports[port] = [serversocket, 0]
         self._check_close(oldport)
 
@@ -206,12 +202,12 @@ class SingleportListener(object):
     def remove_torrent(self, infohash):
         del self.torrents[infohash]
 
-    def set_torrent(self, conn, infohash):
+    def xchg_owner_with_endpoint(self, conn, infohash):
         if infohash not in self.torrents:
             return
         self.torrents[infohash].singleport_connection(self, conn)
 
-    def set_relayer(self, conn, neighborid):
+    def xchg_owner_with_relayer(self, conn, neighborid):
         conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
                                 self.config)
         conn.is_relay = True
@@ -236,7 +232,7 @@ class SingleportListener(object):
             sent  += r.get_sent()
         return sent
 
-    def set_neighbor(self, conn):
+    def xchg_owner_with_nbr_manager(self, conn):
         del self.connections[conn.connection]
         conn.owner = self.neighbors
         self.neighbors.connections[conn.connection] = conn
@@ -246,9 +242,8 @@ class SingleportListener(object):
         Connection came in.
         @param socket: SingleSocket
         """
-        con = Connection(self, socket, None, False)
+        con = AnomosRevLink(self, socket)
         self.connections[socket] = con
-        socket.handler = con
 
     def replace_connection(self):
         pass
