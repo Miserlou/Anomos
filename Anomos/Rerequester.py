@@ -27,33 +27,6 @@ import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
 from M2Crypto import httpslib, SSL, X509
 
-### XXX: HACK ###
-class unsafeHTTPSConnection(httpslib.HTTPSConnection):
-    def __init__(self, host, port=None, strict=None, **ssl):
-        httpslib.HTTPSConnection.__init__(self, host, port, strict, **ssl)
-    def connect(self):
-        self.sock = SSL.Connection(self.ssl_ctx)
-        self.sock.set_post_connection_check_callback(None)
-        self.sock.connect((self.host, self.port))
-        pcert = self.sock.get_peer_cert()
-        dcerts = crypto.getDefaultCerts()
-        pcertname = str(self.host) + '.pem'
-        if pcertname not in dcerts:
-            print "\n\nThere is no certificate on file for this tracker."
-            print "That means we cannot verify the identify the tracker."
-            print "Continuing anyway."
-            # XXX Callback!
-        else:
-            cp = crypto.getCertPath()
-            local = X509.load_cert(os.path.join(cp,pcertname))
-            tf = crypto.compareCerts(pcert, local)
-            if not tf:
-                print "\n\n\nWarning! Certificate mismatch!"
-                print "Somebody may be attempting a Man-In-The-Middle attack against your network!\n\n\n"
-                raise SSL.SSLError("Certificate mismatch")
-        
-############
-
 STARTED=0
 COMPLETED=1
 STOPPED=2
