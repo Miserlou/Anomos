@@ -277,7 +277,7 @@ class RateSliderBox(gtk.VBox):
         self.rate_slider_label.set_text(self.value_to_label(int(value)))
 
 class OpenFileButton(gtk.Button):
-    open_tip = 'Open a torrent'
+    start_tip = 'Open a torrent'
 
     def __init__(self, main):
         gtk.Button.__init__(self)
@@ -288,7 +288,8 @@ class OpenFileButton(gtk.Button):
         self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
         self.open_image.show()
         self.add(self.open_image)
-        self.main.tooltips.set_tip(self, self.open_tip)
+
+        self.has_image = False
 
     def open_file(self, widget):
         self.main.select_torrent_to_open(widget)
@@ -1409,7 +1410,7 @@ class RelayBox(gtk.EventBox):
         rate = rstats['rate']
         size = rstats['size']
         sent = rstats['sent']
-        r = "%.1f" % str(float(rate/1024.0))
+        r = "%.1f" % rate
         snt = "%.1f" % sent
 
         print "We Run This!"
@@ -2437,7 +2438,7 @@ class DownloadInfoFrame(object):
         self.knownbox.set_border_width(SPACING)
 
         self.knownscroll.add_with_viewport(self.knownbox)
-        self.paned.pack1(self.knownscroll, resize=True, shrink=True)
+        self.paned.pack1(self.knownscroll, resize=False, shrink=True)
 
         
         self.mainscroll = AutoScrollingWindow()
