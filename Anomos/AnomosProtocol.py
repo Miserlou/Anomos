@@ -106,28 +106,51 @@ class AnomosProtocol(BitTorrentProtocol):
             # Message is only link-encrypted
             #self.got_message(message[1:])
     def got_tcode(self, message):
+        plaintext = ''
+        nextTC = ''
         try:
             plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
         except crypto.CryptoError, e:
             # Break?
             self.close("Encryption Error: " + str(e))
-        if len(plaintext) == 1: # Single character, NID
-            self.owner.xchg_owner_with_relayer(self, plaintext)   #this changes the value of owner
-            self.owner.connection_completed(self)
-            assert self.is_relay
-            self.owner.relay_message(self, TCODE + nextTC)
+        if len(plaintext) == 9: # Single character NID + 8 byte sessionid
+            indx = 0
+            nid = plaintext[indx:indx+1]
+            indx += 1
+            sid = plaintext[indx:indx+9]
+            idmatch = self.owner.check_session_id(sid)
+            if not idmatch:
+                #TODO: Key mismatch is pretty serious, probably want to do
+                #      something besides just close the connection
+                self.close("Session id mismatch")
+            else:
+                self.owner.xchg_owner_with_relayer(self, nid)   #this changes the value of owner
+                self.owner.connection_completed(self)
+                assert self.is_relay
+                self.owner.relay_message(self, TCODE + nextTC)
+        elif len(plaintext) == 92:
+            # TC ends at this peer, plaintext contains sessionid, infohash, aes, iv
+            indx = 0
+            sid = plaintext[indx:8]
+            idmatch = self.owner.check_session_id(sid)
+            if not idmatch:
+                self.close("Session id mismatch")
+            else:
+                indx += 8
+                infohash = plaintext[indx:indx+20]
+                indx += 20
+                aes = plaintext[indx:indx+32]
+                indx += 32
+                iv = plaintext[indx:indx+32]
+                self.e2e_key = crypto.AESKey(aes,iv)
+                self.owner.xchg_owner_with_endpoint(self, infohash)
+                if self.owner.download_id is None:
+                    self.close("Requested torrent not found")
+                    return
+                self.send_confirm()
+                self.owner.connection_completed(self)
         else:
-            # TC ends at this peer, plaintext contains infohash, aes, iv
-            infohash = plaintext[:20]
-            aes = plaintext[20:52]
-            iv = plaintext[52:74]
-            self.e2e_key = crypto.AESKey(aes,iv)
-            self.owner.xchg_owner_with_endpoint(self, infohash)
-            if self.owner.download_id is None:
-                self.close("Requested torrent not found")
-                return
-            self.send_confirm()
-            self.owner.connection_completed(self)
+            self.close("Bad TCODE format")
     def got_confirm(self):
         if not self.established:
             self.owner.add_neighbor(self.id, (self.ip, self.port))
