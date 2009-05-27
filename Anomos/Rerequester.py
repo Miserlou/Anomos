@@ -209,17 +209,24 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.
         """
+        dcerts = crypto.getDefaultCerts()
+        pcertname = str(self.url) + '.pem'
+        if pcertname not in dcerts:
+            print "\n\nWARNING!:\nThere is no certificate on file for this tracker."
+            print "That means we cannot verify the identify the tracker."
+            print "Continuing anyway.\n\n"
+            ssl_contextual_healing=self.certificate.getContext()
+        else:
+            ssl_contextual_healing=self.certificate.getTrackerContext(self.url)
+
         if self.config['tracker_proxy']:
             #XXX: This is not finished. Need to specify destination host, port
-            h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'])
+            h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'], ssl_context=ssl_contextual_healing)
         else:
-            h = unsafeHTTPSConnection(self.url, self.remote_port,
-                                     ssl_context=self.certificate.getContext())
-            
-        
-        #request = Request(url)
-        #if self.config['tracker_proxy']:
-        #    request.set_proxy(self.config['tracker_proxy'], 'http')
+            h = httpslib.HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
+            #h = unsafeHTTPSConnection(self.url, self.remote_port,
+            #                         ssl_context=self.certificate.getContext())
+
         try:
             h.putrequest('GET', self.path+query)
             h.endheaders()
