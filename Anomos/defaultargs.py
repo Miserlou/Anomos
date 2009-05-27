@@ -45,8 +45,6 @@ common_options = [
 
 
 rare_options = [
-    ('keepalive_interval', 120.0,
-        'number of seconds to pause between sending keepalives'),
     ('download_slice_size', 2 ** 14,
         "how many bytes to query for per request."),
     ('max_message_length', 2 ** 23,

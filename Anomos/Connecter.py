@@ -73,8 +73,6 @@ class Connection(object):
                 self.upload = self.download = None
             except:
                 pass
-    def send_keepalive(self):
-        self._send_message('')
     def connection_lost(self, conn):
         assert conn is self.connection
         self._sever()
