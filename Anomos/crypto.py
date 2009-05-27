@@ -89,8 +89,9 @@ def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class Certificate:
-    def __init__(self, loc=None, secure=False):
+    def __init__(self, loc=None, secure=False, tracker=False):
         self.secure = secure
+        self.tracker = tracker
         if None in (global_cryptodir, global_randfile):
             raise CryptoError('Crypto not initialized, call initCrypto first')
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
@@ -102,6 +103,9 @@ class Certificate:
         """Attempts to load the certificate and key from self.certfile and self.keyfile,
            Generates the certificate and key if they don't exist"""
         if not os.path.exists(self.certfile) or not os.path.exists(self.keyfile):
+            if self.tracker:
+                self._create_with_hostname()
+                return
             self._create()
             return
         if self.secure :
@@ -148,6 +152,43 @@ class Certificate:
         self.cert.save_pem(self.certfile)
         Rand.save_file(global_randfile)
 
+    def _create_with_hostname(self):
+        Rand.load_file(global_randfile, -1)
+        # Make the RSA key
+        self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
+        # Save the key, aes 256 cbc encrypted
+        if self.secure:
+            self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
+        else:
+            # Save the key unencrypted.
+            # TODO: Find workaround, M2Crypto doesn't include the function to load
+            # a cert from memory, storing them unencrypted on disk isn't safe.
+            self.rsakey.save_key(self.keyfile, None, callback=util.no_passphrase_callback)
+        self.rsakey.save_key(self.ikeyfile, None, callback=util.no_passphrase_callback)
+        # Make the public key
+        pkey = EVP.PKey()
+        pkey.assign_rsa(self.rsakey, 0)
+        # Generate the certificate
+        self.cert = X509.X509()
+        #TODO: Serial number should change each time cert is generated
+        self.cert.set_serial_number(long(bttime()))
+        self.cert.set_version(2)
+        self.cert.set_pubkey(pkey)
+        # Set the name on the certificate
+        name = X509.X509_Name()
+        name.CN = raw_input("Please enter the tracker's hostname for the SSL certificate: ")
+        self.cert.set_subject(name)
+        # Set the period of time the cert is valid for (30 days from issue)
+        notBefore = m2.x509_get_not_before(self.cert.x509)
+        notAfter = m2.x509_get_not_after(self.cert.x509)
+        m2.x509_gmtime_adj(notBefore, 0)
+        m2.x509_gmtime_adj(notAfter, 60*60*24*30) #TODO: How long should certs be valid?
+        #ext = X509.new_extension('nsComment', 'Anomos generated certificate')
+        #self.cert.add_ext(ext)
+        self.cert.sign(pkey, 'sha1')
+        self.cert.save_pem(self.certfile)
+        Rand.save_file(global_randfile)
+
     #TODO: will need separate contexts for talking to trackers and for talking
     #      to other peers. Peers don't get verified, trackers should have
     #      pubkey in verify_location
@@ -156,6 +197,19 @@ class Certificate:
         #for instance, ctx.set_verify needs a proper callback.
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
+        ctx.set_verify(SSL.verify_peer | SSL.verify_client_once | SSL.verify_fail_if_no_peer_cert,0, lambda *x:True)
+        #TODO: Set this to false and add ctx.load_verify_locations
+        ctx.set_allow_unknown_ca(True)
+        #TODO: Update info callback when we switch to using Python's logging module
+        #ctx.set_info_callback(lambda *x:None)
+        return ctx
+
+    def getTrackerContext(self, url):
+        ctx = SSL.Context("sslv23") # Defaults to SSLv23
+        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
+        global global_cryptodir
+        cloc = os.path.join(global_cryptodir, url+'.pem')
+        ctx.load_verify_locations(cloc)
         ctx.set_verify(SSL.verify_peer | SSL.verify_client_once | SSL.verify_fail_if_no_peer_cert,0, lambda *x:True)
         #TODO: Set this to false and add ctx.load_verify_locations
         ctx.set_allow_unknown_ca(True)

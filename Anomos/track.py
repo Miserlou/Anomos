@@ -927,7 +927,7 @@ def track(args):
         return
 
     initCrypto(config['data_dir'])
-    servercert = Certificate("server", True) #XXX: make the name user defined
+    servercert = Certificate("server", True, True) #XXX: make the name user defined
     r = RawServer(Event(), config, servercert, bindaddr = config['bind'])
     t = Tracker(config, servercert, r)
     s = r.create_ssl_serversocket(config['port'], config['bind'], True)
