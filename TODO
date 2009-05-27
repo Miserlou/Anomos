@@ -4,7 +4,6 @@ TODO:
     Tracker: IP:Port collision blocking
     Tracker: IP connection amount limiting
     Tracker: Paths that don't hit the same IP/Port (not by identity)
-    Tracker: TC Signing
     Client: Tracker identity verification
     Client: TC Signature checking
     Client: Multiple simultaneous downloads
