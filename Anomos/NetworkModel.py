@@ -42,7 +42,7 @@ class SimPeer:
     Container for some information tracker needs to know about each peer, also
     node in Graph model of network topology used for Tracking Code generation.
     """
-    def __init__(self, name, pubkey, loc):
+    def __init__(self, name, pubkey, loc, sid):
         """
         @param name: Peer ID to be assigned to this SimPeer
         @type name: string
@@ -59,6 +59,7 @@ class SimPeer:
         self.last_modified = bttime() # Time when client was last modified
         self.failedNeighbors = []
         self.needsNeighbors = 0
+        self.sessionid = sid
 
     def needsUpdate(self):
         return self.last_modified > self.last_seen
@@ -109,6 +110,9 @@ class SimPeer:
             self.failedNeighbors.append(self.id_map[nid])
             self.rmNeighbor(self.id_map[nid])
             self.needsNeighbors += 1
+
+    def getSessionID(self):
+        return self.sessionid
 
     def getAvailableNIDs(self):
         """
@@ -197,7 +201,7 @@ class NetworkModel:
 #   def getVertices(self):
 #       return self.names.values()
 
-    def initPeer(self, peerid, pubkey, loc, num_neighbors=4):
+    def initPeer(self, peerid, pubkey, loc, sid, num_neighbors=4):
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
@@ -205,7 +209,7 @@ class NetworkModel:
         @returns: a reference to the created peer
         @rtype: SimPeer
         """
-        self.names[peerid] = SimPeer(peerid, pubkey, loc)
+        self.names[peerid] = SimPeer(peerid, pubkey, loc, sid)
         self.randConnect(peerid, num_neighbors)
         return self.names[peerid]
 
@@ -405,17 +409,14 @@ class NetworkModel:
         """
         message = plaintext # Some easy to check string for recipient to read
         prev_neighbor = None
-        print "[",
-        for peername in pathByNames:
-            print peername+", "+str(self.get(peername).loc)+"=>",
-        print "]"
         for peername in reversed(pathByNames):
             peerobj = self.get(peername)
+            sid = peerobj.getSessionID()
             if prev_neighbor:
                 tcnum = str(prev_neighbor.getNID(peername))
-                message = peerobj.pubkey.encrypt(tcnum + message, len(tcnum))
+                message = peerobj.pubkey.encrypt(tcnum + sid + message, len(tcnum)+len(sid))
             else:
-                message = peerobj.pubkey.encrypt(message, len(message))
+                message = peerobj.pubkey.encrypt(sid + message, len(sid)+len(message))
             prev_neighbor = peerobj
         if len(message) < msglen:
             message += crypto.getRand(msglen-len(message))

@@ -451,7 +451,8 @@ class Tracker(object):
         simpeer = self.networkmodel.get(peerid)
         if not simpeer: # Tracker hasn't seen this peer before
             loc = (ip, int(params('port')))
-            simpeer = self.networkmodel.initPeer(peerid, peercert, loc)
+            skey = params('sessionid')
+            simpeer = self.networkmodel.initPeer(peerid, peercert, loc, skey)
         #Check that peer certificate matches.
         #TODO: What do we do when check fails?
         #if peercert.as_pem() != simpeer.pubkey.certificate.as_pem():
@@ -725,6 +726,10 @@ class Tracker(object):
         left = params('left')
         if left and int(left) < 0:
             raise ValueError('invalid amount left')
+        if params('event') == 'started':
+            sessionid = params('sessionid')
+            if not sessionid or len(sessionid) != 8:
+                raise ValueError('invalid session key')
 
     def get(self, handler, path, headers):
         paramslist = {}

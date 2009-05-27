@@ -26,8 +26,6 @@ from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
 from M2Crypto import httpslib, SSL, X509
-##from urllib2 import urlopen, URLError, HTTPError
-##import urllib2
 
 ### XXX: HACK ###
 class unsafeHTTPSConnection(httpslib.HTTPSConnection):
@@ -64,7 +62,8 @@ class Rerequester(object):
 
     def __init__(self, url, config, sched, neighbors, connect, externalsched,
             amount_left, up, down, local_port, myid, infohash, errorfunc, doneflag,
-            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc, certificate):
+            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc,
+            certificate, sessionid):
         ### Tracker URL ###
         parsed = urlparse(url)     # (<scheme>,<netloc>,<path>,<params>,<query>,<fragment>)
         self.url = parsed[1]
@@ -84,11 +83,9 @@ class Rerequester(object):
         self.local_port = local_port
         self.config = config
         self.last = None
-        #self.trackerid = None
         self.announce_interval = 30 * 60
         self.sched = sched
         self.neighbors = neighbors
-        #self.howmany = howmany
         self.peer_connect = connect
         self.externalsched = externalsched
         self.amount_left = amount_left
@@ -108,6 +105,7 @@ class Rerequester(object):
         self.previous_down = 0
         self.previous_up = 0
         self.certificate = certificate
+        self.sessionid = sessionid
 
     def _makequery(self, peerid, port):
         self.errorfunc(INFO, "Connecting with PeerID: %s" %peerid)
@@ -182,6 +180,8 @@ class Rerequester(object):
             query += '&compact=1'
         if event is not None:
             query += '&event=' + ['started', 'completed', 'stopped'][event]
+        if event == 0:
+            query += '&sessionid='+quote(self.sessionid)
         if self.config['ip']:
             query += '&ip=' + gethostbyname(self.config['ip'])
         failedPeers = self.neighbors.failed_connections()
@@ -221,7 +221,6 @@ class Rerequester(object):
         #if self.config['tracker_proxy']:
         #    request.set_proxy(self.config['tracker_proxy'], 'http')
         try:
-            #h.set_debuglevel(1)
             h.putrequest('GET', self.path+query)
             h.endheaders()
             resp = h.getresponse()

@@ -42,6 +42,8 @@ class EndPoint(object):
         self.incomplete = {}
         self.banned = set()
         self.everinc = False
+
+        self.sessionid = context.sessionid
         # XXX: Send keepalives on full chains or just neighbor to neighbor?
         # schedulefunc(self.send_keepalives, config['keepalive_interval'])
 
@@ -57,10 +59,12 @@ class EndPoint(object):
         nid = None
         tclen = len(tc)
         try:
-            #TODO: There will eventually be an extra piece of data in the TC to
-            # verify the tracker, get that here too.
             #TODO: Check the TC length
-            nid, tc = self.cert.decrypt(tc, True)
+            nidsid, tc = self.cert.decrypt(tc, True)
+            nid = nidsid[0]
+            sid = nidsid[1:]
+            if sid != self.sessionid:
+                return
         except ValueError, e:
             print "VALUE ERR: ", e
             return #Tampered With
@@ -146,7 +150,7 @@ class SingleportListener(object):
         is one per torrent), initializes connection objects, and determines
         what to do with the connection once some data has been read.
     '''
-    def __init__(self, rawserver, config, neighbors, certificate):
+    def __init__(self, rawserver, config, neighbors, certificate, sessionid):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
@@ -157,6 +161,7 @@ class SingleportListener(object):
         self.neighbors = neighbors
         self.lookup_loc = self.neighbors.lookup_loc
         self.certificate = certificate
+        self.sessionid = sessionid
         self.download_id = None
 
     def _check_close(self, port):
@@ -206,6 +211,9 @@ class SingleportListener(object):
         if infohash not in self.torrents:
             return
         self.torrents[infohash].singleport_connection(self, conn)
+
+    def check_session_id(self, sid):
+        return sid == self.sessionid
 
     def xchg_owner_with_relayer(self, conn, neighborid):
         conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
