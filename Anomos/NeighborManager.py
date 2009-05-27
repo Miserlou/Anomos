@@ -117,7 +117,9 @@ class NeighborManager:
             # sock_success already called on this socket
             return
         for id,v in self.incomplete.iteritems():
-            if v == loc: break
+            if v == loc:
+                self.add_neighbor(id, loc)
+                break
         else: return #loc wasn't found
         # Exchange the header and hold the connection open
         con = AnomosFwdLink(self, sock, id, established=False)
@@ -139,10 +141,10 @@ class NeighborManager:
         for id in self.neighbors.keys():
             if not freshids.has_key(id):
                 self.rm_neighbor(id)
-        # Add new neighbors in freshids
+        # Start connections with new neighbors
         for id,loc in freshids.iteritems():
             if not self.neighbors.has_key(id):
-                self.add_neighbor(id, loc)
+                self.start_connection(loc, id)
 
     #def send_keepalives(self):
     #
