@@ -10,6 +10,8 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
+import os
+
 from threading import Thread
 from socket import error, gethostbyname
 from random import random, randrange
@@ -23,7 +25,7 @@ from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
-from M2Crypto import httpslib, SSL
+from M2Crypto import httpslib, SSL, X509
 ##from urllib2 import urlopen, URLError, HTTPError
 ##import urllib2
 
@@ -35,6 +37,23 @@ class unsafeHTTPSConnection(httpslib.HTTPSConnection):
         self.sock = SSL.Connection(self.ssl_ctx)
         self.sock.set_post_connection_check_callback(None)
         self.sock.connect((self.host, self.port))
+        pcert = self.sock.get_peer_cert()
+        dcerts = crypto.getDefaultCerts()
+        pcertname = str(self.host) + '.pem'
+        if pcertname not in dcerts:
+            print "\n\nThere is no certificate on file for this tracker."
+            print "That means we cannot verify the identify the tracker."
+            print "Continuing anyway."
+            # XXX Callback!
+        else:
+            cp = crypto.getCertPath()
+            local = X509.load_cert(os.path.join(cp,pcertname))
+            tf = crypto.compareCerts(pcert, local)
+            if not tf:
+                print "\n\n\nWarning! Certificate mismatch!"
+                print "Somebody may be attempting a Man-In-The-Middle attack against your network!\n\n\n"
+                raise SSL.SSLError("Certificate mismatch")
+        
 ############
 
 STARTED=0
@@ -196,6 +215,8 @@ class Rerequester(object):
         else:
             h = unsafeHTTPSConnection(self.url, self.remote_port,
                                      ssl_context=self.certificate.getContext())
+            
+        
         #request = Request(url)
         #if self.config['tracker_proxy']:
         #    request.set_proxy(self.config['tracker_proxy'], 'http')
