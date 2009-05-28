@@ -29,7 +29,7 @@ import gtk
 import pango
 import gobject
 import webbrowser
-from urllib import quote, url2pathname
+from urllib import quote, url2pathname, urlopen
 
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
@@ -50,7 +50,7 @@ defaults = get_defaults('btdownloadgui')
 defaults.extend((('donated', '', ''),
                  ))
 
-NAG_FREQUENCY = 3
+NAG_FREQUENCY = 0
 PORT_RANGE = 5
 
 defconfig = dict([(name, value) for (name, value, doc) in defaults])
@@ -62,7 +62,7 @@ ui_options = 'max_upload_rate minport maxport '\
              'ask_for_save save_in ip dnd_behavior '\
              'min_uploads max_uploads max_initiate '\
              'max_allow_in max_files_open display_interval '\
-             'donated pause'.split()
+             'donated pause auto_ip tracker_proxy'.split()
 advanced_ui = 0
 advanced_ui_options_index = 10
 
@@ -186,6 +186,12 @@ class Validator(gtk.Entry):
 
 class IPValidator(Validator):
     valid_chars = '1234567890.'
+    width = 128
+    cast = str
+
+#TODO: Add real validation
+class URLValidator(Validator):
+    valid_chars = '1234567890.:/abcdefghijklmnopqrstuvwxyz-_!@#$%^&*()+=~]['
     width = 128
     cast = str
 
@@ -656,19 +662,19 @@ class SettingsWindow(object):
         
         self.vbox.pack_start(self.next_torrent_frame, expand=False, fill=False)
 
-        self.last_torrent_frame = gtk.Frame('Seed last completed torrent:')
-        self.last_torrent_box = gtk.HBox()
-        self.last_torrent_box.set_border_width(SPACING)
-        self.last_torrent_box.pack_start(gtk.Label('until share ratio reaches '),
-                                         expand=False, fill=False)
-        self.last_torrent_ratio_field = PercentValidator('last_torrent_ratio',
-                                                         self.config, self.setfunc)
-        self.last_torrent_box.pack_start(self.last_torrent_ratio_field,
-                                               fill=False, expand=False)
-        self.last_torrent_box.pack_start(gtk.Label(' percent.'),
-                                         fill=False, expand=False)
-        self.last_torrent_frame.add(self.last_torrent_box)
-        self.vbox.pack_start(self.last_torrent_frame, expand=False, fill=False)
+        #self.last_torrent_frame = gtk.Frame('Seed last completed torrent:')
+        #self.last_torrent_box = gtk.HBox()
+        #self.last_torrent_box.set_border_width(SPACING)
+        #self.last_torrent_box.pack_start(gtk.Label('until share ratio reaches '),
+        #                                 expand=False, fill=False)
+        #self.last_torrent_ratio_field = PercentValidator('last_torrent_ratio',
+        #                                                 self.config, self.setfunc)
+        #self.last_torrent_box.pack_start(self.last_torrent_ratio_field,
+        #                                       fill=False, expand=False)
+        #self.last_torrent_box.pack_start(gtk.Label(' percent.'),
+        #                                 fill=False, expand=False)
+        #self.last_torrent_frame.add(self.last_torrent_box)
+        #self.vbox.pack_start(self.last_torrent_frame, expand=False, fill=False)
 
         self.port_range_frame = gtk.Frame('Look for available port:')        
         self.port_range = gtk.HBox()
@@ -716,6 +722,16 @@ class SettingsWindow(object):
 
         self.vbox.pack_start(self.dl_frame, expand=False, fill=False)
 
+        self.proxy_frame = gtk.Frame('Proxy address to use:')
+        self.proxy_box = gtk.VBox()
+        self.proxy_box.set_border_width(SPACING)
+        self.proxy_field = URLValidator('tracker_proxy', self.config, self.setfunc)
+        self.main.tooltips.set_tip(self.proxy_field,
+                                   'Where is your proxy?')
+        self.proxy_box.pack_start(self.proxy_field, expand=False, fill=False)
+        #self.ip_box.pack_start(lalign(gtk.Label('()')), expand=False, fill=False)
+        self.proxy_frame.add(self.proxy_box)
+        self.vbox.pack_start(self.proxy_frame, expand=False, fill=False)
 
         self.ip_frame = gtk.Frame('IP to report to the tracker:')
         self.ip_box = gtk.VBox()
@@ -727,6 +743,19 @@ class SettingsWindow(object):
         #self.ip_box.pack_start(lalign(gtk.Label('()')), expand=False, fill=False)
         self.ip_frame.add(self.ip_box)
         self.vbox.pack_start(self.ip_frame, expand=False, fill=False)
+
+        self.auto_ip_checkbutton = gtk.CheckButton("Automatically fetch external IP")
+        self.auto_ip_checkbutton.set_active( bool(self.config['auto_ip']) )
+        self.auto_ip_checkbutton.original_value = bool(self.config['auto_ip'])
+
+        def toggle_auto_ip(w):
+            self.config['auto_ip'] = int(not self.config['auto_ip'])
+            self.setfunc('auto_ip', self.config['auto_ip'])
+            if self.config['auto_ip'] is 1:
+                self.ip_field.set_value(getExternalIP())
+            
+        self.auto_ip_checkbutton.connect('toggled', toggle_auto_ip)
+        self.ip_box.pack_start(self.auto_ip_checkbutton, expand=False, fill=False)
 
         self.buttonbox = gtk.HButtonBox()
         self.buttonbox.set_spacing(SPACING)
@@ -817,7 +846,8 @@ class SettingsWindow(object):
                     self.next_torrent_ratio_field,
                     self.last_torrent_ratio_field,
                     self.minport_field,
-                    self.ip_field):
+                    self.ip_field,
+                    self.tracker_proxy):
             foo.revert()
         self.dl_ask_checkbutton.set_active(self.dl_ask_checkbutton.original_value)
         self.set_save_in(self.dl_save_in.original_value)
@@ -3061,7 +3091,12 @@ class DownloadInfoFrame(object):
     def raiseerror(self, *args):
         raise ValueError('test traceback behavior')
 
-        
+#is this a privacy concern?
+def getExternalIP():
+    f = urlopen("http://www.showmyip.com/simple/")
+    s = str(f.read())
+    f.close()
+    return s
 
 if __name__ == '__main__':
 
