@@ -3124,6 +3124,9 @@ if __name__ == '__main__':
         newtorrents = args
     controlsocket = ControlSocket(config)
 
+    if config['auto_ip'] is 1:
+        config['ip'] = getExternalIP()
+
     got_control_socket = True
     try:
         controlsocket.create_socket()
