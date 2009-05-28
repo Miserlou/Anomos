@@ -3093,7 +3093,7 @@ class DownloadInfoFrame(object):
 
 #is this a privacy concern?
 def getExternalIP():
-    f = urlopen("http://www.showmyip.com/simple/")
+    f = urlopen("http://anomos.info/getip/")
     s = str(f.read())
     f.close()
     return s
