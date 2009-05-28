@@ -44,14 +44,6 @@ class EndPoint(object):
         self.everinc = False
 
         self.sessionid = context.sessionid
-        # XXX: Send keepalives on full chains or just neighbor to neighbor?
-        # schedulefunc(self.send_keepalives, config['keepalive_interval'])
-
-    def send_keepalives(self):
-        self.schedulefunc(self.send_keepalives,
-                          self.config['keepalive_interval'])
-        for c in self.complete_connections:
-            c.send_keepalive()
 
     def start_connection(self, tc, aeskey):
         if len(self.connections) >= self.config['max_initiate']:
