@@ -594,41 +594,6 @@ class SettingsWindow(object):
         self.rate_frame.add(self.rate_box)
         self.vbox.pack_start(self.rate_frame, expand=False, fill=False)
 
-        self.dnd_frame = gtk.Frame('Starting additional torrents manually:')
-        self.dnd_box = gtk.VBox(spacing=SPACING, homogeneous=True)
-        self.dnd_box.set_border_width(SPACING)
-
-        self.dnd_states = ['replace','add','ask']
-        self.dnd_original_state = self.config['dnd_behavior']
-        
-        self.always_replace_radio = gtk.RadioButton(
-            group=None,
-            label="Always stops the _last running torrent")
-        self.dnd_box.pack_start(self.always_replace_radio)
-        self.always_replace_radio.state_name = self.dnd_states[0]
-        
-        self.always_add_radio = gtk.RadioButton(
-            group=self.always_replace_radio,
-            label="Always starts the torrent in _parallel")
-        self.dnd_box.pack_start(self.always_add_radio)
-        self.always_add_radio.state_name = self.dnd_states[1]
-
-        self.always_ask_radio = gtk.RadioButton(
-            group=self.always_replace_radio,
-            label="_Asks each time"
-            )
-        self.dnd_box.pack_start(self.always_ask_radio)
-        self.always_ask_radio.state_name = self.dnd_states[2]
-
-        self.dnd_group = self.always_replace_radio.get_group()
-        for r in self.dnd_group:
-            r.connect('toggled', self.dnd_behavior_changed)
-
-        self.set_dnd_behavior(self.config['dnd_behavior'])
-        
-        self.dnd_frame.add(self.dnd_box)
-        self.vbox.pack_start(self.dnd_frame, expand=False, fill=False)
-
         self.next_torrent_frame = gtk.Frame('Seed completed torrents:')
         self.next_torrent_box   = gtk.VBox(spacing=SPACING, homogeneous=True)
         self.next_torrent_box.set_border_width(SPACING) 
