@@ -186,9 +186,13 @@ class LaunchMany(Feedback):
         style = self.config['saveas_style']
         if style == 1 or style == 3:
             if savein:
-                saveas = os.path.join(savein,x['file'][:-8]) # strip '.torrent'
+                name = x['file']
+                ext = max(name.find('.torrent'), name.find('.atorrent'))
+                saveas = os.path.join(savein,name[:ext]) # strip '.[a]torrent'
             else:
-                saveas = x['path'][:-8] # strip '.torrent'
+                name = x['path']
+                ext = max(name.find('.torrent'), name.find('.atorrent'))
+                saveas = x['path'][:ext] # strip '.[a]torrent'
             if style == 3 and not isdir:
                 saveas = os.path.join(saveas, name)
         else:

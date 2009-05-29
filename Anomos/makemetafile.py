@@ -45,7 +45,7 @@ def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
                     filefunc=dummy, piece_len_pow2=None, target=None,
                     comment=None, filesystem_encoding=None):
     if len(files) > 1 and target:
-        raise BTFailure("You can't specify the name of the .torrent file when "
+        raise BTFailure("You can't specify the name of the .atorrent file when "
                         "generating multiple torrents at once")
 
     if not filesystem_encoding:
@@ -63,7 +63,7 @@ def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
         raise BTFailure('Filesystem encoding "'+filesystem_encoding+
                         '" is not supported in this version')
     files.sort()
-    ext = '.torrent'
+    ext = '.atorrent'
 
     togen = []
     for f in files:
@@ -95,9 +95,9 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
     a, b = os.path.split(path)
     if not target:
         if b == '':
-            f = a + '.torrent'
+            f = a + '.atorrent'
         else:
-            f = os.path.join(a, b + '.torrent')
+            f = os.path.join(a, b + '.atorrent')
     else:
         f = target
     info = makeinfo(path, piece_length, flag, progress, encoding)

@@ -34,7 +34,7 @@ def parsedir(directory, parsed, files, blocked, errfunc,
             errfunc("Could not read directory " + directory)
             continue
         for f in dir_contents:
-            if f.endswith('.torrent'):
+            if f.endswith('.atorrent'):
                 newtorrents = True
                 p = os.path.join(directory, f)
                 try:
