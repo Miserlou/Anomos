@@ -117,9 +117,7 @@ def get_defaults(ui):
             ('max_uploads', -1,
              "the maximum number of uploads to allow at once. -1 means a (hopefully) reasonable number based on --max_upload_rate. The automatic values are only sensible when running one torrent at once."),
             ('save_in', '',
-             'local directory where the torrent contents will be saved. The
-             file (single-file torrents) or directory (batch torrents) will be
-             created under this directory using the default name specified in the .atorrent file. See also --save_as.'),
+             'local directory where the torrent contents will be saved. The file (single-file torrents) or directory (batch torrents) will be created under this directory using the default name specified in the .atorrent file. See also --save_as.'),
             ('responsefile', '',
              'file the server response was stored in, alternative to url'),
             ('url', '',
@@ -133,8 +131,7 @@ def get_defaults(ui):
             ('max_uploads', 6,
              "the maximum number of uploads to allow at once. -1 means a (hopefully) reasonable number based on --max_upload_rate. The automatic values are only sensible when running one torrent at once."),
             ('save_in', '',
-             'local directory where the torrents will be saved, using a name
-             determined by --saveas_style. If this is left empty each torrent will be saved under the directory of the corresponding .atorrent file'),
+             'local directory where the torrents will be saved, using a name determined by --saveas_style. If this is left empty each torrent will be saved under the directory of the corresponding .atorrent file'),
             ('parse_dir_interval', 60,
               "how often to rescan the torrent directory, in seconds" ),
             ('saveas_style', 1,

@@ -55,7 +55,7 @@ defaults = [
         'minimum time it must have been since the last flush to do another one'),
     ('min_time_between_cache_refreshes', 600.0,
         'minimum time in seconds before a cache is considered stale and is flushed'),
-    ('allowed_dir', os.getcwd(), 'only allow downloads for .torrents in this dir (and recursively in subdirectories of directories that have no .torrent files themselves). If set, torrents in this directory show up on infopage/scrape whether they have peers or not'),
+    ('allowed_dir', os.getcwd(), 'only allow downloads for .atorrents in this dir (and recursively in subdirectories of directories that have no .atorrent files themselves). If set, torrents in this directory show up on infopage/scrape whether they have peers or not'),
     ('parse_dir_interval', 60, 'how often to rescan the torrent directory, in seconds'),
     ('allowed_controls', 0, 'allow special keys in torrents in the allowed_dir to affect tracker access'),
     ('hupmonitor', 0, 'whether to reopen the log file upon receipt of HUP signal'),
@@ -359,7 +359,7 @@ class Tracker(object):
                             % (nf, tc, td, tn, ttn))
                 s.write('</table>\n' \
                     '<ul>\n' \
-                    '<li><em>info hash:</em> SHA1 hash of the "info" section of the metainfo (*.torrent)</li>\n' \
+                    '<li><em>info hash:</em> SHA1 hash of the "info" section of the metainfo (*.atorrent)</li>\n' \
                     '<li><em>complete:</em> number of connected clients with the complete file</li>\n' \
                     '<li><em>downloading:</em> number of connected clients still downloading</li>\n' \
                     '<li><em>downloaded:</em> reported complete downloads (total: current/all)</li>\n' \
@@ -747,7 +747,7 @@ class Tracker(object):
             ip = nip
 
         # Handle non-announce connections. ie: Tracker scrapes, favicon
-        # requests, .torrent file requests
+        # requests, .atorrent file requests
         hbc = self.handleBrowserConnections(path)
         if hbc:
             return hbc
@@ -869,7 +869,7 @@ class Tracker(object):
     def parse_allowed(self):
         self.rawserver.add_task(self.parse_allowed, self.parse_dir_interval)
 
-        # logging broken .torrent files would be useful but could confuse
+        # logging broken .atorrent files would be useful but could confuse
         # programs parsing log files, so errors are just ignored for now
         def ignore(message):
             pass
