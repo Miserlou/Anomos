@@ -1907,8 +1907,7 @@ class RunningTorrentBox(DroppableTorrentBox):
                           ("_Remove", self.confirm_remove),
                           ]
 
-        self.menu_items = [("_Peer list"  , self.open_peerlist),
-                           ('----'        , None),
+        self.menu_items = [('----'        , None),
                            ] + menu_items
 
         if self.menu_handler:
