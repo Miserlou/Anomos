@@ -91,10 +91,10 @@ class ConvertedMetainfo(object):
         self.files_fs = None
         self.total_bytes = 0
         self.sizes = []
-        self.publickey = None
+        self.anon = None
 
-        if metainfo.has_key('pubkey'):
-            self.publickey = metainfo['pubkey'] # just loads the public key string
+        if metainfo.has_key('anon'):
+            self.anon = metainfo['anon'] # just loads the public key string
 
         btformats.check_message(metainfo, check_paths=False)
         info = metainfo['info']
@@ -166,6 +166,9 @@ class ConvertedMetainfo(object):
         self.hashes = [info['pieces'][x:x+20] for x in xrange(0,
             len(info['pieces']), 20)]
         self.infohash = hashlib.sha1(bencode(info)).digest()
+
+    def is_anon(self):
+        return self.anon
 
     def show_encoding_errors(self, errorfunc):
         self.reported_errors = True

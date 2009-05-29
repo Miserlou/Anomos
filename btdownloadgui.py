@@ -1830,6 +1830,8 @@ class RunningTorrentBox(DroppableTorrentBox):
     def __init__(self, infohash, metainfo, dlpath, completion, main):
         DroppableTorrentBox.__init__(self, infohash, metainfo, dlpath, completion, main)
 
+        self.anon = metainfo.is_anon()
+
         self.main.tooltips.set_tip(self.iconevbox,
                                    torrent_tip_format % ('Running',
                                                          main_torrent_dnd_tip,
@@ -1838,7 +1840,10 @@ class RunningTorrentBox(DroppableTorrentBox):
         self.seed = False
         self.peerlistwindow = None
 
-        self.icon.set_from_stock('bt-running', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        if self.anon:
+            self.icon.set_from_stock('bt-running', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        else:
+            self.icon.set_from_stock('bt-running-unsafe', gtk.ICON_SIZE_LARGE_TOOLBAR)
 
         self.rate_label_box = gtk.HBox(homogeneous=True)
 
