@@ -103,10 +103,16 @@ class Certificate:
         """Attempts to load the certificate and key from self.certfile and self.keyfile,
            Generates the certificate and key if they don't exist"""
         if not os.path.exists(self.certfile) or not os.path.exists(self.keyfile):
+            hostname = 'localhost'
             if self.tracker:
-                self._create_with_hostname()
-                return
-            self._create()
+                from socket import gethostname
+                hostname = gethostname()
+                tmpname = raw_input("Please enter the tracker's hostname "\
+                        "for the SSL certificate (default: %s): " % hostname)
+                if tmpname.strip(" "):
+                    hostname = tmpname
+            print "Generating encryption keys"
+            self._create(hostname=hostname)
             return
         if self.secure :
             self.rsakey = RSA.load_key(self.keyfile)
@@ -115,7 +121,7 @@ class Certificate:
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
 
-    def _create(self):
+    def _create(self, hostname='localhost'):
         Rand.load_file(global_randfile, -1)
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
@@ -133,50 +139,12 @@ class Certificate:
         pkey.assign_rsa(self.rsakey, 0)
         # Generate the certificate
         self.cert = X509.X509()
-        #TODO: Serial number should change each time cert is generated
         self.cert.set_serial_number(long(bttime()))
         self.cert.set_version(2)
         self.cert.set_pubkey(pkey)
         # Set the name on the certificate
         name = X509.X509_Name()
-        name.CN = 'localhost'
-        self.cert.set_subject(name)
-        # Set the period of time the cert is valid for (30 days from issue)
-        notBefore = m2.x509_get_not_before(self.cert.x509)
-        notAfter = m2.x509_get_not_after(self.cert.x509)
-        m2.x509_gmtime_adj(notBefore, 0)
-        m2.x509_gmtime_adj(notAfter, 60*60*24*30) #TODO: How long should certs be valid?
-        #ext = X509.new_extension('nsComment', 'Anomos generated certificate')
-        #self.cert.add_ext(ext)
-        self.cert.sign(pkey, 'sha1')
-        self.cert.save_pem(self.certfile)
-        Rand.save_file(global_randfile)
-
-    def _create_with_hostname(self):
-        Rand.load_file(global_randfile, -1)
-        # Make the RSA key
-        self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
-        # Save the key, aes 256 cbc encrypted
-        if self.secure:
-            self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
-        else:
-            # Save the key unencrypted.
-            # TODO: Find workaround, M2Crypto doesn't include the function to load
-            # a cert from memory, storing them unencrypted on disk isn't safe.
-            self.rsakey.save_key(self.keyfile, None, callback=util.no_passphrase_callback)
-        self.rsakey.save_key(self.ikeyfile, None, callback=util.no_passphrase_callback)
-        # Make the public key
-        pkey = EVP.PKey()
-        pkey.assign_rsa(self.rsakey, 0)
-        # Generate the certificate
-        self.cert = X509.X509()
-        #TODO: Serial number should change each time cert is generated
-        self.cert.set_serial_number(long(bttime()))
-        self.cert.set_version(2)
-        self.cert.set_pubkey(pkey)
-        # Set the name on the certificate
-        name = X509.X509_Name()
-        name.CN = raw_input("Please enter the tracker's hostname for the SSL certificate: ")
+        name.CN = hostname
         self.cert.set_subject(name)
         # Set the period of time the cert is valid for (30 days from issue)
         notBefore = m2.x509_get_not_before(self.cert.x509)
