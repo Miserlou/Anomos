@@ -103,7 +103,7 @@ def get_defaults(ui):
              'the minimum upload/download ratio, in percent, to achieve before stopping seeding the last torrent. 0 means no limit.'),
             ('pause', 0,
              'start downloader in paused state'),
-            ('dnd_behavior', 'replace',
+            ('dnd_behavior', 'add',
              ''),
             ])
 
