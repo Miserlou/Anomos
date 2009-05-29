@@ -2754,6 +2754,8 @@ class DownloadInfoFrame(object):
         else:
             if not '.atorrent' in name:
                 self.open_warning(data)
+            else:
+                self.torrentqueue.start_new_torrent(data)
         if f is not None:
             f.close()  # shouldn't fail with read-only file (well hopefully)
 
