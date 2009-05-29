@@ -2472,6 +2472,7 @@ class DownloadInfoFrame(object):
 
         self.helpwindow     = None
         self.errordialog    = None
+        self.warningwindow    = None
 
         self.set_title()
         self.set_size()
@@ -2635,6 +2636,25 @@ class DownloadInfoFrame(object):
                                             nofunc =self.help_closed,
                                             )
 
+    def open_warning(self,widget):
+        if self.warningwindow is None:
+            msg = 'Warning! This file is not an anonymous torrent, which means you will be completely exposed while downloading! Do you still want to continue?'
+            self.warningwindow = MessageDialog(self.mainwindow,
+                                            'Warning!',
+                                            msg,
+                                            type=gtk.MESSAGE_WARNING,
+                                            buttons=gtk.BUTTONS_YES_NO,
+                                            yesfunc= lambda : self.cont(widget),
+                                            nofunc = lambda : self.discont(widget),
+                                            )
+
+    def cont(self, widget):
+        self.torrentqueue.start_new_torrent(widget)
+        self.warningwindow = None
+    
+    def discont(self, widget):
+        self.warningwindow = None
+
     def visit_help(self):
         self.visit_url(HELP_URL)
         self.help_closed()
@@ -2645,7 +2665,7 @@ class DownloadInfoFrame(object):
     def help_closed(self, widget=None):
         self.helpwindow = None
 
-
+    ###this might be important richard
     def set_config(self, option, value):
         self.config[option] = value
         if option == 'display_interval':
@@ -2732,7 +2752,8 @@ class DownloadInfoFrame(object):
         except IOError: 
             pass # the user has selected a directory or other non-file object
         else:
-            self.torrentqueue.start_new_torrent(data)
+            if not '.atorrent' in name:
+                self.open_warning(data)
         if f is not None:
             f.close()  # shouldn't fail with read-only file (well hopefully)
 
