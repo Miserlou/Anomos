@@ -12,6 +12,7 @@
 
 import re
 
+from types import IntType, LongType, StringType, DictType
 from Anomos import BTFailure
 
 allowed_path_re = re.compile(r'^[^/\\.~][^/\\]*$')
