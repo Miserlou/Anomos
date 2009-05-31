@@ -36,8 +36,9 @@ def usesRandFile(function):
        afterwards"""
     def retfun(*args, **kwargs):
         Rand.load_file(global_randfile, -1)
-        function(*args, **kwargs)
+        r = function(*args, **kwargs)
         Rand.save_file(global_randfile)
+        return r
     return retfun
 
 def initCrypto(data_dir):
