@@ -94,7 +94,7 @@ class ConvertedMetainfo(object):
         self.anon = None
 
         if metainfo.has_key('anon'):
-            self.anon = bool(metainfo['anon']) # just loads the public key string
+            self.anon = bool(metainfo['anon'])
 
         btformats.check_message(metainfo, check_paths=False)
         info = metainfo['info']

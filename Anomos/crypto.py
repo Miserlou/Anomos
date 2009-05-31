@@ -132,8 +132,8 @@ class Certificate:
     def _create(self, hostname='localhost'):
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
-        # Save the key, aes 256 cbc encrypted
         if self.secure:
+            # Save the key, aes 256 cbc encrypted
             self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
         else:
             # Save the key unencrypted.
