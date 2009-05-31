@@ -178,7 +178,7 @@ class Certificate:
 
     def _verifyCallback(self, preverify_ok, code):
         # Allow self-signed certs
-        if x509.get_error() == ERR_SELF_SIGNED:
+        if code.get_error() == ERR_SELF_SIGNED:
             return True
         return bool(preverify_ok)
 
@@ -188,7 +188,7 @@ class Certificate:
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
         ctx.load_verify_locations(cafile=cloc)
-        ctx.set_allow_unknown_ca(0)
+        ctx.set_allow_unknown_ca(1)
         ctx.set_verify(CTX_VERIFY_FLAGS,0,self._verifyCallback)
         #TODO: Update info callback when we switch to using Python's logging module
         #ctx.set_info_callback(lambda *x:None)
