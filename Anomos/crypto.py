@@ -30,33 +30,38 @@ global_randfile = None
 global_dd = None
 global_certpath = None
 
+def usesRandFile(function):
+    """Decorator to ease use of randfile which must
+       be opened before crypto operations and closed
+       afterwards"""
+    def retfun(*args, **kwargs):
+        Rand.load_file(global_randfile, -1)
+        function(*args, **kwargs)
+        Rand.save_file(global_randfile)
+    return retfun
 
 def initCrypto(data_dir):
     '''Sets the directory in which to store crypto data/randfile
     @param data_dir: path to directory
     @type data_dir: string
     '''
-
     threading.init()
-
     global getRand, global_cryptodir, global_randfile, global_dd
-    
-    global_dd = data_dir
+
     if None not in (global_cryptodir, global_randfile):
-        copyDefCerts() #just in case
         return #TODO: Already initialized, log a warning here.
+    global_dd = data_dir
     global_cryptodir = os.path.join(data_dir, 'crypto')
     if not os.path.exists(data_dir):
-        os.mkdir(data_dir, 0700)
+        os.mkdir(data_dir, 0600)
     if not os.path.exists(global_cryptodir):
-        os.mkdir(global_cryptodir, 0700)
+        os.mkdir(global_cryptodir, 0600)
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
     if Rand.save_file(global_randfile) == 0:
         raise CryptoError('Rand file not writable')
+    @usesRandFile
     def randfunc(numBytes=32):
-        Rand.load_file(global_randfile, -1)
         rb = Rand.rand_bytes(numBytes);
-        Rand.save_file(global_randfile)
         return rb
     getRand = randfunc
     copyDefCerts()
@@ -116,15 +121,15 @@ class Certificate:
             print "Generating encryption keys"
             self._create(hostname=hostname)
             return
-        if self.secure :
+        if self.secure:
             self.rsakey = RSA.load_key(self.keyfile)
         else:
             self.rsakey = RSA.load_key(self.keyfile, util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
 
+    @usesRandFile
     def _create(self, hostname='localhost'):
-        Rand.load_file(global_randfile, -1)
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
         # Save the key, aes 256 cbc encrypted
@@ -154,11 +159,10 @@ class Certificate:
         notAfter = m2.x509_get_not_after(self.cert.x509)
         m2.x509_gmtime_adj(notBefore, 0)
         m2.x509_gmtime_adj(notAfter, 60*60*24*365) #TODO: How long should certs be valid?
-        #ext = X509.new_extension('nsComment', 'Anomos generated certificate')
-        #self.cert.add_ext(ext)
+        # Sign the certificate
         self.cert.sign(pkey, 'ripemd160')
+        # Save it
         self.cert.save_pem(self.certfile)
-        Rand.save_file(global_randfile)
 
     def getContext(self):
         #XXX: This is almost definitely not secure.
