@@ -126,6 +126,7 @@ class AnomosProtocol(BitTorrentProtocol):
             else:
                 self.owner.xchg_owner_with_relayer(self, nid)   #this changes the value of owner
                 self.owner.connection_completed(self)
+                self.complete = True
                 assert self.is_relay
                 self.owner.relay_message(self, TCODE + nextTC)
         elif len(plaintext) == 92:
@@ -149,12 +150,15 @@ class AnomosProtocol(BitTorrentProtocol):
                     return
                 self.send_confirm()
                 self.owner.connection_completed(self)
+                self.complete = True
         else:
             self.close("Bad TCODE format")
     def got_confirm(self):
         if not self.established:
-            self.owner.add_neighbor(self.id, (self.ip, self.port))
+            self.owner.add_neighbor(self.id, (self.ip, self.port),
+                                    self.connection.socket.get_session())
         self.owner.connection_completed(self)
+        self.complete = True
         if self.is_relay:
             self.owner.relay_message(self, CONFIRM)
     ## Partial message sending methods ##

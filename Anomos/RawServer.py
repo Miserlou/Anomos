@@ -203,17 +203,19 @@ class RawServer(object):
         del self.serversockets[serversocket.fileno()]
         self.poll.unregister(serversocket)
 
-    def start_ssl_connection(self, dns, handler=None, context=None, do_bind=True):
-        t = Thread(target=self._start_ssl_connection, args=(dns, handler, context,
-                    do_bind))
+    def start_ssl_connection(self, dns, handler=None, context=None,
+                                session=None , do_bind=True):
+        t = Thread(target=self._start_ssl_connection, \
+                        args=(dns, handler, context, session, do_bind))
         t.start()
 
     def _start_ssl_connection(self, dns, handler=None, context=None,
-            do_bind=True, timeout=15): #TODO: Is timeout long enough?
+            session=None, do_bind=True, timeout=15): #TODO: Is timeout long enough?
         self.errorfunc(INFO, "Starting SSL Connection to %s" % str(dns))
 
         sock = SSL.Connection(self.certificate.getContext())
-        #timeo = sock.get_socket_read_timeout()
+        if session:
+            sock.set_session(session)
         sock.set_socket_read_timeout(SSL.timeout(timeout))
         sock.set_socket_write_timeout(SSL.timeout(timeout))
         #TODO: Better post connection check, this just ensures that the peer
@@ -229,7 +231,6 @@ class RawServer(object):
                     handler.sock_fail(dns, e)
                 self.external_add_task(fail, 0)
         else:
-            #sock.set_socket_read_timeout(timeo)
             def reg(): #dummy function for external_add_task
                 self.register_sock(sock, dns, handler, context)
             self.external_add_task(reg, 0)

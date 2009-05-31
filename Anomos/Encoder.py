@@ -30,7 +30,7 @@ class EndPoint(object):
         self.schedulefunc = schedulefunc
 
         self.ratelimiter = context._ratelimiter
-        self.raw_server = context._rawserver
+        self.rawserver = context._rawserver
         self.config = context.config
         self.download_id = context.infohash
         self.cert = context.certificate
@@ -66,24 +66,26 @@ class EndPoint(object):
         else:
             # Repad to original length
             tc = tc + crypto.getRand(tclen-len(tc))
-        loc = self.neighbors.get_location(nid)
-        if not self.neighbors.is_complete(nid):
+        if self.neighbors.is_incomplete(nid):
             self.neighbors.schedule_tc(self.send_tc, nid, tc, aeskey)
         else:
             self.send_tc(nid, tc, aeskey)
 
     def send_tc(self, nid, tc, aeskey):
         loc = self.neighbors.get_location(nid)
+        if loc is None:
+            return
         if self.incomplete.has_key(loc):
             #print "Already waiting for TC response from %s" % str(loc)
             #print "  Retrying in 30 seconds"
             def retry():
                 self.send_tc(nid,tc,aeskey)
             #TODO: Verify this 30 second rate or make it configurable
-            self.raw_server.add_task(retry, 30)
+            self.rawserver.add_task(retry, 30)
         else:
             self.incomplete[loc] = (nid, tc, aeskey)
-            self.raw_server.start_ssl_connection(loc, handler=self)
+            ssls = self.neighbors.get_ssl_session(nid)
+            self.rawserver.start_ssl_connection(loc, handler=self, session=ssls)
 
     def sock_success(self, sock, loc):
         if self.connections.has_key(sock):
@@ -103,7 +105,6 @@ class EndPoint(object):
         #TODO: Do something with the error msg
 
     def connection_completed(self, c):
-        c.complete = True
         self.complete_connections.add(c)
         c.upload = self.make_upload(c)
         c.download = self.downloader.make_download(c)
@@ -151,7 +152,6 @@ class SingleportListener(object):
         self.relayers = []
         self.connections = {}
         self.neighbors = neighbors
-        self.lookup_loc = self.neighbors.lookup_loc
         self.certificate = certificate
         self.sessionid = sessionid
         self.download_id = None

@@ -6,15 +6,21 @@
 from Anomos.Connecter import AnomosFwdLink
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
+class Neighbor:
+    def __init__(self, id, loc, ssls):
+        self.id = id
+        self.loc = loc
+        self.ssl_session = ssls
+
 class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate, errorfunc):
+    def __init__(self, rawserver, config, certificate, logfunc):
         self.rawserver = rawserver
         self.config = config
         self.cert = certificate
-        self.errorfunc = errorfunc
+        self.logfunc = logfunc
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
@@ -28,33 +34,27 @@ class NeighborManager:
         return self.failedPeers
 
     def get_location(self, nid):
-        return self.neighbors.get(nid, None)
+        nbr = self.neighbors.get(nid, None)
+        if nbr:
+            return nbr.loc
+        return None
 
-    def lookup_loc(self, loc):
-        self.errorfunc(INFO, "Looking up location: %s\nNeighbors: %s"
-                                % (loc, self.neighbors))
-        peers = []
-        for nid, data in self.neighbors.iteritems():
-            if data[0] == loc:
-                peers.append(nid)
-        return peers
+    def get_ssl_session(self, nid):
+        nbr = self.neighbors.get(nid, None)
+        if nbr:
+            return nbr.ssl_session
+        return None
 
-    def add_neighbor(self, id, location):
-        self.errorfunc(INFO, "Adding Neighbor: (\\x%02x, %s)"
+    def add_neighbor(self, id, location, ssls):
+        self.logfunc(INFO, "Adding Neighbor: (\\x%02x, %s)"
                                 % (ord(id), location))
-        if self.has_loc(location):
-            pass
-        else:
-            self.neighbors[id] = location
+        self.neighbors[id] = Neighbor(id, location, ssls)
 
     def rm_neighbor(self, nid):
         if nid in self.failedPeers:
             self.failedPeers.remove(nid)
         elif self.incomplete.has_key(nid):
             self.incomplete.pop(nid)
-        elif self.connections.has_key(nid):
-            self.connections[nid].handler.close()
-            self.connections.pop(nid)
         if self.has_neighbor(nid):
             self.neighbors.pop(nid)
 
@@ -63,11 +63,11 @@ class NeighborManager:
         return self.neighbors.has_key(nid)
 
     def has_loc(self, loc):
-        return loc in self.neighbors.values()
+        return loc in [n.loc for n in self.neighbors.values()]
 
-    def is_complete(self, nid):
+    def is_incomplete(self, nid):
         #TODO: Make this tracker specific.
-        return self.neighbors.has_key(nid)
+        return self.incomplete.has_key(nid)
 
     def count(self, tracker=None):
         #TODO: Make this tracker specific.
@@ -78,7 +78,6 @@ class NeighborManager:
         if not self.incomplete.has_key(con.id):
             # Completing a complete or non-existant connection...
             return
-        con.complete = True
         del self.incomplete[con.id]
         for task in self.waiting_tcs.get(con.id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
@@ -99,10 +98,10 @@ class NeighborManager:
         @type loc: tuple
         @type id: int
         """
-        # Connection is established if they're one of this peer's neighbors
         if self.has_neighbor(id) or \
                 self.incomplete.has_key(id) or \
                 self.has_loc(loc):
+            #Already had neighbor by that id or at that location
             #TODO: Resolve conflict
             return
 
@@ -113,18 +112,14 @@ class NeighborManager:
         """
         @param sock: SingleSocket object for the newly created socket
         """
-        if self.connections.has_key(sock):
-            # sock_success already called on this socket
-            return
         for id,v in self.incomplete.iteritems():
             if v == loc:
-                self.add_neighbor(id, loc)
                 break
         else: return #loc wasn't found
         # Exchange the header and hold the connection open
         con = AnomosFwdLink(self, sock, id, established=False)
         self.connections[sock] = con
-        sock.handler = con
+        self.add_neighbor(id, loc, sock.socket.get_session())
 
     def sock_fail(self, loc, err=None):
         #Remove nid,loc pair from incomplete
@@ -132,7 +127,6 @@ class NeighborManager:
             if v == loc:
                 self.failedPeers.append(k)
                 del self.incomplete[k]
-                break
         #TODO: Do something with the error msg.
 
     def update_neighbor_list(self, list):
@@ -141,10 +135,7 @@ class NeighborManager:
         for id in self.neighbors.keys():
             if not freshids.has_key(id):
                 self.rm_neighbor(id)
-        # Start connections with new neighbors
+        # Start connections with the new neighbors
         for id,loc in freshids.iteritems():
             if not self.neighbors.has_key(id):
                 self.start_connection(loc, id)
-
-    #def send_keepalives(self):
-    #

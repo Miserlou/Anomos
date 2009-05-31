@@ -52,7 +52,8 @@ class Relayer(object):
 
     def start_connection(self, nid):
         loc = self.neighbors.get_location(nid)
-        self.rawserver.start_ssl_connection(loc, handler=self)
+        ssls = self.neighbors.get_ssl_session(nid)
+        self.rawserver.start_ssl_connection(loc, handler=self, session=ssls)
 
     def sock_success(self, sock, loc):
         if self.connections.has_key(sock):
@@ -86,7 +87,6 @@ class Relayer(object):
 
     def connection_completed(self, con):
         self.errorfunc(INFO, "Relay connection established")
-        con.complete = True
         con.is_relay = True
 
     def get_rate(self):
