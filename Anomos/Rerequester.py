@@ -37,12 +37,15 @@ class Rerequester(object):
             amount_left, up, down, local_port, myid, infohash, errorfunc, doneflag,
             upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc,
             certificate, sessionid):
+        self.errorfunc = errorfunc
         ### Tracker URL ###
         parsed = urlparse(url)     # (<scheme>,<netloc>,<path>,<params>,<query>,<fragment>)
+        if parsed[0] != 'https':
+            self.errorfunc(ERROR, "Non-SSL tracker? I don't think so.")
         self.url = parsed[1]
         self.remote_port = 5555 # Assume port 5555 by default
 
-        if ":" in parsed[1]:                #   <netloc> = <url>:<port>
+        if ":" in self.url:                #   <netloc> = <url>:<port>
             i = self.url.index(":")
             self.remote_port = int(self.url[i+1:])
             self.url = self.url[:i]
@@ -64,7 +67,6 @@ class Rerequester(object):
         self.amount_left = amount_left
         self.up = up
         self.down = down
-        self.errorfunc = errorfunc
         self.doneflag = doneflag
         self.upratefunc = upratefunc
         self.downratefunc = downratefunc
@@ -190,18 +192,14 @@ class Rerequester(object):
             print "Continuing anyway.\n\n"
             ssl_contextual_healing=self.certificate.getContext()
         else:
-            ssl_contextual_healing=self.certificate.getTrackerContext(self.url)
-
-        if self.config['tracker_proxy']:
-            #XXX: This is not finished. Need to specify destination host, port
-            h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'], ssl_context=ssl_contextual_healing)
-        else:
-            h = httpslib.HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
-            #h = unsafeHTTPSConnection(self.url, self.remote_port,
-            #                         ssl_context=self.certificate.getContext())
-
+            ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
         try:
-            h.putrequest('GET', self.path+query)
+            if self.config['tracker_proxy']:
+                h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'], ssl_context=ssl_contextual_healing)
+                h.putrequest('GET', self.url, self.path+query)
+            else:
+                h = httpslib.HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
+                h.putrequest('GET', self.path+query)
             h.endheaders()
             resp = h.getresponse()
             data = resp.read()

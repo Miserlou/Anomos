@@ -16,9 +16,11 @@ import cStringIO
 import hashlib
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading, util
+from M2Crypto.m2 import X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT as ERR_SELF_SIGNED
 from Anomos import BTFailure
 from Anomos.platform import bttime
 
+CTX_VERIFY_FLAGS = SSL.verify_peer | SSL.verify_fail_if_no_peer_cert
 
 def getRand(*args):
     raise CryptoError("RNG not initialized")
@@ -146,41 +148,43 @@ class Certificate:
         name = X509.X509_Name()
         name.CN = hostname
         self.cert.set_subject(name)
-        # Set the period of time the cert is valid for (30 days from issue)
+        self.cert.set_issuer(name)
+        # Set the period of time the cert is valid for (1 year from issue)
         notBefore = m2.x509_get_not_before(self.cert.x509)
         notAfter = m2.x509_get_not_after(self.cert.x509)
         m2.x509_gmtime_adj(notBefore, 0)
-        m2.x509_gmtime_adj(notAfter, 60*60*24*30) #TODO: How long should certs be valid?
+        m2.x509_gmtime_adj(notAfter, 60*60*24*365) #TODO: How long should certs be valid?
         #ext = X509.new_extension('nsComment', 'Anomos generated certificate')
         #self.cert.add_ext(ext)
-        self.cert.sign(pkey, 'sha1')
+        self.cert.sign(pkey, 'ripemd160')
         self.cert.save_pem(self.certfile)
         Rand.save_file(global_randfile)
 
-    #TODO: will need separate contexts for talking to trackers and for talking
-    #      to other peers. Peers don't get verified, trackers should have
-    #      pubkey in verify_location
     def getContext(self):
         #XXX: This is almost definitely not secure.
         #for instance, ctx.set_verify needs a proper callback.
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
-        ctx.set_verify(SSL.verify_peer | SSL.verify_client_once | SSL.verify_fail_if_no_peer_cert,0, lambda *x:True)
-        #TODO: Set this to false and add ctx.load_verify_locations
-        ctx.set_allow_unknown_ca(True)
+        ctx.set_verify(CTX_VERIFY_FLAGS, 0, lambda x,y: True)
+        ctx.set_allow_unknown_ca(1)
         #TODO: Update info callback when we switch to using Python's logging module
         #ctx.set_info_callback(lambda *x:None)
         return ctx
 
-    def getTrackerContext(self, url):
+    def _verifyCallback(self, preverify_ok, code):
+        # Allow self-signed certs
+        if x509.get_error() == ERR_SELF_SIGNED:
+            return True
+        return bool(preverify_ok)
+
+    def getVerifiedContext(self, pem):
+        global global_cryptodir
+        cloc = os.path.join(global_cryptodir, pem)
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
-        global global_cryptodir
-        cloc = os.path.join(global_cryptodir, url+'.pem')
-        ctx.load_verify_locations(cloc)
-        ctx.set_verify(SSL.verify_peer | SSL.verify_client_once | SSL.verify_fail_if_no_peer_cert,0, lambda *x:True)
-        #TODO: Set this to false and add ctx.load_verify_locations
-        ctx.set_allow_unknown_ca(True)
+        ctx.load_verify_locations(cafile=cloc)
+        ctx.set_allow_unknown_ca(0)
+        ctx.set_verify(CTX_VERIFY_FLAGS,0,self._verifyCallback)
         #TODO: Update info callback when we switch to using Python's logging module
         #ctx.set_info_callback(lambda *x:None)
         return ctx
