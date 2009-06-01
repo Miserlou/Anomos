@@ -171,7 +171,7 @@ class Tracker(object):
                 h.close()
             except Exception, e:
                 print "**warning** specified favicon file -- %s -- does not exist." % favicon
-                print 'Exception: ' + e
+                print 'Exception: ' + str(e)
 
         self.rawserver = rawserver
         self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
@@ -199,7 +199,7 @@ class Tracker(object):
                 self.state = tempstate
             except Exception, e:
                 print '**warning** statefile '+self.dfile+' corrupt; resetting'
-                print 'Exception: ' + e
+                print 'Exception: ' + str(e)
         self.downloads    = self.state.setdefault('peers', {})
         self.completed    = self.state.setdefault('completed', {})
 
@@ -241,7 +241,7 @@ class Tracker(object):
                 print "# Log Started: ", isotime()
             except Exception, e:
                 print "**warning** could not redirect stdout to log file: ", sys.exc_info()[0]
-                print 'Exception: ' + e
+                print 'Exception: ' + str(e)
 
         if config['hupmonitor']:
             def huphandler(signum, frame, self = self):
@@ -252,7 +252,7 @@ class Tracker(object):
                     print "# Log reopened: ", isotime()
                 except Exception, e:
                     print "**warning** could not reopen logfile"
-                    print 'Exception: ' + e
+                    print 'Exception: ' + str(e)
 
             signal.signal(signal.SIGHUP, huphandler)
 
