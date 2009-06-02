@@ -82,6 +82,7 @@ class Rerequester(object):
         self.previous_up = 0
         self.certificate = certificate
         self.sessionid = sessionid
+        self.warned = False
 
         if parsed[0] != 'https':
             self.errorfunc(ERROR, "You are trying to make an unencrypted connection to a tracker, and this has been disabled for security reasons. Halting.")
@@ -193,10 +194,9 @@ class Rerequester(object):
             return
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
-        if pcertname not in dcerts:
-            print "\n\nWARNING!:\nThere is no certificate on file for this tracker."
-            print "That means we cannot verify the identify the tracker."
-            print "Continuing anyway.\n\n"
+        if pcertname not in dcerts and not self.warned:
+            self.errorfunc(ERROR, "WARNING!:\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
+            self.warned = True
             ssl_contextual_healing=self.certificate.getContext()
         else:
             ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
