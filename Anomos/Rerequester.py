@@ -39,9 +39,10 @@ class Rerequester(object):
             certificate, sessionid):
         self.errorfunc = errorfunc
         ### Tracker URL ###
+
+        self.https = True
+
         parsed = urlparse(url)     # (<scheme>,<netloc>,<path>,<params>,<query>,<fragment>)
-        if parsed[0] != 'https':
-            self.errorfunc(ERROR, "Non-SSL tracker? I don't think so.")
         self.url = parsed[1]
         self.remote_port = 5555 # Assume port 5555 by default
 
@@ -81,6 +82,10 @@ class Rerequester(object):
         self.previous_up = 0
         self.certificate = certificate
         self.sessionid = sessionid
+
+        if parsed[0] != 'https':
+            self.errorfunc(ERROR, "You are trying to make an unencrypted connection to a tracker, and this has been disabled for security reasons. Halting.")
+            self.https = False
 
     def _makequery(self, peerid, port):
         self.errorfunc(INFO, "Connecting with PeerID: %s" %peerid)
@@ -184,6 +189,8 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.
         """
+        if not self.https:
+            return
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
         if pcertname not in dcerts:
