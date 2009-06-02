@@ -119,7 +119,6 @@ class Certificate:
                         "for the SSL certificate (default: %s): " % hostname)
                 if tmpname.strip(" "):
                     hostname = tmpname
-            print "Generating encryption keys.."
             self._create(hostname=hostname)
             return
         if self.secure:

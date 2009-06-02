@@ -195,7 +195,7 @@ class Rerequester(object):
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
         if pcertname not in dcerts and not self.warned:
-            self.errorfunc(ERROR, "WARNING!:\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
+            self.errorfunc(ERROR, "WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
             self.warned = True
             ssl_contextual_healing=self.certificate.getContext()
         else:
