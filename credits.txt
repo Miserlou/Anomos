@@ -1,3 +1,15 @@
+Anomos Inventors and Developers (in alphabetical order):
+Rich Jones
+John Schanck
+
+Special Thanks:
+Omac, scp1, megatomate and all them boys in IRC
+
+Icons:
+wefunction.com/2008/07/function-free-icon-set/
+
+Based on BitTorrent 4.0:
+
 Inventor
 Bram Cohen
 
@@ -9,9 +21,6 @@ Ross Cohen
 
 User Interface
 Matt Chisholm
-
-Logo
-www.jinx.com
 
 The following people have all helped with BitTorrent in some way:
 
