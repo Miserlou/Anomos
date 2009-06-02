@@ -57,7 +57,7 @@ class MainWindow(Window):
         y = 0
 
         # file list
-        self.table.attach(lalign(gtk.Label('Make .torrent metafiles for these files:')),
+        self.table.attach(lalign(gtk.Label('Make .atorrent metafiles for these files:')),
                           0,2,y,y+1, xoptions=gtk.FILL, yoptions=gtk.FILL, )
         y+=1
 
@@ -242,7 +242,6 @@ class ProgressDialog(gtk.Dialog):
         self.set_border_width(SPACING)
         self.set_title('Building torrents...')
         self.file_list = file_list
-        self.trackerpubkey = None #'/home/rich/anomos/crypto/tracker-pub.pem'      ##TODO: Fetch pubkey from tracker itself! Alternately, how to get $HOME?
         self.announce_url = announce_url
         self.piece_length = piece_length
         self.flag = Event() # ???
@@ -277,7 +276,7 @@ class ProgressDialog(gtk.Dialog):
         self._update_gui()
 
     def set_file(self, filename):
-        self.label.set_text('building ' + filename + '.torrent')
+        self.label.set_text('building ' + filename + '.atorrent')
         self._update_gui()
 
     def _update_gui(self):
