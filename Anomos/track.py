@@ -182,7 +182,7 @@ class Tracker(object):
 
         self.certificate = certificate
         self.networkmodel = NetworkModel()
-
+    
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
             self.only_local_override_ip = not config['nat_check']
@@ -256,11 +256,13 @@ class Tracker(object):
 
             signal.signal(signal.SIGHUP, huphandler)
 
+        self.parse_dir_interval = config['parse_dir_interval']
+        self.parse_blocked()
+
         self.allow_get = config['allow_get']
 
         if config['allowed_dir'] != '':
             self.allowed_dir = config['allowed_dir']
-            self.parse_dir_interval = config['parse_dir_interval']
             self.allowed = self.state.setdefault('allowed',{})
             self.allowed_dir_files = self.state.setdefault('allowed_dir_files',{})
             self.allowed_dir_blocked = {}
@@ -439,6 +441,10 @@ class Tracker(object):
                     return (200, 'Not Authorized', \
                         {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
+        if infohash in self.blockedhashes:
+            return (200, 'Not Authorized', \
+                {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
+                bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}))
         return None
 
     def update_simpeer(self, paramslist, ip, peercert):
@@ -890,6 +896,15 @@ class Tracker(object):
         self.state['allowed'] = self.allowed
         self.state['allowed_dir_files'] = self.allowed_dir_files
 
+    def parse_blocked(self):
+        self.rawserver.add_task(self.parse_blocked, self.parse_dir_interval)
+
+        self.blocklist = os.path.join(self.config['data_dir'], "blockedhashes")
+        if os.path.exists(self.blocklist):
+            self.blockedhashes = open(self.blocklist, "r").readlines()
+        else:
+            self.blockedhashes = []
+
     def delete_peer(self, infohash, peerid):
         dls = self.downloads[infohash]
         peer = dls[peerid]
@@ -957,3 +972,5 @@ def size_format(s):
     else:
         r = "%.2f TiB" % (s/1099511627776.0)
     return r
+
+    
