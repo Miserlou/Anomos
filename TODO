@@ -1,6 +1,7 @@
 Release target: June 4th
 
 TODO:
+    General: Update installation instructions, things like BUILD.windows.txt
     Tracker: IP:Port collision blocking
     Tracker: IP connection amount limiting
     Tracker: Paths that don't hit the same IP/Port (not by identity)
