@@ -19,6 +19,9 @@ import Anomos
 
 import glob
 
+if (os.name == 'nt')
+    import py2exe
+
 scripts = ["btdownloadgui.py", "btdownloadcurses.py", "btdownloadheadless.py", 
            "btmaketorrentgui.py", "btmaketorrent.py",
            "btlaunchmany.py", "btlaunchmanycurses.py", 
@@ -39,7 +42,7 @@ setup(
     author = "John Schanck",
     author_email = "john@anomos.info",
     url = "http://anomos.info/",
-    license = "MIT License",
+    license = "GPL",
     scripts = scripts,
     packages = ["Anomos"],
     data_files = data_files,
