@@ -72,7 +72,7 @@ class NeighborManager:
             self.incomplete.pop(nid)
         if self.has_neighbor(nid):
             con = self.neighbors[nid].connection
-            if con:
+            if con and self.connections.has_key(con):
                 del self.connections[con]
             self.neighbors.pop(nid)
 
