@@ -462,6 +462,10 @@ class Tracker(object):
         params = params_factory(paramslist)
         peerid = params('peer_id')
         simpeer = self.networkmodel.get(peerid)
+        #XXX: quasi-dangerous hack, allows anyone on localhost to specify
+        #     any IP address they want.
+        if params('ip') != ip and ip == '127.0.0.1':
+            ip = params('ip')
         if not simpeer: # Tracker hasn't seen this peer before
             loc = (ip, int(params('port')))
             skey = params('sessionid')
