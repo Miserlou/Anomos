@@ -328,6 +328,8 @@ class NetworkModel:
                 # N is shorter than our minimum allowed path, then update
                 # the best distance and path to N so that connections to
                 # N will be routed through cur.
+                if not known.get(cur_name) or not known.get(n):
+                    continue
                 if known[cur_name][DIST] + distToN < known[n][DIST] \
                   or (n in dests and known[n][PATHLEN] < minpathlen):
                     known[n][DIST] = known[cur_name][DIST] + distToN
