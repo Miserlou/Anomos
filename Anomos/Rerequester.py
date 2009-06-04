@@ -82,11 +82,6 @@ class Rerequester(object):
         self.previous_up = 0
         self.certificate = certificate
         self.sessionid = sessionid
-        self.warned = False
-
-        if parsed[0] != 'https':
-            self.errorfunc(ERROR, "You are trying to make an unencrypted connection to a tracker, and this has been disabled for security reasons. Halting.")
-            self.https = False
 
     def _makequery(self, peerid, port):
         self.errorfunc(INFO, "Connecting with PeerID: %s" %peerid)
@@ -190,13 +185,10 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.
         """
-        if not self.https:
-            return
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
-        if pcertname not in dcerts and not self.warned:
-            self.errorfunc(ERROR, "WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
-            self.warned = True
+        if pcertname not in dcerts:
+            self.errorfunc(ERROR, "There is no certificate on file for this tracker, so we cannot verify its identity! Still, we shall continue anyway.")
             ssl_contextual_healing=self.certificate.getContext()
         else:
             ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)

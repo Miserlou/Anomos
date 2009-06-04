@@ -4,8 +4,6 @@ TODO:
     Tracker: IP:Port collision blocking
     Tracker: IP connection amount limiting
     Tracker: Paths that don't hit the same IP/Port (not by identity)
-    Tracker: .torrent => .atorrent
-    Client: Multiple simultaneous downloads
     Client: Finish BitTorrent support
 
     Also:
