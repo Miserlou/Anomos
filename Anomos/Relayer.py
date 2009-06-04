@@ -1,10 +1,19 @@
-"""
-Relayer objects, like Uploader and Downloader, serve to take incoming information, store it,
-and pass it to the next neighbor in the chain.
+# Relayer.py
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-@author: Rich Jones, John Schanck
-@license: see License.txt
-"""
+# Written by Rich Jones, John Schanck
 
 from Anomos.Connecter import AnomosFwdLink
 from Anomos.CurrentRateMeasure import Measure

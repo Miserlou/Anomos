@@ -1,21 +1,31 @@
-"""
-@author: John Schanck <john@anomos.info>
-@license: See License.txt
+# NetworkModel.py
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-The Anomos tracker keeps a running model of the
-network at all times, and uses it to control the flow
-of file chunks. Each peer is represented by a Vertex
-object; the connections between peers are called edges and
-are tuples of the form (IP address, weight). Each Vertex
-assigns relative IDs to its edges. The IP addresses these
-relative IDs represent are only known by the Anomos tracker
-and the peer which the Vertex object represents.
+# Written by John M. Schanck and Rich Jones
 
-To determine how a chunk should get from uploader to downloader, the
-Anomos tracker computes the shortest path between the two and returns
-a colon delimited tracking code consisting of the relative IDs of each
-edge in the path.
-"""
+########################################################################
+# Note:
+# The Anomos tracker keeps a running model of the
+# network at all times, and uses it to control the flow
+# of file chunks. Each peer is represented by a Vertex
+# object; the connections between peers are called edges and
+# are tuples of the form (IP address, weight). Each Vertex
+# assigns relative IDs to its edges. The IP addresses these
+# relative IDs represent are only known by the Anomos tracker
+# and the peer which the Vertex object represents.
+########################################################################
 
 import random
 from sys import maxint as INFINITY
