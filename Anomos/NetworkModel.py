@@ -28,6 +28,7 @@
 ########################################################################
 
 import random
+from operator import itemgetter
 from sys import maxint as INFINITY
 import hashlib
 import Anomos.crypto as crypto
@@ -110,7 +111,6 @@ class SimPeer:
         """
         edge = self.neighbors.get(peerid)
         if edge:
-            print "rmNeighbor", peerid
             del self.id_map[edge['nid']]
             del self.neighbors[peerid]
             self.last_modified = bttime()
@@ -168,10 +168,6 @@ class SimPeer:
     def isSeeding(self, infohash):
         return self.isSharing(infohash) and self.infohashes[infohash][1] == 0
 
-    def printConnections(self):
-        """Debugging only. Returns IP-self: IP-0, IP-1, IP-2, ..., IP-n"""
-        return self.name + ": " + ", ".join(map(str, self.edges.iteritems()))
-
     def __str__(self):
         return self.name
 
@@ -199,11 +195,13 @@ class NetworkModel:
         return [k for k,v in self.names.iteritems() if v.isSharing(infohash)]
 
     def getDownloadingPeers(self, infohash):
-        return [k for k,v in self.names.iteritems()
-                    if v.isSharing(infohash) and not v.isSeeding(infohash)]
+        return set(i for i in self.names \
+                if self.names[i].isSharing(infohash))
 
     def getSeedingPeers(self, infohash):
-        return [k for k,v in self.names.iteritems() if v.isSeeding(infohash)]
+        return set(i for i in self.names \
+                if self.names[i].isSharing(infohash) and \
+                    not self.names[i].isSeeding(infohash))
 
     def getNames(self):
         return self.names.keys()
@@ -285,125 +283,78 @@ class NetworkModel:
                 self.names[neighborOf].rmNeighbor(peerid)
             del self.names[peerid]
 
-#   def bfConnected(self, source):
-#       """
-#       Breadth first search for all nodes connected to source
-#       @param source: Peer ID of a node in the network
-#       @type source: string
-#       """
-#       opened = [source]
-#       closed = []
-#       while opened:
-#           n = opened.pop(0)
-#           if n not in closed:
-#               opened.extend(self.get(n).getNbrs())
-#               closed.append(n)
-#       return closed
-
-#   def isConnected(self):
-#       """
-#       @returns: True if graph is connected, false if not
-#       @rtype:boolean
-#       """
-#       if self.order():
-#           source = self.getNames()[0]
-#           #Ensure that the number of vertices connected to any one vertex
-#           #is equal to the total number of vertices in the network
-#           if len(self.bfConnected(source)) == self.order():
-#               return True
-#       return False
-
-    def shortestPath(self, s, d):
+    def getPathsToFile(self, src, infohash, is_seed=False, minpathlen=3):
         """
-        Returns (Dijikstra) shortest path from s to d as a list of peer IDs
-        @param s: Peer ID (str) of the start node
-        @param d: Peer ID (str) of the end node
+        Modified Dijkstra with the added condition that if the peer
+        corresponding to a vertex is sharing the desired file then paths less
+        than minpathlen hops long act as if they have infinite weight.
 
+        @param src: Peer ID (str) of the start node
+        @param infohash: File to search for
+        @param minpathlen: Minimum path length to accept
         @return: list of Peer IDs
         """
-        source = self.get(s)
-        dest = self.get(d)
+        source = self.get(src)
+        if not is_seed:
+            dests = self.getDownloadingPeers(infohash)
+        else:
+            dests = self.getSeedingPeers(infohash)
         paths = dict.fromkeys(self.getNames(), [])
-        distances = dict.fromkeys(self.getNames(), INFINITY)
-
-        distances[source.name] = 0 # The distance of the source to itself is 0
-        dist_to_unknown = distances.copy() # Safe to destroy copy
-        print distances
-        print dist_to_unknown
-        last = source
-        while last.name != dest.name:
+        known = dict.fromkeys(self.getNames(), [INFINITY, 0])
+        DIST, PATHLEN = 0, 1 # For easy to read indicies
+        known[source.name] = [0, 0] # The distance of the source to itself is 0
+        unexplored = known.copy() # Safe to destroy copy
+        #print "\n\n"
+        while len(unexplored) > 0:
             # Select the next vertex to explore, which is not yet fully explored and which
             # minimizes the already-known distances.
-            cur_name = min([(v, k) for (k, v) in dist_to_unknown.iteritems()])[1]
-            cur = self.get(cur_name)
-            for n in cur.neighbors:
-                d = cur.neighbors[n].get('dist')
-                if distances[n] > distances[cur_name] + d:
-                    distances[n] = distances[cur_name] + d
-                    paths[n] = paths[cur_name] + [n]
-                    if dist_to_unknown.has_key(n):
-                        dist_to_unknown[n] = distances[n]
-            if cur_name in dist_to_unknown: # Delete the completely explored vertex
-                del dist_to_unknown[cur_name]
-            last = cur
-        return paths[dest.name]
+            #print known, "\n", paths, "\n\n"
+            if len(unexplored) > 1:
+                cur_name = min(*unexplored.items(), **{'key':itemgetter(1)})[0]
+            else:
+                cur_name = unexplored.keys()[0]
+            cur_obj = self.get(cur_name)
+            del unexplored[cur_name] # Remove cur_name from future candidates
 
-## Little experiment with modified dijikstra
-#    def closestWithFile(self, source, infohash, count=1):
-#        source = self.get(s)
+            # If the smallest distance is INFINITY, the remaining nodes are all
+            # unreachable.
+            if known[cur_name][DIST] == INFINITY:
+                break
+            for n in cur_obj.neighbors:
+                distToN = cur_obj.neighbors[n].get('dist')
+                # If the distance to N through cur is less than the
+                # current shortest distance to N through other nodes,
+                # or N is a potential destination and the best path to
+                # N is shorter than our minimum allowed path, then update
+                # the best distance and path to N so that connections to
+                # N will be routed through cur.
+                if known[cur_name][DIST] + distToN < known[n][DIST] \
+                  or (n in dests and known[n][PATHLEN] < minpathlen):
+                    known[n][DIST] = known[cur_name][DIST] + distToN
+                    known[n][PATHLEN] = len(paths[cur_name]) + 1
+                    # Keep unexplored in sync with distances
+                    if unexplored.has_key(n):
+                        unexplored[n] = known[n]
+                    paths[n] = paths[cur_name] + [cur_name]
+        gps = [paths[p] for p in paths.iterkeys() if p in dests and
+                len(paths[p]) >= minpathlen]
+        print "Generated path: ", gps
+        return gps
 
-#        paths = dict.fromkeys(self.getNames(), [])
-#        distances = dict.fromkeys(self.getNames(), INFINITY)
-#        complete_paths = {}
-#
-#        distances[source.name] = 0 # The distance of the source to itself is 0
-#        dist_to_unknown = distances.copy() # Safe to destroy copy
-#        last = source
-#        while dist_to_unknown:
-#            # Select the next vertex to explore, which is not yet fully explored and which
-#            # minimizes the already-known distances.
-#            cur_name = min([(v, k) for (k, v) in dist_to_unknown.iteritems()])[1]
-#            cur = self.get(cur_name)
-#            for n in cur.neighbors:
-#                d = cur.neighbors[n].get('dist')
-#                if distances[n] > distances[cur_name] + d:
-#                    distances[n] = distances[cur_name] + d
-#                    paths[n] = paths[cur_name] + [n]
-#                    if self.get(n).infohashes.has_key(infohash):
-#                        complete_paths[n] = paths[n]
-#                    if dist_to_unknown.has_key(n):
-#                        dist_to_unknown[n] = distances[n]
-#            if cur_name in dist_to_unknown: # Delete the completely explored vertex
-#                del dist_to_unknown[cur_name]
-#            last = cur
-#        return paths[dest.name]
-
-    def getTrackingCode(self, source, dest, plaintext='#', block_direct_connections=True):
-        """
-        Generate the tracking code for the shortest path from source to dest
-
-        @param source: Peer ID (str) of the start node
-        @param dest: Peer ID (str) of the end node
-        @return: See NetworkModel.encryptTC
-        @rtype: string
-
-        @todo: Some error checking.
-        """
-
-        v_source = self.get(source)
-        v_dest = self.get(dest)
-
-        # Block direct connections from source to dest
-        if block_direct_connections:
-            sd_temp = v_source.getWeight(dest)
-            v_source.reWeight(dest, INFINITY)
-        pathByNames = [source] + self.shortestPath(source,dest)
-        DEBUG(pathByNames)
-        if block_direct_connections:
-            v_source.reWeight(dest, sd_temp)
-            if len(pathByNames) == 1:
-                return None
-        return self.encryptTC(pathByNames, plaintext)
+    def getTrackingCodes(self, source, infohash, count=3):
+        seedp = self.get(source).isSeeding(infohash)
+        paths = self.getPathsToFile(source, infohash, \
+                                    is_seed=seedp, minpathlen=4)
+        tcs = []
+        if len(paths) > count:
+            rand.shuffle(paths)
+        for p in paths[:min(count, len(paths))]:
+            aes = crypto.AESKey()
+            kiv = ''.join((aes.key, aes.iv))
+            m = self.encryptTC(p, \
+                            plaintext=''.join((infohash,kiv)))
+            tcs.append([kiv, m])
+        return tcs
 
     def encryptTC(self, pathByNames, plaintext='#', msglen=1024):
         """
@@ -431,9 +382,6 @@ class NetworkModel:
         if len(message) < msglen:
             message += crypto.getRand(msglen-len(message))
         return message
-
-    def __repr__(self):
-        return "\n".join(map(Vertex.printConnections, self.names.values()))
 
 
 ###########

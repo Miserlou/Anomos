@@ -47,7 +47,7 @@ defaults = [
     ('save_dfile_interval', 5 * 60, 'seconds between saving dfile'),
     ('timeout_downloaders_interval', 45 * 60, 'seconds between expiring downloaders'),
     ('reannounce_interval', 30 * 60, 'seconds downloaders should wait between reannouncements'),
-    ('response_size', 50, 'default number of peers to send in an info message if the client does not specify a number'),
+    ('response_size', 10, 'default number of peers to send in an info message if the client does not specify a number'),
     ('timeout_check_interval', 5,
         'time to wait between checking if any connections have timed out'),
     ('nat_check', 3,
@@ -625,24 +625,24 @@ class Tracker(object):
         #cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
 
         # If is_seed then get the swarm without seeders
-        if is_seed:
-            swarm = self.networkmodel.getDownloadingPeers(infohash)
-        else:
-            swarm = self.networkmodel.getSwarm(infohash)
-        tcs = []
-        for id in sample(swarm, min(len(swarm), count)):
-            if id == peerid:
-                continue
-            print id, "To", peerid
-            #Geneterate the AESKey to use, default algorith is aes_256_cfb
-            aes = AESKey()
-            #TODO: Peers should only depend on the Tracker to distribute the
-            #      AES key, IV could be generated separately so that bad
-            #      tracker's can't recover the full stream.
-            t = self.networkmodel.getTrackingCode(peerid, id, infohash + aes.key + aes.iv)
-            if t:
-                tcs.append([aes.key + aes.iv, t])
-        return tcs
+        #if is_seed:
+        #    swarm = self.networkmodel.getDownloadingPeers(infohash)
+        #else:
+        #    #swarm = self.networkmodel.getSwarm(infohash)
+        paths = self.networkmodel.getTrackingCodes(peerid, infohash)
+        return paths
+        #for id in sample(swarm, min(len(swarm), count)):
+        #    if id == peerid:
+        #        continue
+        #    print id, "To", peerid
+        #    #Geneterate the AESKey to use, default algorith is aes_256_cfb
+        #    aes = AESKey()
+        #    #TODO: Peers should only depend on the Tracker to distribute the
+        #    #      AES key, IV could be generated separately so that bad
+        #    #      tracker's can't recover the full stream.
+        #    t = self.networkmodel.getTrackingCodes(peerid, id, infohash + aes.key + aes.iv)
+        #    if t:
+        #        tcs.append([aes.key + aes.iv, t])
 
 
 #    def peerlist(self, peerid, infohash, stopped, is_seed, return_type, rsize):
@@ -798,7 +798,8 @@ class Tracker(object):
             data['peers'] = self.neighborlist(params('peer_id'))
             #TODO: Replace "3" with actual number of TCs to get
             data['tracking codes'] = self.getTCs(params('peer_id'), infohash,
-                                                 not int(params('left')), 3)
+                                                 not int(params('left')),
+                                                 self.config['response_size'])
 #            if params('left') and int(params('left')):
 #                data['tracking codes'] = self.getTCs(params('peer_id'),
 #                        infohash, True, 3)
