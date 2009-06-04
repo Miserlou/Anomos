@@ -469,6 +469,8 @@ class Tracker(object):
         if not simpeer: # Tracker hasn't seen this peer before
             loc = (ip, int(params('port')))
             skey = params('sessionid')
+            if not skey:
+                return None
             simpeer = self.networkmodel.initPeer(peerid, peercert, loc, skey)
         #Check that peer certificate matches.
         #TODO: What do we do when check fails?
@@ -481,6 +483,7 @@ class Tracker(object):
             needs = simpeer.numNeeded()
             if needs:
                 self.networkmodel.randConnect(simpeer.name, needs)
+        return simpeer
 
 ## Deprecated
 #    def add_data(self, infohash, event, ip, paramslist):
@@ -777,7 +780,10 @@ class Tracker(object):
                 'you sent me garbage - ' + str(e))
 
         # Update Tracker's information about the peer
-        self.update_simpeer(paramslist, ip, handler.connection.peer_cert)
+        simpeer = self.update_simpeer(paramslist, ip, handler.connection.peer_cert)
+        if simpeer is None:
+            return (400, 'Bad Request', {'Content-Type': 'text/plain'},
+                'Peer authentication failed')
 
         infohash = params('info_hash')
 
