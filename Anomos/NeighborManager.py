@@ -11,6 +11,9 @@ class Neighbor:
         self.id = id
         self.loc = loc
         self.ssl_session = ssls
+        self.connection = None
+    def set_connection(self, con):
+        self.connection = con
 
 class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
@@ -56,6 +59,9 @@ class NeighborManager:
         elif self.incomplete.has_key(nid):
             self.incomplete.pop(nid)
         if self.has_neighbor(nid):
+            con = self.neighbors[nid].connection
+            if con:
+                del self.connections[con]
             self.neighbors.pop(nid)
 
     def has_neighbor(self, nid):
@@ -79,8 +85,12 @@ class NeighborManager:
             # Completing a complete or non-existant connection...
             return
         del self.incomplete[con.id]
+        self.neighbors[con.id].set_connection(con)
         for task in self.waiting_tcs.get(con.id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
+
+    def connection_closed(self, con):
+        self.rm_neighbor(con.id)
 
     def schedule_tc(self, sendfunc, id, tc, aeskey):
         '''Sometimes a tracking code is received before a neighbor is fully

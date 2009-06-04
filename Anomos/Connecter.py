@@ -56,23 +56,13 @@ class Connection(object):
             self.connection.close()
             self.closed = True
             self._sever()
-    #TODO: This should be protocol specific, and properly implemented!
     def _sever(self):
         self.closed = True
         self._reader = None
-        #del self.owner.connections[self.connection]
-        # self.owner.replace_connection()
         if self.is_relay:
             self.send_break()
         if self.complete:
-            #XXX: Make this work for all 3 connection types. (and remove try)
-            try:
-                self.owner.complete_connections.discard(self)
-                self.download.disconnected()
-                self.owner.choker.connection_lost(self)
-                self.upload = self.download = None
-            except:
-                pass
+            self.owner.connection_closed(self)
     def connection_lost(self, conn):
         assert conn is self.connection
         self._sever()

@@ -117,10 +117,19 @@ class EndPoint(object):
         return len(self.complete_connections)
 
     def close_connections(self):
-        for c in self.connections.itervalues():
+        for c in self.connections.values():
             if not c.closed:
-                c.connection.close()
-                c.closed = True
+                c.close()
+
+    def connection_closed(self, con):
+        # Called by Connecter, which checks that the connection is complete
+        # prior to call
+        self.connections.pop(con.connection)
+        self.complete_connections.discard(con)
+        self.choker.connection_lost(con)
+        con.download.disconnected()
+        con.upload = None
+        con.close()
 
     def singleport_connection(self, listener, con):
         #It's one of our neighbors so no need to check if the con is banned

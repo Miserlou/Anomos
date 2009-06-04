@@ -26,15 +26,11 @@ class Relayer(object):
         self.outgoing = None
         self.connections = {self.incoming:None}
         self.config = config
-        #self.storage = storage
-        #self.choker = choker
-        self.relayparts = []
         self.choked = True
         self.unchoke_time = None
         self.uprate = Measure(max_rate_period)
         self.downrate = Measure(max_rate_period)
         self.sent = 0
-        self.interested = False
         self.buffer = []
         self.complete = False
 
@@ -81,9 +77,11 @@ class Relayer(object):
             #TODO: buffer size control, message rejection after a certain point.
             self.buffer.append(msg)
 
-    def connection_lost(self, sock):
-        self.incoming.close()
-        self.outgoing.close()
+    def connection_closed(self, sock):
+        if sock == self.incoming.connection:
+            self.outgoing.close()
+        elif sock == self.outgoing.connection:
+            self.incoming.close()
 
     def connection_completed(self, con):
         self.errorfunc(INFO, "Relay connection established")
