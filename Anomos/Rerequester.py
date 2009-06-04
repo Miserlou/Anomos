@@ -26,10 +26,35 @@ from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
 from M2Crypto import httpslib, SSL, X509
+import urllib
 
 STARTED=0
 COMPLETED=1
 STOPPED=2
+
+class M2CryptoProxyHTTPSHack(httpslib.ProxyHTTPSConnection):
+    '''M2Crypto currently fails to cast the port it gets from the url
+       string to an integer -- this class hacks around that.'''
+    def putrequest(self, method, url, skip_host=0, skip_accept_encoding=0):
+        #putrequest is called before connect, so can interpret url and get
+        #real host/port to be used to make CONNECT request to proxy
+        proto, rest = urllib.splittype(url)
+        if proto is None:
+            raise ValueError, "unknown URL type: %s" % url
+        #get host
+        host, rest = urllib.splithost(rest)
+        #try to get port
+        host, port = urllib.splitport(host)
+        #if port is not defined try to get from proto
+        if port is None:
+            try:
+                port = self._ports[proto]
+            except KeyError:
+                raise ValueError, "unknown protocol for: %s" % url
+        self._real_host = host
+        self._real_port = int(port) #This whole class exists for this line :/
+        httpslib.HTTPSConnection.putrequest(self, method, url, skip_host, skip_accept_encoding)
+
 
 class Rerequester(object):
 
@@ -82,6 +107,21 @@ class Rerequester(object):
         self.previous_up = 0
         self.certificate = certificate
         self.sessionid = sessionid
+        self.warned = False
+        self.proxy_url = self.config.get('tracker_proxy', None)
+        self.proxy_username = None
+        self.proxy_password = None
+        if self.proxy_url:
+            self.parse_proxy_url()
+        if parsed[0] != 'https':
+            self.errorfunc(ERROR, "You are trying to make an unencrypted connection to a tracker, and this has been disabled for security reasons. Halting.")
+            self.https = False
+
+    def parse_proxy_url(self):
+        if '@' in self.proxy_url:
+            auth, self.proxy_url = self.proxy_url.split('@', 1)
+            if ':' in auth:
+                self.proxy_username, self.proxy_password = auth.split(':',1)
 
     def _makequery(self, peerid, port):
         self.errorfunc(INFO, "Connecting with PeerID: %s" %peerid)
@@ -185,17 +225,23 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.
         """
+        if not self.https:
+            return
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
-        if pcertname not in dcerts:
-            self.errorfunc(ERROR, "There is no certificate on file for this tracker, so we cannot verify its identity! Still, we shall continue anyway.")
+        if pcertname not in dcerts and not self.warned:
+            self.errorfunc(ERROR, "WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
+            self.warned = True
             ssl_contextual_healing=self.certificate.getContext()
         else:
             ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
         try:
-            if self.config['tracker_proxy']:
-                h = httpslib.ProxyHTTPSConnection(self.config['tracker_proxy'], ssl_context=ssl_contextual_healing)
-                h.putrequest('GET', self.url, self.path+query)
+            if self.proxy_url:
+                h = M2CryptoProxyHTTPSHack(self.proxy_url, \
+                                            username=self.proxy_username, \
+                                            password=self.proxy_password, \
+                                            ssl_context=ssl_contextual_healing)
+                h.putrequest('GET', "https://"+self.url+":"+str(self.remote_port)+self.path+query)
             else:
                 h = httpslib.HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
                 h.putrequest('GET', self.path+query)
@@ -234,10 +280,6 @@ class Rerequester(object):
         try:
             # Here's where we receive/decrypt data from the tracker
             r = bdecode(data)
-            #if r.has_key('pke'):
-            #    r.update(bdecode(self.clientkey.decrypt(r['pke'])))
-            #    del r['pke'] # Not necessary, but free some space.
-            #TODO: update check_peers for Anomos
             #check_peers(r)
         except BTFailure, e:
             if data != '':

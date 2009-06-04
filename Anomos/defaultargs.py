@@ -80,7 +80,7 @@ rare_options = [
     ('enable_bad_libc_workaround', 0,
      'enable workaround for a bug in BSD libc that makes file reads very slow.'),
     ('tracker_proxy', '',
-     'address of HTTP proxy to use for tracker connections'),
+        'address of HTTP proxy to use for tracker connections. Format: [username:password@]host:port'),
     ]
 
 def get_defaults(ui):
