@@ -110,6 +110,7 @@ class Rerequester(object):
         self.previous_up = 0
         self.certificate = certificate
         self.sessionid = sessionid
+        self.sessionid_send = True
         self.warned = False
         self.proxy_url = self.config.get('tracker_proxy', None)
         self.proxy_username = None
@@ -152,6 +153,7 @@ class Rerequester(object):
     def _check(self):
         if self.current_started is not None:
             if self.current_started <= bttime() - 58:
+                self.sessionid_send = True
                 self.errorfunc(WARNING, "Tracker announce still not complete "
                                "%d seconds after starting it" %
                                int(bttime() - self.current_started))
@@ -199,8 +201,9 @@ class Rerequester(object):
             query += '&compact=1'
         if event is not None:
             query += '&event=' + ['started', 'completed', 'stopped'][event]
-        if event == 0:
+        if event == 0 or self.sessionid_send:
             query += '&sessionid='+quote(self.sessionid)
+            self.sessionid_send = False
         if self.config['ip']:
             query += '&ip=' + gethostbyname(self.config['ip'])
         failedPeers = self.neighbors.failed_connections()
@@ -258,6 +261,7 @@ class Rerequester(object):
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib
         except Exception, g:
+            self.sessionid_send = True
             def f(r='Problem connecting to tracker - ' + str(g)):
                 self._postrequest(errormsg=r, peerid=peerid)
         else:
