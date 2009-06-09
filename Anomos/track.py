@@ -470,11 +470,12 @@ class Tracker(object):
             loc = (ip, int(params('port')))
             skey = params('sessionid')
             if not skey:
-                return None
+                return None # When this method returns None a 400: Bad Request
+                            # is sent to the requester
             simpeer = self.networkmodel.initPeer(peerid, peercert, loc, skey)
-        #Check that peer certificate matches.
-        #TODO: What do we do when check fails?
-        #if peercert.as_pem() != simpeer.pubkey.certificate.as_pem():
+        # Check that peer certificate matches
+        if not simpeer.cmpCertificate(peercert):
+            return None
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
             # Peer stopped their only/last torrent

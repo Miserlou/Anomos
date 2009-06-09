@@ -75,6 +75,9 @@ class SimPeer:
     def needsUpdate(self):
         return self.last_modified > self.last_seen
 
+    def cmpCertificate(self, peercert):
+        return self.pubkey.certificate.as_pem() == peercert.as_pem()
+
     def numNeeded(self):
         return self.needsNeighbors
 
@@ -155,9 +158,6 @@ class SimPeer:
 
     def getNbrs(self):
         return self.neighbors.keys()
-
-    def getOrder(self):
-        return len(self.neighbors)
 
     def numTorrents(self):
         return len(self.infohashes)
