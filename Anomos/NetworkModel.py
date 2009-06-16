@@ -76,7 +76,7 @@ class SimPeer:
         return self.last_modified > self.last_seen
 
     def cmpCertificate(self, peercert):
-        return self.pubkey.certificate.as_pem() == peercert.as_pem()
+        return crypto.compareCerts(self.pubkey.certificate, peercert)
 
     def numNeeded(self):
         return self.needsNeighbors
