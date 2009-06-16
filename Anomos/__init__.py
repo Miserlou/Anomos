@@ -12,7 +12,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 app_name = "Anomos"
-version = '0.0.0'
+version = '0.5.1'
 
 protocol_name = "Anomos"
 
