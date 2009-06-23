@@ -136,7 +136,6 @@ class Rerequester(object):
         self.wanted_peerid = peerid
         self.local_port = port
         self.last = None
-        #self.trackerid = None
         self._check()
 
     def begin(self):
@@ -313,7 +312,6 @@ class Rerequester(object):
             self.announce_interval = r.get('interval', self.announce_interval)
             self.config['rerequest_interval'] = r.get('min interval',
                                             self.config['rerequest_interval'])
-            #self.trackerid = r.get('tracker id', self.trackerid)
             self.last = r.get('last')
             p = r['peers']
             peers = []

@@ -247,14 +247,6 @@ class RawServer(object):
             handler.sock_success(s, dns)
         return s
 
-
-#    def wrap_socket(self, sock, handler, context=None, ip=None):
-#        sock.setblocking(0)
-#        self.poll.register(sock, POLLIN)
-#        s = SingleSocket(self, sock, handler, context, ip)
-#        self.single_sockets[sock.fileno()] = s
-#        return s
-
     def _handle_events(self, events):
         for sock, event in events:
             s = self.serversockets.get(sock, None)
@@ -304,8 +296,6 @@ class RawServer(object):
         try:
             newsock, addr = s.accept()
             conn = SSL.Connection(self.certificate.getContext(), newsock)
-            #TODO: Add post connection check
-            #conn.set_post_connection_check_callback(...)
             conn.setup_addr(addr)
             conn.set_accept_state()
             conn.setup_ssl()

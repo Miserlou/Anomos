@@ -158,7 +158,7 @@ class Certificate:
         # Generate the certificate
         self.cert = X509.X509()
         self.cert.set_serial_number(long(bttime()))
-        self.cert.set_version(2)
+        self.cert.set_version(0x2)
         self.cert.set_pubkey(pkey)
         # Set the name on the certificate
         name = X509.X509_Name()

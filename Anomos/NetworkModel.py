@@ -30,7 +30,6 @@
 import random
 from operator import itemgetter
 from sys import maxint as INFINITY
-import hashlib
 import Anomos.crypto as crypto
 
 from Anomos.platform import bttime
@@ -206,9 +205,6 @@ class NetworkModel:
     def getNames(self):
         return self.names.keys()
 
-#   def getVertices(self):
-#       return self.names.values()
-
     def initPeer(self, peerid, pubkey, loc, sid, num_neighbors=4):
         """
         @type peerid: string
@@ -220,18 +216,6 @@ class NetworkModel:
         self.names[peerid] = SimPeer(peerid, pubkey, loc, sid)
         self.randConnect(peerid, num_neighbors)
         return self.names[peerid]
-
-#   def order(self):
-#       """
-#       @return: Number of SimPeers in network
-#       """
-#       return len(self.names)
-
-#   def minDegree(self):
-#       return min([v.degree() for v in self.getVertices()])
-
-#   def maxDegree(self):
-#       return max([v.degree() for v in self.getVertices()])
 
     def connect(self, v1, v2):
         """
@@ -303,11 +287,9 @@ class NetworkModel:
         DIST, PATHLEN = 0, 1 # For easy to read indicies
         known[source.name] = [0, 0] # The distance of the source to itself is 0
         unexplored = known.copy() # Safe to destroy copy
-        #print "\n\n"
         while len(unexplored) > 0:
             # Select the next vertex to explore, which is not yet fully explored and which
             # minimizes the already-known distances.
-            #print known, "\n", paths, "\n\n"
             if len(unexplored) > 1:
                 cur_name = min(*unexplored.items(), **{'key':itemgetter(1)})[0]
             else:
