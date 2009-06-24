@@ -19,10 +19,9 @@ from threading import Thread
 from socket import error, gethostbyname
 from random import random, randrange
 from binascii import b2a_hex
-from base64 import urlsafe_b64encode
 
 from Anomos.platform import bttime
-from Anomos.zurllib import urlopen, quote, Request
+from Anomos.zurllib import urlopen, quote
 from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
@@ -322,7 +321,7 @@ class Rerequester(object):
                     peers.append((ip, port, None))
             else:
                 for x in p:
-                    peers.append((x['ip'], x['port'], x.get('peer id')))
+                    peers.append((x['ip'], x['port'], x.get('nid')))
             ps = len(peers) + self.neighbors.count()
             if ps < self.config['max_initiate']:
                 if self.doneflag.isSet():
