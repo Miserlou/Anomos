@@ -465,7 +465,7 @@ class Tracker(object):
         #XXX: quasi-dangerous hack, allows anyone on localhost to specify
         #     any IP address they want.
         if params('ip') != ip and ip == '127.0.0.1':
-            ip = params('ip')
+            ip = params('ip', '127.0.0.1')
         if not simpeer: # Tracker hasn't seen this peer before
             loc = (ip, int(params('port')))
             skey = params('sessionid')
@@ -473,6 +473,8 @@ class Tracker(object):
                 return None # When this method returns None a 400: Bad Request
                             # is sent to the requester
             simpeer = self.networkmodel.initPeer(peerid, peercert, loc, skey)
+            if loc[1] != simpeer.loc[1]:
+                return None
         # Check that peer certificate matches
         if not simpeer.cmpCertificate(peercert):
             return None
@@ -614,7 +616,7 @@ class Tracker(object):
             return []
         return [{'ip':vals['loc'][0],   \
                  'port':vals['loc'][1], \
-                 'peer id':vals['nid']} for vals in sim.neighbors.values()]
+                 'nid':vals['nid']} for vals in sim.neighbors.values()]
 
     def getTCs(self, peerid, infohash, is_seed, count):
         """
