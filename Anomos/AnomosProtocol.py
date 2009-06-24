@@ -16,7 +16,7 @@
 # Written by John Schanck
 
 from Anomos.BitTorrentProtocol import *
-import crypto
+from crypto import AESKey, CryptoError
 
 TCODE = chr(0x9)
 CONFIRM = chr(0xA)
@@ -127,14 +127,14 @@ class AnomosProtocol(BitTorrentProtocol):
         nextTC = ''
         try:
             plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
-        except crypto.CryptoError, e:
+        except CryptoError, e:
             # Break?
             self.close("Encryption Error: " + str(e))
-        if len(plaintext) == 9: # Single character NID + 8 byte sessionid
-            indx = 0
-            nid = plaintext[indx:indx+1]
-            indx += 1
-            sid = plaintext[indx:indx+9]
+        if plaintext[0] == chr(0): # plaintext[1:] = 8 byte sessionid + 1 byte nid
+            indx = 1
+            sid = plaintext[indx:indx+8]
+            indx += 8
+            nid = plaintext[indx]
             idmatch = self.owner.check_session_id(sid)
             if not idmatch:
                 #TODO: Key mismatch is pretty serious, probably want to do
@@ -146,21 +146,21 @@ class AnomosProtocol(BitTorrentProtocol):
                 self.complete = True
                 assert self.is_relay
                 self.owner.relay_message(self, TCODE + nextTC)
-        elif len(plaintext) == 92:
+        elif plaintext[0] == chr(1):
             # TC ends at this peer, plaintext contains sessionid, infohash, aes, iv
-            indx = 0
-            sid = plaintext[indx:8]
+            indx = 1
+            sid = plaintext[indx:indx+8]
+            indx += 8
             idmatch = self.owner.check_session_id(sid)
             if not idmatch:
                 self.close("Session id mismatch")
             else:
-                indx += 8
                 infohash = plaintext[indx:indx+20]
                 indx += 20
                 aes = plaintext[indx:indx+32]
                 indx += 32
                 iv = plaintext[indx:indx+32]
-                self.e2e_key = crypto.AESKey(aes,iv)
+                self.e2e_key = AESKey(aes,iv)
                 self.owner.xchg_owner_with_endpoint(self, infohash)
                 if self.owner.download_id is None:
                     self.close("Requested torrent not found")

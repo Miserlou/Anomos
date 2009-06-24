@@ -56,8 +56,9 @@ class EndPoint(object):
         try:
             #TODO: Check the TC length
             nidsid, tc = self.cert.decrypt(tc, True)
-            nid = nidsid[0]
-            sid = nidsid[1:]
+            # Ignore the connection type specifier (byte 0)
+            sid = nidsid[1:9]
+            nid = nidsid[9]
             if sid != self.sessionid:
                 return
         except ValueError, e:

@@ -339,7 +339,7 @@ class NetworkModel:
             tcs.append([kiv, m])
         return tcs
 
-    def encryptTC(self, pathByNames, plaintext='#', msglen=1024):
+    def encryptTC(self, pathByNames, prevNbr=None, plaintext='#', msglen=4096):
         """
         Returns an encrypted tracking code
         @see: http://anomos.info/wp/2008/06/19/tracking-codes-revised/
@@ -348,24 +348,34 @@ class NetworkModel:
         @type pathByNames:  list
         @param plaintext:   Message to be encrypted at innermost onion layer.
         @type plaintext:    str
-        @return: E_a(TC_b + E_b(TC_c + E_c(plaintext)))
+        @return: E_a(\\x0 + SID_a + TC_b + E_b(\\x0 + SID_b + TC_c + \\
+                    E_c(\\x1 + SID_c + plaintext)))
         @rtype: string
         """
-        message = plaintext # Some easy to check string for recipient to read
-        prev_neighbor = None
-        for peername in reversed(pathByNames):
-            peerobj = self.get(peername)
-            sid = peerobj.getSessionID()
-            if prev_neighbor:
-                tcnum = str(prev_neighbor.getNID(peername))
-                message = peerobj.pubkey.encrypt(tcnum + sid + message, len(tcnum)+len(sid))
-            else:
-                message = peerobj.pubkey.encrypt(sid + message, len(sid)+len(message))
-            prev_neighbor = peerobj
-        if len(message) < msglen:
-            message += crypto.getRand(msglen-len(message))
-        return message
-
+        message = plaintext
+        peername = None
+        assert len(pathByNames) > 0
+        peername = pathByNames.pop(-1)
+        peerobj = self.get(peername)
+        sid = peerobj.getSessionID()
+        if prevNbr:
+            tcnum = str(prevNbr.getNID(peername))
+            tocrypt = chr(0) + sid + tcnum + message
+            recvMsgLen = len(sid + tcnum) + 1 # The 'message' data is for the
+                                              # next recipient, not this one.
+            message = peerobj.pubkey.encrypt(tocrypt, recvMsgLen)
+        else:
+            tocrypt = chr(1) + sid + message
+            message = peerobj.pubkey.encrypt(tocrypt, len(tocrypt))
+        prevNbr = peerobj
+        if len(pathByNames) > 0:
+            return self.encryptTC(pathByNames, prevNbr, message, msglen)
+        elif len(message) < msglen:
+            # Pad to msglen
+            return message + crypto.getRand(msglen-len(message))
+        else:
+            # XXX: Disallow messages longer than msglen?
+            return message
 
 ###########
 ##TESTING##
