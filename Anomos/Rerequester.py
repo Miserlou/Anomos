@@ -16,7 +16,7 @@
 import os
 
 from threading import Thread
-from socket import error, gethostbyname
+from socket import gethostbyname
 from random import random, randrange
 from binascii import b2a_hex
 
