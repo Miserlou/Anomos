@@ -151,7 +151,7 @@ class SimPeer:
         return self.neighbors.get(nid, {}).get('dist', INFINITY)
 
     def getNID(self, peerid, default=None):
-        """ Return the relative ID associated with IP
+        """ Return the relative ID associated with peerid
             return default if the vertices aren't connected """
         return self.neighbors.get(peerid, {}).get('nid', default)
 
@@ -359,10 +359,10 @@ class NetworkModel:
         peerobj = self.get(peername)
         sid = peerobj.getSessionID()
         if prevNbr:
-            tcnum = str(prevNbr.getNID(peername))
-            tocrypt = chr(0) + sid + tcnum + message
-            recvMsgLen = len(sid + tcnum) + 1 # The 'message' data is for the
-                                              # next recipient, not this one.
+            nid = str(prevNbr.getNID(peername))
+            tocrypt = chr(0) + sid + nid + message
+            recvMsgLen = len(sid + nid) + 1 # The 'message' data is for the
+                                            # next recipient, not this one.
             message = peerobj.pubkey.encrypt(tocrypt, recvMsgLen)
         else:
             tocrypt = chr(1) + sid + message
