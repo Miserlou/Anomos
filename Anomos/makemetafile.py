@@ -108,7 +108,7 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
         return
     check_info(info)
     h = file(f, 'wb')
-    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime()), 'anon': 'True'}
+    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime()), 'anon': '1'}
     if comment:
         data['comment'] = comment
     h.write(bencode(data))
