@@ -224,7 +224,7 @@ class MainWindow(Window):
                 self.remove_button.set_sensitive(True)
             else:
                 self.remove_button.set_sensitive(False)
-            if len(announce_url) >= len('http://x.cc'):
+            if len(announce_url) >= len('https://x.cc') and ('https:' in announce_url):
                 self.makebutton.set_sensitive(True)
             else:
                 self.makebutton.set_sensitive(False)
