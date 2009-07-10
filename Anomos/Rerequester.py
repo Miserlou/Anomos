@@ -127,7 +127,7 @@ class Rerequester(object):
                 self.proxy_username, self.proxy_password = auth.split(':',1)
 
     def _makequery(self, peerid, port):
-        self.errorfunc(INFO, "Connecting!)
+        self.errorfunc(INFO, "Connecting!")
         return ('?info_hash=%s&port=%s'%
                 (quote(self.infohash), str(port)))
 
