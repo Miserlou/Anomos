@@ -460,7 +460,7 @@ class Tracker(object):
         @type peercert: M2Crypto.X509.X509
         """
         params = params_factory(paramslist)
-        peerid = params('peer_id')
+        peerid = peercert.get_fingerprint('sha256')[-20:]
         simpeer = self.networkmodel.get(peerid)
         #XXX: quasi-dangerous hack, allows anyone on localhost to specify
         #     any IP address they want.
@@ -723,8 +723,6 @@ class Tracker(object):
         infohash = params('info_hash')
         if infohash and len(infohash) != 20:
             raise ValueError('infohash not of length 20')
-        if len(params('peer_id', '')) != 20:
-            raise ValueError('id not of length 20')
         if params('event') not in ['started', 'completed', 'stopped', None]:
             raise ValueError('invalid event')
         port = int(params('port',-1))
@@ -786,18 +784,18 @@ class Tracker(object):
         #rsize = self.add_data(infohash, event, ip, paramslist)
 
         #TODO: deprecate return type
-        if params('compact'):
-            return_type = 2
-        elif params('no_peer_id'):
-            return_type = 1
-        else:
-            return_type = 0
+        #if params('compact'):
+        #    return_type = 2
+        #elif params('no_peer_id'):
+        #    return_type = 1
+        #else:
+        #    return_type = 0
 
         data = {}
         if event != 'stopped':
-            data['peers'] = self.neighborlist(params('peer_id'))
+            data['peers'] = self.neighborlist(simpeer.name)
             #TODO: Replace "3" with actual number of TCs to get
-            data['tracking codes'] = self.getTCs(params('peer_id'), infohash,
+            data['tracking codes'] = self.getTCs(simpeer.name, infohash,
                                                  not int(params('left')),
                                                  self.config['response_size'])
 #            if params('left') and int(params('left')):
