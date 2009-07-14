@@ -1,13 +1,11 @@
-Release target: June 4th
-
 TODO:
-    General: Update installation instructions, things like BUILD.windows.txt
-    Tracker: IP:Port collision blocking
-    Tracker: IP connection amount limiting
-    Tracker: Paths that don't hit the same IP/Port (not by identity)
-    Client: Finish BitTorrent support
+    1) **Finish Protocol Specification!**: Path Generation, Hybrid Encryption
+    2) SteamIDs: Connection object needs a 2-byte SteamID field and needs to put this into the message length.  
+    3) Neighbor/NeighborManager expansion. Stream tracking and association.
 
     Also:
-        Have some seeds on something we share
-        Set up minion-collector
+        Have some seeds on something we share! Dedicated seedbox!
+        Better minion collections: Forum? WebIRC? Street Team?
+        General: Update installation instructions, things like BUILD.windows.txt
+        Client: Finish BitTorrent support
         Windows, Debian package
