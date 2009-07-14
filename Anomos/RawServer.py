@@ -21,7 +21,7 @@ from cStringIO import StringIO
 from traceback import print_exc
 from errno import EWOULDBLOCK, ENOBUFS
 from Anomos.platform import bttime
-from Anomos import INFO, CRITICAL, WARNING, FAQ_URL, SingleSocket
+from Anomos import INFO, CRITICAL, WARNING, FAQ_URL
 from Anomos import crypto
 from Anomos.SingleSocket import SingleSocket
 from M2Crypto import SSL
@@ -37,7 +37,6 @@ except ImportError:
 
 def default_error_handler(x, y):
     print x, y
-
 
 class RawServer(object):
 
