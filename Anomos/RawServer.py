@@ -296,22 +296,11 @@ class RawServer(object):
     def _safe_shutdown(self, s):
         if s.socket is not None:
              self._close_socket(s)
-#            if not s.socket.get_shutdown():
-#                self._clear_socket(s)
-#            else:
-#                self._close_socket(s)
 
     def _close_socket(self, s):
         sock = s.socket.fileno()
         self._make_wrapped_call(s.handler.connection_lost, (s,), s)
         s.close()
-
-#    def _clear_socket(self, s):
-#        sock = s.socket.fileno()
-#        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
-#        self.poll.unregister(sock)
-#        del self.single_sockets[sock]
-#        s.clear()
 
     def numsockets(self):
         return len(self.single_sockets)
