@@ -74,11 +74,6 @@ class SingleSocket(object):
         del self.rawserver.single_sockets[self.fileno]
         self.rawserver.poll.unregister(self.fileno)
 
-#    def clear(self):
-#        self._set_shutdown()
-#        self.socket.clear()
-#        self._clear_state()
-
     def is_flushed(self):
         return len(self.buffer) == 0
 
