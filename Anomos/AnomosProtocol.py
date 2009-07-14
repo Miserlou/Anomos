@@ -16,6 +16,7 @@
 # Written by John Schanck
 
 from Anomos.BitTorrentProtocol import *
+from Anomos.TCReader import TCReader
 from crypto import AESKey, CryptoError
 
 TCODE = chr(0x9)
@@ -36,6 +37,7 @@ class AnomosProtocol(BitTorrentProtocol):
                             CONFIRM: self.got_confirm,
                             ENCRYPTED: self.got_encrypted,
                             BREAK: self.send_break })
+        self.tcreader = None
 
     def protocol_extensions(self):
         """Anomos puts [2:port][1:nid][5:null char] into the 
@@ -123,53 +125,38 @@ class AnomosProtocol(BitTorrentProtocol):
             # Message is only link-encrypted
             #self.got_message(message[1:])
     def got_tcode(self, message):
-        plaintext = ''
-        nextTC = ''
-        try:
-            plaintext, nextTC = self.owner.certificate.decrypt(message[1:], True)
-        except CryptoError, e:
-            # Break?
-            self.close("Encryption Error: " + str(e))
-        if plaintext[0] == chr(0): # plaintext[1:] = 8 byte sessionid + 1 byte nid
-            indx = 1
-            sid = plaintext[indx:indx+8]
-            indx += 8
-            nid = plaintext[indx]
-            idmatch = self.owner.check_session_id(sid)
-            if not idmatch:
-                #TODO: Key mismatch is pretty serious, probably want to do
-                #      something besides just close the connection
-                self.close("Session id mismatch")
-            else:
-                self.owner.xchg_owner_with_relayer(self, nid)   #this changes the value of owner
-                self.owner.connection_completed(self)
-                self.complete = True
-                assert self.is_relay
-                self.owner.relay_message(self, TCODE + nextTC)
-        elif plaintext[0] == chr(1):
-            # TC ends at this peer, plaintext contains sessionid, infohash, aes, iv
-            indx = 1
-            sid = plaintext[indx:indx+8]
-            indx += 8
-            idmatch = self.owner.check_session_id(sid)
-            if not idmatch:
-                self.close("Session id mismatch")
-            else:
-                infohash = plaintext[indx:indx+20]
-                indx += 20
-                aes = plaintext[indx:indx+32]
-                indx += 32
-                iv = plaintext[indx:indx+32]
-                self.e2e_key = AESKey(aes,iv)
-                self.owner.xchg_owner_with_endpoint(self, infohash)
-                if self.owner.download_id is None:
-                    self.close("Requested torrent not found")
-                    return
-                self.send_confirm()
-                self.owner.connection_completed(self)
-                self.complete = True
+        #TODO: tcreader should not be initialized here.
+        if not self.tcreader:
+            self.tcreader = TCReader(self.owner.certificate)
+        tcdata = self.tcreader.parseTC(message[1:])
+        sid = tcdata.sessionID
+        idmatch = self.owner.check_session_id(sid)
+        if not idmatch:
+            #TODO: Key mismatch is pretty serious, probably want to do
+            #      something besides just close the connection
+            self.close("Session id mismatch")
+        if tcdata.type == chr(0): # Relayer type
+            nextTC = tcdata.nextLayer
+            nid = tcdata.neighborID
+            self.owner.xchg_owner_with_relayer(self, nid)   #this changes the value of owner
+            self.owner.connection_completed(self)
+            self.complete = True
+            assert self.is_relay
+            self.owner.relay_message(self, TCODE + nextTC)
+        elif tcdata.type == chr(1): # Terminal type
+            infohash = tcdata.infohash
+            keydata = tcdata.keydata
+            aes, iv = keydata[:32], keydata[32:]
+            self.e2e_key = AESKey(aes,iv)
+            self.owner.xchg_owner_with_endpoint(self, infohash)
+            if self.owner.download_id is None:
+                self.close("Requested torrent not found")
+                return
+            self.send_confirm()
+            self.owner.connection_completed(self)
+            self.complete = True
         else:
-            self.close("Bad TCODE format")
+            self.close("Unsupported TCode Format")
     def got_confirm(self):
         if not self.established:
             self.owner.add_neighbor(self.id, (self.ip, self.port),
