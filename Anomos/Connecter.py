@@ -1,4 +1,4 @@
-# Connecter.py
+# Connection.py
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +16,14 @@
 # Original Connecter.py written by Bram Cohen
 # This heavily modified version by John M. Schanck
 
-from AnomosProtocol import AnomosProtocol
-from BitTorrentProtocol import BitTorrentProtocol
+from Anomos.AnomosProtocol import AnomosProtocol
+from Anomos.BitTorrentProtocol import BitTorrentProtocol
 
 class Connection(object):
-    def __init__(self, owner, connection, id, established=False):
+    def __init__(self, owner, connection, established=False):
         self.owner = owner
         self.connection = connection
         self.connection.handler = self
-        self.id = id
         self.ip = connection.ip
         self.port = None
         self.established = established
@@ -67,6 +66,14 @@ class Connection(object):
             except StopIteration:
                 self.close("No more messages")
                 return
+    def _send_message(self, message):
+        ''' Prepends message with its length as a 32 bit integer,
+            and queues or immediately sends the message '''
+        s = tobinary(len(message)) + message
+        if self._partial_message is not None:
+            self._outqueue.append(s)
+        else:
+            self.connection.write(s)
     def close(self, e=None):
         if not self.closed:
             self.connection.close()
@@ -75,6 +82,7 @@ class Connection(object):
     def _sever(self):
         self.closed = True
         self._reader = None
+        #TODO: relay specific things shouldn't be here
         if self.is_relay:
             self.send_break()
         if self.complete:
@@ -97,8 +105,9 @@ class Connection(object):
 class AnomosFwdLink(Connection, AnomosProtocol):
     """ Extends Anomos specific Forward Link properties of Connection """
     def __init__(self, owner, connection, id, established=False, e2e=None):
-        Connection.__init__(self, owner, connection, id, established)
+        Connection.__init__(self, owner, connection, established)
         AnomosProtocol.__init__(self) 
+        self.id = id
         self.e2e_key = e2e # End-to-end encryption key
         self._reader = AnomosProtocol._read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -113,8 +122,9 @@ class AnomosFwdLink(Connection, AnomosProtocol):
 class AnomosRevLink(Connection, AnomosProtocol):
     """ Extends Anomos specific Reverse Link properties of Connection """
     def __init__(self, owner, connection, id=None, established=False):
-        Connection.__init__(self, owner, connection, id, established) 
-        AnomosProtocol.__init__(self) 
+        Connection.__init__(self, owner, connection, established) 
+        AnomosProtocol.__init__(self)
+        self.id = id
         self.e2e_key = None # End-to-end encryption key
         self._reader = AnomosProtocol._read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -132,8 +142,8 @@ class AnomosRevLink(Connection, AnomosProtocol):
 ## BitTorrentProtocol Connections
 class BTFwdLink(Connection, BitTorrentProtocol):
     """ Extends BitTorrent specific Forward Link properties of Connection """
-    def __init__(self, owner, connection, id, established=False):
-        Connection.__init__(self, owner, connection, id, established)
+    def __init__(self, owner, connection, established=False):
+        Connection.__init__(self, owner, connection, established)
         BitTorrentProtocol.__init__(self) 
         self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -147,8 +157,8 @@ class BTFwdLink(Connection, BitTorrentProtocol):
 
 class BTRevLink(Connection, BitTorrentProtocol):
     """ Extends BitTorrent specific Reverse Link properties of Connection """
-    def __init__(self, owner, connection, id, established=False):
-        Connection.__init__(self, owner, connection, id, established) 
+    def __init__(self, owner, connection, established=False):
+        Connection.__init__(self, owner, connection, established) 
         BitTorrentProtocol.__init__(self) 
         self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
