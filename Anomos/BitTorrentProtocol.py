@@ -25,7 +25,6 @@ def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
-protocol_name = "BitTorrent"
 CHOKE = chr(0x0) # Single byte
 UNCHOKE = chr(0x1) # Single byte
 INTERESTED = chr(0x2) # Single byte
@@ -37,6 +36,10 @@ PIECE = chr(0x7) # index, begin, piece
 CANCEL = chr(0x8) # index, begin, piece
 
 class BitTorrentProtocol(object):
+    """ Should NOT be created directly, must be used as a mixin with a class
+        that also inherits a Connection type """
+
+    protocol_name = "BitTorrent"
     def __init__(self):
         #msglens => Provides easy lookup for validation of fixed length messages
         self.msglens= { CHOKE: 1, UNCHOKE: 1, INTERESTED: 1, NOT_INTERESTED: 1, \
@@ -105,14 +108,6 @@ class BitTorrentProtocol(object):
             if len(m) != self.msglens[m[0]]:
                 validp = False
         return validp
-    def _send_message(self, message):
-        ''' Prepends message with its length as a 32 bit integer,
-            and queues or immediately sends the message '''
-        s = tobinary(len(message)) + message
-        if self._partial_message is not None:
-            self._outqueue.append(s)
-        else:
-            self.connection.write(s)
     def transfer_ctl_msg(self, message):
         ''' Send method for file transfer messages. 
             ie. CHOKE, INTERESTED, PIECE '''
