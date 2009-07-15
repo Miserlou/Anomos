@@ -14,7 +14,7 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 import Anomos.crypto as crypto
-from Anomos.Connecter import AnomosFwdLink, AnomosRevLink
+from Anomos.Connection import AnomosFwdLink, AnomosRevLink
 from Anomos.Relayer import Relayer
 from Anomos.TCReader import TCReader
 from Anomos import BTFailure
