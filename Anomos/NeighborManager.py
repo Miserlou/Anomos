@@ -15,17 +15,9 @@
 
 # Written by John Schanck and Rich Jones
 
+from Anomos.NeighborLink import NeighborLink
 from Anomos.Connecter import AnomosFwdLink
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
-
-class Neighbor:
-    def __init__(self, id, loc, ssls):
-        self.id = id
-        self.loc = loc
-        self.ssl_session = ssls
-        self.connection = None
-    def set_connection(self, con):
-        self.connection = con
 
 class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
@@ -56,14 +48,12 @@ class NeighborManager:
 
     def get_ssl_session(self, nid):
         nbr = self.neighbors.get(nid, None)
-        if nbr:
-            return nbr.ssl_session
-        return None
+        return nbr and nbr.ssl_session
 
-    def add_neighbor(self, id, location, ssls):
+    def add_neighbor(self, id, location):
         self.logfunc(INFO, "Adding Neighbor: (\\x%02x, %s)"
                                 % (ord(id), location))
-        self.neighbors[id] = Neighbor(id, location, ssls)
+        self.neighbors[id] = NeighborLink(id, location)
 
     def rm_neighbor(self, nid):
         if nid in self.failedPeers:
@@ -77,22 +67,18 @@ class NeighborManager:
             self.neighbors.pop(nid)
 
     def has_neighbor(self, nid):
-        #TODO: Make this tracker specific.
         return self.neighbors.has_key(nid)
 
     def has_loc(self, loc):
         return loc in [n.loc for n in self.neighbors.values()]
 
     def is_incomplete(self, nid):
-        #TODO: Make this tracker specific.
         return self.incomplete.has_key(nid)
 
     def count(self, tracker=None):
-        #TODO: Make this tracker specific.
         return len(self.neighbors)
 
     def connection_completed(self, con):
-        #TODO: Make this tracker specific.
         if not self.incomplete.has_key(con.id):
             # Completing a complete or non-existant connection...
             return
@@ -141,7 +127,7 @@ class NeighborManager:
         # Exchange the header and hold the connection open
         con = AnomosFwdLink(self, sock, id, established=False)
         self.connections[sock] = con
-        self.add_neighbor(id, loc, sock.socket.get_session())
+        self.add_neighbor(id, loc)
 
     def sock_fail(self, loc, err=None):
         #Remove nid,loc pair from incomplete
