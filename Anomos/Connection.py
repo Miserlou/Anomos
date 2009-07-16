@@ -1,4 +1,4 @@
-# Connecter.py
+# Connection.py
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +16,14 @@
 # Original Connecter.py written by Bram Cohen
 # This heavily modified version by John M. Schanck
 
-from AnomosProtocol import AnomosProtocol
-from BitTorrentProtocol import BitTorrentProtocol
+from Anomos.AnomosProtocol import AnomosProtocol
+from Anomos.BitTorrentProtocol import BitTorrentProtocol
 
 class Connection(object):
-    def __init__(self, owner, connection, id, established=False):
+    def __init__(self, owner, connection, established=False):
         self.owner = owner
         self.connection = connection
         self.connection.handler = self
-        self.id = id
         self.ip = connection.ip
         self.port = None
         self.established = established
@@ -39,7 +38,6 @@ class Connection(object):
         self._partial_message = None
         self._outqueue = []
         self.choke_sent = True
-
     def data_came_in(self, conn, s):
         """Interface between Protocol and raw data stream.
            A protocol "_read_*" method yields a message length
@@ -67,6 +65,53 @@ class Connection(object):
             except StopIteration:
                 self.close("No more messages")
                 return
+    ## Methods that must be implemented by a Protocol class ##
+    ## Raise RuntimeError if no protocol has been defined
+    def format_message(self, type, message):
+        raise RuntimeError("No protocol defined for this connection.")
+    def partial_msg_str(self, *args):
+        raise RuntimeError("No protocol defined for this connection.")
+    def partial_choke_str(self, *args):
+        raise RuntimeError("No protocol defined for this connection.")
+    def partial_unchoke_str(self, *args):
+        raise RuntimeError("No protocol defined for this connection.")
+    def _send_message(self, type, message):
+        ''' Prepends message with its length as a 32 bit integer,
+            and queues or immediately sends the message '''
+        s = self.format_message(type, message)
+        if self._partial_message is not None:
+            # Last message has not finished sending yet
+            self._outqueue.append(s)
+        else:
+            self.connection.write(s)
+    def send_partial(self, bytes):
+        """ Provides partial sending of messages for RateLimiter """
+        if self.closed:
+            return 0
+        if self._partial_message is None:
+            s = self.upload.get_upload_chunk()
+            if s is None:
+                return 0
+            index, begin, piece = s
+            self._partial_message = self.partial_msg_str(index, begin, piece)
+        if bytes < len(self._partial_message):
+            self.connection.write(buffer(self._partial_message, 0, bytes))
+            self._partial_message = buffer(self._partial_message, bytes)
+            return bytes
+        queue = [str(self._partial_message)]
+        self._partial_message = None
+        if self.choke_sent != self.upload.choked:
+            if self.upload.choked:
+                self._outqueue.append(self.partial_choke_str())
+                self.upload.sent_choke()
+            else:
+                self._outqueue.append(self.partial_unchoke_str())
+            self.choke_sent = self.upload.choked
+        queue.extend(self._outqueue)
+        self._outqueue = []
+        queue = ''.join(queue)
+        self.connection.write(queue)
+        return len(queue)
     def close(self, e=None):
         if not self.closed:
             self.connection.close()
@@ -75,6 +120,7 @@ class Connection(object):
     def _sever(self):
         self.closed = True
         self._reader = None
+        #TODO: relay specific things shouldn't be here
         if self.is_relay:
             self.send_break()
         if self.complete:
@@ -83,7 +129,7 @@ class Connection(object):
         assert conn is self.connection
         self._sever()
     def connection_flushed(self, connection):
-        if not self.complete:
+        if self.is_relay or not self.complete:
             pass
         elif self.next_upload is None \
              and (self._partial_message is not None or self.upload.buffer):
@@ -97,8 +143,9 @@ class Connection(object):
 class AnomosFwdLink(Connection, AnomosProtocol):
     """ Extends Anomos specific Forward Link properties of Connection """
     def __init__(self, owner, connection, id, established=False, e2e=None):
-        Connection.__init__(self, owner, connection, id, established)
+        Connection.__init__(self, owner, connection, established)
         AnomosProtocol.__init__(self) 
+        self.id = id
         self.e2e_key = e2e # End-to-end encryption key
         self._reader = AnomosProtocol._read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -113,8 +160,9 @@ class AnomosFwdLink(Connection, AnomosProtocol):
 class AnomosRevLink(Connection, AnomosProtocol):
     """ Extends Anomos specific Reverse Link properties of Connection """
     def __init__(self, owner, connection, id=None, established=False):
-        Connection.__init__(self, owner, connection, id, established) 
-        AnomosProtocol.__init__(self) 
+        Connection.__init__(self, owner, connection, established) 
+        AnomosProtocol.__init__(self)
+        self.id = id
         self.e2e_key = None # End-to-end encryption key
         self._reader = AnomosProtocol._read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -132,8 +180,8 @@ class AnomosRevLink(Connection, AnomosProtocol):
 ## BitTorrentProtocol Connections
 class BTFwdLink(Connection, BitTorrentProtocol):
     """ Extends BitTorrent specific Forward Link properties of Connection """
-    def __init__(self, owner, connection, id, established=False):
-        Connection.__init__(self, owner, connection, id, established)
+    def __init__(self, owner, connection, established=False):
+        Connection.__init__(self, owner, connection, established)
         BitTorrentProtocol.__init__(self) 
         self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
@@ -147,8 +195,8 @@ class BTFwdLink(Connection, BitTorrentProtocol):
 
 class BTRevLink(Connection, BitTorrentProtocol):
     """ Extends BitTorrent specific Reverse Link properties of Connection """
-    def __init__(self, owner, connection, id, established=False):
-        Connection.__init__(self, owner, connection, id, established) 
+    def __init__(self, owner, connection, established=False):
+        Connection.__init__(self, owner, connection, established) 
         BitTorrentProtocol.__init__(self) 
         self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
