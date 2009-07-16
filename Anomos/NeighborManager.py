@@ -40,20 +40,20 @@ class NeighborManager:
     def failed_connections(self):
         return self.failedPeers
 
-    def get_location(self, nid):
-        nbr = self.neighbors.get(nid, None)
-        if nbr:
-            return nbr.loc
-        return None
+    #def get_location(self, nid):
+    #    nbr = self.neighbors.get(nid, None)
+    #    if nbr:
+    #        return nbr.loc
+    #    return None
 
-    def get_ssl_session(self, nid):
-        nbr = self.neighbors.get(nid, None)
-        return nbr and nbr.ssl_session
+    #def get_ssl_session(self, nid):
+    #    nbr = self.neighbors.get(nid, None)
+    #    return nbr and nbr.ssl_session
 
-    def add_neighbor(self, id, location):
-        self.logfunc(INFO, "Adding Neighbor: (\\x%02x, %s)"
-                                % (ord(id), location))
-        self.neighbors[id] = NeighborLink(id, location, self)
+    def add_neighbor(self, id):
+        self.logfunc(INFO, "Adding Neighbor: \\x%02x"
+                                % ord(id))
+        self.neighbors[id] = NeighborLink(id, self)
 
     def rm_neighbor(self, nid):
         if nid in self.failedPeers:
@@ -69,8 +69,10 @@ class NeighborManager:
     def has_neighbor(self, nid):
         return self.neighbors.has_key(nid)
 
-    def has_loc(self, loc):
-        return loc in [n.loc for n in self.neighbors.values()]
+    # TODO: We'll probably want some kind of location storing
+    #       but it won't be similar enough to warrant keeping this.
+    #def has_loc(self, loc):
+    #    return loc in [n.loc for n in self.neighbors.values()]
 
     def is_incomplete(self, nid):
         return self.incomplete.has_key(nid)
@@ -127,7 +129,7 @@ class NeighborManager:
         # Exchange the header and hold the connection open
         con = AnomosFwdLink(self, sock, id, established=False)
         self.connections[sock] = con
-        self.add_neighbor(id, loc)
+        self.add_neighbor(id)
 
     def sock_fail(self, loc, err=None):
         #Remove nid,loc pair from incomplete
@@ -144,6 +146,6 @@ class NeighborManager:
             if not freshids.has_key(id):
                 self.rm_neighbor(id)
         # Start connections with the new neighbors
-        for id,loc in freshids.iteritems():
+        for id, loc in freshids.iteritems():
             if not self.neighbors.has_key(id):
                 self.start_connection(loc, id)

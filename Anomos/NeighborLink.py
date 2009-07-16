@@ -18,9 +18,8 @@ from Anomos.Connection import Connection
 from Anomos.AnomosProtocol import AnomosProtocol
 
 class NeighborLink(object):
-    def __init__(self, id, loc, manager):
+    def __init__(self, id, manager):
         self.id = id
-        self.loc = loc
         self.manager = manager
         #self.ssl_session = None
         self.complete = False
