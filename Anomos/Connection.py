@@ -25,7 +25,6 @@ class Connection(object):
         self.connection = connection
         self.connection.handler = self
         self.ip = connection.ip
-        self.port = None
         self.established = established
         self.complete = False
         self.closed = False

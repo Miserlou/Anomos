@@ -41,9 +41,9 @@ class AnomosProtocol(BitTorrentProtocol):
                             BREAK: self.send_break })
 
     def protocol_extensions(self):
-        """Anomos puts [2:port][1:nid][5:null char] into the 
+        """Anomos puts [1:nid][7:null char] into the 
            BitTorrent reserved header bytes"""
-        return tobinary(self.owner.port)[2:] + self.id + '\0\0\0\0\0'
+        return self.id + '\0\0\0\0\0\0\0'
     def _read_header(self):
         '''Each yield puts N bytes from Connection.data_came_in into
            self._message. N is the number of bytes in the section of the
@@ -72,11 +72,9 @@ class AnomosProtocol(BitTorrentProtocol):
             yield self._reader.next()
         # Upon reaching this point the connection is determined
         # to be a headerless connection and thus a new neighbor.
-        yield 2  # port number
-        self.port = toint(self._message)
         yield 1  # NID
         self.id = self._message
-        yield 5  # reserved bytes (ignore these for now)
+        yield 7  # reserved bytes (ignore these for now)
         self._got_full_header() # Does some connection type specific actions
                                 # See AnomosFwdLink and AnomosRevLink
         # Switch to reading messages
@@ -100,11 +98,6 @@ class AnomosProtocol(BitTorrentProtocol):
                 #    self.owner.relay_message(self, self._message)
                 #else:
                 #    self.got_message(self._message)
-    def got_message(self, message):
-        if self.is_relay:
-            self.owner.relay_message(self, message)
-        else:
-            BitTorrentProtocol.got_message(self, message)
     ## Message sending methods ##
     def _send_encrypted_message(self, message):
         '''End-to-End encrypts a message'''
@@ -149,7 +142,6 @@ class AnomosProtocol(BitTorrentProtocol):
             # Message is only link-encrypted
             #self.got_message(message[1:])
     def got_tcode(self, message):
-        #TODO: tcreader should not be initialized here.
         tcreader = TCReader(self.owner.certificate)
         tcdata = tcreader.parseTC(message[1:])
         sid = tcdata.sessionID
@@ -181,16 +173,23 @@ class AnomosProtocol(BitTorrentProtocol):
         else:
             self.close("Unsupported TCode Format")
     def got_relay(self, message):
-        self.owner.relay_message(self, message)
+        if self.is_relay:
+            #NOTE: message[0] == RELAY, there's no need to
+            #      strip this since we'd just have to add
+            #      it again in send_relay. As a result,
+            #      send_relay does NOT add a control char.
+            self.owner.relay_message(self, message)
+        else:
+            self.got_message(message[1:])
     def got_confirm(self):
         if not self.established:
-            self.owner.add_neighbor(self.id, (self.ip, self.port))
+            self.owner.add_neighbor(self.id, (self.ip, 0))
         self.owner.connection_completed(self)
         self.complete = True
         if self.is_relay:
             self.owner.relay_message(self, CONFIRM)
     def format_message(self, type, message):
-        return tobinary(self.stream_id) + \     # Stream ID
+        return tobinary(self.stream_id)[2:] + \     # Stream ID
                tobinary(len(type+message)) + \  # Message Length
                type + message                   # Payload
     ## Partial message sending methods ##
