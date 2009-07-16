@@ -15,7 +15,7 @@
 
 # Written by Rich Jones, John Schanck
 
-from Anomos.Connection import AnomosFwdLink
+from Anomos.Connecter import AnomosFwdLink
 from Anomos.CurrentRateMeasure import Measure
 from Anomos import INFO, CRITICAL, WARNING
 from threading import Thread

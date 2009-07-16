@@ -14,8 +14,9 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 import Anomos.crypto as crypto
-from Anomos.Connection import AnomosFwdLink, AnomosRevLink
+from Anomos.Connecter import AnomosFwdLink, AnomosRevLink
 from Anomos.Relayer import Relayer
+from Anomos.TCReader import TCReader
 from Anomos import BTFailure
 
 class EndPoint(object):
@@ -37,6 +38,7 @@ class EndPoint(object):
         self.config = context.config
         self.download_id = context.infohash
         self.cert = context.certificate
+        self.tcreader = TCReader(self.cert)
         self.neighbors = context.neighbors
         self.context = context
 
@@ -51,29 +53,17 @@ class EndPoint(object):
     def start_connection(self, tc, aeskey):
         if len(self.connections) >= self.config['max_initiate']:
             return
-        nid = None
-        tclen = len(tc)
-        try:
-            #TODO: Check the TC length
-            nidsid, tc = self.cert.decrypt(tc, True)
-            # Ignore the connection type specifier (byte 0)
-            sid = nidsid[1:9]
-            nid = nidsid[9]
-            if sid != self.sessionid:
-                return
-        except ValueError, e:
-            print "VALUE ERR: ", e
-            return #Tampered With
-        except Exception, e:
-            print "OTHER EXCEPTION", e
-            return #Probably a decryption error
-        else:
-            # Repad to original length
-            tc = tc + crypto.getRand(tclen-len(tc))
+        tcdata = self.tcreader.parseTC(tc)
+        nid = tcdata.neighborID
+        sid = tcdata.sessionID
+        if sid != self.sessionid:
+            #TODO: Log an error
+            return
+        nextTC = tcdata.nextLayer
         if self.neighbors.is_incomplete(nid):
-            self.neighbors.schedule_tc(self.send_tc, nid, tc, aeskey)
+            self.neighbors.schedule_tc(self.send_tc, nid, nextTC, aeskey)
         else:
-            self.send_tc(nid, tc, aeskey)
+            self.send_tc(nid, nextTC, aeskey)
 
     def send_tc(self, nid, tc, aeskey):
         loc = self.neighbors.get_location(nid)

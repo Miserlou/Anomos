@@ -35,7 +35,7 @@ from Anomos.Storage import Storage, FilePool
 from Anomos.StorageWrapper import StorageWrapper
 from Anomos.Uploader import Upload
 from Anomos.Downloader import Downloader
-from Anomos.EndPoint import EndPoint, SingleportListener
+from Anomos.Encoder import EndPoint, SingleportListener
 from Anomos.RateLimiter import RateLimiter
 from Anomos.RawServer import RawServer
 from Anomos.Rerequester import Rerequester

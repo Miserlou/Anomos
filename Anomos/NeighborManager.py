@@ -15,7 +15,7 @@
 
 # Written by John Schanck and Rich Jones
 
-from Anomos.Connection import AnomosFwdLink
+from Anomos.Connecter import AnomosFwdLink
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
 class Neighbor:
