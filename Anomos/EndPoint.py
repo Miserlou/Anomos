@@ -20,9 +20,9 @@ from Anomos.TCReader import TCReader
 from Anomos import BTFailure
 
 class EndPoint(object):
-    ''' Encoder objects exist at the torrent level. A client has an encoder
+    ''' EndPoint objects exist at the torrent level. A client has an EndPoint
         object for each torrent they're downloading/seeding. The primary
-        purpose of the encoder object is to initialize new connections by
+        purpose of the EndPoint object is to initialize new connections by
         sending tracking codes and creating the uploader/downloader objects.
     '''
     def __init__(self, make_upload, downloader, choker, numpieces, schedulefunc,

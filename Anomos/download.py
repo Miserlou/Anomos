@@ -35,7 +35,7 @@ from Anomos.Storage import Storage, FilePool
 from Anomos.StorageWrapper import StorageWrapper
 from Anomos.Uploader import Upload
 from Anomos.Downloader import Downloader
-from Anomos.Encoder import EndPoint, SingleportListener
+from Anomos.EndPoint import EndPoint, SingleportListener
 from Anomos.RateLimiter import RateLimiter
 from Anomos.RawServer import RawServer
 from Anomos.Rerequester import Rerequester
@@ -204,7 +204,7 @@ class _SingleTorrent(object):
         self._ratemeasure = None
         self._upmeasure = None
         self._downmeasure = None
-        self._encoder = None
+        self._endpoint = None
         self._rerequest = None
         self._statuscollecter = None
         self._announced = False
@@ -334,7 +334,7 @@ class _SingleTorrent(object):
                 connection.close()
             schedfunc(kick, 0)
         def banpeer(ip):
-            self._encoder.ban(ip)
+            self._endpoint.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
                                 kickpeer, banpeer)
@@ -342,21 +342,21 @@ class _SingleTorrent(object):
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
                         self.config['max_slice_length'], self.config['max_rate_period'])
-        self._encoder = EndPoint(make_upload, downloader, choker,
+        self._endpoint = EndPoint(make_upload, downloader, choker,
                                 len(metainfo.hashes), schedfunc, self)
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port()
             self.reserved_ports.append(self.reported_port)
-        self._singleport_listener.add_torrent(self.infohash, self._encoder)
+        self._singleport_listener.add_torrent(self.infohash, self._endpoint)
         self._listening = True
         self._rerequest = Rerequester(metainfo.announce, self.config,
             schedfunc, self.neighbors,
-            self._encoder.start_connection, externalsched,
+            self._endpoint.start_connection, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
             downmeasure.get_total, self.reported_port, self.myid,
             self.infohash, self._error, self.finflag, upmeasure.get_rate,
-            downmeasure.get_rate, self._encoder.ever_got_incoming,
+            downmeasure.get_rate, self._endpoint.ever_got_incoming,
             self.internal_shutdown, self._announce_done, self.certificate,
             self.sessionid)
             # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure
@@ -487,8 +487,8 @@ class _SingleTorrent(object):
             self._singleport_listener.remove_torrent(self.infohash)
         for port in self.reserved_ports:
             self._singleport_listener.release_port(port)
-        if self._encoder is not None:
-            self._encoder.close_connections()
+        if self._endpoint is not None:
+            self._endpoint.close_connections()
         if self._storage is not None:
             self._storage.close()
         self._ratelimiter.clean_closed()
@@ -536,7 +536,7 @@ class _SingleTorrent(object):
             return
         self.reported_port = r
         self.myid = self._make_id()
-        self._encoder.myid = self.myid
+        self._endpoint.myid = self.myid
         self._rerequest.change_port(self.myid, r)
 
     def _announce_done(self):
