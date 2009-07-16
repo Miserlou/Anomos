@@ -53,7 +53,7 @@ class NeighborManager:
     def add_neighbor(self, id, location):
         self.logfunc(INFO, "Adding Neighbor: (\\x%02x, %s)"
                                 % (ord(id), location))
-        self.neighbors[id] = NeighborLink(id, location)
+        self.neighbors[id] = NeighborLink(id, location, self)
 
     def rm_neighbor(self, nid):
         if nid in self.failedPeers:
