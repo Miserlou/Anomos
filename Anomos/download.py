@@ -225,7 +225,6 @@ class _SingleTorrent(object):
         self._activity = ('Initial startup', 0)
         self.feedback = None
         self.messages = []
-        self.myid = None
         self.neighbors = neighbors
         self.certificate = certificate
         self.sessionid = sessionid
@@ -251,7 +250,6 @@ class _SingleTorrent(object):
         if not metainfo.reported_errors:
             metainfo.show_encoding_errors(self._log)
 
-        self._make_id()
         def schedfunc(func, delay):
             self._rawserver.add_task(func, delay, self)
         def externalsched(func, delay):
@@ -285,7 +283,7 @@ class _SingleTorrent(object):
             self._log(INFO, 'piece %d failed hash check, '
                         're-downloading it' % index)
         backthread_exception = []
-        def logfunc(level, text):
+        def safelogfunc(level, text):
             def e():
                 self._log(level, text)
             externalsched(e, 0)
@@ -298,7 +296,7 @@ class _SingleTorrent(object):
                 self._storagewrapper = StorageWrapper(self._storage,
                      self.config, metainfo.hashes, metainfo.piece_length,
                      self._finished, statusfunc, self._doneflag, data_flunked,
-                     self.infohash, logfunc, resumefile)
+                     self.infohash, safelogfunc, resumefile)
             except:
                 backthread_exception.append(sys.exc_info())
             self._contfunc()
@@ -352,11 +350,10 @@ class _SingleTorrent(object):
         self._singleport_listener.add_torrent(self.infohash, self._endpoint)
         self._listening = True
         self._rerequest = Rerequester(metainfo.announce, self.config,
-            schedfunc, self.neighbors,
-            self._endpoint.start_connection, externalsched,
+            schedfunc, self.neighbors, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
-            downmeasure.get_total, self.reported_port, self.myid,
-            self.infohash, self._log, self.finflag, upmeasure.get_rate,
+            downmeasure.get_total, self.reported_port, self.infohash,
+            self._log, self.finflag, upmeasure.get_rate,
             downmeasure.get_rate, self._endpoint.ever_got_incoming,
             self.internal_shutdown, self._announce_done, self.certificate,
             self.sessionid)
@@ -536,22 +533,12 @@ class _SingleTorrent(object):
         else:
             return
         self.reported_port = r
-        self.myid = self._make_id()
-        self._endpoint.myid = self.myid
-        self._rerequest.change_port(self.myid, r)
+        self._rerequest.change_port(r)
 
     def _announce_done(self):
         for port in self.reserved_ports[:-1]:
             self._singleport_listener.release_port(port)
         del self.reserved_ports[:-1]
-
-    def _make_id(self):
-        """ Construct a peer id.
-        @return: Peer id, format: An-n-n
-        @rtype: string
-        """
-        myid = 'A' + version.split()[0].replace('.', '-')
-        self.myid = myid + self.certificate.fingerprint()[-(20-len(myid)):]
 
     def _set_auto_uploads(self):
         uploads = self.config['max_uploads']
