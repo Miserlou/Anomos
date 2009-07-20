@@ -286,12 +286,13 @@ class RateSliderBox(gtk.VBox):
         self.rate_slider_label.set_text(self.value_to_label(int(value)))
 
 class OpenFileButton(gtk.Button):
-    start_tip = 'Open a torrent'
+    open_tip = 'Open a torrent'
 
     def __init__(self, main):
         gtk.Button.__init__(self)
         self.main = main
         self.connect('clicked', self.open_file)
+        self.main.tooltips.set_tip(self, self.open_tip )
 
         self.open_image = gtk.Image()
         self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
@@ -341,6 +342,52 @@ class StopStartButton(gtk.Button):
             self.main.restart_queue()
         self.has_image = True
 
+class SeedingButton(gtk.Button):
+    tip = "List seeds"
+    knowns = None
+    mains = None
+    paned = None
+
+    def __init__(self, main):
+        gtk.Button.__init__(self)
+        self.main = main
+        self.main.tooltips.set_tip(self, self.tip)
+        self.connect('clicked', self.toggle)
+        
+    def toggle(self, widget):
+        self.paned.remove(self.paned.get_child2())
+        self.paned.pack2(self.mains)
+        self.knowns.hide()
+        self.mains.show()
+
+    def send(self, k, m, p):
+        self.knowns=k
+        self.mains=m
+        self.paned=p
+        
+
+class DownloadingButton(gtk.Button):
+    tip = "List current downloads"
+    knowns = None
+    mains = None
+    paned = None
+
+    def __init__(self, main):
+        gtk.Button.__init__(self)
+        self.main = main
+        self.main.tooltips.set_tip(self, self.tip)
+        self.connect('clicked', self.toggle)
+        
+    def toggle(self, widget):
+        self.paned.remove(self.paned.get_child2())
+        self.paned.pack2(self.knowns)
+        self.mains.hide()
+        self.knowns.show()
+
+    def send(self, k, m, p):
+        self.knowns=k
+        self.mains=m
+        self.paned=p
 
 class VersionWindow(Window):
     def __init__(self, main, newversion, download_url):
@@ -2361,6 +2408,11 @@ class DownloadInfoFrame(object):
     
         self.ofbutton = OpenFileButton(self)
 
+        self.dbutton = DownloadingButton(self)
+        self.dbutton.set_label("Downloads")
+        self.sbutton = SeedingButton(self)
+        self.sbutton.set_label("Seeds")
+
         file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
 
                            ('----'          , None),
@@ -2415,20 +2467,25 @@ class DownloadInfoFrame(object):
 
         self.ssb = gtk.VBox()
         self.ssb.pack_end(self.ssbutton, expand=False, fill=True)
+
+        self.db = gtk.VBox()
+        self.db.pack_end(self.dbutton, expand=False, fill=True)
+
+        self.sb = gtk.VBox()
+        self.sb.pack_end(self.sbutton, expand=False, fill=True)
         
         self.controlbox = gtk.HBox(homogeneous=False)
 
         self.controlbox.pack_start(self.ofb, expand=False, fill=False)
-         
         self.controlbox.pack_start(self.ssb, expand=False, fill=False)
-        #self.controlbox.pack_start(self.rate_slider_box,
-        #                           expand=True, fill=True,
-        #                           padding=SPACING//2)
         self.controlbox.pack_end(get_logo(32), expand=False, fill=False,
                                    padding=SPACING)
+        self.controlbox.pack_end(self.sb, expand=False, fill=False)
+        self.controlbox.pack_end(self.db, expand=False, fill=False)
 
         self.box2.pack_start(self.controlbox, expand=False, fill=False, padding=0)
 
+        #This is the splitter thingy.
         self.paned = gtk.VPaned()
 
         self.knownscroll = ScrolledWindow()
@@ -2440,8 +2497,7 @@ class DownloadInfoFrame(object):
         self.knownbox.set_border_width(SPACING)
 
         self.knownscroll.add_with_viewport(self.knownbox)
-        self.paned.pack1(self.knownscroll, resize=False, shrink=True)
-
+        #self.paned.pack1(self.knownscroll, resize=False, shrink=True)
         
         self.mainscroll = AutoScrollingWindow()
         self.mainscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
@@ -2461,13 +2517,12 @@ class DownloadInfoFrame(object):
 
         self.scrollbox.pack_start(SpacerBox(self), expand=True, fill=True) 
 
-        ##RELAY STUFF
-        self.relaybox = RelayBox(self)
-        self.scrollbox.pack_start(self.relaybox, expand=False, fill=False)
-
         self.mainscroll.add_with_viewport(self.scrollbox)
 
         self.paned.pack2(self.mainscroll, resize=True, shrink=False)
+
+        self.dbutton.send(self.mainscroll, self.knownscroll, self.paned)
+        self.sbutton.send(self.mainscroll, self.knownscroll, self.paned)
 
         self.box1.pack_start(self.paned)
 
