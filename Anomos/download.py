@@ -70,16 +70,17 @@ class Feedback(object):
 
 class Multitorrent(object):
 
-    def __init__(self, config, doneflag, errorfunc, listen_fail_ok=False):
+    def __init__(self, config, doneflag, logfunc, listen_fail_ok=False):
         self.config = dict(config)
-        self.errorfunc = errorfunc
+        self.logfunc = logfunc
         initCrypto(self.config['data_dir'])
         self.sessionid = crypto.getRand(8)
         self.certificate = Certificate(self.config['identity'])
-        self.rawserver = RawServer(doneflag, config, self.certificate, errorfunc=errorfunc,
+        self.rawserver = RawServer(doneflag, config, self.certificate, logfunc=logfunc,
                                    bindaddr=config['bind'])
         self.neighbors = NeighborManager(self.rawserver, config,
-                                   self.certificate, self.errorfunc)
+                                           self.certificate, self.logfunc,
+                                           self.sessionid)
         self.singleport_listener = SingleportListener(self.rawserver, self.config,
                                                       self.neighbors,
                                                       self.certificate,
@@ -90,7 +91,7 @@ class Multitorrent(object):
         self.ratelimiter.set_parameters(config['max_upload_rate'],
                                         config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
-                                                 errorfunc)
+                                                 logfunc)
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'
@@ -104,7 +105,7 @@ class Multitorrent(object):
         else:
             if not listen_fail_ok:
                 raise BTFailure, "Couldn't open a listening port: " + str(e)
-            self.errorfunc(CRITICAL, "Could not open a listening port: " +
+            self.logfunc(CRITICAL, "Could not open a listening port: " +
                            str(e) + ". Check your port range settings.")
 
     def close_listening_socket(self):
@@ -204,7 +205,7 @@ class _SingleTorrent(object):
         self._ratemeasure = None
         self._upmeasure = None
         self._downmeasure = None
-        self._encoder = None
+        self._endpoint = None
         self._rerequest = None
         self._statuscollecter = None
         self._announced = False
@@ -223,7 +224,7 @@ class _SingleTorrent(object):
         self._contfunc = None
         self._activity = ('Initial startup', 0)
         self.feedback = None
-        self.errors = []
+        self.messages = []
         self.myid = None
         self.neighbors = neighbors
         self.certificate = certificate
@@ -248,7 +249,7 @@ class _SingleTorrent(object):
         self.infohash = metainfo.infohash
         self.total_bytes = metainfo.total_bytes
         if not metainfo.reported_errors:
-            metainfo.show_encoding_errors(self._error)
+            metainfo.show_encoding_errors(self._log)
 
         self._make_id()
         def schedfunc(func, delay):
@@ -274,19 +275,19 @@ class _SingleTorrent(object):
                         resumefile.close()
                         resumefile = None
                 except Exception, e:
-                    self._error(WARNING, 'Could not load fastresume data: '+
+                    self._log(WARNING, 'Could not load fastresume data: '+
                                 str(e) + '. Will perform full hash check.')
                     if resumefile is not None:
                         resumefile.close()
                     resumefile = None
         def data_flunked(amount, index):
             self._ratemeasure.data_rejected(amount)
-            self._error(INFO, 'piece %d failed hash check, '
+            self._log(INFO, 'piece %d failed hash check, '
                         're-downloading it' % index)
         backthread_exception = []
-        def errorfunc(level, text):
+        def logfunc(level, text):
             def e():
-                self._error(level, text)
+                self._log(level, text)
             externalsched(e, 0)
         def hashcheck():
             def statusfunc(activity = None, fractionDone = 0):
@@ -297,7 +298,7 @@ class _SingleTorrent(object):
                 self._storagewrapper = StorageWrapper(self._storage,
                      self.config, metainfo.hashes, metainfo.piece_length,
                      self._finished, statusfunc, self._doneflag, data_flunked,
-                     self.infohash, errorfunc, resumefile)
+                     self.infohash, logfunc, resumefile)
             except:
                 backthread_exception.append(sys.exc_info())
             self._contfunc()
@@ -334,7 +335,7 @@ class _SingleTorrent(object):
                 connection.close()
             schedfunc(kick, 0)
         def banpeer(ip):
-            self._encoder.ban(ip)
+            self._endpoint.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
                                 kickpeer, banpeer)
@@ -342,21 +343,21 @@ class _SingleTorrent(object):
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
                         self.config['max_slice_length'], self.config['max_rate_period'])
-        self._encoder = EndPoint(make_upload, downloader, choker,
+        self._endpoint = EndPoint(make_upload, downloader, choker,
                                 len(metainfo.hashes), schedfunc, self)
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port()
             self.reserved_ports.append(self.reported_port)
-        self._singleport_listener.add_torrent(self.infohash, self._encoder)
+        self._singleport_listener.add_torrent(self.infohash, self._endpoint)
         self._listening = True
         self._rerequest = Rerequester(metainfo.announce, self.config,
             schedfunc, self.neighbors,
-            self._encoder.start_connection, externalsched,
+            self._endpoint.start_connection, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
             downmeasure.get_total, self.reported_port, self.myid,
-            self.infohash, self._error, self.finflag, upmeasure.get_rate,
-            downmeasure.get_rate, self._encoder.ever_got_incoming,
+            self.infohash, self._log, self.finflag, upmeasure.get_rate,
+            downmeasure.get_rate, self._endpoint.ever_got_incoming,
             self.internal_shutdown, self._announce_done, self.certificate,
             self.sessionid)
             # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure
@@ -377,26 +378,26 @@ class _SingleTorrent(object):
     def got_exception(self, e):
         is_external = False
         if isinstance(e, BTShutdown):
-            self._error(ERROR, str(e))
+            self._log(ERROR, str(e))
             is_external = True
         elif isinstance(e, BTFailure):
-            self._error(CRITICAL, str(e))
+            self._log(CRITICAL, str(e))
             self._activity = ('download failed: ' + str(e), 0)
         elif isinstance(e, IOError):
-            self._error(CRITICAL, 'IO Error ' + str(e))
+            self._log(CRITICAL, 'IO Error ' + str(e))
             self._activity = ('killed by IO error: ' + str(e), 0)
         elif isinstance(e, OSError):
-            self._error(CRITICAL, 'OS Error ' + str(e))
+            self._log(CRITICAL, 'OS Error ' + str(e))
             self._activity = ('killed by OS error: ' + str(e), 0)
         else:
             data = StringIO()
             print_exc(file=data)
-            self._error(CRITICAL, data.getvalue(), True)
+            self._log(CRITICAL, data.getvalue(), True)
             self._activity = ('killed by internal exception: ' + str(e), 0)
         try:
             self._close()
         except Exception, e:
-            self._error(ERROR, 'Additional error when closing down due to '
+            self._log(ERROR, 'Additional error when closing down due to '
                         'error: ' + str(e))
         if is_external:
             self.feedback.failed(self, True)
@@ -408,7 +409,7 @@ class _SingleTorrent(object):
                 try:
                     os.remove(filename)
                 except Exception, e:
-                    self._error(WARNING, 'Could not remove fastresume file '
+                    self._log(WARNING, 'Could not remove fastresume file '
                                 'after failure:' + str(e))
         self.feedback.failed(self, False)
 
@@ -447,7 +448,7 @@ class _SingleTorrent(object):
             self._storagewrapper.write_fastresume(resumefile)
             resumefile.close()
         except Exception, e:
-            self._error(WARNING, 'Could not write fastresume data: ' + str(e))
+            self._log(WARNING, 'Could not write fastresume data: ' + str(e))
             if resumefile is not None:
                 resumefile.close()
 
@@ -465,7 +466,7 @@ class _SingleTorrent(object):
         # This is only called when announce fails with no peers,
         # don't try to announce again telling we're leaving the torrent
         self._announced = False
-        self._error(level, text)
+        self._log(level, text)
         self.shutdown()
         self.feedback.failed(self, True)
 
@@ -475,7 +476,7 @@ class _SingleTorrent(object):
         self.closed = True
         self._rawserver.remove_context(self)
         self._doneflag.set()
-        self._error(INFO, "Closing connections, please wait...")
+        self._log(INFO, "Closing connections, please wait...")
         if self._announced:
             self._rerequest.announce_stop()
             self._rerequest.cleanup()
@@ -487,8 +488,8 @@ class _SingleTorrent(object):
             self._singleport_listener.remove_torrent(self.infohash)
         for port in self.reserved_ports:
             self._singleport_listener.release_port(port)
-        if self._encoder is not None:
-            self._encoder.close_connections()
+        if self._endpoint is not None:
+            self._endpoint.close_connections()
         if self._storage is not None:
             self._storage.close()
         self._ratelimiter.clean_closed()
@@ -536,7 +537,7 @@ class _SingleTorrent(object):
             return
         self.reported_port = r
         self.myid = self._make_id()
-        self._encoder.myid = self.myid
+        self._endpoint.myid = self.myid
         self._rerequest.change_port(self.myid, r)
 
     def _announce_done(self):
@@ -569,8 +570,8 @@ class _SingleTorrent(object):
             uploads = int(sqrt(rate * .6))
         self.config['max_uploads_internal'] = uploads
 
-    def _error(self, level, text, exception=False):
-        self.errors.append((bttime(), level, text))
+    def _log(self, level, text, exception=False):
+        self.messages.append((bttime(), level, text))
         if exception:
             self.feedback.exception(self, text)
         else:

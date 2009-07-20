@@ -25,7 +25,6 @@ def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
-protocol_name = "BitTorrent"
 CHOKE = chr(0x0) # Single byte
 UNCHOKE = chr(0x1) # Single byte
 INTERESTED = chr(0x2) # Single byte
@@ -37,6 +36,10 @@ PIECE = chr(0x7) # index, begin, piece
 CANCEL = chr(0x8) # index, begin, piece
 
 class BitTorrentProtocol(object):
+    """ Should NOT be created directly, must be used as a mixin with a class
+        that also inherits a Connection type """
+
+    protocol_name = "BitTorrent"
     def __init__(self):
         #msglens => Provides easy lookup for validation of fixed length messages
         self.msglens= { CHOKE: 1, UNCHOKE: 1, INTERESTED: 1, NOT_INTERESTED: 1, \
@@ -90,10 +93,7 @@ class BitTorrentProtocol(object):
                 return
             if l > 0:
                 yield l # get the message body
-                if self.is_relay:
-                    self.owner.relay_message(self, self._message)
-                else:
-                    self.got_message(self._message)
+                self.got_message(self._message)
     def _valid_msg_len(self, m):
         ''' Check length of received message m against dictionary
             of valid message lengths '''
@@ -105,18 +105,10 @@ class BitTorrentProtocol(object):
             if len(m) != self.msglens[m[0]]:
                 validp = False
         return validp
-    def _send_message(self, message):
-        ''' Prepends message with its length as a 32 bit integer,
-            and queues or immediately sends the message '''
-        s = tobinary(len(message)) + message
-        if self._partial_message is not None:
-            self._outqueue.append(s)
-        else:
-            self.connection.write(s)
-    def transfer_ctl_msg(self, message):
+    def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages. 
             ie. CHOKE, INTERESTED, PIECE '''
-        self._send_message(message)
+        self._send_message(type, message)
     ## Recv messages ##
     def got_message(self, message):
         """ Handles an incoming message. First byte designates message type,
@@ -192,15 +184,18 @@ class BitTorrentProtocol(object):
             self.transfer_ctl_msg(UNCHOKE)
             self.choke_sent = False
     def send_request(self, index, begin, length):
-        self.transfer_ctl_msg(REQUEST + tobinary(index) +
+        self.transfer_ctl_msg(REQUEST, tobinary(index) +
             tobinary(begin) + tobinary(length))
     def send_cancel(self, index, begin, length):
-        self.transfer_ctl_msg(CANCEL + tobinary(index) +
+        self.transfer_ctl_msg(CANCEL, tobinary(index) +
             tobinary(begin) + tobinary(length))
     def send_bitfield(self, bitfield):
-        self.transfer_ctl_msg(BITFIELD + bitfield)
+        self.transfer_ctl_msg(BITFIELD, bitfield)
     def send_have(self, index):
-        self.transfer_ctl_msg(HAVE + tobinary(index))
+        self.transfer_ctl_msg(HAVE, tobinary(index))
+    def format_message(self, type, message):
+        return tobinary(len(type+message)) + \  # Message Length
+               type + message                   # Payload
     ## Partial Messages ## 
     def partial_msg_str(self, index, begin, piece):
         return ''.join((tobinary(len(piece) + 9), PIECE, tobinary(index), \
@@ -209,31 +204,4 @@ class BitTorrentProtocol(object):
         return tobinary(1) + CHOKE
     def partial_unchoke_str(self):
         return tobinary(1) + UNCHOKE
-    def send_partial(self, bytes):
-        """ Provides partial sending of messages for RateLimiter """
-        if self.closed:
-            return 0
-        if self._partial_message is None:
-            s = self.upload.get_upload_chunk()
-            if s is None:
-                return 0
-            index, begin, piece = s
-            self._partial_message = self.partial_msg_str(index, begin, piece)
-        if bytes < len(self._partial_message):
-            self.connection.write(buffer(self._partial_message, 0, bytes))
-            self._partial_message = buffer(self._partial_message, bytes)
-            return bytes
-        queue = [str(self._partial_message)]
-        self._partial_message = None
-        if self.choke_sent != self.upload.choked:
-            if self.upload.choked:
-                self._outqueue.append(self.partial_choke_str())
-                self.upload.sent_choke()
-            else:
-                self._outqueue.append(self.partial_unchoke_str())
-            self.choke_sent = self.upload.choked
-        queue.extend(self._outqueue)
-        self._outqueue = []
-        queue = ''.join(queue)
-        self.connection.write(queue)
-        return len(queue)
+

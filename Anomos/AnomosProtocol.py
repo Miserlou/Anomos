@@ -22,11 +22,12 @@ from crypto import AESKey, CryptoError
 TCODE = chr(0x9)
 CONFIRM = chr(0xA)
 ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
-BREAK = chr(0xC)
+RELAY = chr(0xC)
+BREAK = chr(0xD)
 
 class AnomosProtocol(BitTorrentProtocol):
-    '''This class assures that we send and receive messages in accordance
-       with the Anomos protocol. '''
+    """ Should NOT be created directly, must be used as a mixin with a class
+        that also inherits a Connection type """
     from Anomos import protocol_name
     def __init__(self):
         BitTorrentProtocol.__init__(self)
@@ -36,13 +37,13 @@ class AnomosProtocol(BitTorrentProtocol):
         self.msgmap.update({TCODE: self.got_tcode,
                             CONFIRM: self.got_confirm,
                             ENCRYPTED: self.got_encrypted,
+                            RELAY: self.got_relay,
                             BREAK: self.send_break })
-        self.tcreader = None
 
     def protocol_extensions(self):
-        """Anomos puts [2:port][1:nid][5:null char] into the 
+        """Anomos puts [1:nid][7:null char] into the 
            BitTorrent reserved header bytes"""
-        return tobinary(self.owner.port)[2:] + self.id + '\0\0\0\0\0'
+        return self.id + '\0\0\0\0\0\0\0'
     def _read_header(self):
         '''Each yield puts N bytes from Connection.data_came_in into
            self._message. N is the number of bytes in the section of the
@@ -71,37 +72,53 @@ class AnomosProtocol(BitTorrentProtocol):
             yield self._reader.next()
         # Upon reaching this point the connection is determined
         # to be a headerless connection and thus a new neighbor.
-        yield 2  # port number
-        self.port = toint(self._message)
         yield 1  # NID
         self.id = self._message
-        yield 5  # reserved bytes (ignore these for now)
+        yield 7  # reserved bytes (ignore these for now)
         self._got_full_header() # Does some connection type specific actions
                                 # See AnomosFwdLink and AnomosRevLink
         # Switch to reading messages
         self._reader = self._read_messages()
         yield self._reader.next()
+    def _read_messages(self):
+        ''' Read messages off the line and relay or process them
+            depending on connection type '''
+        while True:
+            yield 2
+            stream = toint(self._message)
+            handler = self.get_stream_handler(stream)
+            yield 4   # get the message length in self._message
+            l = toint(self._message)
+            if l > self.owner.config['max_message_length']:
+                return
+            if l > 0:
+                yield l # get the message body
+                handler.got_message(self._message)
+                #if self.is_relay:
+                #    self.owner.relay_message(self, self._message)
+                #else:
+                #    self.got_message(self._message)
     ## Message sending methods ##
     def _send_encrypted_message(self, message):
         '''End-to-End encrypts a message'''
-        message = ENCRYPTED + self.e2e_key.encrypt(message)
-        self._send_message(message)
+        message = self.e2e_key.encrypt(message)
+        self._send_message(ENCRYPTED, message)
     def transfer_ctl_msg(self, message):
         ''' Send method for file transfer messages. 
             ie. CHOKE, INTERESTED, PIECE '''
         self._send_encrypted_message(message)
-    def network_ctl_msg(self, message):
+    def network_ctl_msg(self, type, message):
         ''' Send message for network messages, 
             ie. CONFIRM, TCODE and for relaying messages'''
-        self._send_message(message)
+        self._send_message(type, message)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
     def send_tracking_code(self, trackcode):
-        self.network_ctl_msg(TCODE + trackcode)
+        self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, message):
-        # Just used by Relayer to accesss _send_encrypted_message
-        # Can be removed if someone wants to clean it up.
-        self.network_ctl_msg(message)
+        # NOTE: RELAY character is left at the beginning of the message
+        # to avoid the extra string copy, so no type is added here
+        self.network_ctl_msg("", message)
     #TODO: I have no idea if send break works --John
     def send_break(self):
         if self.is_relay:
@@ -125,10 +142,8 @@ class AnomosProtocol(BitTorrentProtocol):
             # Message is only link-encrypted
             #self.got_message(message[1:])
     def got_tcode(self, message):
-        #TODO: tcreader should not be initialized here.
-        if not self.tcreader:
-            self.tcreader = TCReader(self.owner.certificate)
-        tcdata = self.tcreader.parseTC(message[1:])
+        tcreader = TCReader(self.owner.certificate)
+        tcdata = tcreader.parseTC(message[1:])
         sid = tcdata.sessionID
         idmatch = self.owner.check_session_id(sid)
         if not idmatch:
@@ -157,25 +172,32 @@ class AnomosProtocol(BitTorrentProtocol):
             self.complete = True
         else:
             self.close("Unsupported TCode Format")
+    def got_relay(self, message):
+        if self.is_relay:
+            #NOTE: message[0] == RELAY, there's no need to
+            #      strip this since we'd just have to add
+            #      it again in send_relay. As a result,
+            #      send_relay does NOT add a control char.
+            self.owner.relay_message(self, message)
+        else:
+            self.got_message(message[1:])
     def got_confirm(self):
         if not self.established:
-            self.owner.add_neighbor(self.id, (self.ip, self.port),
-                                    self.connection.socket.get_session())
+            self.owner.add_neighbor(self.id, (self.ip, 0))
         self.owner.connection_completed(self)
         self.complete = True
         if self.is_relay:
             self.owner.relay_message(self, CONFIRM)
+    def format_message(self, type, message):
+        return tobinary(self.stream_id)[2:] + \     # Stream ID
+               tobinary(len(type+message)) + \  # Message Length
+               type + message                   # Payload
     ## Partial message sending methods ##
     ## these are used by send_partial, which we inherit from BitTorrentProtocol
     def partial_msg_str(self, index, begin, piece):
         msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
-        return tobinary(len(msg)+1) + ENCRYPTED + self.e2e_key.encrypt(msg)
+        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(msg))
     def partial_choke_str(self):
-        return tobinary(2) + ENCRYPTED + self.e2e_key.encrypt(CHOKE)
+        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(CHOKE))
     def partial_unchoke_str(self):
-        return tobinary(2) + ENCRYPTED + self.e2e_key.encrypt(UNCHOKE)
-    ## Connection type methods ##
-    def connection_flushed(self, connection):
-        if not self.is_relay:
-            Connection.connection_flushed(self, connection)
-
+        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))

@@ -55,24 +55,25 @@ class Relayer(object):
         else:
             self.rawserver.add_task(self.check_if_established, 1)
 
-    def start_connection(self, nid):
-        loc = self.neighbors.get_location(nid)
-        ssls = self.neighbors.get_ssl_session(nid)
-        self.rawserver.start_ssl_connection(loc, handler=self, session=ssls)
+#### NOTE: Here be obsolete code, keep it until things are working again ####
+    #def start_connection(self, nid):
+    #    loc = self.neighbors.get_location(nid)
+    #    ssls = self.neighbors.get_ssl_session(nid)
+    #    self.rawserver.start_ssl_connection(loc, handler=self, session=ssls)
 
-    def sock_success(self, sock, loc):
-        if self.connections.has_key(sock):
-            return
-        con = AnomosFwdLink(self, sock, self.tmpnid, established=True)
-        sock.handler = con
-        self.errorfunc(INFO, "Relay connection started")
-        self.outgoing = con
-        self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
+    #def sock_success(self, sock, loc):
+    #    if self.connections.has_key(sock):
+    #        return
+    #    con = AnomosFwdLink(self, sock, self.tmpnid, established=True)
+    #    sock.handler = con
+    #    self.errorfunc(INFO, "Relay connection started")
+    #    self.outgoing = con
+    #    self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
 
-    def sock_fail(self, loc, err=None):
-        if err:
-            self.errorfunc(WARNING, err)
-        #TODO: Do something with error message
+    #def sock_fail(self, loc, err=None):
+    #    if err:
+    #        self.errorfunc(WARNING, err)
+    #    #TODO: Do something with error message
 
     def relay_message(self, con, msg):
         if self.connections.has_key(con) and self.connections[con] is not None:
@@ -86,15 +87,16 @@ class Relayer(object):
             #TODO: buffer size control, message rejection after a certain point.
             self.buffer.append(msg)
 
-    def connection_closed(self, sock):
-        if sock == self.incoming.connection:
-            self.outgoing.close()
-        elif sock == self.outgoing.connection:
-            self.incoming.close()
+#### NOTE: Here be obsolete code, keep it until things are working again ####
+    #def connection_closed(self, sock):
+    #    if sock == self.incoming.connection:
+    #        self.outgoing.close()
+    #    elif sock == self.outgoing.connection:
+    #        self.incoming.close()
 
-    def connection_completed(self, con):
-        self.errorfunc(INFO, "Relay connection established")
-        con.is_relay = True
+    #def connection_completed(self, con):
+    #    self.errorfunc(INFO, "Relay connection established")
+    #    con.is_relay = True
 
     def get_rate(self):
         return self.uprate.get_rate()

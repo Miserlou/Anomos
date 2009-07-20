@@ -147,8 +147,8 @@ class LaunchMany(Feedback):
                     uprate = stats['upRate']
                     upamt = s['upTotal']
                     dnamt = s['downTotal']
-                if d.errors and (d.closed or d.errors[-1][0] + 300 > bttime()):
-                    msg = d.errors[-1][2]
+                if d.messages and (d.closed or d.messages[-1][0] + 300 > bttime()):
+                    msg = d.messages[-1][2]
 
             data.append(( name, status, progress, peers, seeds, seedsmsg, dist,
                           uprate, dnrate, upamt, dnamt, size, t, msg ))
