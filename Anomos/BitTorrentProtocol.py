@@ -193,15 +193,15 @@ class BitTorrentProtocol(object):
         self.transfer_ctl_msg(BITFIELD, bitfield)
     def send_have(self, index):
         self.transfer_ctl_msg(HAVE, tobinary(index))
-    def format_message(self, type, message):
+    def format_message(self, type, message=""):
         return tobinary(len(type+message)) + \  # Message Length
                type + message                   # Payload
-    ## Partial Messages ## 
+    ## Partial Messages ##
     def partial_msg_str(self, index, begin, piece):
         return ''.join((tobinary(len(piece) + 9), PIECE, tobinary(index), \
                                 tobinary(begin), piece))
     def partial_choke_str(self):
-        return tobinary(1) + CHOKE
+        return format_message(CHOKE)
     def partial_unchoke_str(self):
-        return tobinary(1) + UNCHOKE
+        return format_message(UNCHOKE)
 
