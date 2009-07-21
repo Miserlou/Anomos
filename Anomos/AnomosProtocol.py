@@ -52,7 +52,7 @@ class AnomosProtocol(BitTorrentProtocol):
         if self._message != len(AnomosProtocol.protocol_name):
             raise StopIteration("Protocol name mismatch")
         yield len(protocol_name) # protocol name -- 'Anomos'
-        if self._message != AnomosProtocol.protocol_name
+        if self._message != AnomosProtocol.protocol_name:
             raise StopIteration("Protocol name mismatch")
         yield 1  # NID
         self.id = self._message
@@ -80,9 +80,10 @@ class AnomosProtocol(BitTorrentProtocol):
         self.owner.connection_completed(self)
         self.complete = True
     def format_message(self, type, message=""):
-        return tobinary(self.stream_id)[2:] + \     # Stream ID
-               tobinary(len(type+message)) + \  # Message Length
-               type + message                   # Payload
+        """ [StreamID][Message Length][Type][Payload] """
+        return tobinary(self.stream_id)[2:] + \
+               tobinary(len(type+message)) + \
+               type + message
     ## Partial message sending methods ##
     ## these are used by send_partial, which we inherit from BitTorrentProtocol
     def partial_msg_str(self, index, begin, piece):

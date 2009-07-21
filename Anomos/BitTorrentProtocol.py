@@ -194,8 +194,9 @@ class BitTorrentProtocol(object):
     def send_have(self, index):
         self.transfer_ctl_msg(HAVE, tobinary(index))
     def format_message(self, type, message=""):
-        return tobinary(len(type+message)) + \  # Message Length
-               type + message                   # Payload
+        """ [Message Length][Type][Payload] """
+        return tobinary(len(type+message)) + \
+               type + message
     ## Partial Messages ##
     def partial_msg_str(self, index, begin, piece):
         return ''.join((tobinary(len(piece) + 9), PIECE, tobinary(index), \
