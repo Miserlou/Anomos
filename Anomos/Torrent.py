@@ -18,6 +18,7 @@ class Torrent(object):
         self.infohash = infohash
         self.make_upload = make_upload
         self.downloader = downloader
+        self.make_download = downloader.make_download
         self.numpieces = numpieces
 
         self.ever_got_incoming = False

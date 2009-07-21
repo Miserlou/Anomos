@@ -18,19 +18,14 @@ from Anomos.AnomosProtocol import AnomosEndPointProtocol
 from Anomos import BTFailure
 
 class EndPoint(AnomosEndPointProtocol):
-    def __init__(self, make_upload, downloader, choker, numpieces, schedulefunc,
-                 context):
-        self.make_upload = make_upload
-        self.downloader = downloader
+    def __init__(self, torrent, choker, numpieces, schedulefunc, context):
+        self.torrent = torrent
         self.choker = choker
         self.numpieces = numpieces
         self.schedulefunc = schedulefunc
 
         self.ratelimiter = context._ratelimiter
-        self.rawserver = context._rawserver
         self.config = context.config
-        self.download_id = context.infohash
-        self.cert = context.certificate
         self.manager = context.neighbors
         self.context = context
 
@@ -93,8 +88,8 @@ class EndPoint(AnomosEndPointProtocol):
 
     def connection_completed(self, c):
         self.complete_connections.add(c)
-        c.upload = self.make_upload(c)
-        c.download = self.downloader.make_download(c)
+        self.upload = self.torrent.make_upload(c)
+        self.download = self.torrent.make_download(c)
         self.choker.connection_made(c)
 
     def ever_got_incoming(self):
