@@ -15,16 +15,26 @@
 
 # Written by John Schanck and Rich Jones
 from Anomos.Connection import Connection
-from Anomos.AnomosProtocol import AnomosProtocol
+from Anomos.AnomosProtocol import AnomosNeighborProtocol
 
-class NeighborLink(object):
+class NeighborLink(AnomosNeighborProtocol):
     def __init__(self, id, manager):
         self.id = id
         self.manager = manager
         #self.ssl_session = None
         self.complete = False
-        self.streams = {}   # {StreamID : Connection type object}
-    ## Socket Initialization ##
-    def start_new_stream(self, ConnectionType):
-        self.streams[self.next_stream_id] = ConnectionType()
-        self.next_stream_id += 2
+        self.streams = {0:self} # {StreamID : Anomos*Protocol implementing obj}
+    ## Stream Initialization ##
+    def start_new_stream(self, ConnectionType, data=None):
+        nxtid = self.next_stream_id
+        self.streams[nxtid] = ConnectionType(nxtid, self, data)
+        self.next_stream_id += 1
+    def get_stream_handler(self, streamid):
+        # Return the handler associated with streamid, otherwise
+        # return a reference to self (because receiving an unassociated
+        # stream id implies it's a new one).
+        return self.streams.get(streamid, self)
+
+
+
+

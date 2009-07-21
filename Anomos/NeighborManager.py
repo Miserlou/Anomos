@@ -15,8 +15,9 @@
 
 # Written by John Schanck and Rich Jones
 
-from Anomos.NeighborLink import NeighborLink
 from Anomos.Connecter import AnomosFwdLink
+from Anomos.NeighborLink import NeighborLink
+from Anomos.TCReader import TCReader
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
 class NeighborManager:
@@ -27,6 +28,7 @@ class NeighborManager:
         self.rawserver = rawserver
         self.config = config
         self.cert = certificate
+        self.tcreader = TCReader(self.cert)
         self.logfunc = logfunc
         self.neighbors = {}
         self.connections = {}
@@ -37,28 +39,71 @@ class NeighborManager:
 
         self.failedPeers = []
 
+    ## Got new neighbor list from the tracker ##
+    def update_neighbor_list(self, list):
+        freshids = dict([(i[2],(i[0],i[1])) for i in list])
+        # Remove neighbors not found in freshids
+        for id in self.neighbors.keys():
+            if not freshids.has_key(id):
+                self.rm_neighbor(id)
+        # Start connections with the new neighbors
+        for id, loc in freshids.iteritems():
+            if not self.neighbors.has_key(id) and id not in self.failedPeers:
+                self.start_connection(loc, id)
+        # Remove the failedPeers that didn't come back as fresh IDs (presumably
+        # the tracker has removed them from our potential neighbor list)
+        failedPeers = [id for id in freshids if id in failedPeers]
+
+    ## Start a new neighbor connection ##
+    def start_connection(self, loc, id):
+        """
+        @param loc: (IP, Port)
+        @param id: The neighbor ID to assign to this connection
+        @type loc: tuple
+        @type id: int
+        """
+        if self.has_neighbor(id) or \
+                self.incomplete.has_key(id) or \
+                self.has_loc(loc):
+            #Already had neighbor by that id or at that location
+            #TODO: Resolve conflict
+            return
+
+        self.incomplete[id] = loc
+        self.rawserver.start_ssl_connection(loc, handler=self)
+
+    ## Socket failed to open ##
+    def sock_fail(self, loc, err=None):
+        #Remove nid,loc pair from incomplete
+        for k,v in self.incomplete.items():
+            if v == loc:
+                self.failedPeers.append(k)
+                del self.incomplete[k]
+        #TODO: Do something with the error msg.
+
     def failed_connections(self):
         return self.failedPeers
 
-    #def get_location(self, nid):
-    #    nbr = self.neighbors.get(nid, None)
-    #    if nbr:
-    #        return nbr.loc
-    #    return None
-
-    #def get_ssl_session(self, nid):
-    #    nbr = self.neighbors.get(nid, None)
-    #    return nbr and nbr.ssl_session
+    ## Socket opened successfully ##
+    def sock_success(self, sock, loc):
+        """
+        @param sock: SingleSocket object for the newly created socket
+        """
+        for id,v in self.incomplete.iteritems():
+            if v == loc:
+                break
+        else: return #loc wasn't found
+        # Exchange the header and hold the connection open
+        con = AnomosFwdLink(self, sock, id, established=False)
+        self.connections[sock] = con
+        self.add_neighbor(id)
 
     def add_neighbor(self, id):
-        self.logfunc(INFO, "Adding Neighbor: \\x%02x"
-                                % ord(id))
+        self.logfunc(INFO, "Adding Neighbor: \\x%02x" % ord(id))
         self.neighbors[id] = NeighborLink(id, self)
 
     def rm_neighbor(self, nid):
-        if nid in self.failedPeers:
-            self.failedPeers.remove(nid)
-        elif self.incomplete.has_key(nid):
+        if self.incomplete.has_key(nid):
             self.incomplete.pop(nid)
         if self.has_neighbor(nid):
             con = self.neighbors[nid].connection
@@ -101,51 +146,19 @@ class NeighborManager:
         self.waiting_tcs.setdefault(id,[])
         self.waiting_tcs[id].append(sendtc)
 
-    def start_connection(self, loc, id):
-        """
-        @param loc: (IP, Port)
-        @param id: The neighbor ID to assign to this connection
-        @type loc: tuple
-        @type id: int
-        """
-        if self.has_neighbor(id) or \
-                self.incomplete.has_key(id) or \
-                self.has_loc(loc):
-            #Already had neighbor by that id or at that location
-            #TODO: Resolve conflict
+    def start_circuit(self, tc, aeskey):
+        #XXX: Count circuits and check against max_initiate
+        #if len(self.connections) >= self.config['max_initiate']:
+        #    return
+        tcdata = self.tcreader.parseTC(tc)
+        nid = tcdata.neighborID
+        if nid not in self.neighbors:
+            self.logfunc(WARNING, 
+                        "NID \\x%02x is not an assigned neighbor"% ord(id))
             return
-
-        self.incomplete[id] = loc
-        self.rawserver.start_ssl_connection(loc, handler=self)
-
-    def sock_success(self, sock, loc):
-        """
-        @param sock: SingleSocket object for the newly created socket
-        """
-        for id,v in self.incomplete.iteritems():
-            if v == loc:
-                break
-        else: return #loc wasn't found
-        # Exchange the header and hold the connection open
-        con = AnomosFwdLink(self, sock, id, established=False)
-        self.connections[sock] = con
-        self.add_neighbor(id)
-
-    def sock_fail(self, loc, err=None):
-        #Remove nid,loc pair from incomplete
-        for k,v in self.incomplete.items():
-            if v == loc:
-                self.failedPeers.append(k)
-                del self.incomplete[k]
-        #TODO: Do something with the error msg.
-
-    def update_neighbor_list(self, list):
-        freshids = dict([(i[2],(i[0],i[1])) for i in list])
-        # Remove neighbors not found in freshids
-        for id in self.neighbors.keys():
-            if not freshids.has_key(id):
-                self.rm_neighbor(id)
-        # Start connections with the new neighbors
-        for id, loc in freshids.iteritems():
-            if not self.neighbors.has_key(id):
-                self.start_connection(loc, id)
+        sid = tcdata.sessionID
+        if sid != self.sessionid:
+            self.logfunc(ERROR, "SessionID mismatch!")
+            return
+        nextTC = tcdata.nextLayer
+        self.neighbors[nid].start_new_stream(Relayer, nextTC)

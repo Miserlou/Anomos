@@ -26,15 +26,15 @@ class Relayer(object):
         association between the incoming socket and the outgoing socket (so
         that the TC only needs to be sent once).
     """
-    def __init__(self, rawserver, neighbors, incoming, outnid, config, max_rate_period=20.0):
+    def __init__(self, stream_id, nbrmanager, outnid, max_rate_period=20.0):
                     #storage, uprate, downrate, choker, key):
-        self.rawserver = rawserver
-        self.neighbors = neighbors
-        self.errorfunc = rawserver.errorfunc
-        self.incoming = incoming
-        self.outgoing = None
-        self.connections = {self.incoming:None}
-        self.config = config
+    #   self.rawserver = rawserver
+        self.stream_id = streamid
+        self.manager = nbrmanager
+    #   self.errorfunc = rawserver.errorfunc
+    #   self.incoming = incoming
+    #   self.outgoing = None
+    #   self.connections = {self.incoming:None}
         self.choked = True
         self.unchoke_time = None
         self.uprate = Measure(max_rate_period)
@@ -43,17 +43,17 @@ class Relayer(object):
         self.buffer = []
         self.complete = False
 
-        self.tmpnid = outnid
-        self.start_connection(outnid)
-        self.rawserver.add_task(self.check_if_established, 1)
+    #   self.tmpnid = outnid
+    #   self.start_connection(outnid)
+    #   self.rawserver.add_task(self.check_if_established, 1)
 
-    def check_if_established(self):
-        if self.outgoing:
-            for msg in self.buffer:
-                self.relay_message(self.incoming, msg)
-            self.buffer = []
-        else:
-            self.rawserver.add_task(self.check_if_established, 1)
+    #def check_if_established(self):
+    #    if self.outgoing:
+    #        for msg in self.buffer:
+    #            self.relay_message(self.incoming, msg)
+    #        self.buffer = []
+    #    else:
+    #        self.rawserver.add_task(self.check_if_established, 1)
 
 #### NOTE: Here be obsolete code, keep it until things are working again ####
     #def start_connection(self, nid):
@@ -75,15 +75,13 @@ class Relayer(object):
     #        self.errorfunc(WARNING, err)
     #    #TODO: Do something with error message
 
-    def relay_message(self, con, msg):
-        if self.connections.has_key(con) and self.connections[con] is not None:
+    def relay_message(self, msg):
+        if self.complete:
+            self.partner.send_message(msg)
+            self.connections[con].send_relay_message(msg)
             self.uprate.update_rate(len(msg))
             self.sent += len(msg)
-            self.connections[con].send_relay_message(msg)
-        elif not self.complete: # 'con' is incomming connection, and the
-                                # connection isn't complete, which means the relay
-                                # connection hasn't been established yet. Buffer
-                                # messages until it has been.
+        else: # Buffer messages until connection is complete
             #TODO: buffer size control, message rejection after a certain point.
             self.buffer.append(msg)
 
@@ -94,9 +92,9 @@ class Relayer(object):
     #    elif sock == self.outgoing.connection:
     #        self.incoming.close()
 
-    #def connection_completed(self, con):
-    #    self.errorfunc(INFO, "Relay connection established")
-    #    con.is_relay = True
+    def connection_completed(self, con):
+        self.errorfunc(INFO, "Relay connection established")
+        self.complete = True
 
     def get_rate(self):
         return self.uprate.get_rate()
