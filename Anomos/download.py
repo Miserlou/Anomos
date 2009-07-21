@@ -348,7 +348,7 @@ class _SingleTorrent(object):
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port()
             self.reserved_ports.append(self.reported_port)
-        self._singleport_listener.add_torrent(self.infohash, self._torrent)
+        self.neighbors.add_torrent(self.infohash, self._torrent)
         self._listening = True
         self._rerequest = Rerequester(metainfo.announce, self.config,
             schedfunc, self.neighbors, externalsched,

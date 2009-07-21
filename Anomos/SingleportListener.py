@@ -28,7 +28,6 @@ class SingleportListener(object):
         self.config = config
         self.port = 0
         self.ports = {}
-        self.torrents = {}
         self.relayers = []
         self.neighbors = neighbors
         self.download_id = None
@@ -66,15 +65,6 @@ class SingleportListener(object):
         for serversocket, _ in self.ports.itervalues():
             self.rawserver.stop_listening(serversocket)
             serversocket.close()
-
-    def add_torrent(self, infohash, torrent):
-        if infohash in self.torrents:
-            raise BTFailure("Can't start two separate instances of the same "
-                            "torrent")
-        self.torrents[infohash] = torrent
-
-    def remove_torrent(self, infohash):
-        del self.torrents[infohash]
 
     #def xchg_owner_with_endpoint(self, conn, infohash):
     #    if infohash not in self.torrents:

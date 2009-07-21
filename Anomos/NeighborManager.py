@@ -34,6 +34,7 @@ class NeighborManager:
         self.neighbors = {}
         self.connections = {}
         self.incomplete = {}
+        self.torrents = {}
 
         self.port = None
         self.waiting_tcs = {}
@@ -170,3 +171,15 @@ class NeighborManager:
             return
         nextTC = tcdata.nextLayer
         self.neighbors[nid].start_new_stream(Relayer, nextTC)
+
+    def add_torrent(self, infohash, torrent):
+        if infohash in self.torrents:
+            raise BTFailure("Can't start two separate instances of the same "
+                            "torrent")
+        self.torrents[infohash] = torrent
+
+    def remove_torrent(self, infohash):
+        del self.torrents[infohash]
+
+    def get_torrent(self, infohash):
+        return self.torrents.get(infohash, None)
