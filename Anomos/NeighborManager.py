@@ -15,7 +15,7 @@
 
 # Written by John Schanck and Rich Jones
 
-from Anomos.Connecter import AnomosFwdLink
+from Anomos.Connection import AnomosFwdLink
 from Anomos.NeighborLink import NeighborLink
 from Anomos.TCReader import TCReader
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
@@ -24,10 +24,11 @@ class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate, logfunc):
+    def __init__(self, rawserver, config, certificate, sessionid, logfunc):
         self.rawserver = rawserver
         self.config = config
         self.cert = certificate
+        self.sessionid = sessionid
         self.tcreader = TCReader(self.cert)
         self.logfunc = logfunc
         self.neighbors = {}
@@ -117,6 +118,9 @@ class NeighborManager:
 
     def has_neighbor(self, nid):
         return self.neighbors.has_key(nid)
+
+    def check_session_id(self, sid):
+        return sid == self.sessionid
 
     # TODO: We'll probably want some kind of location storing
     #       but it won't be similar enough to warrant keeping this.

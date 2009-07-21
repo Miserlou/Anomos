@@ -23,7 +23,7 @@ class SingleportListener(object):
         is one per torrent), initializes connection objects, and determines
         what to do with the connection once some data has been read.
     '''
-    def __init__(self, rawserver, config, neighbors, sessionid):
+    def __init__(self, rawserver, config, neighbors):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
@@ -31,7 +31,6 @@ class SingleportListener(object):
         self.torrents = {}
         self.relayers = []
         self.neighbors = neighbors
-        self.sessionid = sessionid
         self.download_id = None
 
     def _check_close(self, port):
@@ -81,9 +80,6 @@ class SingleportListener(object):
     #    if infohash not in self.torrents:
     #        return
     #    self.torrents[infohash].singleport_connection(self, conn)
-
-    def check_session_id(self, sid):
-        return sid == self.sessionid
 
     #def xchg_owner_with_relayer(self, conn, neighborid):
     #    conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
