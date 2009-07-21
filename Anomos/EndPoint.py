@@ -16,12 +16,7 @@
 from Anomos.Connection import AnomosFwdLink
 from Anomos import BTFailure
 
-class EndPoint(object):
-    ''' EndPoint objects exist at the torrent level. A client has an EndPoint
-        object for each torrent they're downloading/seeding. The primary
-        purpose of the EndPoint object is to initialize new connections by
-        sending tracking codes and creating the uploader/downloader objects.
-    '''
+class EndPoint(AnomosEndPointProtocol):
     def __init__(self, make_upload, downloader, choker, numpieces, schedulefunc,
                  context):
         self.make_upload = make_upload
