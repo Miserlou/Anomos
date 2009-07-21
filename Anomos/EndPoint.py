@@ -13,10 +13,7 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-import Anomos.crypto as crypto
-from Anomos.Connection import AnomosFwdLink, AnomosRevLink
-from Anomos.Relayer import Relayer
-from Anomos.TCReader import TCReader
+from Anomos.Connection import AnomosFwdLink
 from Anomos import BTFailure
 
 class EndPoint(object):
@@ -38,8 +35,7 @@ class EndPoint(object):
         self.config = context.config
         self.download_id = context.infohash
         self.cert = context.certificate
-        self.tcreader = TCReader(self.cert)
-        self.neighbors = context.neighbors
+        self.manager = context.neighbors
         self.context = context
 
         self.connections = {} # {socket : Connection}
@@ -99,11 +95,11 @@ class EndPoint(object):
     #        del self.incomplete[loc]
     #    #TODO: Do something with the error msg
 
-    #def connection_completed(self, c):
-    #    self.complete_connections.add(c)
-    #    c.upload = self.make_upload(c)
-    #    c.download = self.downloader.make_download(c)
-    #    self.choker.connection_made(c)
+    def connection_completed(self, c):
+        self.complete_connections.add(c)
+        c.upload = self.make_upload(c)
+        c.download = self.downloader.make_download(c)
+        self.choker.connection_made(c)
 
     def ever_got_incoming(self):
         return self.everinc
@@ -142,113 +138,3 @@ class EndPoint(object):
     #def ban(self, ip):
     #    self.banned.add(ip)
 
-
-class SingleportListener(object):
-    '''SingleportListener gets events from the server sockets (of which there
-        is one per torrent), initializes connection objects, and determines
-        what to do with the connection once some data has been read.
-    '''
-    def __init__(self, rawserver, config, neighbors, certificate, sessionid):
-        self.rawserver = rawserver
-        self.config = config
-        self.port = 0
-        self.ports = {}
-        self.torrents = {}
-        self.relayers = []
-        self.connections = {}
-        self.neighbors = neighbors
-        self.certificate = certificate
-        self.sessionid = sessionid
-        self.download_id = None
-
-    def _check_close(self, port):
-        if not port or self.port == port or self.ports[port][1] > 0:
-            return
-        serversocket = self.ports[port][0]
-        self.rawserver.stop_listening(serversocket)
-        serversocket.close()
-        del self.ports[port]
-
-    def open_port(self, port, config):
-        if port in self.ports:
-            self.port = port
-            return
-        serversocket = self.rawserver.create_ssl_serversocket(port, config['bind'], True, config['peer_socket_tos'])
-        self.rawserver.start_listening(serversocket, self)
-        oldport = self.port
-        self.port = port
-        self.neighbors.port = port
-        self.ports[port] = [serversocket, 0]
-        self._check_close(oldport)
-
-    def get_port(self):
-        if self.port:
-            self.ports[self.port][1] += 1
-        return self.port
-
-    def release_port(self, port):
-        self.ports[port][1] -= 1
-        self._check_close(port)
-
-    def close_sockets(self):
-        for serversocket, _ in self.ports.itervalues():
-            self.rawserver.stop_listening(serversocket)
-            serversocket.close()
-
-    def add_torrent(self, infohash, endpoint):
-        if infohash in self.torrents:
-            raise BTFailure("Can't start two separate instances of the same "
-                            "torrent")
-        self.torrents[infohash] = endpoint
-
-    def remove_torrent(self, infohash):
-        del self.torrents[infohash]
-
-    def xchg_owner_with_endpoint(self, conn, infohash):
-        if infohash not in self.torrents:
-            return
-        self.torrents[infohash].singleport_connection(self, conn)
-
-    def check_session_id(self, sid):
-        return sid == self.sessionid
-
-    def xchg_owner_with_relayer(self, conn, neighborid):
-        conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
-                                self.config)
-        conn.is_relay = True
-        self.relayers.append(conn.owner)
-        return conn.owner
-
-    def remove_relayer(self, relayer):
-        self.relayers.remove(relayer)
-
-    def get_relay_size(self):
-        return len(self.relayers)
-
-    def get_relay_rate(self):
-        rate = 0
-        for r in self.relayers:
-            rate  += r.get_rate()
-        return rate
-
-    def get_relay_sent(self):
-        sent = 0
-        for r in self.relayers:
-            sent  += r.get_sent()
-        return sent
-
-    def xchg_owner_with_nbr_manager(self, conn):
-        del self.connections[conn.connection]
-        conn.owner = self.neighbors
-        self.neighbors.connections[conn.connection] = conn
-
-    def external_connection_made(self, socket):
-        """
-        Connection came in.
-        @param socket: SingleSocket
-        """
-        con = AnomosRevLink(self, socket)
-        self.connections[socket] = con
-
-    def replace_connection(self):
-        pass
