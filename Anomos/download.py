@@ -28,23 +28,24 @@ from math import sqrt
 
 import random
 
-from Anomos.NeighborManager import NeighborManager
-from Anomos.platform import bttime
 from Anomos.Choker import Choker
-from Anomos.Storage import Storage, FilePool
-from Anomos.StorageWrapper import StorageWrapper
-from Anomos.Uploader import Upload
+from Anomos.ConvertedMetainfo import set_filesystem_encoding
+from Anomos.CurrentRateMeasure import Measure
 from Anomos.Downloader import Downloader
+from Anomos.DownloaderFeedback import DownloaderFeedback
 from Anomos.EndPoint import EndPoint
-from Anomos.SingleportListener import SingleportListener
+from Anomos.NeighborManager import NeighborManager
+from Anomos.PiecePicker import PiecePicker
 from Anomos.RateLimiter import RateLimiter
+from Anomos.RateMeasure import RateMeasure
 from Anomos.RawServer import RawServer
 from Anomos.Rerequester import Rerequester
-from Anomos.DownloaderFeedback import DownloaderFeedback
-from Anomos.RateMeasure import RateMeasure
-from Anomos.CurrentRateMeasure import Measure
-from Anomos.PiecePicker import PiecePicker
-from Anomos.ConvertedMetainfo import set_filesystem_encoding
+from Anomos.SingleportListener import SingleportListener
+from Anomos.Storage import Storage, FilePool
+from Anomos.StorageWrapper import StorageWrapper
+from Anomos.Torrent import Torrent
+from Anomos.Uploader import Upload
+from Anomos.platform import bttime
 from Anomos import version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
@@ -206,7 +207,7 @@ class _SingleTorrent(object):
         self._ratemeasure = None
         self._upmeasure = None
         self._downmeasure = None
-        self._endpoint = None
+        self._torrent = None
         self._rerequest = None
         self._statuscollecter = None
         self._announced = False
@@ -334,7 +335,7 @@ class _SingleTorrent(object):
                 connection.close()
             schedfunc(kick, 0)
         def banpeer(ip):
-            self._endpoint.ban(ip)
+            self.neighbors.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
             len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
                                 kickpeer, banpeer)
@@ -342,20 +343,20 @@ class _SingleTorrent(object):
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,
                         self.config['max_slice_length'], self.config['max_rate_period'])
-        self._endpoint = EndPoint(make_upload, downloader, choker,
-                                len(metainfo.hashes), schedfunc, self)
+        self._torrent = Torrent(self.infohash, make_upload,
+                                downloader, len(metainfo.hashes)) 
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port()
             self.reserved_ports.append(self.reported_port)
-        self._singleport_listener.add_torrent(self.infohash, self._endpoint)
+        self._singleport_listener.add_torrent(self.infohash, self._torrent)
         self._listening = True
         self._rerequest = Rerequester(metainfo.announce, self.config,
             schedfunc, self.neighbors, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
             downmeasure.get_total, self.reported_port, self.infohash,
             self._log, self.finflag, upmeasure.get_rate,
-            downmeasure.get_rate, self._endpoint.ever_got_incoming,
+            downmeasure.get_rate, self._torrent.ever_got_incoming,
             self.internal_shutdown, self._announce_done, self.certificate,
             self.sessionid)
             # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure
@@ -486,8 +487,7 @@ class _SingleTorrent(object):
             self._singleport_listener.remove_torrent(self.infohash)
         for port in self.reserved_ports:
             self._singleport_listener.release_port(port)
-        if self._endpoint is not None:
-            self._endpoint.close_connections()
+        #TODO: Close NeighborManager connections
         if self._storage is not None:
             self._storage.close()
         self._ratelimiter.clean_closed()

@@ -111,6 +111,10 @@ class NeighborManager:
                 del self.connections[con]
             self.neighbors.pop(nid)
 
+    #TODO: implement banning
+    def ban(self, ip):
+        pass
+
     def has_neighbor(self, nid):
         return self.neighbors.has_key(nid)
 

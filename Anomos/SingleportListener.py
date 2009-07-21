@@ -16,7 +16,6 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 from Anomos.Connection import AnomosRevLink
-from Anomos.EndPoint import EndPoint
 from Anomos import BTFailure
 
 class SingleportListener(object):
@@ -69,11 +68,11 @@ class SingleportListener(object):
             self.rawserver.stop_listening(serversocket)
             serversocket.close()
 
-    def add_torrent(self, infohash, endpoint):
+    def add_torrent(self, infohash, torrent):
         if infohash in self.torrents:
             raise BTFailure("Can't start two separate instances of the same "
                             "torrent")
-        self.torrents[infohash] = endpoint
+        self.torrents[infohash] = torrent
 
     def remove_torrent(self, infohash):
         del self.torrents[infohash]
