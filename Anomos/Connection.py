@@ -32,7 +32,6 @@ class Connection(object):
         self.next_upload = None
         self.upload = None
         self.download = None
-        self.is_relay = False
         self._buffer = ""
         self._partial_message = None
         self._outqueue = []
@@ -66,7 +65,7 @@ class Connection(object):
                 return
     ## Methods that must be implemented by a Protocol class ##
     ## Raise RuntimeError if no protocol has been defined
-    def format_message(self, type, message):
+    def format_message(self, *args):
         raise RuntimeError("No protocol defined for this connection.")
     def partial_msg_str(self, *args):
         raise RuntimeError("No protocol defined for this connection.")
@@ -119,16 +118,13 @@ class Connection(object):
     def _sever(self):
         self.closed = True
         self._reader = None
-        #TODO: relay specific things shouldn't be here
-        if self.is_relay:
-            self.send_break()
         if self.complete:
             self.owner.connection_closed(self)
     def connection_lost(self, conn):
         assert conn is self.connection
         self._sever()
     def connection_flushed(self, connection):
-        if self.is_relay or not self.complete:
+        if not self.complete:
             pass
         elif self.next_upload is None \
              and (self._partial_message is not None or self.upload.buffer):
