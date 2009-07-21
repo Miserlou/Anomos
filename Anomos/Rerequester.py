@@ -97,7 +97,6 @@ class Rerequester(object):
         self.path = parsed[2]
         self.basequery = None
 
-        self.last = None
         self.changed_port = False
         self.announce_interval = 30 * 60
         self.finish = False
@@ -129,7 +128,6 @@ class Rerequester(object):
 
     def change_port(self, port):
         self.local_port = port
-        self.last = None
         self.changed_port = True
         self._check()
 
@@ -186,8 +184,6 @@ class Rerequester(object):
         query = ('%s&uploaded=%s&downloaded=%s&left=%s' %
             (self.basequery, str(self.up() - self.previous_up),
              str(self.down() - self.previous_down), str(self.amount_left())))
-        if self.last is not None:
-            query += '&last=' + quote(str(self.last))
         if self.neighbors.count() >= self.config['max_initiate']:
             query += '&numwant=0'
         else:
@@ -304,17 +300,9 @@ class Rerequester(object):
             self.announce_interval = r.get('interval', self.announce_interval)
             self.config['rerequest_interval'] = r.get('min interval',
                                             self.config['rerequest_interval'])
-            self.last = r.get('last')
             p = r['peers']
             peers = self._parsepeers(p)
-            ps = len(peers) + self.neighbors.count()
-            if ps < self.config['max_initiate']:
-                if self.doneflag.isSet():
-                    if r.get('num peers', 1000) - r.get('done peers', 0) > ps * 1.2:
-                        self.last = None
-                else:
-                    if r.get('num peers', 1000) > ps * 1.2:
-                        self.last = None
+
             # Initialize any new neighbors
             self.neighbors.update_neighbor_list(peers)
             # Start downloads

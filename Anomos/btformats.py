@@ -124,9 +124,6 @@ def check_peers(message):
     dpeers = message.get('done peers', 0)
     if type(dpeers) not in ints or dpeers < 0:
         raise BTFailure, 'invalid seed count'
-    last = message.get('last', 0)
-    if type(last) not in ints or last < 0:
-        raise BTFailure, 'invalid "last" entry'
 
 def statefiletemplate(x):
     if type(x) != DictType:
