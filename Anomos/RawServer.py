@@ -35,13 +35,13 @@ except ImportError:
     from Anomos.selectpoll import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1
 
-def default_error_handler(x, y):
+def default_logger(x, y):
     print x, y
 
 class RawServer(object):
 
     def __init__(self, doneflag, config, certificate, noisy=True,
-            errorfunc=default_error_handler, bindaddr='', tos=0):
+            logfunc=default_logger, bindaddr='', tos=0):
         self.config = config
         self.bindaddr = bindaddr
         self.certificate = certificate
@@ -51,7 +51,7 @@ class RawServer(object):
         self.dead_from_write = []
         self.doneflag = doneflag
         self.noisy = noisy
-        self.errorfunc = errorfunc
+        self.logfunc = logfunc
         self.funcs = []
         self.externally_added_tasks = []
         self.listening_handlers = {}
@@ -123,7 +123,7 @@ class RawServer(object):
 
     def _start_ssl_connection(self, dns, handler=None, context=None,
             session=None, do_bind=True, timeout=15): #TODO: Is timeout long enough?
-        self.errorfunc(INFO, "Starting SSL Connection to %s" % str(dns))
+        self.logfunc(INFO, "Starting SSL Connection to %s" % str(dns))
 
         sock = SSL.Connection(self.certificate.getContext())
         if session:
@@ -162,7 +162,7 @@ class RawServer(object):
                 if event & (POLLHUP | POLLERR):
                     s.close()
                     self.stop_listening(s)
-                    self.errorfunc(CRITICAL, 'lost server socket')
+                    self.logfunc(CRITICAL, 'lost server socket')
                 else:
                     self._handle_connection_attempt(sock)
             else:
@@ -209,7 +209,7 @@ class RawServer(object):
             conn.setup_ssl()
             conn.accept_ssl()
         except SSL.SSLError, e:
-            self.errorfunc(WARNING, "Error handling accepted "\
+            self.logfunc(WARNING, "Error handling accepted "\
                            "connection: " + str(e))
         else:
             nss = SingleSocket(self, conn, handler, context)
@@ -255,7 +255,7 @@ class RawServer(object):
                 else:
                     code = e
                 if code == ENOBUFS:
-                    self.errorfunc(CRITICAL, "Have to exit due to the TCP " \
+                    self.logfunc(CRITICAL, "Have to exit due to the TCP " \
                                    "stack flaking out. " \
                                    "Please see the FAQ at %s"%FAQ_URL)
                     break
@@ -265,7 +265,7 @@ class RawServer(object):
             except:
                 data = StringIO()
                 print_exc(file=data)
-                self.errorfunc(CRITICAL, data.getvalue())
+                self.logfunc(CRITICAL, data.getvalue())
                 break
 
     def _make_wrapped_call(self, function, args, socket=None, context=None):
@@ -283,7 +283,7 @@ class RawServer(object):
             if self.noisy and context is None:
                 data = StringIO()
                 print_exc(file=data)
-                self.errorfunc(CRITICAL, data.getvalue())
+                self.logfunc(CRITICAL, data.getvalue())
             if context is not None:
                 context.got_exception(e)
 
