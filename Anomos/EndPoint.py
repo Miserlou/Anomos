@@ -18,11 +18,13 @@ from Anomos.AnomosProtocol import AnomosEndPointProtocol
 from Anomos import BTFailure
 
 class EndPoint(AnomosEndPointProtocol):
-    def __init__(self, torrent, choker, numpieces, schedulefunc, context):
+    def __init__(self, torrent, aes, data=None):#, choker, context):
+        AnomosEndPointProtocol.__init__(self)
         self.torrent = torrent
-        self.choker = choker
+        self.e2e_key = aes
+        #TODO? Do we need choker here?
+        #self.choker = choker
         self.numpieces = numpieces
-        self.schedulefunc = schedulefunc
 
         self.ratelimiter = context._ratelimiter
         self.config = context.config
@@ -90,7 +92,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.complete_connections.add(c)
         self.upload = self.torrent.make_upload(c)
         self.download = self.torrent.make_download(c)
-        self.choker.connection_made(c)
+        #self.choker.connection_made(c)
 
     def ever_got_incoming(self):
         return self.everinc

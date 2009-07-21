@@ -84,15 +84,11 @@ class AnomosProtocol(BitTorrentProtocol):
         return tobinary(self.stream_id)[2:] + \
                tobinary(len(type+message)) + \
                type + message
-    ## Partial message sending methods ##
-    ## these are used by send_partial, which we inherit from BitTorrentProtocol
-    def partial_msg_str(self, index, begin, piece):
-        msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
-        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(msg))
-    def partial_choke_str(self):
-        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(CHOKE))
-    def partial_unchoke_str(self):
-        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))
+
+    ## partial messages are only used by EndPoints ##
+    def partial_msg_str(self, index, begin, piece): pass
+    def partial_choke_str(self): pass
+    def partial_unchoke_str(self): pass
 
 class AnomosNeighborProtocol(AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
@@ -219,3 +215,13 @@ class AnomosEndPointProtocol(AnomosProtocol):
         '''End-to-End encrypts a message'''
         payload = self.e2e_key.encrypt(type + message)
         self._send_message(ENCRYPTED, payload)
+    ## Partial message sending methods ##
+    ## these are used by send_partial, which we inherit from BitTorrentProtocol
+    def partial_msg_str(self, index, begin, piece):
+        msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
+        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(msg))
+    def partial_choke_str(self):
+        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(CHOKE))
+    def partial_unchoke_str(self):
+        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))
+
