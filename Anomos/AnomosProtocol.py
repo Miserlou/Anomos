@@ -133,14 +133,16 @@ class AnomosNeighborProtocol(AnomosProtocol):
             infohash = tcdata.infohash
             keydata = tcdata.keydata
             aes, iv = keydata[:32], keydata[32:]
-            self.e2e_key = AESKey(aes,iv)
-            self.owner.xchg_owner_with_endpoint(self, infohash)
-            if self.owner.download_id is None:
+            e2e_key = AESKey(aes,iv)
+            self.start_endpoint_stream(infohash, e2e_key)
+            torrent = self.manager.get_torrent(infohash)
+            if not torrent:
                 self.close("Requested torrent not found")
                 return
-            self.send_confirm()
-            self.owner.connection_completed(self)
-            self.complete = True
+            self.start_endpoint_stream(torrent, e2e_key)
+            #self.send_confirm()
+            #self.owner.connection_completed(self)
+            #self.complete = True
         else:
             self.close("Unsupported TCode Format")
     # Disable these message types.

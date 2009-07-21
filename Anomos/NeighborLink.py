@@ -19,15 +19,18 @@ from Anomos.AnomosProtocol import AnomosNeighborProtocol
 
 class NeighborLink(AnomosNeighborProtocol):
     def __init__(self, id, manager):
+        AnomosNeighborProtocol.__init__(self)
         self.id = id
         self.manager = manager
         #self.ssl_session = None
         self.complete = False
         self.streams = {0:self} # {StreamID : Anomos*Protocol implementing obj}
     ## Stream Initialization ##
-    def start_new_stream(self, ConnectionType, data=None):
-        nxtid = self.next_stream_id
-        self.streams[nxtid] = ConnectionType(nxtid, self, data)
+    def start_endpoint_stream(self, torrent, aeskey, data=None):
+        self.streams[nxtid] = Endpoint(torrent, aeskey, data)
+        self.next_stream_id += 1
+    def start_relay_stream(self, nid, data=None):
+        self.streams[nxtid] = Relay(nxtid, self, torrent, aeskey, data)
         self.next_stream_id += 1
     def get_stream_handler(self, streamid):
         # Return the handler associated with streamid, otherwise

@@ -155,7 +155,7 @@ class NeighborManager:
         self.waiting_tcs.setdefault(id,[])
         self.waiting_tcs[id].append(sendtc)
 
-    def start_circuit(self, tc, aeskey):
+    def start_circuit(self, tc, infohash, aeskey):
         #XXX: Count circuits and check against max_initiate
         #if len(self.connections) >= self.config['max_initiate']:
         #    return
@@ -170,7 +170,7 @@ class NeighborManager:
             self.logfunc(ERROR, "SessionID mismatch!")
             return
         nextTC = tcdata.nextLayer
-        self.neighbors[nid].start_new_stream(Relayer, nextTC)
+        self.neighbors[nid].start_endpoint_stream(infohash, aeskey, data=tc)
 
     def add_torrent(self, infohash, torrent):
         if infohash in self.torrents:
