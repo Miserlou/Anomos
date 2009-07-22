@@ -27,10 +27,9 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         self.complete = False
         self.streams = {0:self} # {StreamID : Anomos*Protocol implementing obj}
 
-        # Switch to reading messages
+        #Prepare to read messages
         self._reader = self._read_messages()
         self._next_len = self._reader.next()
-        self.send_confirm()
     ## Stream Initialization ##
     def start_endpoint_stream(self, torrent, aeskey, data=None):
         self.streams[nxtid] = Endpoint(torrent, aeskey, data)

@@ -106,8 +106,7 @@ class SingleportListener(object):
         Connection came in.
         @param socket: SingleSocket
         """
-        con = AnomosNeighborReceiver(self.manager, socket)
-        self.connections[socket] = con
+        AnomosNeighborReceiver(self.manager, socket)
 
     def replace_connection(self):
         pass

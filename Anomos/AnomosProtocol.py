@@ -50,8 +50,6 @@ class AnomosProtocol(BitTorrentProtocol):
 
     ## Message receiving methods ##
     def got_confirm(self):
-        if not self.established:
-            self.owner.add_neighbor(self.id, (self.ip, 0))
         self.owner.connection_completed(self)
         self.complete = True
     def format_message(self, type, message=""):

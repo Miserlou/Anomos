@@ -63,7 +63,7 @@ class Connection(object):
                 # Hand control over to Protocol until they yield another data length
                 self._next_len = self._reader.next()
             except StopIteration:
-                self.close("No more messages")
+                self.close("Closing. Was not expecting data.")
                 return
     ## Methods that must be implemented by a Protocol class ##
     ## Raise RuntimeError if no protocol has been defined
@@ -86,6 +86,7 @@ class Connection(object):
             self.socket.write(s)
     def send_partial(self, bytes):
         """ Provides partial sending of messages for RateLimiter """
+        #TODO: Comment this method!
         if self.closed:
             return 0
         if self._partial_message is None:
@@ -115,13 +116,13 @@ class Connection(object):
     def close(self, e=None):
         if not self.closed:
             self.socket.close()
-            self.closed = True
             self._sever()
     def _sever(self):
         self.closed = True
         self._reader = None
         if self.complete:
             self.connection_closed(self)
+    def connection_closed(self): pass # Used by subclasses.
     def connection_lost(self, conn):
         assert conn is self.socket
         self._sever()
@@ -139,13 +140,15 @@ class Connection(object):
 ## AnomosProtocol Connections
 class AnomosNeighborInitializer(Connection):
     """ Extends Anomos specific Forward Link properties of Connection """
-    def __init__(self, manager, socket, id):
+    def __init__(self, manager, socket, id, started_locally=True):
         Connection.__init__(self, socket)
         self.manager = manager
         self.id = id
+        self.started_locally = started_locally
         self._reader = self._read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
-        self.write_header()
+        if self.started_locally:
+            self.write_header()
     def _read_header(self):
         '''Each yield puts N bytes from Connection.data_came_in into
            self._message. self._message is then checked for compliance
@@ -161,23 +164,26 @@ class AnomosNeighborInitializer(Connection):
         yield 7  # reserved bytes (ignore these for now)
         self._got_full_header()
     def _got_full_header(self):
-        # Neighbor has responded with a valid header, add them as our neighbor
-        # and confirm that we received their message/added them.
+        # Reply with a header if we didn't start the connection
+        if not self.started_locally:
+            self.write_header()
+        # Tell the neighbor manager we've got a completed connection
+        # so that it can create a NeighborLink
         self.manager.connection_completed(self.socket, self.id)
     def protocol_extensions(self):
         """Anomos puts [1:nid][7:null char] into the
            BitTorrent reserved header bytes"""
         return self.id + '\0\0\0\0\0\0\0'
     def write_header(self):
-        """Return properly formatted BitTorrent connection header
-           example with port 6881 and id 255:
-                \xA0BitTorrent\x1a\xe1\x00\x00\x00\x00\x00\x00
+        """Return properly formatted Anomos connection header
+           example with id 255:
+                \x06Anomos\xff\x00\x00\x00\x00\x00\x00\x00
         """
         hdr = chr(len(protocol_name)) + protocol_name + \
                        self.protocol_extensions()
         self.socket.write(hdr)
 
-
+#XXX: BitTorrent protocol support is broken.
 ## BitTorrentProtocol Connections
 class BTFwdLink(Connection, BitTorrentProtocol):
     """ Extends BitTorrent specific Forward Link properties of Connection """
