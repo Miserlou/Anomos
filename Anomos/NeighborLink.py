@@ -17,14 +17,19 @@
 from Anomos.Connection import Connection
 from Anomos.AnomosProtocol import AnomosNeighborProtocol
 
-class NeighborLink(AnomosNeighborProtocol):
-    def __init__(self, id, manager):
+class NeighborLink(Connection, AnomosNeighborProtocol):
+    def __init__(self, manager, socket, id):
+        Connection.__init__(self, socket)
         AnomosNeighborProtocol.__init__(self)
         self.id = id
         self.manager = manager
         #self.ssl_session = None
         self.complete = False
         self.streams = {0:self} # {StreamID : Anomos*Protocol implementing obj}
+
+        # Switch to reading messages
+        self._reader = self._read_messages()
+        self._next_len = self._reader.next()
     ## Stream Initialization ##
     def start_endpoint_stream(self, torrent, aeskey, data=None):
         self.streams[nxtid] = Endpoint(torrent, aeskey, data)
@@ -37,7 +42,3 @@ class NeighborLink(AnomosNeighborProtocol):
         # return a reference to self (because receiving an unassociated
         # stream id implies it's a new one).
         return self.streams.get(streamid, self)
-
-
-
-

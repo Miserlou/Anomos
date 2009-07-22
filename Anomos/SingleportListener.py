@@ -15,7 +15,7 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos.Connection import AnomosRevLink
+from Anomos.Connection import AnomosNeighborReceiver
 from Anomos import BTFailure
 
 class SingleportListener(object):
@@ -106,7 +106,7 @@ class SingleportListener(object):
         Connection came in.
         @param socket: SingleSocket
         """
-        con = AnomosRevLink(self.manager, socket)
+        con = AnomosNeighborReceiver(self.manager, socket)
         self.connections[socket] = con
 
     def replace_connection(self):

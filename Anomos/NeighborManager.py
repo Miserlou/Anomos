@@ -15,7 +15,7 @@
 
 # Written by John Schanck and Rich Jones
 
-from Anomos.Connection import AnomosFwdLink
+from Anomos.Connection import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
 from Anomos.TCReader import TCReader
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
@@ -32,7 +32,6 @@ class NeighborManager:
         self.tcreader = TCReader(self.cert)
         self.logfunc = logfunc
         self.neighbors = {}
-        self.connections = {}
         self.incomplete = {}
         self.torrents = {}
 
@@ -64,9 +63,10 @@ class NeighborManager:
         @type loc: tuple
         @type id: int
         """
+        #TODO: block multiple connections to the same location
         if self.has_neighbor(id) or \
-                self.incomplete.has_key(id) or \
-                self.has_loc(loc):
+                (self.incomplete.get(id) == loc): #or \
+            #   self.has_loc(loc):
             #Already had neighbor by that id or at that location
             #TODO: Resolve conflict
             return
@@ -96,21 +96,16 @@ class NeighborManager:
                 break
         else: return #loc wasn't found
         # Exchange the header and hold the connection open
-        con = AnomosFwdLink(self, sock, id, established=False)
-        self.connections[sock] = con
-        self.add_neighbor(id)
+        AnomosNeighborInitializer(self, sock, id, established=False)
 
-    def add_neighbor(self, id):
+    def add_neighbor(self, socket, id):
         self.logfunc(INFO, "Adding Neighbor: \\x%02x" % ord(id))
-        self.neighbors[id] = NeighborLink(id, self)
+        self.neighbors[id] = NeighborLink(self, socket, id)
 
     def rm_neighbor(self, nid):
         if self.incomplete.has_key(nid):
             self.incomplete.pop(nid)
         if self.has_neighbor(nid):
-            con = self.neighbors[nid].connection
-            if con and self.connections.has_key(con):
-                del self.connections[con]
             self.neighbors.pop(nid)
 
     #TODO: implement banning
@@ -125,8 +120,8 @@ class NeighborManager:
 
     # TODO: We'll probably want some kind of location storing
     #       but it won't be similar enough to warrant keeping this.
-    #def has_loc(self, loc):
-    #    return loc in [n.loc for n in self.neighbors.values()]
+    def has_loc(self, loc):
+        return loc in [n.loc for n in self.neighbors.values()]
 
     def is_incomplete(self, nid):
         return self.incomplete.has_key(nid)
@@ -139,7 +134,7 @@ class NeighborManager:
             # Completing a complete or non-existant connection...
             return
         del self.incomplete[con.id]
-        self.neighbors[con.id].set_connection(con)
+        self.add_neighbor(con.connection, con.id)
         for task in self.waiting_tcs.get(con.id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
 

@@ -16,16 +16,13 @@
 # Original Connecter.py written by Bram Cohen
 # This heavily modified version by John M. Schanck
 
-from Anomos.AnomosProtocol import AnomosProtocol
-from Anomos.BitTorrentProtocol import BitTorrentProtocol
+from Anomos import protocol_name as anomos_protocol_name
 
 class Connection(object):
-    def __init__(self, owner, connection, established=False):
-        self.owner = owner
-        self.connection = connection
-        self.connection.handler = self
-        self.ip = connection.ip
-        self.established = established
+    def __init__(self, socket):
+        self.socket = socket
+        self.socket.handler = self
+        self.ip = socket.ip
         self.complete = False
         self.closed = False
         self.got_anything = False
@@ -81,7 +78,7 @@ class Connection(object):
             # Last message has not finished sending yet
             self._outqueue.append(s)
         else:
-            self.connection.write(s)
+            self.socket.write(s)
     def send_partial(self, bytes):
         """ Provides partial sending of messages for RateLimiter """
         if self.closed:
@@ -93,7 +90,7 @@ class Connection(object):
             index, begin, piece = s
             self._partial_message = self.partial_msg_str(index, begin, piece)
         if bytes < len(self._partial_message):
-            self.connection.write(buffer(self._partial_message, 0, bytes))
+            self.socket.write(buffer(self._partial_message, 0, bytes))
             self._partial_message = buffer(self._partial_message, bytes)
             return bytes
         queue = [str(self._partial_message)]
@@ -108,90 +105,97 @@ class Connection(object):
         queue.extend(self._outqueue)
         self._outqueue = []
         queue = ''.join(queue)
-        self.connection.write(queue)
+        self.socket.write(queue)
         return len(queue)
     def close(self, e=None):
         if not self.closed:
-            self.connection.close()
+            self.socket.close()
             self.closed = True
             self._sever()
     def _sever(self):
         self.closed = True
         self._reader = None
         if self.complete:
-            self.owner.connection_closed(self)
+            self.connection_closed(self)
     def connection_lost(self, conn):
-        assert conn is self.connection
+        assert conn is self.socket
         self._sever()
-    def connection_flushed(self, connection):
+    def connection_flushed(self, socket):
         if not self.complete:
             pass
         elif self.next_upload is None \
              and (self._partial_message is not None or self.upload.buffer):
-                self.owner.ratelimiter.queue(self)
+                self.ratelimiter.queue(self)
 
 ##################################################
 ## Protocol specific mixin types                ##
 ##################################################
 
 ## AnomosProtocol Connections
-class AnomosFwdLink(Connection, AnomosProtocol):
+class AnomosNeighborInitializer(Connection):
     """ Extends Anomos specific Forward Link properties of Connection """
-    def __init__(self, owner, connection, id, established=False, e2e=None):
-        Connection.__init__(self, owner, connection, established)
-        AnomosProtocol.__init__(self) 
+    def __init__(self, manager, socket, id):
+        Connection.__init__(self, socket)
+        self.manager = manager
         self.id = id
-        self.e2e_key = e2e # End-to-end encryption key
         self._reader = AnomosProtocol._read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
-        if not self.established: # New neighbor, send header
-            self.write_header()
+        self.write_header()
+    def _read_header(self):
+        '''Each yield puts N bytes from Connection.data_came_in into
+           self._message. self._message is then checked for compliance
+           to the Anomos protocol'''
+        yield 1
+        if self._message != len(anomos_protocol_name):
+            raise StopIteration("Protocol name mismatch")
+        yield len(protocol_name) # protocol name -- 'Anomos'
+        if self._message != anomos_protocol_name:
+            raise StopIteration("Protocol name mismatch")
+        yield 1  # NID
+        self.id = self._message
+        yield 7  # reserved bytes (ignore these for now)
+        self._got_full_header()
     def _got_full_header(self):
         # Neighbor has responded with a valid header, add them as our neighbor
         # and confirm that we received their message/added them.
-        self.owner.connection_completed(self)
-        self.send_confirm()
+        self.manager.connection_completed(self)
+        #self.send_confirm()
+    def protocol_extensions(self):
+        """Anomos puts [1:nid][7:null char] into the
+           BitTorrent reserved header bytes"""
+        return self.id + '\0\0\0\0\0\0\0'
+    def write_header(self):
+        """Return properly formatted BitTorrent connection header
+           example with port 6881 and id 255:
+                \xA0BitTorrent\x1a\xe1\x00\x00\x00\x00\x00\x00
+        """
+        hdr = chr(len(protocol_name)) + protocol_name + \
+                       self.protocol_extensions()
+        self.socket.write(hdr)
 
-class AnomosRevLink(Connection, AnomosProtocol):
-    """ Extends Anomos specific Reverse Link properties of Connection """
-    def __init__(self, owner, connection, id=None, established=False):
-        Connection.__init__(self, owner, connection, established) 
-        AnomosProtocol.__init__(self)
-        self.id = id
-        self.e2e_key = None # End-to-end encryption key
-        self._reader = AnomosProtocol._read_header(self) # Starts the generator
-        self._next_len = self._reader.next() # Gets the first yield
-    def _got_full_header(self):
-        # In the event that AnomosProtocol._read_header finds this connection
-        # to be headerless, control will be immediately passed to read_messages
-        # and will not return to this method.
-        # If control returns to this method then this connection is a new
-        # neighbor connection. In which case:
-        # Set owner to NeighborManager to finish the new neighbor registration
-        self.owner.xchg_owner_with_nbr_manager(self)
-        # and respond with a header of our own
-        self.write_header()
 
 ## BitTorrentProtocol Connections
 class BTFwdLink(Connection, BitTorrentProtocol):
     """ Extends BitTorrent specific Forward Link properties of Connection """
-    def __init__(self, owner, connection, established=False):
-        Connection.__init__(self, owner, connection, established)
+    def __init__(self, connection, established=False):
+        Connection.__init__(self, connection)
         BitTorrentProtocol.__init__(self) 
         self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
+        #TODO: Connection no longer has self.established. BT things need to be
+        #       updated
         if not self.established: # New neighbor, send header
             self.write_header()
     def _got_full_header(self):
-        self.owner.connection_completed(self)
+        self.connection_completed(self)
         # Switch from reading the header to reading messages
         self._reader = self._read_messages()
         yield self._reader.next()
 
 class BTRevLink(Connection, BitTorrentProtocol):
     """ Extends BitTorrent specific Reverse Link properties of Connection """
-    def __init__(self, owner, connection, established=False):
-        Connection.__init__(self, owner, connection, established) 
+    def __init__(self, connection, established=False):
+        Connection.__init__(self, connection, established) 
         BitTorrentProtocol.__init__(self) 
         self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield

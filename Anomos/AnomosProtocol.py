@@ -37,31 +37,6 @@ class AnomosProtocol(BitTorrentProtocol):
         self.neighbor_manager = None
     def set_neighbor_manager(self, nm):
         self.neighbor_manager = nm
-    def protocol_extensions(self):
-        """Anomos puts [1:nid][7:null char] into the
-           BitTorrent reserved header bytes"""
-        return self.id + '\0\0\0\0\0\0\0'
-    def _read_header(self):
-        '''Each yield puts N bytes from Connection.data_came_in into
-           self._message. N is the number of bytes in the section of the
-           header which is to be checked. This is also called on headerless
-           connections (since we don't know they're headerless until we read
-           the data), so it also handles the switch from reading the header to
-           reading messages.'''
-        yield 1
-        if self._message != len(AnomosProtocol.protocol_name):
-            raise StopIteration("Protocol name mismatch")
-        yield len(protocol_name) # protocol name -- 'Anomos'
-        if self._message != AnomosProtocol.protocol_name:
-            raise StopIteration("Protocol name mismatch")
-        yield 1  # NID
-        self.id = self._message
-        yield 7  # reserved bytes (ignore these for now)
-        self._got_full_header() # Does some connection type specific actions
-                                # See AnomosFwdLink and AnomosRevLink
-        # Switch to reading messages
-        self._reader = self._read_messages()
-        yield self._reader.next()
     def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages.
             ie. CHOKE, INTERESTED, PIECE '''
@@ -148,6 +123,8 @@ class AnomosNeighborProtocol(AnomosProtocol):
     # Disable these message types.
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
+    def _read_header(self): pass
+    def write_header(self): pass
     def got_interested(self): pass
     def got_not_interested(self): pass
     def got_have(self, message): pass
@@ -187,6 +164,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
     # Disable these message types.
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
+    def _read_header(self): pass
+    def write_header(self): pass
     def got_interested(self): pass
     def got_not_interested(self): pass
     def got_have(self, message): pass
@@ -226,4 +205,5 @@ class AnomosEndPointProtocol(AnomosProtocol):
         return self.format_message(ENCRYPTED, self.e2e_key.encrypt(CHOKE))
     def partial_unchoke_str(self):
         return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))
-
+    def _read_header(self): pass
+    def write_header(self): pass
