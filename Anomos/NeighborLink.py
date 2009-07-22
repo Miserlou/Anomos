@@ -32,11 +32,15 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         self._next_len = self._reader.next()
     ## Stream Initialization ##
     def start_endpoint_stream(self, torrent, aeskey, data=None):
-        self.streams[nxtid] = Endpoint(torrent, aeskey, data)
+        self.streams[nxtid] = \
+                    Endpoint(self, self.next_stream_id, torrent, aeskey, data)
         self.next_stream_id += 1
     def start_relay_stream(self, nid, data=None):
-        self.streams[nxtid] = Relay(nxtid, self, torrent, aeskey, data)
+        self.streams[nxtid] = Relay(nxtid, self.manager, data)
         self.next_stream_id += 1
+    def end_stream(self, id):
+        if self.streams.has_key(id):
+            del self.streams[id]
     def get_stream_handler(self, streamid):
         # Return the handler associated with streamid, otherwise
         # return a reference to self (because receiving an unassociated

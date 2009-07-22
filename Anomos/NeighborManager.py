@@ -29,7 +29,6 @@ class NeighborManager:
         self.config = config
         self.cert = certificate
         self.sessionid = sessionid
-        self.tcreader = TCReader(self.cert)
         self.logfunc = logfunc
         self.neighbors = {}
         self.incomplete = {}
@@ -98,6 +97,7 @@ class NeighborManager:
         # Exchange the header and hold the connection open
         AnomosNeighborInitializer(self, sock, id, established=False)
 
+    ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
         self.logfunc(INFO, "Adding Neighbor: \\x%02x" % ord(id))
         self.neighbors[id] = NeighborLink(self, socket, id)
@@ -118,8 +118,6 @@ class NeighborManager:
     def check_session_id(self, sid):
         return sid == self.sessionid
 
-    # TODO: We'll probably want some kind of location storing
-    #       but it won't be similar enough to warrant keeping this.
     def has_loc(self, loc):
         return loc in [n.loc for n in self.neighbors.values()]
 
@@ -141,31 +139,40 @@ class NeighborManager:
     def connection_closed(self, con):
         self.rm_neighbor(con.id)
 
-    def schedule_tc(self, sendfunc, id, tc, aeskey):
+    def start_circuit(self, tc, infohash, aeskey):
+        '''Called from Rerequester to initialize new circuits we've
+        just gotten TCs for from the Tracker'''
+        if self.count_streams() >= self.config['max_initiate']:
+            return
+        tcreader = TCReader(self.cert)
+        tcdata = tcreader.parseTC(tc)
+        nid = tcdata.neighborID
+        sid = tcdata.sessionID
+        torrent = self.get_torrent(infohash)
+        nextTC = tcdata.nextLayer
+        if nid in self.incomplete:
+            self.schedule_tc(nid, infohash, aeskey, nextTC)
+            return
+        if nid not in self.neighbors:
+            self.logfunc(ERROR, "NID \\x%02x is not assigned" % ord(id))
+            return
+        if sid != self.sessionid:
+            self.logfunc(ERROR, "SessionID mismatch!")
+            return
+        if torrent is None:
+            self.logfunc(ERROR, "Unknown torrent")
+            return
+        self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
+
+    def schedule_tc(self, nid, infohash, aeskey, nextTC):
         '''Sometimes a tracking code is received before a neighbor is fully
         initialized. In those cases we schedule the TC to be sent once we get
         a "connection_completed" from the neighbor.'''
         def sendtc():
-            sendfunc(id, tc, aeskey)
+            torrent = self.get_torrent(infohash)
+            self.neighbors[nid].start_endpoint_stream(torrent, aeskey, nextTC)
         self.waiting_tcs.setdefault(id,[])
         self.waiting_tcs[id].append(sendtc)
-
-    def start_circuit(self, tc, infohash, aeskey):
-        #XXX: Count circuits and check against max_initiate
-        #if len(self.connections) >= self.config['max_initiate']:
-        #    return
-        tcdata = self.tcreader.parseTC(tc)
-        nid = tcdata.neighborID
-        if nid not in self.neighbors:
-            self.logfunc(WARNING, 
-                        "NID \\x%02x is not an assigned neighbor"% ord(id))
-            return
-        sid = tcdata.sessionID
-        if sid != self.sessionid:
-            self.logfunc(ERROR, "SessionID mismatch!")
-            return
-        nextTC = tcdata.nextLayer
-        self.neighbors[nid].start_endpoint_stream(infohash, aeskey, data=tc)
 
     def add_torrent(self, infohash, torrent):
         if infohash in self.torrents:
@@ -178,3 +185,6 @@ class NeighborManager:
 
     def get_torrent(self, infohash):
         return self.torrents.get(infohash, None)
+
+    def count_streams(self):
+        return sum(len(x.streams)-1 for x in self.neighbors.itervalues())
