@@ -35,30 +35,23 @@ class AnomosProtocol(BitTorrentProtocol):
         #msgmap => Lookup table for methods to use when responding to message types
         self.msgmap.update({CONFIRM: self.got_confirm, BREAK: self.send_break})
         self.neighbor_manager = None
-    def set_neighbor_manager(self, nm):
-        self.neighbor_manager = nm
-    def transfer_ctl_msg(self, type, message=""):
-        ''' Send method for file transfer messages.
-            ie. CHOKE, INTERESTED, PIECE '''
-        self._send_encrypted_message(type, message)
     def network_ctl_msg(self, type, message=""):
         ''' Send message for network messages,
             ie. CONFIRM, TCODE and for relaying messages'''
-        self._send_message(type, message)
+        s = self.format_message(type, message)
+        self.neighbor.send_message(s)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
-
     ## Message receiving methods ##
     def got_confirm(self):
-        self.owner.connection_completed(self)
-        self.complete = True
+        self.connection_completed()
     def format_message(self, type, message=""):
         """ [StreamID][Message Length][Type][Payload] """
         return tobinary(self.stream_id)[2:] + \
                tobinary(len(type+message)) + \
                type + message
-
     ## partial messages are only used by EndPoints ##
+    def transfer_ctl_msg(self *args): pass
     def partial_msg_str(self, index, begin, piece): pass
     def partial_choke_str(self): pass
     def partial_unchoke_str(self): pass
@@ -98,24 +91,17 @@ class AnomosNeighborProtocol(AnomosProtocol):
             nextTC = tcdata.nextLayer
             nid = tcdata.neighborID
             self.start_relay_stream(nid, nextTC)
-            #self.owner.xchg_owner_with_relayer(self, nid)   #this changes the value of owner
-            #self.owner.connection_completed(self)
-            #self.complete = True
-            #self.owner.relay_message(self, TCODE + nextTC)
         elif tcdata.type == chr(1): # Terminal type
             infohash = tcdata.infohash
             keydata = tcdata.keydata
             aes, iv = keydata[:32], keydata[32:]
             e2e_key = AESKey(aes,iv)
-            self.start_endpoint_stream(infohash, e2e_key)
             torrent = self.manager.get_torrent(infohash)
             if not torrent:
                 self.close("Requested torrent not found")
                 return
             self.start_endpoint_stream(torrent, e2e_key)
-            #self.send_confirm()
-            #self.owner.connection_completed(self)
-            #self.complete = True
+            self.send_confirm()
         else:
             self.close("Unsupported TCode Format")
     # Disable these message types.
@@ -123,6 +109,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
     #?def got_unchoke(self): pass
     def _read_header(self): pass
     def write_header(self): pass
+    def network_ctl_msg(self, *args): pass
     def got_interested(self): pass
     def got_not_interested(self): pass
     def got_have(self, message): pass
@@ -142,7 +129,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def _read_header(self): pass
     def _read_messages(self): pass
     #TODO: I have no idea if send break works --John
-    def send_break(self):
+    def got_break(self):
         self.relay_message(self, BREAK)
         #TODO:
         #else:
@@ -156,8 +143,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
         #      send_relay does NOT add a control char.
         self.relay_message(self, message)
     def got_confirm(self):
-        self.connection_completed(self)
-        self.complete = True
+        self.connection_completed()
         self.relay_message(self, CONFIRM)
     # Disable these message types.
     #?def got_choke(self): pass
@@ -190,10 +176,14 @@ class AnomosEndPointProtocol(AnomosProtocol):
             self.got_message(m)
         else:
             raise RuntimeError("Received encrypted data before we were ready")
-    def _send_encrypted_message(self, type, message):
-        '''End-to-End encrypts a message'''
+    def got_break(self, message):
+        self.neighbor.end_stream(self.stream_id)
+    def transfer_ctl_msg(self, type, message=""):
+        ''' Send method for file transfer messages.
+            ie. CHOKE, INTERESTED, PIECE '''
         payload = self.e2e_key.encrypt(type + message)
-        self._send_message(ENCRYPTED, payload)
+        s = self.format_message(ENCRYPTED, payload)
+        self.neighbor.send_message(s)
     ## Partial message sending methods ##
     ## these are used by send_partial, which we inherit from BitTorrentProtocol
     def partial_msg_str(self, index, begin, piece):

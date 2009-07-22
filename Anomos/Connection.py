@@ -75,15 +75,15 @@ class Connection(object):
         raise RuntimeError("No protocol defined for this connection.")
     def partial_unchoke_str(self, *args):
         raise RuntimeError("No protocol defined for this connection.")
-    def _send_message(self, type, message):
+    def send_message(self, message):
         ''' Prepends message with its length as a 32 bit integer,
             and queues or immediately sends the message '''
-        s = self.format_message(type, message)
         if self._partial_message is not None:
             # Last message has not finished sending yet
-            self._outqueue.append(s)
+            self._outqueue.append(message)
         else:
-            self.socket.write(s)
+            self.socket.write(message)
+    #TODO: Send Partial is broken.
     def send_partial(self, bytes):
         """ Provides partial sending of messages for RateLimiter """
         #TODO: Comment this method!

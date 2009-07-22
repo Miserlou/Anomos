@@ -108,7 +108,8 @@ class BitTorrentProtocol(object):
     def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages. 
             ie. CHOKE, INTERESTED, PIECE '''
-        self._send_message(type, message)
+        s = self.format_message(type, message)
+        self.send_message(s)
     ## Recv messages ##
     def got_message(self, message):
         """ Handles an incoming message. First byte designates message type,

@@ -42,3 +42,11 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         # return a reference to self (because receiving an unassociated
         # stream id implies it's a new one).
         return self.streams.get(streamid, self)
+    def send_message(self, message):
+        ''' Prepends message with its length as a 32 bit integer,
+            and queues or immediately sends the message '''
+        if self._partial_message is not None:
+            # Last message has not finished sending yet
+            self._outqueue.append(message)
+        else:
+            self.socket.write(message)
