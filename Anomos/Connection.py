@@ -17,6 +17,7 @@
 # This heavily modified version by John M. Schanck
 
 from Anomos import protocol_name as anomos_protocol_name
+import array
 
 class Connection(object):
     def __init__(self, socket):
@@ -29,7 +30,7 @@ class Connection(object):
         self.next_upload = None
         self.upload = None
         self.download = None
-        self._buffer = ""
+        self._buffer = array.array('c',"")
         self._partial_message = None
         self._outqueue = []
         self.choke_sent = True
@@ -41,19 +42,23 @@ class Connection(object):
 
            @param conn: SingleSocket object (not used here)
            @param s: Recv'd data """
+        s = array.array('c', s)
         while True:
             if self.closed: # May have been closed by call to _reader.next
                 return
             i = self._next_len - len(self._buffer)
+            # Case 1: Length of s is less than the amount needed
             if i > len(s):
                 self._buffer += s
                 return
-            m = s[:i]
-            if len(self._buffer) > 0:
-                m = self._buffer + m
-                self._buffer = ""
-            s = s[i:]
-            self._message = m
+            # Case 2: Length of s is more than the buffer can hold
+            # Load as much of s as we can into the buffer
+            self._buffer += s[:i]
+            # Delete loaded portion of s
+            del s[:i]
+            # Move _buffer to _message and delete the contents of _buffer
+            self._message = self._buffer.tostring()
+            del self._buffer[:]
             try:
                 # Hand control over to Protocol until they yield another data length
                 self._next_len = self._reader.next()
