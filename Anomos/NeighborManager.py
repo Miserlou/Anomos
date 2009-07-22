@@ -129,13 +129,13 @@ class NeighborManager:
     def count(self, tracker=None):
         return len(self.neighbors)
 
-    def connection_completed(self, con):
-        if not self.incomplete.has_key(con.id):
+    def connection_completed(self, socket, id):
+        if not self.incomplete.has_key(id):
             # Completing a complete or non-existant connection...
             return
-        del self.incomplete[con.id]
-        self.add_neighbor(con.connection, con.id)
-        for task in self.waiting_tcs.get(con.id, []):
+        del self.incomplete[id]
+        self.add_neighbor(socket, id)
+        for task in self.waiting_tcs.get(id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
 
     def connection_closed(self, con):

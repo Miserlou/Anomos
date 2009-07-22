@@ -138,7 +138,7 @@ class AnomosNeighborInitializer(Connection):
         Connection.__init__(self, socket)
         self.manager = manager
         self.id = id
-        self._reader = AnomosProtocol._read_header(self) # Starts the generator
+        self._reader = self._read_header(self) # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
         self.write_header()
     def _read_header(self):
@@ -158,8 +158,7 @@ class AnomosNeighborInitializer(Connection):
     def _got_full_header(self):
         # Neighbor has responded with a valid header, add them as our neighbor
         # and confirm that we received their message/added them.
-        self.manager.connection_completed(self)
-        #self.send_confirm()
+        self.manager.connection_completed(self.socket, self.id)
     def protocol_extensions(self):
         """Anomos puts [1:nid][7:null char] into the
            BitTorrent reserved header bytes"""
