@@ -26,6 +26,8 @@ class EndPoint(AnomosEndPointProtocol):
         self.complete = False
         if data is not None:
             self.send_tracking_code(data)
+        else:
+            self.send_confirm()
         #TODO? Do we need choker here?
         #self.choker = choker
 

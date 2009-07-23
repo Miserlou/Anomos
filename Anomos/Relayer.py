@@ -29,6 +29,7 @@ class Relayer(AnomosRelayerProtocol):
     def __init__(self, stream_id, neighbor, outnid,
                     data=None, orelay=None, max_rate_period=20.0):
                     #storage, uprate, downrate, choker, key):
+        AnomosRelayerProtocol.__init__(self)
     #   self.rawserver = rawserver
         self.stream_id = stream_id
         self.neighbor = neighbor
@@ -51,7 +52,7 @@ class Relayer(AnomosRelayerProtocol):
 
     def relay_message(self, msg):
         if self.complete:
-            self.orelay.send_message(msg)
+            self.orelay.send_relay_message(msg)
             self.uprate.update_rate(len(msg))
             self.sent += len(msg)
         else: # Buffer messages until connection is complete
@@ -67,7 +68,7 @@ class Relayer(AnomosRelayerProtocol):
         #elif sock == self.outgoing.connection:
         #    self.incoming.close()
 
-    def connection_completed(self, con):
+    def connection_completed(self):
         #self.errorfunc(INFO, "Relay connection established")
         self.complete = True
         #TODO: Check that it's okay to try and send all these at once.

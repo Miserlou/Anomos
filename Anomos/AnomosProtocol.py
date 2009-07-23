@@ -110,7 +110,6 @@ class AnomosNeighborProtocol(AnomosProtocol):
                 self.close("Requested torrent not found")
                 return
             self.start_endpoint_stream(torrent, e2e_key)
-            self.send_confirm()
         else:
             self.close("Unsupported TCode Format")
     ### Methods which should not be called by this class ###
@@ -147,9 +146,11 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def _read_messages(self): pass
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
+    def send_relay_message(self, msg):
+        self.network_ctl_msg('', msg)
     #TODO: I have no idea if send break works --John
     def got_break(self):
-        self.relay_message(self, BREAK)
+        self.relay_message(BREAK)
         #TODO:
         #else:
         #    Lost uploader, schedule announce for new one..
@@ -160,10 +161,12 @@ class AnomosRelayerProtocol(AnomosProtocol):
         #      strip this since we'd just have to add
         #      it again in send_relay. As a result,
         #      send_relay does NOT add a control char.
-        self.relay_message(self, message)
+        self.relay_message(message)
     def got_confirm(self):
         self.connection_completed()
-        self.relay_message(self, CONFIRM)
+        self.relay_message(CONFIRM)
+    def close(self, e=None):
+        self.neighbor.end_stream(self.stream_id)
     ### Methods which should not be called by this class ###
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
@@ -224,6 +227,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
         return self.format_message(ENCRYPTED, self.e2e_key.encrypt(CHOKE))
     def partial_unchoke_str(self):
         return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))
+    def close(self, e=None):
+        self.neighbor.end_stream(self.stream_id)
     ### Methods which should not be called by this class ###
     @improper_use
     def _read_header(self): pass
