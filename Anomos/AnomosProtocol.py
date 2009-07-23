@@ -25,6 +25,16 @@ ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
 RELAY = chr(0xC)
 BREAK = chr(0xD)
 
+class ImproperUseError(Exception): pass
+# A decorator for methods in subclasses of AnomosProtocol
+# that should not be called by that subclass.
+def improper_use(fn):
+    def ret_fn(*args):
+        raise ImproperUseError( \
+                "Action %s improper for class %s."% \
+                (fn.__name__,fn.im_class.__name__))
+    return ret_fn
+
 class AnomosProtocol(BitTorrentProtocol):
     ## Common features of all AnomosProtocols (Neighbor, Relayer, EndPoint) ##
     from Anomos import protocol_name
@@ -38,6 +48,7 @@ class AnomosProtocol(BitTorrentProtocol):
     def network_ctl_msg(self, type, message=""):
         ''' Send message for network messages,
             ie. CONFIRM, TCODE and for relaying messages'''
+        print "Network_ctl_msg"
         s = self.format_message(type, message)
         self.neighbor.send_message(s)
     def send_confirm(self):
@@ -68,6 +79,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
             depending on connection type '''
         while True:
             yield 2
+            print "GOT A MESSAGE!"
             stream = toint(self._message)
             handler = self.get_stream_handler(stream)
             yield 4   # get the message length in self._message
@@ -78,9 +90,8 @@ class AnomosNeighborProtocol(AnomosProtocol):
             if l > 0:
                 yield l # get the message body
                 handler.got_message(self._message)
-    def send_tracking_code(self, trackcode):
-        self.network_ctl_msg(TCODE, trackcode)
     def got_tcode(self, message):
+        print "Got a TCODE!"
         tcreader = TCReader(self.certificate)
         tcdata = tcreader.parseTC(message[1:])
         sid = tcdata.sessionID
@@ -95,8 +106,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
         elif tcdata.type == chr(1): # Terminal type
             infohash = tcdata.infohash
             keydata = tcdata.keydata
-            aes, iv = keydata[:32], keydata[32:]
-            e2e_key = AESKey(aes,iv)
+            e2e_key = AESKey(keydata[:32],keydata[32:])
             torrent = self.manager.get_torrent(infohash)
             if not torrent:
                 self.close("Requested torrent not found")
@@ -105,19 +115,18 @@ class AnomosNeighborProtocol(AnomosProtocol):
             self.send_confirm()
         else:
             self.close("Unsupported TCode Format")
-    # Disable these message types.
+    ### Methods which should not be called by this class ###
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
-    def _read_header(self): pass
-    def write_header(self): pass
-    def network_ctl_msg(self, *args): pass
-    def got_interested(self): pass
-    def got_not_interested(self): pass
-    def got_have(self, message): pass
-    def got_bitfield(self, message): pass
-    def got_request(self, message): pass
-    def got_cancel(self, message): pass
-    def got_piece(self, message): pass
+    self._read_header = improper_use(self._read_header)
+    self.write_header = improper_use(self.write_header)
+    self.got_interested = improper_use(self.got_interested)
+    self.got_not_interested = improper_use(self.got_not_interested)
+    self.got_have = improper_use(self.got_have)
+    self.got_bitfield = improper_use(self.got_bitfield)
+    self.got_request = improper_use(self.got_request)
+    self.got_cancel = improper_use(self.got_cancel)
+    self.got_piece = improper_use(self.got_piece)
 
 
 class AnomosRelayerProtocol(AnomosProtocol):
@@ -146,19 +155,19 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def got_confirm(self):
         self.connection_completed()
         self.relay_message(self, CONFIRM)
-    # Disable these message types.
+    ### Methods which should not be called by this class ###
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
-    def _read_header(self): pass
-    def write_header(self): pass
-    def got_interested(self): pass
-    def got_not_interested(self): pass
-    def got_have(self, message): pass
-    def got_bitfield(self, message): pass
-    def got_request(self, message): pass
-    def got_cancel(self, message): pass
-    def got_piece(self, message): pass
-    def got_tcode(self, message): pass
+    self._read_header = improper_use(self._read_header)
+    self.write_header = improper_use(self.write_header)
+    self.got_interested = improper_use(self.got_interested)
+    self.got_not_interested = improper_use(self.got_not_interested)
+    self.got_have = improper_use(self.got_have)
+    self.got_bitfield = improper_use(self.got_bitfield)
+    self.got_request = improper_use(self.got_request)
+    self.got_cancel = improper_use(self.got_cancel)
+    self.got_piece = improper_use(self.got_piece)
+    self.got_tcode = improper_use(self.got_tcode)
 
 
 class AnomosEndPointProtocol(AnomosProtocol):
@@ -196,5 +205,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
         return self.format_message(ENCRYPTED, self.e2e_key.encrypt(CHOKE))
     def partial_unchoke_str(self):
         return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))
-    def _read_header(self): pass
-    def write_header(self): pass
+    ### Methods which should not be called by this class ###
+    self._read_header = improper_use(self._read_header)
+    self.write_header = improper_use(self.write_header)
