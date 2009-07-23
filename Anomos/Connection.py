@@ -140,12 +140,12 @@ class Connection(object):
 ## AnomosProtocol Connections
 class AnomosNeighborInitializer(Connection):
     """ Extends Anomos specific Forward Link properties of Connection """
-    def __init__(self, manager, socket, id, started_locally=True):
+    def __init__(self, manager, socket, id=None, started_locally=True):
         Connection.__init__(self, socket)
         self.manager = manager
         self.id = id
         self.started_locally = started_locally
-        self._reader = self._read_header(self) # Starts the generator
+        self._reader = self._read_header() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
         if self.started_locally:
             self.write_header()
@@ -154,13 +154,16 @@ class AnomosNeighborInitializer(Connection):
            self._message. self._message is then checked for compliance
            to the Anomos protocol'''
         yield 1
-        if self._message != len(anomos_protocol_name):
+        if ord(self._message) != len(anomos_protocol_name):
             raise StopIteration("Protocol name mismatch")
-        yield len(protocol_name) # protocol name -- 'Anomos'
+        yield len(anomos_protocol_name) # protocol name -- 'Anomos'
         if self._message != anomos_protocol_name:
             raise StopIteration("Protocol name mismatch")
         yield 1  # NID
-        self.id = self._message
+        if self.id is None:
+            self.id = self._message
+        elif self.id != self._message:
+            raise StopIteration("Neighbor ID mismatch")
         yield 7  # reserved bytes (ignore these for now)
         self._got_full_header()
     def _got_full_header(self):
@@ -179,38 +182,38 @@ class AnomosNeighborInitializer(Connection):
            example with id 255:
                 \x06Anomos\xff\x00\x00\x00\x00\x00\x00\x00
         """
-        hdr = chr(len(protocol_name)) + protocol_name + \
+        hdr = chr(len(anomos_protocol_name)) + anomos_protocol_name + \
                        self.protocol_extensions()
         self.socket.write(hdr)
 
 #XXX: BitTorrent protocol support is broken.
 ## BitTorrentProtocol Connections
-class BTFwdLink(Connection, BitTorrentProtocol):
-    """ Extends BitTorrent specific Forward Link properties of Connection """
-    def __init__(self, connection, established=False):
-        Connection.__init__(self, connection)
-        BitTorrentProtocol.__init__(self) 
-        self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
-        self._next_len = self._reader.next() # Gets the first yield
-        #TODO: Connection no longer has self.established. BT things need to be
-        #       updated
-        if not self.established: # New neighbor, send header
-            self.write_header()
-    def _got_full_header(self):
-        self.connection_completed(self)
-        # Switch from reading the header to reading messages
-        self._reader = self._read_messages()
-        yield self._reader.next()
-
-class BTRevLink(Connection, BitTorrentProtocol):
-    """ Extends BitTorrent specific Reverse Link properties of Connection """
-    def __init__(self, connection, established=False):
-        Connection.__init__(self, connection, established) 
-        BitTorrentProtocol.__init__(self) 
-        self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
-        self._next_len = self._reader.next() # Gets the first yield
-    def _got_full_header(self):
-        self.write_header()
-        # Switch from reading the header to reading messages
-        self._reader = self._read_messages()
-        yield self._reader.next()
+#class BTFwdLink(Connection, BitTorrentProtocol):
+#    """ Extends BitTorrent specific Forward Link properties of Connection """
+#    def __init__(self, connection, established=False):
+#        Connection.__init__(self, connection)
+#        BitTorrentProtocol.__init__(self) 
+#        self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
+#        self._next_len = self._reader.next() # Gets the first yield
+#        #TODO: Connection no longer has self.established. BT things need to be
+#        #       updated
+#        if not self.established: # New neighbor, send header
+#            self.write_header()
+#    def _got_full_header(self):
+#        self.connection_completed(self)
+#        # Switch from reading the header to reading messages
+#        self._reader = self._read_messages()
+#        yield self._reader.next()
+#
+#class BTRevLink(Connection, BitTorrentProtocol):
+#    """ Extends BitTorrent specific Reverse Link properties of Connection """
+#    def __init__(self, connection, established=False):
+#        Connection.__init__(self, connection, established) 
+#        BitTorrentProtocol.__init__(self) 
+#        self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
+#        self._next_len = self._reader.next() # Gets the first yield
+#    def _got_full_header(self):
+#        self.write_header()
+#        # Switch from reading the header to reading messages
+#        self._reader = self._read_messages()
+#        yield self._reader.next()

@@ -52,7 +52,7 @@ class NeighborManager:
                 self.start_connection(loc, id)
         # Remove the failedPeers that didn't come back as fresh IDs (presumably
         # the tracker has removed them from our potential neighbor list)
-        failedPeers = [id for id in freshids if id in failedPeers]
+        self.failedPeers = [id for id in freshids if id in self.failedPeers]
 
     ## Start a new neighbor connection ##
     def start_connection(self, loc, id):
@@ -95,7 +95,7 @@ class NeighborManager:
                 break
         else: return #loc wasn't found
         # Exchange the header and hold the connection open
-        AnomosNeighborInitializer(self, sock, id, established=False)
+        AnomosNeighborInitializer(self, sock, id, started_locally=True)
 
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
@@ -132,6 +132,7 @@ class NeighborManager:
             # Completing a complete or non-existant connection...
             return
         del self.incomplete[id]
+        self.logfunc(INFO, "Adding new neighbor");
         self.add_neighbor(socket, id)
         for task in self.waiting_tcs.get(id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time

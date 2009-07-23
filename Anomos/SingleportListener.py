@@ -15,7 +15,7 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos.Connection import AnomosNeighborReceiver
+from Anomos.Connection import AnomosNeighborInitializer
 from Anomos import BTFailure
 
 class SingleportListener(object):
@@ -23,13 +23,13 @@ class SingleportListener(object):
         is one per torrent), initializes connection objects, and determines
         what to do with the connection once some data has been read.
     '''
-    def __init__(self, rawserver, config, neighbors):
+    def __init__(self, rawserver, config, manager):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
         self.ports = {}
         self.relayers = []
-        self.neighbors = neighbors
+        self.manager = manager
         self.download_id = None
 
     def _check_close(self, port):
@@ -48,7 +48,7 @@ class SingleportListener(object):
         self.rawserver.start_listening(serversocket, self)
         oldport = self.port
         self.port = port
-        self.neighbors.port = port
+        self.manager.port = port
         self.ports[port] = [serversocket, 0]
         self._check_close(oldport)
 
@@ -65,18 +65,6 @@ class SingleportListener(object):
         for serversocket, _ in self.ports.itervalues():
             self.rawserver.stop_listening(serversocket)
             serversocket.close()
-
-    #def xchg_owner_with_endpoint(self, conn, infohash):
-    #    if infohash not in self.torrents:
-    #        return
-    #    self.torrents[infohash].singleport_connection(self, conn)
-
-    #def xchg_owner_with_relayer(self, conn, neighborid):
-    #    conn.owner = Relayer(self.rawserver, self.neighbors, conn, neighborid,
-    #                            self.config)
-    #    conn.is_relay = True
-    #    self.relayers.append(conn.owner)
-    #    return conn.owner
 
     def remove_relayer(self, relayer):
         self.relayers.remove(relayer)
@@ -96,17 +84,12 @@ class SingleportListener(object):
             sent  += r.get_sent()
         return sent
 
-    #def xchg_owner_with_nbr_manager(self, conn):
-    #    del self.connections[conn.connection]
-    #    conn.owner = self.neighbors
-    #    self.neighbors.connections[conn.connection] = conn
-
     def external_connection_made(self, socket):
         """
         Connection came in.
         @param socket: SingleSocket
         """
-        AnomosNeighborReceiver(self.manager, socket)
+        AnomosNeighborInitializer(self.manager, socket, None, started_locally=False)
 
     def replace_connection(self):
         pass

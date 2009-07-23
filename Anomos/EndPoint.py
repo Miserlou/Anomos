@@ -13,7 +13,6 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos.Connection import AnomosFwdLink
 from Anomos.AnomosProtocol import AnomosEndPointProtocol
 from Anomos import BTFailure
 

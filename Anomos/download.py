@@ -483,7 +483,7 @@ class _SingleTorrent(object):
         if self._myfiles is not None:
             self._filepool.remove_files(self._myfiles)
         if self._listening:
-            self._singleport_listener.remove_torrent(self.infohash)
+            self.neighbors.remove_torrent(self.infohash)
         for port in self.reserved_ports:
             self._singleport_listener.release_port(port)
         #TODO: Close NeighborManager connections

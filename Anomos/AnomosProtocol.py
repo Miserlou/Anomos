@@ -33,7 +33,7 @@ class AnomosProtocol(BitTorrentProtocol):
         #msglens => Provides easy lookup for validation of fixed length messages
         self.msglens.update({BREAK: 1, CONFIRM: 1})
         #msgmap => Lookup table for methods to use when responding to message types
-        self.msgmap.update({CONFIRM: self.got_confirm, BREAK: self.send_break})
+        self.msgmap.update({CONFIRM: self.got_confirm, BREAK: self.got_break})
         self.neighbor_manager = None
     def network_ctl_msg(self, type, message=""):
         ''' Send message for network messages,
@@ -45,13 +45,14 @@ class AnomosProtocol(BitTorrentProtocol):
     ## Message receiving methods ##
     def got_confirm(self):
         self.connection_completed()
+    def got_break(self): pass
     def format_message(self, type, message=""):
         """ [StreamID][Message Length][Type][Payload] """
         return tobinary(self.stream_id)[2:] + \
                tobinary(len(type+message)) + \
                type + message
     ## partial messages are only used by EndPoints ##
-    def transfer_ctl_msg(self *args): pass
+    def transfer_ctl_msg(self, *args): pass
     def partial_msg_str(self, index, begin, piece): pass
     def partial_choke_str(self): pass
     def partial_unchoke_str(self): pass
