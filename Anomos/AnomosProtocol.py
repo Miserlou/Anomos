@@ -48,7 +48,6 @@ class AnomosProtocol(BitTorrentProtocol):
     def network_ctl_msg(self, type, message=""):
         ''' Send message for network messages,
             ie. CONFIRM, TCODE and for relaying messages'''
-        print "Network_ctl_msg"
         s = self.format_message(type, message)
         self.neighbor.send_message(s)
     def send_confirm(self):
@@ -79,7 +78,6 @@ class AnomosNeighborProtocol(AnomosProtocol):
             depending on connection type '''
         while True:
             yield 2
-            print "GOT A MESSAGE!"
             stream = toint(self._message)
             handler = self.get_stream_handler(stream)
             yield 4   # get the message length in self._message
@@ -91,7 +89,6 @@ class AnomosNeighborProtocol(AnomosProtocol):
                 yield l # get the message body
                 handler.got_message(self._message)
     def got_tcode(self, message):
-        print "Got a TCODE!"
         tcreader = TCReader(self.certificate)
         tcdata = tcreader.parseTC(message[1:])
         sid = tcdata.sessionID
