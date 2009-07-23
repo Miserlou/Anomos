@@ -15,26 +15,32 @@
 
 # Written by Rich Jones, John Schanck
 
-from Anomos.Connection import AnomosFwdLink
+from Anomos.AnomosProtocol import AnomosRelayerProtocol
 from Anomos.CurrentRateMeasure import Measure
 from Anomos import INFO, CRITICAL, WARNING
 from threading import Thread
 
-class Relayer(object):
+class Relayer(AnomosRelayerProtocol):
     """ As a tracking code is being sent, each peer it reaches (other than the
         uploader and downloader) creates a Relayer object to maintain the
         association between the incoming socket and the outgoing socket (so
         that the TC only needs to be sent once).
     """
-    def __init__(self, stream_id, nbrmanager, outnid, max_rate_period=20.0):
+    def __init__(self, stream_id, neighbor, outnid,
+                    data=None, orelay=None, max_rate_period=20.0):
                     #storage, uprate, downrate, choker, key):
     #   self.rawserver = rawserver
-        self.stream_id = streamid
-        self.manager = nbrmanager
-    #   self.errorfunc = rawserver.errorfunc
-    #   self.incoming = incoming
-    #   self.outgoing = None
-    #   self.connections = {self.incoming:None}
+        self.stream_id = stream_id
+        self.neighbor = neighbor
+        self.manager = neighbor.manager
+        # Make the other relayer which we'll send data through
+        if orelay is None:
+            self.orelay = self.manager.make_relay(outnid, data, self)
+        else:
+            self.orelay = orelay
+            if data is not None:
+                self.send_tracking_code(data)
+
         self.choked = True
         self.unchoke_time = None
         self.uprate = Measure(max_rate_period)
@@ -43,42 +49,9 @@ class Relayer(object):
         self.buffer = []
         self.complete = False
 
-    #   self.tmpnid = outnid
-    #   self.start_connection(outnid)
-    #   self.rawserver.add_task(self.check_if_established, 1)
-
-    #def check_if_established(self):
-    #    if self.outgoing:
-    #        for msg in self.buffer:
-    #            self.relay_message(self.incoming, msg)
-    #        self.buffer = []
-    #    else:
-    #        self.rawserver.add_task(self.check_if_established, 1)
-
-#### NOTE: Here be obsolete code, keep it until things are working again ####
-    #def start_connection(self, nid):
-    #    loc = self.neighbors.get_location(nid)
-    #    ssls = self.neighbors.get_ssl_session(nid)
-    #    self.rawserver.start_ssl_connection(loc, handler=self, session=ssls)
-
-    #def sock_success(self, sock, loc):
-    #    if self.connections.has_key(sock):
-    #        return
-    #    con = AnomosFwdLink(self, sock, self.tmpnid, established=True)
-    #    sock.handler = con
-    #    self.errorfunc(INFO, "Relay connection started")
-    #    self.outgoing = con
-    #    self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
-
-    #def sock_fail(self, loc, err=None):
-    #    if err:
-    #        self.errorfunc(WARNING, err)
-    #    #TODO: Do something with error message
-
     def relay_message(self, msg):
         if self.complete:
-            self.partner.send_message(msg)
-            self.connections[con].send_relay_message(msg)
+            self.orelay.send_message(msg)
             self.uprate.update_rate(len(msg))
             self.sent += len(msg)
         else: # Buffer messages until connection is complete
@@ -86,15 +59,21 @@ class Relayer(object):
             self.buffer.append(msg)
 
 #### NOTE: Here be obsolete code, keep it until things are working again ####
-    #def connection_closed(self, sock):
-    #    if sock == self.incoming.connection:
-    #        self.outgoing.close()
-    #    elif sock == self.outgoing.connection:
-    #        self.incoming.close()
+    def connection_closed(self, sock):
+        self.neighbor.end_stream(self.stream_id)
+        self.orelay.send_break()
+        #if sock == self.incoming.connection:
+        #    self.outgoing.close()
+        #elif sock == self.outgoing.connection:
+        #    self.incoming.close()
 
     def connection_completed(self, con):
-        self.errorfunc(INFO, "Relay connection established")
+        #self.errorfunc(INFO, "Relay connection established")
         self.complete = True
+        #TODO: Check that it's okay to try and send all these at once.
+        for msg in self.buffer:
+            self.relay_message(msg)
+        self.buffer = []
 
     def get_rate(self):
         return self.uprate.get_rate()
@@ -125,11 +104,6 @@ class Relayer(object):
     #    assert self.choked
     #    del self.buffer[:]
 
-    def has_queries(self):
-        return len(self.buffer) > 0
-
-    def set_owner(self, obj):
-        self.owner = obj
-
-    def get_owner(self):
-        return self.owner
+    #TODO: Doesn't seem to be used, do we need it?
+    #def has_queries(self):
+    #    return len(self.buffer) > 0

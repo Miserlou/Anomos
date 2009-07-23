@@ -16,6 +16,7 @@
 # Written by John Schanck and Rich Jones
 from Anomos.Connection import Connection
 from Anomos.EndPoint import EndPoint
+from Anomos.Relayer import Relayer
 from Anomos.AnomosProtocol import AnomosNeighborProtocol
 
 class NeighborLink(Connection, AnomosNeighborProtocol):
@@ -38,9 +39,9 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         self.streams[nxtid] = \
                     EndPoint(self, nxtid, torrent, aeskey, data)
         self.next_stream_id += 1
-    def start_relay_stream(self, nid, data=None):
+    def start_relay_stream(self, nid, data=None, orelay=None):
         nxtid = self.next_stream_id
-        self.streams[nxtid] = Relay(nxtid, self.manager, data)
+        self.streams[nxtid] = Relayer(nxtid, self, nid, data, orelay)
         self.next_stream_id += 1
     def end_stream(self, id):
         if self.streams.has_key(id):

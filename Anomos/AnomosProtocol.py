@@ -90,7 +90,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
                 yield l # get the message body
                 handler.got_message(self._message)
     def got_tcode(self, message):
-        tcreader = TCReader(self.certificate)
+        tcreader = TCReader(self.manager.cert)
         tcdata = tcreader.parseTC(message[1:])
         sid = tcdata.sessionID
         if not self.manager.check_session_id(sid):
@@ -145,6 +145,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
     ## Disable direct message reading. ##
     def _read_header(self): pass
     def _read_messages(self): pass
+    def send_tracking_code(self, trackcode):
+        self.network_ctl_msg(TCODE, trackcode)
     #TODO: I have no idea if send break works --John
     def got_break(self):
         self.relay_message(self, BREAK)
