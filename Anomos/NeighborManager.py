@@ -69,7 +69,6 @@ class NeighborManager:
             #Already had neighbor by that id or at that location
             #TODO: Resolve conflict
             return
-
         self.incomplete[id] = loc
         self.rawserver.start_ssl_connection(loc, handler=self)
 
@@ -128,11 +127,8 @@ class NeighborManager:
         return len(self.neighbors)
 
     def connection_completed(self, socket, id):
-        if not self.incomplete.has_key(id):
-            # Completing a complete or non-existant connection...
-            return
-        del self.incomplete[id]
-        self.logfunc(INFO, "Adding new neighbor");
+        if self.incomplete.has_key(id):
+            del self.incomplete[id]
         self.add_neighbor(socket, id)
         for task in self.waiting_tcs.get(id, []):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
@@ -151,17 +147,18 @@ class NeighborManager:
         sid = tcdata.sessionID
         torrent = self.get_torrent(infohash)
         nextTC = tcdata.nextLayer
-        if nid in self.incomplete:
-            self.schedule_tc(nid, infohash, aeskey, nextTC)
-            return
-        if nid not in self.neighbors:
-            self.logfunc(ERROR, "NID \\x%02x is not assigned" % ord(id))
-            return
         if sid != self.sessionid:
             self.logfunc(ERROR, "SessionID mismatch!")
             return
         if torrent is None:
             self.logfunc(ERROR, "Unknown torrent")
+            return
+        if nid in self.incomplete:
+            self.logfunc(INFO, "Scheduling TC for later \\x%02x" % ord(nid))
+            self.schedule_tc(nid, infohash, aeskey, nextTC)
+            return
+        if nid not in self.neighbors:
+            self.logfunc(ERROR, "NID \\x%02x is not assigned" % ord(nid))
             return
         self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
 
@@ -172,8 +169,8 @@ class NeighborManager:
         def sendtc():
             torrent = self.get_torrent(infohash)
             self.neighbors[nid].start_endpoint_stream(torrent, aeskey, nextTC)
-        self.waiting_tcs.setdefault(id,[])
-        self.waiting_tcs[id].append(sendtc)
+        self.waiting_tcs.setdefault(nid,[])
+        self.waiting_tcs[nid].append(sendtc)
 
     def add_torrent(self, infohash, torrent):
         if infohash in self.torrents:

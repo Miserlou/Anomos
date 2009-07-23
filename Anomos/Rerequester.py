@@ -308,7 +308,7 @@ class Rerequester(object):
             # Start downloads
             for aes, tc in r.get('tracking codes', []):
                 #TODO: add error callback
-                self.neighbors.start_circuit(tc, infohash, crypto.AESKey(aes[:32], aes[32:]))
+                self.neighbors.start_circuit(tc, self.infohash, crypto.AESKey(aes[:32], aes[32:]))
             if self.basequery is not None: # We've recently made a successful
                 self.successfunc()     # request of type STARTED or COMPLETED
             self._check()

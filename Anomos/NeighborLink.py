@@ -15,6 +15,7 @@
 
 # Written by John Schanck and Rich Jones
 from Anomos.Connection import Connection
+from Anomos.EndPoint import EndPoint
 from Anomos.AnomosProtocol import AnomosNeighborProtocol
 
 class NeighborLink(Connection, AnomosNeighborProtocol):
@@ -26,16 +27,19 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         #self.ssl_session = None
         self.complete = False
         self.streams = {0:self} # {StreamID : Anomos*Protocol implementing obj}
+        self.next_stream_id = 1
 
         #Prepare to read messages
         self._reader = self._read_messages()
         self._next_len = self._reader.next()
     ## Stream Initialization ##
     def start_endpoint_stream(self, torrent, aeskey, data=None):
+        nxtid = self.next_stream_id
         self.streams[nxtid] = \
-                    Endpoint(self, self.next_stream_id, torrent, aeskey, data)
+                    EndPoint(self, nxtid, torrent, aeskey, data)
         self.next_stream_id += 1
     def start_relay_stream(self, nid, data=None):
+        nxtid = self.next_stream_id
         self.streams[nxtid] = Relay(nxtid, self.manager, data)
         self.next_stream_id += 1
     def end_stream(self, id):
@@ -46,11 +50,3 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         # return a reference to self (because receiving an unassociated
         # stream id implies it's a new one).
         return self.streams.get(streamid, self)
-    def send_message(self, message):
-        ''' Prepends message with its length as a 32 bit integer,
-            and queues or immediately sends the message '''
-        if self._partial_message is not None:
-            # Last message has not finished sending yet
-            self._outqueue.append(message)
-        else:
-            self.socket.write(message)

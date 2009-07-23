@@ -24,6 +24,8 @@ class EndPoint(AnomosEndPointProtocol):
         self.e2e_key = aes
         self.stream_id = stream_id
         self.complete = False
+        if data is not None:
+            self.send_tracking_code(data)
         #TODO? Do we need choker here?
         #self.choker = choker
 

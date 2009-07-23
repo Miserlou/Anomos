@@ -114,6 +114,11 @@ class Connection(object):
         self.socket.write(queue)
         return len(queue)
     def close(self, e=None):
+        if self.socket.handler != self:
+            # Don't close sockets we don't own anymore.
+            # This is sort of a hack, but it prevents uglier
+            # hacks elsewhere.
+            return
         if not self.closed:
             self.socket.close()
             self._sever()

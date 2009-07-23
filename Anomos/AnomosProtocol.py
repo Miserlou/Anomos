@@ -168,6 +168,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
         #msgmap => Lookup table for methods to use when responding to message types
         self.msgmap.update({RELAY: self.got_relay,
                             ENCRYPTED: self.got_encrypted})
+    def send_tracking_code(self, trackcode):
+        self.network_ctl_msg(TCODE, trackcode)
     def got_relay(self, message):
         self.got_message(message[1:])
     def got_encrypted(self, message):
