@@ -35,6 +35,7 @@ def improper_use(fn):
                 (fn.__name__,fn.im_class.__name__))
     return ret_fn
 
+
 class AnomosProtocol(BitTorrentProtocol):
     ## Common features of all AnomosProtocols (Neighbor, Relayer, EndPoint) ##
     from Anomos import protocol_name
@@ -115,15 +116,24 @@ class AnomosNeighborProtocol(AnomosProtocol):
     ### Methods which should not be called by this class ###
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
-    self._read_header = improper_use(self._read_header)
-    self.write_header = improper_use(self.write_header)
-    self.got_interested = improper_use(self.got_interested)
-    self.got_not_interested = improper_use(self.got_not_interested)
-    self.got_have = improper_use(self.got_have)
-    self.got_bitfield = improper_use(self.got_bitfield)
-    self.got_request = improper_use(self.got_request)
-    self.got_cancel = improper_use(self.got_cancel)
-    self.got_piece = improper_use(self.got_piece)
+    @improper_use
+    def _read_header(self): pass
+    @improper_use
+    def write_header(self): pass
+    @improper_use
+    def got_interested(self): pass
+    @improper_use
+    def got_not_interested(self): pass
+    @improper_use
+    def got_have(self): pass
+    @improper_use
+    def got_bitfield(self): pass
+    @improper_use
+    def got_request(self): pass
+    @improper_use
+    def got_cancel(self): pass
+    @improper_use
+    def got_piece(self): pass
 
 
 class AnomosRelayerProtocol(AnomosProtocol):
@@ -155,16 +165,26 @@ class AnomosRelayerProtocol(AnomosProtocol):
     ### Methods which should not be called by this class ###
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
-    self._read_header = improper_use(self._read_header)
-    self.write_header = improper_use(self.write_header)
-    self.got_interested = improper_use(self.got_interested)
-    self.got_not_interested = improper_use(self.got_not_interested)
-    self.got_have = improper_use(self.got_have)
-    self.got_bitfield = improper_use(self.got_bitfield)
-    self.got_request = improper_use(self.got_request)
-    self.got_cancel = improper_use(self.got_cancel)
-    self.got_piece = improper_use(self.got_piece)
-    self.got_tcode = improper_use(self.got_tcode)
+    @improper_use
+    def _read_header(self): pass
+    @improper_use
+    def write_header(self): pass
+    @improper_use
+    def got_interested(self): pass
+    @improper_use
+    def got_not_interested(self): pass
+    @improper_use
+    def got_have(self, message): pass
+    @improper_use
+    def got_bitfield(self, message): pass
+    @improper_use
+    def got_request(self, message): pass
+    @improper_use
+    def got_cancel(self, message): pass
+    @improper_use
+    def got_piece(self, message): pass
+    @improper_use
+    def got_tcode(self, message): pass
 
 
 class AnomosEndPointProtocol(AnomosProtocol):
@@ -203,5 +223,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def partial_unchoke_str(self):
         return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))
     ### Methods which should not be called by this class ###
-    self._read_header = improper_use(self._read_header)
-    self.write_header = improper_use(self.write_header)
+    @improper_use
+    def _read_header(self): pass
+    @improper_use
+    def write_header(self): pass
