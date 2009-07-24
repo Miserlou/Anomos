@@ -94,7 +94,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
                 yield l # get the message body
                 handler.got_message(self._message)
     def got_tcode(self, message):
-        tcreader = TCReader(self.manager.cert)
+        tcreader = TCReader(self.manager.certificate)
         tcdata = tcreader.parseTC(message[1:])
         sid = tcdata.sessionID
         if not self.manager.check_session_id(sid):

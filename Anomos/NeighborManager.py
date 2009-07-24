@@ -27,7 +27,7 @@ class NeighborManager:
     def __init__(self, rawserver, config, certificate, sessionid, logfunc):
         self.rawserver = rawserver
         self.config = config
-        self.cert = certificate
+        self.certificate = certificate
         self.sessionid = sessionid
         self.logfunc = logfunc
         self.neighbors = {}
@@ -131,6 +131,7 @@ class NeighborManager:
             del self.incomplete[id]
         self.add_neighbor(socket, id)
         for task in self.waiting_tcs.get(id, []):
+            #TODO: is it still necessary to queue these with RawServer?
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
 
     def connection_closed(self, con):
@@ -141,7 +142,7 @@ class NeighborManager:
         just gotten TCs for from the Tracker'''
         if self.count_streams() >= self.config['max_initiate']:
             return
-        tcreader = TCReader(self.cert)
+        tcreader = TCReader(self.certificate)
         tcdata = tcreader.parseTC(tc)
         nid = tcdata.neighborID
         sid = tcdata.sessionID
