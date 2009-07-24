@@ -37,7 +37,7 @@ def improper_use(fn):
         come in for a stream that is not permitted to answer that
         type of message. For instance, got_piece should not be
         accepted by Relayer types"""
-    def ret_fn(self):
+    def ret_fn(self, *args):
         raise ImproperUseError( \
                 "Action %s improper for %s."% \
                 (fn.__name__,type(self)))
