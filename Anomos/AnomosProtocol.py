@@ -221,8 +221,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages.
             ie. CHOKE, INTERESTED, PIECE '''
-        payload = self.e2e_key.encrypt(type + message)
-        s = self.format_message(ENCRYPTED, payload)
+        payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
+        s = self.format_message(RELAY, payload)
         self.neighbor.send_message(s)
     ## Partial message sending methods ##
     ## these are used by send_partial, which we inherit from BitTorrentProtocol
