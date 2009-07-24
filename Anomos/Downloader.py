@@ -29,41 +29,41 @@ from Anomos.bitfield import Bitfield
 #        self.peerid = None
 
 
-#class BadDataGuard(object):
-#
-#    def __init__(self, download):
-#        self.download = download
-#        self.ip = download.stream.ip
-#        self.downloader = download.downloader
-#        self.stats = self.downloader.perip[self.ip]
-#        self.lastindex = None
-#
-#    def bad(self, index, bump = False):
-#        self.stats.bad.setdefault(index, 0)
-#        self.stats.bad[index] += 1
-#        if self.ip not in self.downloader.bad_peers:
-#            self.downloader.bad_peers[self.ip] = (False, self.stats)
-#        if self.download is not None:
-#            self.downloader.kick(self.download)
-#            self.download = None
-#        elif len(self.stats.bad) > 1 and self.stats.numstreams == 1 and \
-#             self.stats.lastdownload is not None:
-#            # kick new stream from same IP if previous one sent bad data,
-#            # mainly to give the algorithm time to find other bad pieces
-#            # in case the peer is sending a lot of bad data
-#            self.downloader.kick(self.stats.lastdownload)
-#        if len(self.stats.bad) >= 3 and len(self.stats.bad) > \
-#           self.stats.numgood // 30:
-#            self.downloader.ban(self.ip)
-#        elif bump:
-#            self.downloader.picker.bump(index)
-#
-#    def good(self, index):
-#        # lastindex is a hack to only increase numgood for by one for each good
-#        # piece, however many chunks came from the stream(s) from this IP
-#        if index != self.lastindex:
-#            self.stats.numgood += 1
-#            self.lastindex = index
+class BadDataGuard(object):
+
+    def __init__(self, download):
+        self.download = download
+        #self.ip = download.stream.ip
+        self.downloader = download.downloader
+        #self.stats = self.downloader.perip[self.ip]
+        self.lastindex = None
+
+    def bad(self, index, bump = False):
+        self.stats.bad.setdefault(index, 0)
+        self.stats.bad[index] += 1
+        #if self.ip not in self.downloader.bad_peers:
+        #    self.downloader.bad_peers[self.ip] = (False, self.stats)
+        if self.download is not None:
+            self.downloader.kick(self.download)
+            self.download = None
+        elif len(self.stats.bad) > 1 and self.stats.numstreams == 1 and \
+             self.stats.lastdownload is not None:
+            # kick new stream from same IP if previous one sent bad data,
+            # mainly to give the algorithm time to find other bad pieces
+            # in case the peer is sending a lot of bad data
+            self.downloader.kick(self.stats.lastdownload)
+        #if len(self.stats.bad) >= 3 and len(self.stats.bad) > \
+        #   self.stats.numgood // 30:
+        #    self.downloader.ban(self.ip)
+        #elif bump:
+        #    self.downloader.picker.bump(index)
+
+    def good(self, index):
+        # lastindex is a hack to only increase numgood for by one for each good
+        # piece, however many chunks came from the stream(s) from this IP
+        if index != self.lastindex:
+            self.stats.numgood += 1
+            self.lastindex = index
 
 
 class SingleDownload(object):
@@ -81,7 +81,7 @@ class SingleDownload(object):
         self.last = 0
         self.example_interest = None
         self.backlog = 2
-        #self.guard = BadDataGuard(self)
+        self.guard = BadDataGuard(self)
 
     def _backlog(self):
         backlog = 2 + int(4 * self.measure.get_rate() /
