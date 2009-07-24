@@ -19,58 +19,58 @@ from Anomos.platform import bttime
 from Anomos.CurrentRateMeasure import Measure
 from Anomos.bitfield import Bitfield
 
-class PerIPStats(object):
+#class PerIPStats(object):
+#
+#    def __init__(self):
+#        self.numgood = 0
+#        self.bad = {}
+#        self.numstreams = 0
+#        self.lastdownload = None
+#        self.peerid = None
 
-    def __init__(self):
-        self.numgood = 0
-        self.bad = {}
-        self.numconnections = 0
-        self.lastdownload = None
-        self.peerid = None
 
-
-class BadDataGuard(object):
-
-    def __init__(self, download):
-        self.download = download
-        self.ip = download.connection.ip
-        self.downloader = download.downloader
-        self.stats = self.downloader.perip[self.ip]
-        self.lastindex = None
-
-    def bad(self, index, bump = False):
-        self.stats.bad.setdefault(index, 0)
-        self.stats.bad[index] += 1
-        if self.ip not in self.downloader.bad_peers:
-            self.downloader.bad_peers[self.ip] = (False, self.stats)
-        if self.download is not None:
-            self.downloader.kick(self.download)
-            self.download = None
-        elif len(self.stats.bad) > 1 and self.stats.numconnections == 1 and \
-             self.stats.lastdownload is not None:
-            # kick new connection from same IP if previous one sent bad data,
-            # mainly to give the algorithm time to find other bad pieces
-            # in case the peer is sending a lot of bad data
-            self.downloader.kick(self.stats.lastdownload)
-        if len(self.stats.bad) >= 3 and len(self.stats.bad) > \
-           self.stats.numgood // 30:
-            self.downloader.ban(self.ip)
-        elif bump:
-            self.downloader.picker.bump(index)
-
-    def good(self, index):
-        # lastindex is a hack to only increase numgood for by one for each good
-        # piece, however many chunks came from the connection(s) from this IP
-        if index != self.lastindex:
-            self.stats.numgood += 1
-            self.lastindex = index
+#class BadDataGuard(object):
+#
+#    def __init__(self, download):
+#        self.download = download
+#        self.ip = download.stream.ip
+#        self.downloader = download.downloader
+#        self.stats = self.downloader.perip[self.ip]
+#        self.lastindex = None
+#
+#    def bad(self, index, bump = False):
+#        self.stats.bad.setdefault(index, 0)
+#        self.stats.bad[index] += 1
+#        if self.ip not in self.downloader.bad_peers:
+#            self.downloader.bad_peers[self.ip] = (False, self.stats)
+#        if self.download is not None:
+#            self.downloader.kick(self.download)
+#            self.download = None
+#        elif len(self.stats.bad) > 1 and self.stats.numstreams == 1 and \
+#             self.stats.lastdownload is not None:
+#            # kick new stream from same IP if previous one sent bad data,
+#            # mainly to give the algorithm time to find other bad pieces
+#            # in case the peer is sending a lot of bad data
+#            self.downloader.kick(self.stats.lastdownload)
+#        if len(self.stats.bad) >= 3 and len(self.stats.bad) > \
+#           self.stats.numgood // 30:
+#            self.downloader.ban(self.ip)
+#        elif bump:
+#            self.downloader.picker.bump(index)
+#
+#    def good(self, index):
+#        # lastindex is a hack to only increase numgood for by one for each good
+#        # piece, however many chunks came from the stream(s) from this IP
+#        if index != self.lastindex:
+#            self.stats.numgood += 1
+#            self.lastindex = index
 
 
 class SingleDownload(object):
 
-    def __init__(self, downloader, connection):
+    def __init__(self, downloader, stream):
         self.downloader = downloader
-        self.connection = connection
+        self.stream = stream
         self.choked = True
         self.interested = False
         self.active_requests = []
@@ -81,7 +81,7 @@ class SingleDownload(object):
         self.last = 0
         self.example_interest = None
         self.backlog = 2
-        self.guard = BadDataGuard(self)
+        #self.guard = BadDataGuard(self)
 
     def _backlog(self):
         backlog = 2 + int(4 * self.measure.get_rate() /
@@ -120,7 +120,7 @@ class SingleDownload(object):
                 for l in lost:
                     if d.have[l] and self.downloader.storage.do_I_have_requests(l):
                         d.interested = True
-                        d.connection.send_interested()
+                        d.stream.send_interested()
                         break
 
     def got_choke(self):
@@ -172,12 +172,12 @@ class SingleDownload(object):
                             d.active_requests.remove((index, begin, len(piece)))
                         except ValueError:
                             continue
-                        d.connection.send_cancel(index, begin, len(piece))
+                        d.stream.send_cancel(index, begin, len(piece))
                         d.fix_download_endgame()
         self._request_more()
         if self.downloader.picker.am_I_complete():
             for d in [i for i in self.downloader.downloads if i.have.numfalse == 0]:
-                d.connection.close()
+                d.stream.close()
         return self.downloader.storage.do_I_have(index)
 
     def _want(self, index):
@@ -204,19 +204,19 @@ class SingleDownload(object):
                 break
             if not self.interested:
                 self.interested = True
-                self.connection.send_interested()
+                self.stream.send_interested()
             self.example_interest = interest
             self.downloader.picker.requested(interest, self.have.numfalse == 0)
             while len(self.active_requests) < (self.backlog-2) * 5 + 2:
                 begin, length = self.downloader.storage.new_request(interest)
                 self.active_requests.append((interest, begin, length))
-                self.connection.send_request(interest, begin, length)
+                self.stream.send_request(interest, begin, length)
                 if not self.downloader.storage.do_I_have_requests(interest):
                     lost_interests.append(interest)
                     break
         if not self.active_requests and self.interested:
             self.interested = False
-            self.connection.send_not_interested()
+            self.stream.send_not_interested()
         if lost_interests:
             for d in self.downloader.downloads:
                 if d.active_requests or not d.interested:
@@ -231,7 +231,7 @@ class SingleDownload(object):
                 interest = self.downloader.picker.next(d._want, d.have.numfalse == 0)
                 if interest is None:
                     d.interested = False
-                    d.connection.send_not_interested()
+                    d.stream.send_not_interested()
                 else:
                     d.example_interest = interest
         if self.downloader.storage.endgame:
@@ -245,18 +245,18 @@ class SingleDownload(object):
         want = [a for a in self.downloader.all_requests if self.have[a[0]] and a not in self.active_requests]
         if self.interested and not self.active_requests and not want:
             self.interested = False
-            self.connection.send_not_interested()
+            self.stream.send_not_interested()
             return
         if not self.interested and want:
             self.interested = True
-            self.connection.send_interested()
+            self.stream.send_interested()
         if self.choked or len(self.active_requests) >= self._backlog():
             return
         shuffle(want)
         del want[self.backlog - len(self.active_requests):]
         self.active_requests.extend(want)
         for piece, begin, length in want:
-            self.connection.send_request(piece, begin, length)
+            self.stream.send_request(piece, begin, length)
 
     def got_have(self, index):
         if self.have[index]:
@@ -269,7 +269,7 @@ class SingleDownload(object):
         self.have[index] = True
         self.downloader.picker.got_have(index)
         if self.downloader.picker.am_I_complete() and self.have.numfalse == 0:
-            self.connection.close()
+            self.stream.close()
             return
         if self.downloader.storage.endgame:
             self.fix_download_endgame()
@@ -279,11 +279,11 @@ class SingleDownload(object):
             else:
                 if not self.interested:
                     self.interested = True
-                    self.connection.send_interested()
+                    self.stream.send_interested()
 
     def got_have_bitfield(self, have):
         if self.downloader.picker.am_I_complete() and have.numfalse == 0:
-            self.connection.close()
+            self.stream.close()
             return
         self.have = have
         for i in xrange(len(self.have)):
@@ -293,12 +293,12 @@ class SingleDownload(object):
             for piece, begin, length in self.downloader.all_requests:
                 if self.have[piece]:
                     self.interested = True
-                    self.connection.send_interested()
+                    self.stream.send_interested()
                     return
         for i in xrange(len(self.have)):
             if self.have[i] and self.downloader.storage.do_I_have_requests(i):
                 self.interested = True
-                self.connection.send_interested()
+                self.stream.send_interested()
                 return
 
     def get_rate(self):
@@ -323,43 +323,43 @@ class Downloader(object):
         self.kickfunc = kickfunc
         self.banfunc = banfunc
         self.downloads = []
-        self.perip = {}
+        #self.perip = {}
         self.bad_peers = {}
         self.discarded_bytes = 0
 
-    def make_download(self, connection):
-        ip = connection.ip
-        perip = self.perip.get(ip)
-        if perip is None:
-            perip = PerIPStats()
-            self.perip[ip] = perip
-        perip.numconnections += 1
-        d = SingleDownload(self, connection)
-        perip.lastdownload = d
-        perip.peerid = connection.id
+    def make_download(self, stream):
+        #ip = stream.ip
+        #perip = self.perip.get(ip)
+        #if perip is None:
+        #    perip = PerIPStats()
+        #    self.perip[ip] = perip
+        #perip.numstreams += 1
+        d = SingleDownload(self, stream)
+        #perip.lastdownload = d
+        #perip.peerid = stream.id
         self.downloads.append(d)
         return d
 
     def lost_peer(self, download):
         self.downloads.remove(download)
-        ip = download.connection.ip
-        self.perip[ip].numconnections -= 1
-        if self.perip[ip].lastdownload == download:
-            self.perip[ip].lastdownload = None
+        #ip = download.stream.ip
+        #self.perip[ip].numstreams -= 1
+        #if self.perip[ip].lastdownload == download:
+            #self.perip[ip].lastdownload = None
 
     def kick(self, download):
         if not self.config['retaliate_to_garbled_data']:
             return
-        ip = download.connection.ip
-        peerid = download.connection.id
-        # kickfunc will schedule connection.close() to be executed later; we
+        #ip = download.stream.ip
+        #peerid = download.stream.id
+        # kickfunc will schedule stream.close() to be executed later; we
         # might now be inside RawServer event loop with events from that
-        # connection already queued, and trying to handle them after doing
+        # stream already queued, and trying to handle them after doing
         # close() now could cause problems.
-        self.kickfunc(download.connection)
+        self.kickfunc(download.stream)
 
-    def ban(self, ip):
-        if not self.config['retaliate_to_garbled_data']:
-            return
-        self.banfunc(ip)
-        self.bad_peers[ip] = (True, self.perip[ip])
+    #def ban(self, ip):
+    #    if not self.config['retaliate_to_garbled_data']:
+    #        return
+    #    self.banfunc(ip)
+    #    self.bad_peers[ip] = (True, self.perip[ip])
