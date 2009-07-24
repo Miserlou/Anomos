@@ -60,7 +60,7 @@ class Relayer(AnomosRelayerProtocol):
             self.buffer.append(msg)
 
 #### NOTE: Here be obsolete code, keep it until things are working again ####
-    def connection_closed(self, sock):
+    def connection_closed(self):
         self.neighbor.end_stream(self.stream_id)
         self.orelay.send_break()
         #if sock == self.incoming.connection:
@@ -71,6 +71,11 @@ class Relayer(AnomosRelayerProtocol):
     def connection_completed(self):
         #self.errorfunc(INFO, "Relay connection established")
         self.complete = True
+        self.flush_buffer()
+        self.orelay.complete = True
+        self.orelay.flush_buffer()
+
+    def flush_buffer(self):
         #TODO: Check that it's okay to try and send all these at once.
         for msg in self.buffer:
             self.relay_message(msg)

@@ -39,10 +39,12 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         self.streams[nxtid] = \
                     EndPoint(self, nxtid, torrent, aeskey, data)
         self.next_stream_id += 1
+        return self.streams[nxtid]
     def start_relay_stream(self, nid, data=None, orelay=None):
         nxtid = self.next_stream_id
         self.streams[nxtid] = Relayer(nxtid, self, nid, data, orelay)
         self.next_stream_id += 1
+        return self.streams[nxtid]
     def end_stream(self, id):
         if self.streams.has_key(id):
             del self.streams[id]

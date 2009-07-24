@@ -173,7 +173,7 @@ class NeighborManager:
         self.waiting_tcs[nid].append(sendtc)
 
     def make_relay(self, nid, data, orelay):
-        self.neighbors[nid].start_relay_stream(nid, data, orelay)
+        return self.neighbors[nid].start_relay_stream(nid, data, orelay)
 
     def add_torrent(self, infohash, torrent):
         if infohash in self.torrents:
