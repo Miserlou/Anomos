@@ -21,39 +21,71 @@ from Anomos.AnomosProtocol import AnomosNeighborProtocol
 from Anomos import default_logger
 
 class NeighborLink(Connection, AnomosNeighborProtocol):
+    ''' NeighborLink handles the socket between two neighbors and keeps
+        track of the objects used to manage the active streams between
+        those neighbors. '''
     def __init__(self, manager, socket, id, logfunc=default_logger):
         Connection.__init__(self, socket)
         AnomosNeighborProtocol.__init__(self)
         self.id = id
         self.manager = manager
         self.complete = False
-        self.streams = {} # {StreamID : Anomos*Protocol implementing obj}
+        self.streams = {} # {StreamID : EndPoint or Relayer object}
         self.next_stream_id = 0
         self.logfunc = logfunc
 
         #Prepare to read messages
         self._reader = self._read_messages()
         self._next_len = self._reader.next()
-    ## Stream Initialization ##
+
+    ## Stream Management ##
     def start_endpoint_stream(self, torrent, aeskey, data=None):
+        ''' Starts an EndPoint stream
+            @param torrent: Torrent to be uploaded/downloaded
+            @param aeskey: AES-256 key to be used for transfer communication
+            @param data: Tracking Code to be sent
+            @type torrent: Anomos.Torrent.Torrent
+            @type aeskey: Anomos.crypto.AESKey
+            @type data: String
+            @return: Newly created EndPoint object'''
         nxtid = self.next_stream_id
         self.streams[nxtid] = \
                     EndPoint(nxtid, self, torrent, aeskey, data,
                             logfunc=self.logfunc)
         self.next_stream_id += 1
         return self.streams[nxtid]
+
     def start_relay_stream(self, nid, data=None, orelay=None):
+        ''' Starts one half of a relay stream. The first half started
+            will have orelay=None, the second will have orelay=<first relay object>
+            @param nid: The Neighbor ID for the other-half of this Relayer
+            @param data: The Tracking Code to be forwarded
+            @param orelay: The Relayer object corresponding to this ones other-half
+            @type nid: char
+            @type data: String
+            @type orelay: Anomos.Relayer.Relayer
+            @return: Newly created Relayer object
+            '''
         nxtid = self.next_stream_id
         self.streams[nxtid] = \
                     Relayer(nxtid, self, nid, data, orelay,
                             logfunc=self.logfunc)
         self.next_stream_id += 1
         return self.streams[nxtid]
+
     def end_stream(self, id):
+        ''' Terminate the stream with specified stream id. Should be
+            called by the stream object which is to be terminated to ensure
+            proper shutdown of that stream.
+            @param id: Stream id of stream to end
+            @type id: int in range 0 to 2**16'''
         if self.streams.has_key(id):
             del self.streams[id]
-    def get_stream_handler(self, streamid):
-        # Return the handler associated with streamid, otherwise
-        # return a reference to self (because receiving an unassociated
-        # stream id implies it's a new one).
-        return self.streams.get(streamid, self)
+
+    def get_stream_handler(self, id):
+        ''' Return the handler associated with streamid, otherwise
+            return a reference to self (because receiving an unassociated
+            stream id implies it's a new one).
+            @param id: Stream id to fetch
+            @type id: int in range 0 to 2**16'''
+        return self.streams.get(id, self)

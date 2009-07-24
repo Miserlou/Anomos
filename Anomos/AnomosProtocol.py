@@ -15,9 +15,13 @@
 
 # Written by John Schanck
 
-from Anomos.BitTorrentProtocol import *
+from Anomos.BitTorrentProtocol \
+    import  BitTorrentProtocol, CHOKE, UNCHOKE, INTERESTED, \
+            NOT_INTERESTED, HAVE, BITFIELD, REQUEST, PIECE, \
+            CANCEL, toint, tobinary
+
 from Anomos.TCReader import TCReader
-from crypto import AESKey, CryptoError
+from Anomos.crypto import AESKey
 
 TCODE = chr(0x9)
 CONFIRM = chr(0xA)
@@ -25,16 +29,19 @@ ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
 RELAY = chr(0xC)
 BREAK = chr(0xD)
 
-class ImproperUseError(Exception): pass
-# A decorator for methods in subclasses of AnomosProtocol
-# that should not be called by that subclass.
+class ImproperUseError(Exception):
+    pass
+
 def improper_use(fn):
+    """ Improper use lets us know that a known message type has
+        come in for a stream that is not permitted to answer that
+        type of message. For instance, got_piece should not be
+        accepted by Relayer types"""
     def ret_fn(self):
         raise ImproperUseError( \
                 "Action %s improper for %s."% \
                 (fn.__name__,type(self)))
     return ret_fn
-
 
 class AnomosProtocol(BitTorrentProtocol):
     ## Common features of all AnomosProtocols (Neighbor, Relayer, EndPoint) ##
@@ -44,7 +51,9 @@ class AnomosProtocol(BitTorrentProtocol):
         #msglens => Provides easy lookup for validation of fixed length messages
         self.msglens.update({BREAK: 1, CONFIRM: 1})
         #msgmap => Lookup table for methods to use when responding to message types
-        self.msgmap.update({CONFIRM: self.got_confirm, BREAK: self.got_break})
+        self.msgmap.update({CONFIRM: self.got_confirm, BREAK: self.got_break,
+                            TCODE: self.got_tcode, RELAY: self.got_relay,
+                            ENCRYPTED: self.got_encrypted})
         self.neighbor_manager = None
     def network_ctl_msg(self, type, message=""):
         ''' Send message for network messages,
@@ -53,12 +62,18 @@ class AnomosProtocol(BitTorrentProtocol):
         self.neighbor.send_message(s)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
-    ## Message receiving methods ##
     def got_confirm(self):
         self.connection_completed()
-    def got_break(self): pass
     def format_message(self, type, message=""):
-        """ [StreamID][Message Length][Type][Payload] """
+        ''' Anomos messages are slightly different from
+            BitTorrent messages because of the virtual
+            streams used to keep the number of active connections
+            low. All messages are prefixed with a 2-byte Stream ID.
+            The format is thus: [StreamID][Message Length][Type][Payload]
+            @param type: TCODE, RELAY, BREAK, CHOKE, etc...
+            @param message: Message type appropriate payload
+            @type type: char (strictly 1 byte)
+            @type message: string'''
         return tobinary(self.stream_id)[2:] + \
                tobinary(len(type+message)) + \
                type + message
@@ -76,8 +91,6 @@ class AnomosNeighborProtocol(AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
     def __init__(self):
         AnomosProtocol.__init__(self)
-        #msgmap => Lookup table for methods to use when responding to message types
-        self.msgmap.update({TCODE: self.got_tcode})
     def _read_messages(self):
         ''' Read messages off the line and relay or process them
             depending on connection type '''
@@ -117,34 +130,32 @@ class AnomosNeighborProtocol(AnomosProtocol):
         else:
             self.close("Unsupported TCode Format")
     ### Methods which should not be called by this class ###
-    #?def got_choke(self): pass
-    #?def got_unchoke(self): pass
     @improper_use
-    def _read_header(self): pass
+    def got_bitfield(self): pass
     @improper_use
-    def write_header(self): pass
+    def got_break(self): pass
+    @improper_use
+    def got_cancel(self): pass
+    @improper_use
+    def got_have(self): pass
     @improper_use
     def got_interested(self): pass
     @improper_use
     def got_not_interested(self): pass
     @improper_use
-    def got_have(self): pass
-    @improper_use
-    def got_bitfield(self): pass
+    def got_piece(self): pass
     @improper_use
     def got_request(self): pass
     @improper_use
-    def got_cancel(self): pass
+    def _read_header(self): pass
     @improper_use
-    def got_piece(self): pass
+    def write_header(self): pass
 
 
 class AnomosRelayerProtocol(AnomosProtocol):
     ## RelayerProtocol is intended to be implemented by Relayer ##
     def __init__(self):
         AnomosProtocol.__init__(self)
-        #msgmap => Lookup table for methods to use when responding to message types
-        self.msgmap.update({RELAY: self.got_relay})
     ## Disable direct message reading. ##
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
@@ -178,38 +189,35 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.neighbor.end_stream(self.stream_id)
     ### Methods which should not be called by this class ###
     @improper_use
-    def _read_messages(self): pass
-    @improper_use
     def _read_header(self): pass
     @improper_use
-    def write_header(self): pass
+    def _read_messages(self): pass
+    @improper_use
+    def got_bitfield(self, message): pass
+    @improper_use
+    def got_cancel(self, message): pass
+    @improper_use
+    def got_encrypted(self, message): pass
+    @improper_use
+    def got_have(self, message): pass
     @improper_use
     def got_interested(self): pass
     @improper_use
     def got_not_interested(self): pass
     @improper_use
-    def got_have(self, message): pass
-    @improper_use
-    def got_bitfield(self, message): pass
+    def got_piece(self, message): pass
     @improper_use
     def got_request(self, message): pass
     @improper_use
-    def got_cancel(self, message): pass
-    @improper_use
-    def got_piece(self, message): pass
-    @improper_use
     def got_tcode(self, message): pass
     @improper_use
-    def got_encrypted(self, message): pass
+    def write_header(self): pass
 
 
 class AnomosEndPointProtocol(AnomosProtocol):
     ## EndPointProtocol is intended to be implemented by EndPoint ##
     def __init__(self):
         AnomosProtocol.__init__(self)
-        #msgmap => Lookup table for methods to use when responding to message types
-        self.msgmap.update({RELAY: self.got_relay,
-                            ENCRYPTED: self.got_encrypted})
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def got_confirm(self):
@@ -220,7 +228,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
         self.got_message(message[1:])
     def got_encrypted(self, message):
         if self.complete and self.e2e_key is not None:
-            # Message is link- and e2e-encrypted
             m = self.e2e_key.decrypt(message[1:])
             self.got_message(m)
         else:
@@ -249,3 +256,5 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def _read_header(self): pass
     @improper_use
     def write_header(self): pass
+    @improper_use
+    def got_tcode(self, message): pass
