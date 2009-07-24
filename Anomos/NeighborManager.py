@@ -99,7 +99,7 @@ class NeighborManager:
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
         self.logfunc(INFO, "Adding Neighbor: \\x%02x" % ord(id))
-        self.neighbors[id] = NeighborLink(self, socket, id)
+        self.neighbors[id] = NeighborLink(self, socket, id, logfunc=self.logfunc)
 
     def rm_neighbor(self, nid):
         if self.incomplete.has_key(nid):

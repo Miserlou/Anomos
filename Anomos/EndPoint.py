@@ -14,10 +14,11 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 from Anomos.AnomosProtocol import AnomosEndPointProtocol
-from Anomos import BTFailure
+from Anomos import BTFailure, default_logger
 
 class EndPoint(AnomosEndPointProtocol):
-    def __init__(self, neighbor, stream_id, torrent, aes, data=None):#, choker, context):
+    def __init__(self, neighbor, stream_id, torrent, aes, data=None,
+            logfunc=default_logger):
         AnomosEndPointProtocol.__init__(self)
         self.neighbor = neighbor
         self.torrent = torrent
@@ -28,6 +29,7 @@ class EndPoint(AnomosEndPointProtocol):
             self.send_tracking_code(data)
         else:
             self.send_confirm()
+        self.logfunc = logfunc
         #TODO? Do we need choker here?
         #self.choker = choker
 

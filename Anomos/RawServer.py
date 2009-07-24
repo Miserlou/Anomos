@@ -21,7 +21,7 @@ from cStringIO import StringIO
 from traceback import print_exc
 from errno import EWOULDBLOCK, ENOBUFS
 from Anomos.platform import bttime
-from Anomos import INFO, CRITICAL, WARNING, FAQ_URL
+from Anomos import INFO, CRITICAL, WARNING, FAQ_URL, default_logger
 from Anomos import crypto
 from Anomos.SingleSocket import SingleSocket
 from M2Crypto import SSL
@@ -35,11 +35,7 @@ except ImportError:
     from Anomos.selectpoll import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1
 
-def default_logger(x, y):
-    print x, y
-
 class RawServer(object):
-
     def __init__(self, doneflag, config, certificate, noisy=True,
             logfunc=default_logger, bindaddr='', tos=0):
         self.config = config

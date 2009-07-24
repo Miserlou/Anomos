@@ -17,7 +17,7 @@
 
 from Anomos.AnomosProtocol import AnomosRelayerProtocol
 from Anomos.CurrentRateMeasure import Measure
-from Anomos import INFO, CRITICAL, WARNING
+from Anomos import INFO, CRITICAL, WARNING, default_logger
 from threading import Thread
 
 class Relayer(AnomosRelayerProtocol):
@@ -27,7 +27,8 @@ class Relayer(AnomosRelayerProtocol):
         that the TC only needs to be sent once).
     """
     def __init__(self, stream_id, neighbor, outnid,
-                    data=None, orelay=None, max_rate_period=20.0):
+                    data=None, orelay=None, max_rate_period=20.0,
+                    logfunc=default_logger):
                     #storage, uprate, downrate, choker, key):
         AnomosRelayerProtocol.__init__(self)
         self.stream_id = stream_id
@@ -47,6 +48,7 @@ class Relayer(AnomosRelayerProtocol):
         self.sent = 0
         self.buffer = []
         self.complete = False
+        self.logfunc = logfunc
 
     def relay_message(self, msg):
         if self.complete:
@@ -57,14 +59,13 @@ class Relayer(AnomosRelayerProtocol):
             #TODO: buffer size control, message rejection after a certain point.
             self.buffer.append(msg)
 
-#### NOTE: Here be obsolete code, keep it until things are working again ####
     def connection_closed(self):
         self.neighbor.end_stream(self.stream_id)
         self.orelay.send_break()
         self.orelay.neighbor.end_stream(self.orelay.stream_id)
 
     def connection_completed(self):
-        #self.errorfunc(INFO, "Relay connection established")
+        self.logfunc(INFO, "Relay connection %d established" % self.stream_id)
         self.complete = True
         self.flush_buffer()
         self.orelay.complete = True

@@ -18,9 +18,10 @@ from Anomos.Connection import Connection
 from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.AnomosProtocol import AnomosNeighborProtocol
+from Anomos import default_logger
 
 class NeighborLink(Connection, AnomosNeighborProtocol):
-    def __init__(self, manager, socket, id):
+    def __init__(self, manager, socket, id, logfunc=default_logger):
         Connection.__init__(self, socket)
         AnomosNeighborProtocol.__init__(self)
         self.id = id
@@ -29,6 +30,7 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         self.complete = False
         self.streams = {0:self} # {StreamID : Anomos*Protocol implementing obj}
         self.next_stream_id = 1
+        self.logfunc = logfunc
 
         #Prepare to read messages
         self._reader = self._read_messages()
@@ -37,12 +39,15 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
     def start_endpoint_stream(self, torrent, aeskey, data=None):
         nxtid = self.next_stream_id
         self.streams[nxtid] = \
-                    EndPoint(self, nxtid, torrent, aeskey, data)
+                    EndPoint(self, nxtid, torrent, aeskey, data,
+                            logfunc=self.logfunc)
         self.next_stream_id += 1
         return self.streams[nxtid]
     def start_relay_stream(self, nid, data=None, orelay=None):
         nxtid = self.next_stream_id
-        self.streams[nxtid] = Relayer(nxtid, self, nid, data, orelay)
+        self.streams[nxtid] = \
+                    Relayer(nxtid, self, nid, data, orelay,
+                            logfunc=self.logfunc)
         self.next_stream_id += 1
         return self.streams[nxtid]
     def end_stream(self, id):

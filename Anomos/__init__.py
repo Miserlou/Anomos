@@ -92,6 +92,9 @@ WARNING = 1
 ERROR = 2
 CRITICAL = 3
 
+def default_logger(x, y):
+    print x, y
+
 class BTFailure(Exception):
     pass
 
