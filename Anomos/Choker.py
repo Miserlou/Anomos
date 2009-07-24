@@ -108,7 +108,7 @@ class Choker(object):
                 if not u.interested:
                     u.choke()
                 elif u.choked:
-                    if num_nonpref > 0 and c.connection.is_flushed():
+                    if num_nonpref > 0 and c.is_flushed():
                         u.unchoke(self.count)
                         num_nonpref -= 1
                         if num_nonpref == 0:

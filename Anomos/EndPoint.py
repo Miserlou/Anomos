@@ -14,26 +14,25 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 from Anomos.AnomosProtocol import AnomosEndPointProtocol
-from Anomos import BTFailure, default_logger
+from Anomos import BTFailure, ERROR, default_logger
 
 class EndPoint(AnomosEndPointProtocol):
     def __init__(self, stream_id, neighbor, torrent, aes, data=None,
             logfunc=default_logger):
         AnomosEndPointProtocol.__init__(self)
+        self.stream_id = stream_id
         self.neighbor = neighbor
         self.torrent = torrent
         self.e2e_key = aes
-        self.stream_id = stream_id
+        self.logfunc = logfunc
         self.complete = False
         self.closed = False
         if data is not None:
             self.send_tracking_code(data)
         else:
             self.send_confirm()
-        self.logfunc = logfunc
-        #TODO? Do we need choker here?
-        #self.choker = choker
 
+        self.choker = None
         self._partial_message = None
         self.next_upload = None
 
@@ -42,6 +41,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
         self.download = self.torrent.make_download(self)
+        self.choker = self.upload.choker
         self.choker.connection_made(self)
 
     def connection_closed(self):
