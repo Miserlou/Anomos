@@ -146,8 +146,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
         #msgmap => Lookup table for methods to use when responding to message types
         self.msgmap.update({RELAY: self.got_relay})
     ## Disable direct message reading. ##
-    def _read_header(self): pass
-    def _read_messages(self): pass
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):
@@ -169,11 +167,16 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def got_confirm(self):
         self.connection_completed()
         self.relay_message(CONFIRM)
+    #TODO: Analyze effective choking strategies for Relayers
+    def got_choke(self):
+        self.choke(self)
+        self.orelay.send_choke()
+    def got_unchoke(self, time):
+        self.unchoke(time)
+        self.orelay.send_unchoke()
     def close(self, e=None):
         self.neighbor.end_stream(self.stream_id)
     ### Methods which should not be called by this class ###
-    #?def got_choke(self): pass
-    #?def got_unchoke(self): pass
     @improper_use
     def _read_messages(self): pass
     @improper_use

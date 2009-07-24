@@ -94,14 +94,6 @@ class Relayer(AnomosRelayerProtocol):
             self.unchoke_time = time
             self.orelay.send_unchoke()
 
-    def got_choke(self):
-        self.choke(self)
-        self.orelay.send_choke()
-
-    def got_unchoke(self, time):
-        self.unchoke(time)
-        self.orelay.send_unchoke()
-
     #def sent_choke(self):
     #    assert self.choked
     #    del self.buffer[:]

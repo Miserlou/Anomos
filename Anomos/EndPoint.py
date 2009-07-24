@@ -38,7 +38,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
         self.download = self.torrent.make_download(self)
-        #self.choker.connection_made(c)
+        self.choker.connection_made(self)
 
     def connection_closed(self):
         # Called by Connecter, which checks that the connection is complete
