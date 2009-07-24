@@ -175,6 +175,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
     #?def got_choke(self): pass
     #?def got_unchoke(self): pass
     @improper_use
+    def _read_messages(self): pass
+    @improper_use
     def _read_header(self): pass
     @improper_use
     def write_header(self): pass
@@ -207,6 +209,10 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             ENCRYPTED: self.got_encrypted})
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
+    def got_confirm(self):
+        if not self.complete:
+            self.send_confirm()
+        self.connection_completed()
     def got_relay(self, message):
         self.got_message(message[1:])
     def got_encrypted(self, message):

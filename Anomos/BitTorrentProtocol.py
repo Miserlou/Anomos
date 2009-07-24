@@ -139,37 +139,37 @@ class BitTorrentProtocol(object):
             self.upload.got_not_interested()
     def got_have(self, message):
         i = toint(message[1:])
-        if i >= self.owner.numpieces:
+        if i >= self.torrent.numpieces:
             self.close("Piece index out of range")
             return
         self.download.got_have(i)
     def got_bitfield(self, message):
         try:
-            b = Bitfield(self.owner.numpieces, message[1:])
+            b = Bitfield(self.torrent.numpieces, message[1:])
         except ValueError:
             self.close("Bad Bitfield")
             return
         self.download.got_have_bitfield(b)
     def got_request(self, message):
         i = toint(message[1:5])
-        if i >= self.owner.numpieces:
+        if i >= self.torrent.numpieces:
             self.close("Piece index out of range")
             return
         self.upload.got_request(i, toint(message[5:9]), toint(message[9:]))
     def got_cancel(self, message):
         i = toint(message[1:5])
-        if i >= self.owner.numpieces:
+        if i >= self.torrent.numpieces:
             self.close("Piece index out of range")
             return
         self.upload.got_cancel(i, toint(message[5:9]), toint(message[9:]))
     def got_piece(self, message):
         i = toint(message[1:5])
-        if i >= self.owner.numpieces:
+        if i >= self.torrent.numpieces:
             self.close("Piece index out of range")
             return
         if self.download.got_piece(i, toint(message[5:9]), message[9:]):
-            for co in self.owner.complete_connections:
-                co.send_have(i)
+            for ep in self.torrent.active_streams:
+                ep.send_have(i)
     ## Send messages ##
     def send_interested(self):
         self.transfer_ctl_msg(INTERESTED)

@@ -21,4 +21,11 @@ class Torrent(object):
         self.make_download = downloader.make_download
         self.numpieces = numpieces
 
+        self.active_streams = []
         self.ever_got_incoming = False
+    def add_active_stream(self, endpoint):
+        if endpoint not in self.active_streams:
+            self.active_streams.append(endpoint)
+    def rm_active_stream(self, endpoint):
+        if endpoint in self.active_streams:
+            self.active_streams.remove(endpoint)

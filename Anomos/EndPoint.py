@@ -33,6 +33,7 @@ class EndPoint(AnomosEndPointProtocol):
 
     def connection_completed(self):
         self.complete = True
+        self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
         self.download = self.torrent.make_download(self)
         #self.choker.connection_made(c)
@@ -41,6 +42,7 @@ class EndPoint(AnomosEndPointProtocol):
         # Called by Connecter, which checks that the connection is complete
         # prior to call
         self.send_break()
+        self.torrent.rm_active_stream(self)
         self.choker.connection_lost(con)
         self.download.disconnected()
         self.upload = None

@@ -30,7 +30,6 @@ class Relayer(AnomosRelayerProtocol):
                     data=None, orelay=None, max_rate_period=20.0):
                     #storage, uprate, downrate, choker, key):
         AnomosRelayerProtocol.__init__(self)
-    #   self.rawserver = rawserver
         self.stream_id = stream_id
         self.neighbor = neighbor
         self.manager = neighbor.manager
@@ -41,7 +40,6 @@ class Relayer(AnomosRelayerProtocol):
             self.orelay = orelay
             if data is not None:
                 self.send_tracking_code(data)
-
         self.choked = True
         self.unchoke_time = None
         self.uprate = Measure(max_rate_period)
@@ -63,10 +61,7 @@ class Relayer(AnomosRelayerProtocol):
     def connection_closed(self):
         self.neighbor.end_stream(self.stream_id)
         self.orelay.send_break()
-        #if sock == self.incoming.connection:
-        #    self.outgoing.close()
-        #elif sock == self.outgoing.connection:
-        #    self.incoming.close()
+        self.orelay.neighbor.end_stream(self.orelay.stream_id)
 
     def connection_completed(self):
         #self.errorfunc(INFO, "Relay connection established")
@@ -90,21 +85,21 @@ class Relayer(AnomosRelayerProtocol):
     def choke(self):
         if not self.choked:
             self.choked = True
-            self.outgoing.send_choke()
+            self.orelay.send_choke()
 
     def unchoke(self, time):
         if self.choked:
             self.choked = False
             self.unchoke_time = time
-            self.outgoing.send_unchoke()
+            self.orelay.send_unchoke()
 
     def got_choke(self):
         self.choke(self)
-        self.incoming.send_choke()
+        self.orelay.send_choke()
 
     def got_unchoke(self, time):
         self.unchoke(time)
-        self.incoming.send_unchoke()
+        self.orelay.send_unchoke()
 
     #def sent_choke(self):
     #    assert self.choked
