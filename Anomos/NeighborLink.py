@@ -89,3 +89,33 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
             @param id: Stream id to fetch
             @type id: int in range 0 to 2**16'''
         return self.streams.get(id, self)
+
+    def send_partial(self, handler, bytes):
+        """ Provides partial sending of messages for RateLimiter """
+        #TODO: Comment this method!
+        if handler.closed:
+            return 0
+        if handler._partial_message is None:
+            s = handler.upload.get_upload_chunk()
+            if s is None:
+                return 0
+            index, begin, piece = s
+            handler._partial_message = handler.partial_msg_str(index, begin, piece)
+        if bytes < len(handler._partial_message):
+            self.socket.write(buffer(handler._partial_message, 0, bytes))
+            handler._partial_message = buffer(handler._partial_message, bytes)
+            return bytes
+        queue = [str(handler._partial_message)]
+        handler._partial_message = None
+        if handler.choke_sent != handler.upload.choked:
+            if handler.upload.choked:
+                self._outqueue.append(handler.partial_choke_str())
+                handler.upload.sent_choke()
+            else:
+                self._outqueue.append(handler.partial_unchoke_str())
+            handler.choke_sent = handler.upload.choked
+        queue.extend(self._outqueue)
+        self._outqueue = []
+        queue = ''.join(queue)
+        self.socket.write(queue)
+        return len(queue)

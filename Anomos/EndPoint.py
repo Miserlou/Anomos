@@ -25,6 +25,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.e2e_key = aes
         self.stream_id = stream_id
         self.complete = False
+        self.closed = False
         if data is not None:
             self.send_tracking_code(data)
         else:
@@ -32,6 +33,9 @@ class EndPoint(AnomosEndPointProtocol):
         self.logfunc = logfunc
         #TODO? Do we need choker here?
         #self.choker = choker
+
+        self._partial_message = None
+        self.next_upload = None
 
     def connection_completed(self):
         self.complete = True
@@ -44,8 +48,18 @@ class EndPoint(AnomosEndPointProtocol):
         # Called by Connecter, which checks that the connection is complete
         # prior to call
         self.send_break()
+        self.closed = True
         self.torrent.rm_active_stream(self)
         self.choker.connection_lost(con)
         self.download.disconnected()
         self.upload = None
         self.neighbor.end_stream(self.stream_id)
+
+    def send_partial(self, bytes):
+        return self.neighbor.send_partial(self, bytes)
+
+    def is_flushed(self):
+        return self.neighbor.socket.is_flushed()
+
+    def got_exception(self, e):
+        self.logfunc(ERROR, e)

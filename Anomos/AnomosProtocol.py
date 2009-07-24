@@ -250,11 +250,11 @@ class AnomosEndPointProtocol(AnomosProtocol):
     ## these are used by send_partial, which we inherit from BitTorrentProtocol
     def partial_msg_str(self, index, begin, piece):
         msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
-        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(msg))
+        return self.format_message(RELAY, ENCRYPTED + self.e2e_key.encrypt(msg))
     def partial_choke_str(self):
-        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(CHOKE))
+        return self.format_message(RELAY, ENCRYPTED + self.e2e_key.encrypt(CHOKE))
     def partial_unchoke_str(self):
-        return self.format_message(ENCRYPTED, self.e2e_key.encrypt(UNCHOKE))
+        return self.format_message(RELAY, ENCRYPTED + self.e2e_key.encrypt(UNCHOKE))
     def close(self, e=None):
         self.neighbor.end_stream(self.stream_id)
     ### Methods which should not be called by this class ###

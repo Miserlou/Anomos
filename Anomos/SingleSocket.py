@@ -64,7 +64,6 @@ class SingleSocket(object):
         self.socket = None
         self.buffer = []
         self.handler = None
-        self.buffer = None
         self.connected = False
 
     def close(self):

@@ -63,11 +63,12 @@ class RateLimiter(object):
             except KeyboardInterrupt:
                 raise
             except Exception, e:
-                cur.owner.context.got_exception(e)
+                #TODO: got_exception...
+                cur.got_exception(e)
                 bytes = 0
 
             self.offset_amount += bytes
-            if bytes == 0 or not cur.connection.is_flushed():
+            if bytes == 0 or not cur.is_flushed():
                 if self.last is cur:
                     self.last = None
                     cur.next_upload = None
