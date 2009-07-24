@@ -17,7 +17,7 @@ from Anomos.AnomosProtocol import AnomosEndPointProtocol
 from Anomos import BTFailure, default_logger
 
 class EndPoint(AnomosEndPointProtocol):
-    def __init__(self, neighbor, stream_id, torrent, aes, data=None,
+    def __init__(self, stream_id, neighbor, torrent, aes, data=None,
             logfunc=default_logger):
         AnomosEndPointProtocol.__init__(self)
         self.neighbor = neighbor

@@ -39,7 +39,7 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
     def start_endpoint_stream(self, torrent, aeskey, data=None):
         nxtid = self.next_stream_id
         self.streams[nxtid] = \
-                    EndPoint(self, nxtid, torrent, aeskey, data,
+                    EndPoint(nxtid, self, torrent, aeskey, data,
                             logfunc=self.logfunc)
         self.next_stream_id += 1
         return self.streams[nxtid]
