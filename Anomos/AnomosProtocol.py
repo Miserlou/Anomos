@@ -79,6 +79,12 @@ class AnomosProtocol(BitTorrentProtocol):
                type + message
     ## partial messages are only used by EndPoints ##
     @improper_use
+    def got_relay(self): pass
+    @improper_use
+    def got_tcode(self): pass
+    @improper_use
+    def got_encrypted(self): pass
+    @improper_use
     def transfer_ctl_msg(self, *args): pass
     @improper_use
     def partial_msg_str(self, index, begin, piece): pass
