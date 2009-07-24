@@ -29,10 +29,10 @@ class ImproperUseError(Exception): pass
 # A decorator for methods in subclasses of AnomosProtocol
 # that should not be called by that subclass.
 def improper_use(fn):
-    def ret_fn(*args):
+    def ret_fn(self):
         raise ImproperUseError( \
-                "Action %s improper for class %s."% \
-                (fn.__name__,fn.im_class.__name__))
+                "Action %s improper for %s."% \
+                (fn.__name__,type(self)))
     return ret_fn
 
 
@@ -63,9 +63,13 @@ class AnomosProtocol(BitTorrentProtocol):
                tobinary(len(type+message)) + \
                type + message
     ## partial messages are only used by EndPoints ##
+    @improper_use
     def transfer_ctl_msg(self, *args): pass
+    @improper_use
     def partial_msg_str(self, index, begin, piece): pass
+    @improper_use
     def partial_choke_str(self): pass
+    @improper_use
     def partial_unchoke_str(self): pass
 
 class AnomosNeighborProtocol(AnomosProtocol):
@@ -190,6 +194,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def got_piece(self, message): pass
     @improper_use
     def got_tcode(self, message): pass
+    @improper_use
+    def got_encrypted(self, message): pass
 
 
 class AnomosEndPointProtocol(AnomosProtocol):
