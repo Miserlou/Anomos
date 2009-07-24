@@ -34,26 +34,31 @@ class Relayer(AnomosRelayerProtocol):
         self.stream_id = stream_id
         self.neighbor = neighbor
         self.manager = neighbor.manager
+        self.rate_measure = Measure(max_rate_period)
         # Make the other relayer which we'll send data through
         if orelay is None:
             self.orelay = self.manager.make_relay(outnid, data, self)
+            self.orelay.set_rate_measurer(self.rate_measure)
         else:
             self.orelay = orelay
             if data is not None:
                 self.send_tracking_code(data)
         self.choked = True
         self.unchoke_time = None
-        self.uprate = Measure(max_rate_period)
-        self.downrate = Measure(max_rate_period)
         self.sent = 0
         self.buffer = []
         self.complete = False
         self.logfunc = logfunc
 
+    def set_rate_measurer(self, measurer):
+        # Both halves of the relayer should share
+        # the same rate measurer.
+        self.rate_measure = measurer
+
     def relay_message(self, msg):
         if self.complete:
             self.orelay.send_relay_message(msg)
-            self.uprate.update_rate(len(msg))
+            self.rate_measure.update_rate(len(msg))
             self.sent += len(msg)
         else: # Buffer messages until connection is complete
             #TODO: buffer size control, message rejection after a certain point.
