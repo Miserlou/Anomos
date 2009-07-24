@@ -26,10 +26,9 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         AnomosNeighborProtocol.__init__(self)
         self.id = id
         self.manager = manager
-        #self.ssl_session = None
         self.complete = False
-        self.streams = {0:self} # {StreamID : Anomos*Protocol implementing obj}
-        self.next_stream_id = 1
+        self.streams = {} # {StreamID : Anomos*Protocol implementing obj}
+        self.next_stream_id = 0
         self.logfunc = logfunc
 
         #Prepare to read messages
