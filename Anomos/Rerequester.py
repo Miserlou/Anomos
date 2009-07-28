@@ -27,35 +27,36 @@ from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
-from M2Crypto import httpslib, SSL, X509
+from M2Crypto import httpslib, SSL, X509, version_info
 import urllib
 
 STARTED=0
 COMPLETED=1
 STOPPED=2
 
-class M2CryptoProxyHTTPSHack(httpslib.ProxyHTTPSConnection):
-    '''M2Crypto currently fails to cast the port it gets from the url
-       string to an integer -- this class hacks around that.'''
-    def putrequest(self, method, url, skip_host=0, skip_accept_encoding=0):
-        #putrequest is called before connect, so can interpret url and get
-        #real host/port to be used to make CONNECT request to proxy
-        proto, rest = urllib.splittype(url)
-        if proto is None:
-            raise ValueError, "unknown URL type: %s" % url
-        #get host
-        host, rest = urllib.splithost(rest)
-        #try to get port
-        host, port = urllib.splitport(host)
-        #if port is not defined try to get from proto
-        if port is None:
-            try:
-                port = self._ports[proto]
-            except KeyError:
-                raise ValueError, "unknown protocol for: %s" % url
-        self._real_host = host
-        self._real_port = int(port) #This whole class exists for this line :/
-        httpslib.HTTPSConnection.putrequest(self, method, url, skip_host, skip_accept_encoding)
+if M2Crypto.version_info < (0, 20, 0):
+    class M2CryptoProxyHTTPSHack(httpslib.ProxyHTTPSConnection):
+        '''M2Crypto currently fails to cast the port it gets from the url
+           string to an integer -- this class hacks around that.'''
+        def putrequest(self, method, url, skip_host=0, skip_accept_encoding=0):
+            #putrequest is called before connect, so can interpret url and get
+            #real host/port to be used to make CONNECT request to proxy
+            proto, rest = urllib.splittype(url)
+            if proto is None:
+                raise ValueError, "unknown URL type: %s" % url
+            #get host
+            host, rest = urllib.splithost(rest)
+            #try to get port
+            host, port = urllib.splitport(host)
+            #if port is not defined try to get from proto
+            if port is None:
+                try:
+                    port = self._ports[proto]
+                except KeyError:
+                    raise ValueError, "unknown protocol for: %s" % url
+            self._real_host = host
+            self._real_port = int(port) #This whole class exists for this line :/
+            httpslib.HTTPSConnection.putrequest(self, method, url, skip_host, skip_accept_encoding)
 
 
 class Rerequester(object):
