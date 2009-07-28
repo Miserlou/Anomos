@@ -84,7 +84,7 @@ class Choker(object):
             u = c.upload
             if not u.choked and u.interested:
                 if u.unchoke_time > new_limit or (
-                        u.buffer and c.connection.is_flushed()):
+                        u.buffer and c.is_flushed()):
                     preferred.append((-u.unchoke_time, -u.get_rate(), i))
                 else:
                     preferred.append((1, -u.get_rate(), i))
