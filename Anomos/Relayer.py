@@ -88,7 +88,7 @@ class Relayer(AnomosRelayerProtocol):
         self.pre_complete_buffer = []
 
     def get_rate(self):
-        return self.uprate.get_rate()
+        return self.rate_measure.get_rate()
 
     def get_sent(self):
         return self.sent

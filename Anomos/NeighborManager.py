@@ -193,6 +193,7 @@ class NeighborManager:
 
     ## Relay Management ##
     def make_relay(self, nid, data, orelay):
+        self.relayers.append(orelay)
         return self.neighbors[nid].start_relay_stream(nid, data, orelay)
 
     def get_relay_size(self):
@@ -209,4 +210,3 @@ class NeighborManager:
         for r in self.relayers:
             sent  += r.get_sent()
         return sent
-

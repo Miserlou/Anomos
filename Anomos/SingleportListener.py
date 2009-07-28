@@ -28,7 +28,6 @@ class SingleportListener(object):
         self.config = config
         self.port = 0
         self.ports = {}
-        self.relayers = []
         self.manager = manager
         self.download_id = None
 
@@ -65,24 +64,6 @@ class SingleportListener(object):
         for serversocket, _ in self.ports.itervalues():
             self.rawserver.stop_listening(serversocket)
             serversocket.close()
-
-    def remove_relayer(self, relayer):
-        self.relayers.remove(relayer)
-
-    def get_relay_size(self):
-        return len(self.relayers)
-
-    def get_relay_rate(self):
-        rate = 0
-        for r in self.relayers:
-            rate  += r.get_rate()
-        return rate
-
-    def get_relay_sent(self):
-        sent = 0
-        for r in self.relayers:
-            sent  += r.get_sent()
-        return sent
 
     def external_connection_made(self, socket):
         """

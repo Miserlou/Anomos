@@ -177,15 +177,15 @@ class Multitorrent(object):
         return r / metainfo.total_bytes
 
         ##Relayers don't exist at the torrent level, so we need these methods
-        ## to access their stats through the SinglePortListener.
+        ## to access their stats through the NeighborManager.
     def get_relay_rate(self):
-        return self.singleport_listener.get_relay_rate()
+        return self.neighbors.get_relay_rate()
 
     def get_relay_size(self):
-        return self.singleport_listener.get_relay_size()
+        return self.neighbors.get_relay_size()
 
     def get_relay_sent(self):
-        return self.singleport_listener.get_relay_sent()
+        return self.neighbors.get_relay_sent()
 
 
 class _SingleTorrent(object):
