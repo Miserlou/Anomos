@@ -46,7 +46,7 @@ class Relayer(AnomosRelayerProtocol):
         self.choked = True
         self.unchoke_time = None
         self.sent = 0
-        self.buffer = []
+        self.pre_complete_buffer = []
         self.complete = False
         self.logfunc = logfunc
 
@@ -62,25 +62,30 @@ class Relayer(AnomosRelayerProtocol):
             self.sent += len(msg)
         else: # Buffer messages until connection is complete
             #TODO: buffer size control, message rejection after a certain point.
-            self.buffer.append(msg)
-
-    def connection_closed(self):
-        self.neighbor.end_stream(self.stream_id)
-        self.orelay.send_break()
-        self.orelay.neighbor.end_stream(self.orelay.stream_id)
+            self.pre_complete_buffer.append(msg)
 
     def connection_completed(self):
-        self.logfunc(INFO, "Relay connection %d established" % self.stream_id)
+        self.logfunc(INFO, "Relay connection [%02x:%d] established" %
+                            (int(ord(self.neighbor.id)),self.stream_id))
         self.complete = True
         self.flush_buffer()
         self.orelay.complete = True
         self.orelay.flush_buffer()
 
+    def connection_closed(self):
+        self.orelay.send_break()
+        self.pre_complete_buffer = None
+        self.neighbor.end_stream(self.stream_id)
+        self.orelay.neighbor.end_stream(self.orelay.stream_id)
+
+    def close(self):
+        self.connection_closed()
+
     def flush_buffer(self):
         #TODO: Check that it's okay to try and send all these at once.
-        for msg in self.buffer:
+        for msg in self.pre_complete_buffer:
             self.relay_message(msg)
-        self.buffer = []
+        self.pre_complete_buffer = []
 
     def get_rate(self):
         return self.uprate.get_rate()
@@ -98,11 +103,3 @@ class Relayer(AnomosRelayerProtocol):
             self.choked = False
             self.unchoke_time = time
             self.orelay.send_unchoke()
-
-    #def sent_choke(self):
-    #    assert self.choked
-    #    del self.buffer[:]
-
-    #TODO: Doesn't seem to be used, do we need it?
-    #def has_queries(self):
-    #    return len(self.buffer) > 0

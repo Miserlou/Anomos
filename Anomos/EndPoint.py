@@ -55,6 +55,9 @@ class EndPoint(AnomosEndPointProtocol):
         self.upload = None
         self.neighbor.end_stream(self.stream_id)
 
+    def close(self):
+        self.connection_closed()
+
     def send_partial(self, bytes):
         return self.neighbor.send_partial(self, bytes)
 
@@ -63,3 +66,6 @@ class EndPoint(AnomosEndPointProtocol):
 
     def got_exception(self, e):
         self.logfunc(ERROR, e)
+
+    def uniq_id(self):
+        return "%02x%04x" % (ord(self.neighbor.id), self.stream_id)

@@ -31,6 +31,7 @@ class NeighborManager:
         self.sessionid = sessionid
         self.logfunc = logfunc
         self.neighbors = {}
+        self.relayers = []
         self.incomplete = {}
         self.torrents = {}
 
@@ -141,6 +142,7 @@ class NeighborManager:
         '''Called from Rerequester to initialize new circuits we've
         just gotten TCs for from the Tracker'''
         if self.count_streams() >= self.config['max_initiate']:
+            self.logfunc(WARNING, "Not starting circuit -- Stream count exceeds maximum")
             return
         tcreader = TCReader(self.certificate)
         tcdata = tcreader.parseTC(tc)
@@ -149,17 +151,17 @@ class NeighborManager:
         torrent = self.get_torrent(infohash)
         nextTC = tcdata.nextLayer
         if sid != self.sessionid:
-            self.logfunc(ERROR, "SessionID mismatch!")
+            self.logfunc(ERROR, "Not starting circuit -- SessionID mismatch!")
             return
         if torrent is None:
-            self.logfunc(ERROR, "Unknown torrent")
+            self.logfunc(ERROR, "Not starting circuit -- Unknown torrent")
             return
         if nid in self.incomplete:
-            self.logfunc(INFO, "Scheduling TC for later \\x%02x" % ord(nid))
+            self.logfunc(INFO, "Postponing circuit until neighbor \\x%02x completes " % ord(nid))
             self.schedule_tc(nid, infohash, aeskey, nextTC)
             return
         if nid not in self.neighbors:
-            self.logfunc(ERROR, "NID \\x%02x is not assigned" % ord(nid))
+            self.logfunc(ERROR, "Not starting circuit -- NID \\x%02x is not assigned" % ord(nid))
             return
         self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
 
@@ -173,9 +175,7 @@ class NeighborManager:
         self.waiting_tcs.setdefault(nid,[])
         self.waiting_tcs[nid].append(sendtc)
 
-    def make_relay(self, nid, data, orelay):
-        return self.neighbors[nid].start_relay_stream(nid, data, orelay)
-
+    ## Torrent Management ##
     def add_torrent(self, infohash, torrent):
         if infohash in self.torrents:
             raise BTFailure("Can't start two separate instances of the same "
@@ -190,3 +190,23 @@ class NeighborManager:
 
     def count_streams(self):
         return sum(len(x.streams)-1 for x in self.neighbors.itervalues())
+
+    ## Relay Management ##
+    def make_relay(self, nid, data, orelay):
+        return self.neighbors[nid].start_relay_stream(nid, data, orelay)
+
+    def get_relay_size(self):
+        return len(self.relayers)
+
+    def get_relay_rate(self):
+        rate = 0
+        for r in self.relayers:
+            rate  += r.get_rate()
+        return rate
+
+    def get_relay_sent(self):
+        sent = 0
+        for r in self.relayers:
+            sent  += r.get_sent()
+        return sent
+
