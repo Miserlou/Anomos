@@ -27,14 +27,15 @@ from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
-from M2Crypto import httpslib, SSL, X509, version_info
+from M2Crypto import httpslib, SSL, X509
+from M2Crypto import version_info as m2version
 import urllib
 
 STARTED=0
 COMPLETED=1
 STOPPED=2
 
-if M2Crypto.version_info < (0, 20, 0):
+if m2version < (0, 20, 0):
     class M2CryptoProxyHTTPSHack(httpslib.ProxyHTTPSConnection):
         '''M2Crypto currently fails to cast the port it gets from the url
            string to an integer -- this class hacks around that.'''
