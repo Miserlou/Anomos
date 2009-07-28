@@ -13,10 +13,6 @@
 
 # Written by Bram Cohen and Uoti Urpala
 
-from __future__ import division
-# required for python 2.2
-from __future__ import generators
-
 import os
 import sys
 import threading
@@ -333,11 +329,9 @@ class _SingleTorrent(object):
             def kick():
                 connection.close()
             schedfunc(kick, 0)
-        def banpeer(ip):
-            self.neighbors.ban(ip)
         downloader = Downloader(self.config, self._storagewrapper, picker,
-            len(metainfo.hashes), downmeasure, self._ratemeasure.data_came_in,
-                                kickpeer, banpeer)
+                                len(metainfo.hashes), downmeasure,
+                                self._ratemeasure.data_came_in, kickpeer)
         def make_upload(connection):
             return Upload(connection, self._ratelimiter, upmeasure,
                         upmeasure_seedtime, choker, self._storagewrapper,

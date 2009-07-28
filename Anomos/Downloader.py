@@ -19,44 +19,43 @@ from Anomos.platform import bttime
 from Anomos.CurrentRateMeasure import Measure
 from Anomos.bitfield import Bitfield
 
-#class PerIPStats(object):
-#
-#    def __init__(self):
-#        self.numgood = 0
-#        self.bad = {}
-#        self.numstreams = 0
-#        self.lastdownload = None
-#        self.peerid = None
+class PerStreamStats(object):
+
+    def __init__(self):
+        self.numgood = 0
+        self.bad = {}
+        self.numstreams = 0
+        self.lastdownload = None
 
 
 class BadDataGuard(object):
 
     def __init__(self, download):
         self.download = download
-        #self.ip = download.stream.ip
+        self.uid = download.stream.uniq_id()
         self.downloader = download.downloader
-        #self.stats = self.downloader.perip[self.ip]
+        self.stats = self.downloader.sstats[self.uid]
         self.lastindex = None
 
     def bad(self, index, bump = False):
         self.stats.bad.setdefault(index, 0)
         self.stats.bad[index] += 1
-        #if self.ip not in self.downloader.bad_peers:
-        #    self.downloader.bad_peers[self.ip] = (False, self.stats)
+        if self.uid not in self.downloader.bad_peers:
+            self.downloader.bad_peers[self.uid] = (False, self.stats)
         if self.download is not None:
             self.downloader.kick(self.download)
             self.download = None
         elif len(self.stats.bad) > 1 and self.stats.numstreams == 1 and \
-             self.stats.lastdownload is not None:
+            self.stats.lastdownload is not None:
             # kick new stream from same IP if previous one sent bad data,
             # mainly to give the algorithm time to find other bad pieces
             # in case the peer is sending a lot of bad data
             self.downloader.kick(self.stats.lastdownload)
         #if len(self.stats.bad) >= 3 and len(self.stats.bad) > \
-        #   self.stats.numgood // 30:
-        #    self.downloader.ban(self.ip)
-        #elif bump:
-        #    self.downloader.picker.bump(index)
+        #    self.stats.numgood // 30:
+        #    self.downloader.ban(self.uid)
+        if bump:
+            self.downloader.picker.bump(index)
 
     def good(self, index):
         # lastindex is a hack to only increase numgood for by one for each good
@@ -311,7 +310,7 @@ class SingleDownload(object):
 class Downloader(object):
 
     def __init__(self, config, storage, picker, numpieces, downmeasure,
-                 measurefunc, kickfunc, banfunc):
+                 measurefunc, kickfunc):
         self.config = config
         self.storage = storage
         self.picker = picker
@@ -321,45 +320,36 @@ class Downloader(object):
         self.snub_time = config['snub_time']
         self.measurefunc = measurefunc
         self.kickfunc = kickfunc
-        self.banfunc = banfunc
         self.downloads = []
-        #self.perip = {}
+        self.sstats = {}
         self.bad_peers = {}
         self.discarded_bytes = 0
 
     def make_download(self, stream):
-        #ip = stream.ip
-        #perip = self.perip.get(ip)
-        #if perip is None:
-        #    perip = PerIPStats()
-        #    self.perip[ip] = perip
-        #perip.numstreams += 1
+        uid = stream.uniq_id()
+        sstats = self.sstats.get(uid)
+        if sstats is None:
+            sstats = PerStreamStats()
+            self.sstats[uid] = sstats
+        sstats.numstreams += 1
         d = SingleDownload(self, stream)
-        #perip.lastdownload = d
-        #perip.peerid = stream.id
+        sstats.lastdownload = d
         self.downloads.append(d)
         return d
 
     def lost_peer(self, download):
         self.downloads.remove(download)
-        #ip = download.stream.ip
-        #self.perip[ip].numstreams -= 1
-        #if self.perip[ip].lastdownload == download:
-            #self.perip[ip].lastdownload = None
+        uid = download.stream.uniq_id()
+        self.sstats[uid].numstreams -= 1
+        if self.sstats[uid].lastdownload == download:
+            self.sstats[uid].lastdownload = None
 
     def kick(self, download):
         if not self.config['retaliate_to_garbled_data']:
             return
-        #ip = download.stream.ip
-        #peerid = download.stream.id
+        uid = download.stream.uniq_id()
         # kickfunc will schedule stream.close() to be executed later; we
         # might now be inside RawServer event loop with events from that
         # stream already queued, and trying to handle them after doing
         # close() now could cause problems.
         self.kickfunc(download.stream)
-
-    #def ban(self, ip):
-    #    if not self.config['retaliate_to_garbled_data']:
-    #        return
-    #    self.banfunc(ip)
-    #    self.bad_peers[ip] = (True, self.perip[ip])
