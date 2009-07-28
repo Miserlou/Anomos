@@ -100,3 +100,18 @@ class BTFailure(Exception):
 
 class BTShutdown(BTFailure):
     pass
+
+def trace_on_call(fn):
+    '''Starts PDB when the decorated method is called'''
+    import pdb
+    def ret_fn(self, *args, **kwargs):
+        pdb.set_trace()
+        return fn(self, *args, **kwargs)
+    return ret_fn
+
+def log_on_call(fn):
+    '''Logs a message when the decorated method is called'''
+    def ret_fn(self, *args, **kwargs):
+        self.logfunc(INFO, "Calling %s" % fn.__name__)
+        return fn(self, *args, **kwargs)
+    return ret_fn

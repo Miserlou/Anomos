@@ -17,6 +17,7 @@
 
 from binascii import b2a_hex
 from Anomos.bitfield import Bitfield
+from Anomos import log_on_call, trace_on_call
 
 def toint(s):
     return int(b2a_hex(s), 16)

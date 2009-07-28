@@ -22,6 +22,7 @@ from Anomos.BitTorrentProtocol \
 
 from Anomos.TCReader import TCReader
 from Anomos.crypto import AESKey
+from Anomos import log_on_call, trace_on_call
 
 TCODE = chr(0x9)
 CONFIRM = chr(0xA)
