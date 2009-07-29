@@ -103,3 +103,6 @@ class Relayer(AnomosRelayerProtocol):
             self.choked = False
             self.unchoke_time = time
             self.orelay.send_unchoke()
+
+    def uniq_id(self):
+        return "%02x%04x" % (ord(self.neighbor.id), self.stream_id)

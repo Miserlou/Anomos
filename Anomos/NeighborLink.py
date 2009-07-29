@@ -18,7 +18,7 @@ from Anomos.Connection import Connection
 from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.AnomosProtocol import AnomosNeighborProtocol
-from Anomos import default_logger
+from Anomos import default_logger, trace_on_call
 
 class NeighborLink(Connection, AnomosNeighborProtocol):
     ''' NeighborLink handles the socket between two neighbors and keeps
@@ -119,3 +119,6 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         queue = ''.join(queue)
         self.socket.write(queue)
         return len(queue)
+
+    def uniq_id(self):
+        return "%02x:*" % (ord(self.id))
