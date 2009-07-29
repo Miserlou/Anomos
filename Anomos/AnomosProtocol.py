@@ -102,17 +102,16 @@ class AnomosNeighborProtocol(AnomosProtocol):
         ''' Read messages off the line and relay or process them
             depending on connection type '''
         while True:
-            yield 2
+            yield 2 # Stream ID
             stream = toint(self._message)
             handler = self.get_stream_handler(stream)
-            yield 4   # get the message length in self._message
+            yield 4   # Message Length
             l = toint(self._message)
             #TODO: Neighbors need some access to config.
             #if l > self.config['max_message_length']:
             #    return
-            if l > 0:
-                yield l # get the message body
-                handler.got_message(self._message)
+            yield l # Payload
+            handler.got_message(self._message)
     def got_tcode(self, message):
         tcreader = TCReader(self.manager.certificate)
         tcdata = tcreader.parseTC(message[1:])
