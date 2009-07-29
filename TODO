@@ -1,7 +1,11 @@
 TODO:
     1) **Finish Protocol Specification!**: Path Generation, Hybrid Encryption
-    2) SteamIDs: Connection object needs a 2-byte SteamID field and needs to put this into the message length.  
-    3) Neighbor/NeighborManager expansion. Stream tracking and association.
+    2) Tracker side TCode generation is currently making a lot of duplicates
+       Eliminate duplicate TCode generation and randomize paths a bit more.
+       (particularly important for small networks)
+    2.5) Need a better graph search algorithm.
+    3) Choking algorithm for relay nodes
+    4) Solid round of bugtesting
 
     Also:
         Have some seeds on something we share! Dedicated seedbox!
