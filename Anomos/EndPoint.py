@@ -47,7 +47,6 @@ class EndPoint(AnomosEndPointProtocol):
     def connection_closed(self):
         # Called by Connecter, which checks that the connection is complete
         # prior to call
-        self.send_break()
         self.closed = True
         self.torrent.rm_active_stream(self)
         self.choker.connection_lost(con)
