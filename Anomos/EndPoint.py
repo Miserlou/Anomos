@@ -49,7 +49,7 @@ class EndPoint(AnomosEndPointProtocol):
         # prior to call
         self.closed = True
         self.torrent.rm_active_stream(self)
-        self.choker.connection_lost(con)
+        self.choker.connection_lost(self.con)
         self.download.disconnected()
         self.upload = None
         self.neighbor.end_stream(self.stream_id)
