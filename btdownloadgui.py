@@ -2354,10 +2354,10 @@ class DownloadInfoFrame(object):
         self.controlbox = gtk.HBox(homogeneous=False)
 
         self.controlbox.pack_start(self.ofb, expand=False, fill=False)
-        self.controlbox.pack_start(self.ssb, expand=False, fill=False)
+        self.controlbox.pack_start(self.ssb, expand=False, fill=False, padding=5)
         self.controlbox.pack_end(get_logo(32), expand=False, fill=False,
-                                   padding=SPACING)
-        self.controlbox.pack_end(self.sb, expand=False, fill=False)
+                                   padding=5)
+        self.controlbox.pack_end(self.sb, expand=False, fill=False, padding=5)
         self.controlbox.pack_end(self.db, expand=False, fill=False)
 
         self.box2.pack_start(self.controlbox, expand=False, fill=False, padding=0)
