@@ -43,7 +43,7 @@ except:
        'Windows port of Python. It is however available for the Cygwin ' \
        'port of Python, running on all Win32 systems (www.cygwin.com).'
     print
-    print 'You may still use "btdownloadheadless.py" to download.'
+    print 'You may still use "anondownloadheadless.py" to download.'
     sys.exit(1)
 
 exceptions = []
@@ -267,11 +267,11 @@ class CursesDisplayer(object):
 
 
 def LaunchManyWrapper(scrwin, config):
-    LaunchMany(config, CursesDisplayer(scrwin), 'btlaunchmanycurses')
+    LaunchMany(config, CursesDisplayer(scrwin), 'anonlaunchmanycurses')
 
 
 if __name__ == '__main__':
-    uiname = 'btlaunchmanycurses'
+    uiname = 'anonlaunchmanycurses'
     defaults = get_defaults(uiname)
     try:
         if len(sys.argv) < 2:

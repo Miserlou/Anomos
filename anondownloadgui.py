@@ -49,7 +49,7 @@ from Anomos import Desktop
 from Anomos import ClientIdentifier
 from Anomos.GUI import * 
 
-defaults = get_defaults('btdownloadgui')
+defaults = get_defaults('anondownloadgui')
 defaults.extend((('donated', '', ''),
                  ))
 
@@ -544,7 +544,7 @@ class LogWindow(object):
         self.text.scroll_mark_onscreen(mark)
 
     def save_log_file_selection(self, *args):
-        name = 'bittorrent.log'
+        name = 'anomos.log'
         path = smart_dir(self.config['save_in'])
         fullname = os.path.join(path, name)
         self.main.open_window('savefile',
@@ -2532,7 +2532,7 @@ class DownloadInfoFrame(object):
         elif window_name == 'about'   :
             self.child_windows[window_name] = AboutWindow(self, lambda w: self.donate())
         elif window_name == 'help'    :
-            self.child_windows[window_name] = HelpWindow(self, makeHelp('btdownloadgui', defaults))
+            self.child_windows[window_name] = HelpWindow(self, makeHelp('anondownloadgui', defaults))
         elif window_name == 'settings':
             self.child_windows[window_name] = SettingsWindow(self, self.config, self.set_config, self.torrentqueue)
         elif window_name == 'version' :
@@ -3029,7 +3029,7 @@ if __name__ == '__main__':
 
     try:
         config, args = configfile.parse_configuration_and_args(defaults,
-                                        'btdownloadgui', sys.argv[1:], 0, None)
+                                        'anondownloadgui', sys.argv[1:], 0, None)
     except BTFailure, e:
         print str(e)
         sys.exit(1)

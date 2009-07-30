@@ -254,7 +254,7 @@ class DL(Feedback):
 
     def reread_config(self):
         try:
-            newvalues = configfile.get_config(self.config, 'btdownloadcurses')
+            newvalues = configfile.get_config(self.config, 'anondownloadcurses')
         except Exception, e:
             self.d.error('Error reading config: ' + str(e))
             return
@@ -292,7 +292,7 @@ class DL(Feedback):
 
 
 if __name__ == '__main__':
-    uiname = 'btdownloadheadless'
+    uiname = 'anondownloadheadless'
     defaults = get_defaults(uiname)
 
     if len(sys.argv) <= 1:

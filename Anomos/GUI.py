@@ -76,7 +76,7 @@ for n in 'broken finished info pause paused play queued running remove running-u
 factory.add_default()
 
 def get_logo(size=32):
-    fn = os.path.join(image_root, 'logo', 'bittorrent_%d.png'%size)
+    fn = os.path.join(image_root, 'logo', 'anomos_%d.png'%size)
     logo = gtk.Image()
     logo.set_from_file(fn)
     return logo
@@ -160,7 +160,7 @@ class IconButton(gtk.Button):
 class Window(gtk.Window):
     def __init__(self, *args):
         apply(gtk.Window.__init__, (self,)+args)
-        self.set_icon_from_file(os.path.join(image_root,'bittorrent.ico'))
+        self.set_icon_from_file(os.path.join(image_root,'anomos.ico'))
 
 
 class HelpWindow(Window):

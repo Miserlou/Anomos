@@ -49,7 +49,7 @@ except:
        'Windows port of Python. It is however available for the Cygwin ' \
        'port of Python, running on all Win32 systems (www.cygwin.com).'
     print
-    print 'You may still use "btdownloadheadless.py" to download.'
+    print 'You may still use "anondownloadheadless.py" to download.'
     sys.exit(1)
 
 def fmttime(n):
@@ -354,7 +354,7 @@ class DL(Feedback):
 
     def reread_config(self):
         try:
-            newvalues = configfile.get_config(self.config, 'btdownloadcurses')
+            newvalues = configfile.get_config(self.config, 'anondownloadcurses')
         except Exception, e:
             self.d.error('Error reading config: ' + str(e))
             return
@@ -388,7 +388,7 @@ class DL(Feedback):
 
 
 if __name__ == '__main__':
-    uiname = 'btdownloadcurses'
+    uiname = 'anondownloadcurses'
     defaults = get_defaults(uiname)
 
     if len(sys.argv) <= 1:
