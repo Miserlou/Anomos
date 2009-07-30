@@ -17,6 +17,7 @@
 from Anomos.Connection import Connection
 from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
+from Anomos.PartialMessageQueue import PartialMessageQueue
 from Anomos.AnomosProtocol import AnomosNeighborProtocol
 from Anomos import default_logger, trace_on_call
 
@@ -31,6 +32,7 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         self.manager = manager
         self.streams = {} # {StreamID : EndPoint or Relayer object}
         self.next_stream_id = 0
+        self.pmq = PartialMessageQueue()
         self.logfunc = logfunc
 
         #Prepare to read messages
@@ -89,59 +91,36 @@ class NeighborLink(Connection, AnomosNeighborProtocol):
         return self.streams.get(id, self)
 
     def connection_flushed(self, socket):
-        '''Inform all streams so they can requeue themselves if they need to'''
+        ''' Inform all streams that the connection is
+            flushed so they may requeue themselves if 
+            they need to'''
         for stream in self.streams.itervalues():
             stream.connection_flushed()
 
-    def queue_piece(self, streamid, message):
-        self._outqueue.append((streamid, message))
-
+    #TODO: Unify send_message and queue piece by making
+    #   send_message queue anything longer than the maximum
+    #   single message length.
     def send_message(self, streamid, message):
-        ''' Prepends message with its length as a 32 bit integer,
-            and queues or immediately sends the message '''
-        if len(self._outqueue) > 0:
-            # Last message has not finished sending yet
-            self._outqueue.append((streamid, message))
+        if len(self.pmq) > 0:
+            # There are messages in the queue.
+            self.pmq.queue_message(streamid, message)
         else:
             self.socket.write(message)
 
-    def send_partial(self, bytes):
-        if len(self._outqueue) == 0:
-            return 0
-        t = sum(len(i) for i in self._outqueue)
-        if t <= bytes:
-            # Send the whole _outqueue
-            message = ''.join([i[1] for i in self._outqueue])
-            for stream in set([i[0] for i in self._outqueue]):
-                self.streams[stream].piece_sent()
-            del self._outqueue[:]
-            self.socket.write(message)
-            return len(message)
-        # Determine how many of the messages in the _outqueue
-        # need to be sent
-        indx = 0
-        s = 0
-        while s < bytes:
-            s += len(self._outqueue[indx][1])
-            indx += 1
-        # Join those messages
-        tmp = ''.join([i[1] for i in self._outqueue[:indx]])
-        streams = [i[0] for i in self._outqueue[:indx]]
-        del self._outqueue[:indx]
-        # Result may be longer than "bytes"
-        r = min(len(tmp),bytes)
-        message = tmp[:r]
-        extra = tmp[r:]
-        for s in streams[:-1]:
-            self.streams[stream].piece_sent()
-        # So only send "bytes" bytes
-        self.socket.write(message)
-        # Then prepend the extra bytes to the _outqueue
-        if len(extra) != 0:
-            self._outqueue.insert(0, extra)
-        else:
-            self.streams[streams[-1]].piece_sent()
-        return r
+    def queue_piece(self, streamid, message):
+        self.pmq.queue_message(streamid, message)
+
+    def send_partial(self, numbytes):
+        ''' Requests numbytes from the PartialMessageQueue
+            to be sent. 
+            @return: Actual number of bytes sent.'''
+        sids, msg = self.pmq.dequeue_partial(numbytes)
+        #TODO: There should really be some kind of error handling here
+        self.socket.write(msg)
+        for s in sids:
+            if self.streams.has_key(s):
+                self.streams[s].piece_sent()
+        return len(msg)
 
     def uniq_id(self):
         return "%02x:*" % (ord(self.id))
