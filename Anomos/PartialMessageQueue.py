@@ -26,7 +26,7 @@
 class PartialMessageQueue(object):
     #TODO: Give this a maximum length.
     def __init__(self):
-        self.deeplen = 0
+        self._deeplen = 0
         self.msgs = []
         self.sid_map = []
     def queue_message(self, streamid, message):
