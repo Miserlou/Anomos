@@ -679,20 +679,6 @@ class SettingsWindow(object):
         
         self.vbox.pack_start(self.next_torrent_frame, expand=False, fill=False)
 
-        #self.last_torrent_frame = gtk.Frame('Seed last completed torrent:')
-        #self.last_torrent_box = gtk.HBox()
-        #self.last_torrent_box.set_border_width(SPACING)
-        #self.last_torrent_box.pack_start(gtk.Label('until share ratio reaches '),
-        #                                 expand=False, fill=False)
-        #self.last_torrent_ratio_field = PercentValidator('last_torrent_ratio',
-        #                                                 self.config, self.setfunc)
-        #self.last_torrent_box.pack_start(self.last_torrent_ratio_field,
-        #                                       fill=False, expand=False)
-        #self.last_torrent_box.pack_start(gtk.Label(' percent.'),
-        #                                 fill=False, expand=False)
-        #self.last_torrent_frame.add(self.last_torrent_box)
-        #self.vbox.pack_start(self.last_torrent_frame, expand=False, fill=False)
-
         self.port_range_frame = gtk.Frame('Look for available port:')        
         self.port_range = gtk.HBox()
         self.port_range.set_border_width(SPACING)
@@ -1829,6 +1815,7 @@ class RunningTorrentBox(DroppableTorrentBox):
         self.cancelimage.set_from_stock('bt-remove', gtk.ICON_SIZE_BUTTON)
         self.main.tooltips.set_tip(self.cancelbutton,
                                    'Remove torrent')
+        
         self.make_menu()
 
     def make_menu(self):
@@ -2258,17 +2245,11 @@ class DownloadInfoFrame(object):
         self.mainwindow.connect('drag_leave'        , self.drag_leave         )
         self.mainwindow.connect('drag_data_received', self.accept_dropped_file)
 
-        if not advanced_ui:
-            self.mainwindow.set_resizable(False)
-
         self.mainwindow.connect('destroy', self.cancel)
 
         self.accel_group = gtk.AccelGroup()
 
         self.mainwindow.add_accel_group(self.accel_group)
-
-        #self.accel_group.connect(ord('W'), gtk.gdk.CONTROL_MASK, gtk.ACCEL_LOCKED,
-        #                         lambda *args: self.mainwindow.destroy())
 
         self.tooltips = gtk.Tooltips()
 
@@ -2299,9 +2280,9 @@ class DownloadInfoFrame(object):
                            ('----'          , None),
                            ('_Quit'         , lambda w: self.mainwindow.destroy()),
                            )
-        view_menu_items = (('Show/Hide _finished torrents', self.toggle_known),
+        view_menu_items = (#('Show/Hide _finished torrents', self.toggle_known),
                            #('_Clean up finished torrents' , self.confirm_remove_finished_torrents),
-                           ('----'          , None),
+                           #('----'          , None),
                            ('_Log'          , lambda w: self.open_window('log')),
                            # 'View log of all download activity',
                            #('----'          , None),
