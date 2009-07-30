@@ -64,6 +64,8 @@ class PartialMessageQueue(object):
     def _pindex(self, p):
         # Returns index of p'th byte in message queue
         # (Treating the queue as an irregular 2d array)
+        if self._deeplen <= p:
+            return (len(self.msgs), 0)
         i = t = 0
         while t + len(self.msgs[i]) < p:
             t += len(self.msgs[i])
