@@ -1781,7 +1781,7 @@ class RunningTorrentBox(DroppableTorrentBox):
                                        expand=True, fill=True)
         self.rate_label_box.pack_start(lalign(self.down_rate),
                                        expand=True, fill=True)
-        self.rate_label_box.pack_start(lalign(self.relay_rate),
+        self.rate_label_box.pack_start(ralign(self.relay_rate),
                                        expand=True, fill=True)
 
         self.infobox.pack_start(self.rate_label_box)        
