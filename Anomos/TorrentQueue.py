@@ -214,7 +214,7 @@ class TorrentQueue(Feedback):
             error(WARNING, "Version check failed: " + str(e))
 
     def _dump_config(self):
-        configfile.save_ui_config(self.config, 'btdownloadgui',
+        configfile.save_ui_config(self.config, 'anondownloadgui',
                                self.ui_options, self.global_error)
 
     def _dump_state(self):

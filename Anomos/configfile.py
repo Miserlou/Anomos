@@ -95,7 +95,7 @@ def parse_configuration_and_args(defaults, uiname, arglist=[], minargs=0,
                                        presets)
     datadir = config['data_dir']
     if datadir:
-        if uiname in ('btdownloadgui', 'btmaketorrentgui'):
+        if uiname in ('anondownloadgui', 'anonmaketorrentgui'):
             p = RawConfigParser()
             values = {}
             p.read(os.path.join(datadir, 'ui_config'))

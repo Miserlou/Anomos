@@ -26,15 +26,15 @@ if is_frozen_exe:
 def makeHelp(uiname, defaults):
     ret = ''
     ret += ("Usage: %s " % uiname)
-    if uiname.startswith('btlaunchmany'):
+    if uiname.startswith('anonlaunchmany'):
         ret += "[OPTIONS] [TORRENTDIRECTORY]\n\n"
         ret += "If a non-option argument is present it's taken as the value\n"\
               "of the torrent_dir option.\n"
-    elif uiname == 'btdownloadgui':
+    elif uiname == 'anondownloadgui':
         ret += "[OPTIONS] [TORRENTFILES]\n"
-    elif uiname.startswith('btdownload'):
+    elif uiname.startswith('anondownload'):
         ret += "[OPTIONS] [TORRENTFILE]\n"
-    elif uiname == 'btmaketorrent':
+    elif uiname == 'anonmaketorrent':
         ret += "[OPTION] TRACKER_URL FILE [FILE]\n"
     ret += '\n'
     ret += 'arguments are -\n' + formatDefinitions(defaults, 80)

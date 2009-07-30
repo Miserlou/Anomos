@@ -87,12 +87,12 @@ rare_options = [
     ]
 
 def get_defaults(ui):
-    assert ui in "btdownloadheadless btdownloadcurses btdownloadgui " \
-           "btlaunchmany btlaunchmanycurses btmaketorrentgui".split()
+    assert ui in "anondownloadheadless anondownloadcurses anondownloadgui " \
+           "anonlaunchmany anonlaunchmanycurses anonmaketorrentgui".split()
 
     r = list(common_options)
 
-    if ui == 'btdownloadgui':
+    if ui == 'anondownloadgui':
         r.extend([
             ('save_as', '',
              'file name (for single-file torrents) or directory name (for batch torrents) to save the torrent as, overriding the default name in the torrent. See also --save_in, if neither is specified the user will be asked for save location'),
@@ -110,12 +110,12 @@ def get_defaults(ui):
              ''),
             ])
 
-    if ui in ('btdownloadcurses', 'btdownloadheadless'):
+    if ui in ('anondownloadcurses', 'anondownloadheadless'):
         r.append(
             ('save_as', '',
              'file name (for single-file torrents) or directory name (for batch torrents) to save the torrent as, overriding the default name in the torrent. See also --save_in'))
 
-    if ui.startswith('btdownload'):
+    if ui.startswith('anondownload'):
         r.extend([
             ('max_uploads', -1,
              "the maximum number of uploads to allow at once. -1 means a (hopefully) reasonable number based on --max_upload_rate. The automatic values are only sensible when running one torrent at once."),
@@ -129,7 +129,7 @@ def get_defaults(ui):
              'whether or not to ask for a location to save downloaded files in'),
             ])
 
-    if ui.startswith('btlaunchmany'):
+    if ui.startswith('anonlaunchmany'):
         r.extend([
             ('max_uploads', 6,
              "the maximum number of uploads to allow at once. -1 means a (hopefully) reasonable number based on --max_upload_rate. The automatic values are only sensible when running one torrent at once."),
@@ -140,21 +140,21 @@ def get_defaults(ui):
             ('saveas_style', 1,
               "How to name torrent downloads (1 = rename to torrent name, " +
               "2 = save under name in torrent, 3 = save in directory under torrent name)" ),
-            ('display_path', ui == 'btlaunchmany' and 1 or 0,
+            ('display_path', ui == 'anonlaunchmany' and 1 or 0,
               "whether to display the full path or the torrent contents for each torrent" ),
             ])
 
-    if ui.startswith('btlaunchmany') or ui == 'btmaketorrentgui':
+    if ui.startswith('anonlaunchmany') or ui == 'anonmaketorrentgui':
         r.append(
             ('torrent_dir', '',
              'directory to look for .atorrent files (semi-recursive)'),)
 
-    if ui in ('btdownloadcurses', 'btdownloadheadless'):
+    if ui in ('anondownloadcurses', 'anondownloadheadless'):
         r.append(
             ('spew', 0,
              "whether to display diagnostic info to stdout"))
 
-    if ui == 'btmaketorrentgui':
+    if ui == 'anonmaketorrentgui':
         r.extend([
             ('piece_size_pow2', 18,
              "which power of two to set the piece size to"),
