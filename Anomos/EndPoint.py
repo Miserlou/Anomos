@@ -27,19 +27,19 @@ class EndPoint(AnomosEndPointProtocol):
         self.logfunc = logfunc
         self.complete = False
         self.closed = False
+        self.choker = None
+        self.next_upload = None
+        self.queued = False
         if data is not None:
             self.send_tracking_code(data)
         else:
             self.send_confirm()
 
-        self.choker = None
-        self._partial_message = None
-        self.next_upload = None
-
     def connection_completed(self):
         self.complete = True
         self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
+        self.ratelimiter = self.upload.ratelimiter
         self.download = self.torrent.make_download(self)
         self.choker = self.upload.choker
         self.choker.connection_made(self)
@@ -54,11 +54,13 @@ class EndPoint(AnomosEndPointProtocol):
         self.upload = None
         self.neighbor.end_stream(self.stream_id)
 
+    def connection_flushed(self):
+        if self.next_upload is None \
+            and (self.queued or self.upload.buffer):
+                self.ratelimiter.queue(self)
+
     def close(self):
         self.connection_closed()
-
-    def send_partial(self, bytes):
-        return self.neighbor.send_partial(self, bytes)
 
     def is_flushed(self):
         return self.neighbor.socket.is_flushed()
@@ -68,3 +70,32 @@ class EndPoint(AnomosEndPointProtocol):
 
     def uniq_id(self):
         return "%02x%04x" % (ord(self.neighbor.id), self.stream_id)
+
+    def send_partial(self, amount):
+        """ Provides partial sending of messages for RateLimiter """
+        if self.closed:
+            # Send nothing if the connection is closed.
+            return 0
+        if self.queued == False:
+            # Nothing queued, so grab a piece and queue it with neighbor
+            s = self.upload.get_upload_chunk()
+            if s is None:
+                return 0
+            index, begin, piece = s
+            partial_message = self.partial_msg_str(index, begin, piece)
+            # If upload has choked/unchoked and we haven't sent a message
+            # to reflect that, send it now.
+            if self.choke_sent != self.upload.choked:
+                if self.upload.choked:
+                    partial_message += self.partial_choke_str()
+                    self.upload.sent_choke()
+                else:
+                    partial_message += self.partial_unchoke_str()
+                self.choke_sent = self.upload.choked
+            self.neighbor.queue_piece(self.stream_id, partial_message)
+            self.queued = True
+        # Give neighbor permission to send "amount" bytes
+        return self.neighbor.send_partial(amount)
+
+    def piece_sent(self):
+        self.queued = False

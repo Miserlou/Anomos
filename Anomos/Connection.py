@@ -31,7 +31,6 @@ class Connection(object):
         self.upload = None
         self.download = None
         self._buffer = array.array('c',"")
-        self._partial_message = None
         self._outqueue = []
         self.choke_sent = True
     def data_came_in(self, conn, s):
@@ -65,54 +64,44 @@ class Connection(object):
             except StopIteration:
                 self.close("Closing. Was not expecting data.")
                 return
-    ## Methods that must be implemented by a Protocol class ##
-    ## Raise RuntimeError if no protocol has been defined
-    def format_message(self, *args):
-        raise RuntimeError("No protocol defined for this connection.")
-    def partial_msg_str(self, *args):
-        raise RuntimeError("No protocol defined for this connection.")
-    def partial_choke_str(self, *args):
-        raise RuntimeError("No protocol defined for this connection.")
-    def partial_unchoke_str(self, *args):
-        raise RuntimeError("No protocol defined for this connection.")
-    def send_message(self, message):
-        ''' Prepends message with its length as a 32 bit integer,
-            and queues or immediately sends the message '''
-        if self._partial_message is not None:
-            # Last message has not finished sending yet
-            self._outqueue.append(message)
-        else:
-            self.socket.write(message)
+    #def send_message(self, message):
+    #    ''' Prepends message with its length as a 32 bit integer,
+    #        and queues or immediately sends the message '''
+    #    if self._partial_message is not None:
+    #        # Last message has not finished sending yet
+    #        self._outqueue.append(message)
+    #    else:
+    #        self.socket.write(message)
     #TODO: Send Partial is broken.
-    def send_partial(self, bytes):
-        """ Provides partial sending of messages for RateLimiter """
-        #TODO: Comment this method!
-        if self.closed:
-            return 0
-        if self._partial_message is None:
-            s = self.upload.get_upload_chunk()
-            if s is None:
-                return 0
-            index, begin, piece = s
-            self._partial_message = self.partial_msg_str(index, begin, piece)
-        if bytes < len(self._partial_message):
-            self.socket.write(buffer(self._partial_message, 0, bytes))
-            self._partial_message = buffer(self._partial_message, bytes)
-            return bytes
-        queue = [str(self._partial_message)]
-        self._partial_message = None
-        if self.choke_sent != self.upload.choked:
-            if self.upload.choked:
-                self._outqueue.append(self.partial_choke_str())
-                self.upload.sent_choke()
-            else:
-                self._outqueue.append(self.partial_unchoke_str())
-            self.choke_sent = self.upload.choked
-        queue.extend(self._outqueue)
-        self._outqueue = []
-        queue = ''.join(queue)
-        self.socket.write(queue)
-        return len(queue)
+    #def send_partial(self, bytes):
+    #    """ Provides partial sending of messages for RateLimiter """
+    #    #TODO: Comment this method!
+    #    if self.closed:
+    #        return 0
+    #    if self._partial_message is None:
+    #        s = self.upload.get_upload_chunk()
+    #        if s is None:
+    #            return 0
+    #        index, begin, piece = s
+    #        self._partial_message = self.partial_msg_str(index, begin, piece)
+    #    if bytes < len(self._partial_message):
+    #        self.socket.write(buffer(self._partial_message, 0, bytes))
+    #        self._partial_message = buffer(self._partial_message, bytes)
+    #        return bytes
+    #    queue = [str(self._partial_message)]
+    #    self._partial_message = None
+    #    if self.choke_sent != self.upload.choked:
+    #        if self.upload.choked:
+    #            self._outqueue.append(self.partial_choke_str())
+    #            self.upload.sent_choke()
+    #        else:
+    #            self._outqueue.append(self.partial_unchoke_str())
+    #        self.choke_sent = self.upload.choked
+    #    queue.extend(self._outqueue)
+    #    self._outqueue = []
+    #    queue = ''.join(queue)
+    #    self.socket.write(queue)
+    #    return len(queue)
     def close(self, e=None):
         if self.socket.handler != self:
             # Don't close sockets we don't own anymore.
@@ -132,11 +121,23 @@ class Connection(object):
         assert conn is self.socket
         self._sever()
     def connection_flushed(self, socket):
-        if not self.complete:
-            pass
-        elif self.next_upload is None \
-             and (self._partial_message is not None or self.upload.buffer):
-                self.ratelimiter.queue(self)
+    #    if not self.complete:
+        pass
+    #    elif self.next_upload is None \
+    #         and (self._partial_message is not None or self.upload.buffer):
+    #            self.ratelimiter.queue(self)
+
+    ## Methods that must be implemented by a Protocol class ##
+    ## Raise RuntimeError if no protocol has been defined
+    def format_message(self, *args):
+        raise RuntimeError("No protocol defined for this connection.")
+    def partial_msg_str(self, *args):
+        raise RuntimeError("No protocol defined for this connection.")
+    def partial_choke_str(self, *args):
+        raise RuntimeError("No protocol defined for this connection.")
+    def partial_unchoke_str(self, *args):
+        raise RuntimeError("No protocol defined for this connection.")
+
 
 ##################################################
 ## Protocol specific mixin types                ##

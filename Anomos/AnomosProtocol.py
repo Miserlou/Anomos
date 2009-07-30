@@ -60,7 +60,7 @@ class AnomosProtocol(BitTorrentProtocol):
         ''' Send message for network messages,
             ie. CONFIRM, TCODE and for relaying messages'''
         s = self.format_message(type, message)
-        self.neighbor.send_message(s)
+        self.neighbor.send_message(self.stream_id, s)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
     def got_confirm(self):
@@ -245,7 +245,17 @@ class AnomosEndPointProtocol(AnomosProtocol):
             ie. CHOKE, INTERESTED, PIECE '''
         payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
         s = self.format_message(RELAY, payload)
-        self.neighbor.send_message(s)
+        self.neighbor.send_message(self.stream_id, s)
+    def send_choke(self):
+        if self.queued == False:
+            self.transfer_ctl_msg(CHOKE)
+            self.choke_sent = True
+            self.upload.sent_choke()
+    def send_unchoke(self):
+        if self.queued == False:
+            self.transfer_ctl_msg(UNCHOKE)
+            self.choke_sent = False
+
     ## Partial message sending methods ##
     ## these are used by send_partial, which we inherit from BitTorrentProtocol
     def partial_msg_str(self, index, begin, piece):
