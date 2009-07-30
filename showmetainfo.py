@@ -14,20 +14,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Written by Henry 'Pi' James and Loring Holden
+# Modified for Anomos by John Schanck
 
 from sys import *
 from os.path import *
 from sha import *
-from BitTorrent.bencode import *
+from Anomos.bencode import *
 
 NAME, EXT = splitext(basename(argv[0]))
-VERSION = '20021207'
+VERSION = '20090730'
 
-print '%s %s - decode BitTorrent metainfo files' % (NAME, VERSION)
+print '%s %s - decode Anomos metainfo files' % (NAME, VERSION)
 print
 
 if len(argv) == 1:
-    print '%s file1.torrent file2.torrent file3.torrent ...' % argv[0]
+    print '%s file1.atorrent file2.atorrent file3.atorrent ...' % argv[0]
     print
     exit(2) # common exit code for syntax error
 
