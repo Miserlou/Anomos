@@ -355,10 +355,11 @@ class SeedingButton(gtk.Button):
         self.connect('clicked', self.toggle)
         
     def toggle(self, widget):
-        self.paned.remove(self.paned.get_child2())
-        self.paned.pack2(self.mains)
-        self.knowns.hide()
-        self.mains.show()
+        if self.paned.get_child2() is not self.mains:
+            self.paned.remove(self.paned.get_child2())
+            self.paned.pack2(self.mains)
+            self.knowns.hide()
+            self.mains.show()
 
     def send(self, k, m, p):
         self.knowns=k
@@ -379,10 +380,11 @@ class DownloadingButton(gtk.Button):
         self.connect('clicked', self.toggle)
         
     def toggle(self, widget):
-        self.paned.remove(self.paned.get_child2())
-        self.paned.pack2(self.knowns)
-        self.mains.hide()
-        self.knowns.show()
+        if self.paned.get_child2() is not self.knowns:
+            self.paned.remove(self.paned.get_child2())
+            self.paned.pack2(self.knowns)
+            self.mains.hide()
+            self.knowns.show()
 
     def send(self, k, m, p):
         self.knowns=k
@@ -2354,10 +2356,10 @@ class DownloadInfoFrame(object):
         self.controlbox = gtk.HBox(homogeneous=False)
 
         self.controlbox.pack_start(self.ofb, expand=False, fill=False)
-        self.controlbox.pack_start(self.ssb, expand=False, fill=False)
+        self.controlbox.pack_start(self.ssb, expand=False, fill=False, padding=5)
         self.controlbox.pack_end(get_logo(32), expand=False, fill=False,
-                                   padding=SPACING)
-        self.controlbox.pack_end(self.sb, expand=False, fill=False)
+                                   padding=5)
+        self.controlbox.pack_end(self.sb, expand=False, fill=False, padding=5)
         self.controlbox.pack_end(self.db, expand=False, fill=False)
 
         self.box2.pack_start(self.controlbox, expand=False, fill=False, padding=0)
