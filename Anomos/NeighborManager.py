@@ -193,8 +193,15 @@ class NeighborManager:
 
     ## Relay Management ##
     def make_relay(self, nid, data, orelay):
-        self.relayers.append(orelay)
-        return self.neighbors[nid].start_relay_stream(nid, data, orelay)
+        if self.neighbors.has_key(nid):
+            self.relayers.append(orelay)
+            return self.neighbors[nid].start_relay_stream(nid, data, orelay)
+        elif self.incomplete.has_key(nid):
+            def relay_tc():
+                self.relayers.append(orelay)
+                self.neighbors[nid].start_relay_stream(nid,data,orelay)
+            self.waiting_tcs.set_default(nid, [])
+            self.waiting_tcs[nid].append(relay_tc)
 
     def get_relay_size(self):
         return len(self.relayers)
