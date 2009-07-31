@@ -357,8 +357,6 @@ class SeedingButton(gtk.Button):
         
     def toggle(self, widget):
         for infohash, t in self.torrents.iteritems():
-            if t.widget is None:
-                return
             if t.completion < 1:
                 t.widget.hide()
             if t.completion >= 1:
