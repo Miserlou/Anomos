@@ -17,7 +17,7 @@
 
 from Anomos.Protocol import TCODE, CONFIRM, RELAY, BREAK
 from Anomos.Protocol import AnomosProtocol
-from Anomos import WARNING
+from Anomos import INFO, WARNING, ERROR, CRITICAL
 
 class AnomosRelayerProtocol(AnomosProtocol):
     ## RelayerProtocol is intended to be implemented by Relayer ##
@@ -25,16 +25,16 @@ class AnomosRelayerProtocol(AnomosProtocol):
         AnomosProtocol.__init__(self)
         self.msgmap.update({BREAK: self.got_break, RELAY: self.got_relay})
     ## Disable direct message reading. ##
+    def send_break(self):
+        self.network_ctl_msg(BREAK)
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):
         self.network_ctl_msg('', msg)
     #TODO: I have no idea if send break works --John
     def got_break(self):
-        self.relay_message(BREAK)
         #TODO: Lost uploader, schedule announce for new one..
-        if not self.closed:
-            self.close()
+        self.close()
     def got_relay(self, message):
         #NOTE: message[0] == RELAY, there's no need to
         #      strip this since we'd just have to add

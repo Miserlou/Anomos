@@ -18,7 +18,7 @@ from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.PartialMessageQueue import PartialMessageQueue
 from Anomos.Protocol.AnomosNeighborProtocol import AnomosNeighborProtocol
-from Anomos import default_logger, trace_on_call
+from Anomos import INFO, WARNING, ERROR, default_logger, trace_on_call
 
 class NeighborLink(AnomosNeighborProtocol):
     ''' NeighborLink handles the socket between two neighbors and keeps

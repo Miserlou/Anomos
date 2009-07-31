@@ -125,6 +125,8 @@ class Choker(object):
                                self.connections[:last_unchoked + 1]
 
     def connection_made(self, connection):
+        if connection in self.connections:
+            return
         p = randrange(len(self.connections) + 1)
         self.connections.insert(p, connection)
 

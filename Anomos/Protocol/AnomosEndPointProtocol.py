@@ -20,7 +20,7 @@ from Anomos.Protocol import CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, \
                             TCODE, CONFIRM, ENCRYPTED, RELAY, BREAK
 from Anomos.Protocol import tobinary, toint, AnomosProtocol
 from Anomos.bitfield import Bitfield
-from Anomos import WARNING
+from Anomos import INFO, WARNING, ERROR, CRITICAL
 
 class AnomosEndPointProtocol(AnomosProtocol):
     ## EndPointProtocol is intended to be implemented by EndPoint ##
@@ -41,8 +41,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             BREAK: self.got_break})
     def got_confirm(self):
         if not self.complete:
-            self.send_confirm()
-        self.connection_completed()
+            self.connection_completed()
     def got_relay(self, message):
         self.got_message(message[1:])
     def got_encrypted(self, message):
@@ -51,8 +50,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
             self.got_message(m)
         else:
             raise RuntimeError("Received encrypted data before we were ready")
-    def got_break(self, message):
-        self.neighbor.end_stream(self.stream_id)
+    def got_break(self):
+        self.close()
     def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages.
             ie. CHOKE, INTERESTED, PIECE '''
@@ -105,6 +104,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
             for ep in self.torrent.active_streams:
                 ep.send_have(i)
     ## Send messages ##
+    def send_break(self):
+        self.network_ctl_msg(BREAK)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
     def send_interested(self):

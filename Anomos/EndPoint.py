@@ -14,7 +14,7 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 from Anomos.Protocol.AnomosEndPointProtocol import AnomosEndPointProtocol
-from Anomos import BTFailure, ERROR, default_logger
+from Anomos import INFO, WARNING, ERROR, default_logger
 
 class EndPoint(AnomosEndPointProtocol):
     def __init__(self, stream_id, neighbor, torrent, aes, data=None,
@@ -34,13 +34,17 @@ class EndPoint(AnomosEndPointProtocol):
             self.send_tracking_code(data)
         else:
             self.send_confirm()
+            self.connection_completed()
 
     def connection_completed(self):
         ''' Called when a CONFIRM message is received
             indicating that our peer has received our
             tracking code '''
+        if self.complete:
+            self.logfunc(WARNING, "Double complete")
+            return
         self.complete = True
-        self.torrent.add_active_stream(self)
+        #self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
         self.ratelimiter = self.upload.ratelimiter
         self.download = self.torrent.make_download(self)
@@ -48,12 +52,16 @@ class EndPoint(AnomosEndPointProtocol):
         self.choker.connection_made(self)
 
     def connection_closed(self):
+        if self.closed:
+            self.logfunc(WARNING, "Double close")
+            return
         self.closed = True
-        self.torrent.rm_active_stream(self)
+        #self.torrent.rm_active_stream(self)
         self.choker.connection_lost(self)
+        self.send_break()
+        self.neighbor.end_stream(self.stream_id)
         self.download.disconnected()
         self.upload = None
-        self.neighbor.end_stream(self.stream_id)
 
     def connection_flushed(self):
         if self.next_upload is None \
