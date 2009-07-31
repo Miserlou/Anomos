@@ -27,9 +27,9 @@ assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
 import os
 
 if sys.platform == 'win32':
-    import time.clock as bttime
+    from time import clock as bttime
 else:
-    import time.time as bttime
+    from time import time as bttime
 
 def calc_unix_dirs():
     appdir = '%s-%s'%(app_name, version)
