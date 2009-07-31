@@ -347,6 +347,7 @@ class SeedingButton(gtk.Button):
     knowns = None
     mains = None
     paned = None
+    torrents = None
 
     def __init__(self, main):
         gtk.Button.__init__(self)
@@ -355,16 +356,17 @@ class SeedingButton(gtk.Button):
         self.connect('clicked', self.toggle)
         
     def toggle(self, widget):
-        if self.paned.get_child2() is not self.mains:
-            self.paned.remove(self.paned.get_child2())
-            self.paned.pack2(self.mains)
-            self.knowns.hide()
-            self.mains.show()
+        for infohash, t in self.torrents.iteritems():
+            if t.completion < 1:
+                t.widget.hide()
+            if t.completion >= 1:
+                t.widget.show()
 
-    def send(self, k, m, p):
+    def send(self, k, m, p, t):
         self.knowns=k
         self.mains=m
         self.paned=p
+        self.torrents = t
         
 
 class DownloadingButton(gtk.Button):
@@ -372,6 +374,7 @@ class DownloadingButton(gtk.Button):
     knowns = None
     mains = None
     paned = None
+    torrents = None
 
     def __init__(self, main):
         gtk.Button.__init__(self)
@@ -380,16 +383,20 @@ class DownloadingButton(gtk.Button):
         self.connect('clicked', self.toggle)
         
     def toggle(self, widget):
-        if self.paned.get_child2() is not self.knowns:
-            self.paned.remove(self.paned.get_child2())
-            self.paned.pack2(self.knowns)
-            self.mains.hide()
-            self.knowns.show()
+        self.show_downloading()
 
-    def send(self, k, m, p):
+    def send(self, k, m, p, t):
         self.knowns=k
         self.mains=m
         self.paned=p
+        self.torrents = t
+
+    def show_downloading(self):
+        for infohash, t in self.torrents.iteritems():
+            if t.completion < 1:
+                t.widget.show()
+            if t.completion >= 1:
+                t.widget.hide()
 
 class VersionWindow(Window):
     def __init__(self, main, newversion, download_url):
@@ -1527,7 +1534,7 @@ class TorrentBox(gtk.EventBox):
         if self.filelistwindow is None:
             self.filelistwindow = FileListWindow(self.metainfo,
                                                  self.filelistclosed)
-            self.main.torrentqueue.check_completion(self.infohash, True)
+            self.main.torrentqueue.check_(self.infohash, True)
 
     def filelistclosed(self, widget):
         self.filelistwindow = None
@@ -2381,8 +2388,8 @@ class DownloadInfoFrame(object):
 
         self.paned.pack2(self.mainscroll, resize=True, shrink=False)
 
-        self.dbutton.send(self.mainscroll, self.knownscroll, self.paned)
-        self.sbutton.send(self.mainscroll, self.knownscroll, self.paned)
+        self.dbutton.send(self.mainscroll, self.knownscroll, self.paned, self.torrents)
+        self.sbutton.send(self.mainscroll, self.knownscroll, self.paned, self.torrents)
 
         self.box1.pack_start(self.paned)
 
@@ -2594,6 +2601,8 @@ class DownloadInfoFrame(object):
             self.init_updates()
         self.torrentqueue.set_config(option, value)
 
+    def hide_completed(self):
+        return
 
     def confirm_remove_finished_torrents(self,widget):
         count = 0
@@ -2893,6 +2902,7 @@ class DownloadInfoFrame(object):
         t.downtotal = downtotal
         self.torrents[infohash] = t
         self.create_torrent_widget(infohash)
+        self.dbutton.show_downloading()
 
     def torrent_state_changed(self, infohash, state, completion,
                               uptotal, downtotal, queuepos=None):
@@ -2910,6 +2920,7 @@ class DownloadInfoFrame(object):
 
     def update_completion(self, infohash, completion, files_left=None,
                           files_allocated=None):
+        self.dbutton.show_downloaded()
         t = self.torrents[infohash]
         if files_left is not None and t.widget.filelistwindow is not None:
             t.widget.filelistwindow.update(files_left, files_allocated)
