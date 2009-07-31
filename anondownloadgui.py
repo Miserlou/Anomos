@@ -1711,6 +1711,8 @@ class QueuedTorrentBox(DroppableTorrentBox):
 
         self.show_all()
 
+        self.start(self)
+
     def start(self, widget):
         self.main.runbox.put_infohash_last(self.infohash)
 
