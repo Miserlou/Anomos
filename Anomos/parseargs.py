@@ -17,8 +17,6 @@ import sys
 from types import *
 from cStringIO import StringIO
 
-from Anomos.obsoletepythonsupport import *
-
 from Anomos import BTFailure, is_frozen_exe
 if is_frozen_exe:
     from Anomos.GUI import HelpWindow

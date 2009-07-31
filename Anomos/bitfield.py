@@ -15,8 +15,6 @@
 
 from array import array
 
-from Anomos.obsoletepythonsupport import *
-
 counts = [chr(sum([(i >> j) & 1 for j in xrange(8)])) for i in xrange(256)]
 counts = ''.join(counts)
 

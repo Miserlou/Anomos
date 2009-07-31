@@ -20,8 +20,6 @@ import os
 import sys
 import hashlib
 
-from Anomos.obsoletepythonsupport import *
-
 from Anomos.bencode import bencode
 from Anomos import btformats
 from Anomos import WARNING, ERROR

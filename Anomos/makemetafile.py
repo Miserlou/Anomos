@@ -28,7 +28,6 @@ from Anomos.bencode import bencode
 from Anomos.btformats import check_info
 from Anomos.parseargs import parseargs, printHelp
 from Anomos.platform import bttime
-from Anomos.obsoletepythonsupport import *
 from Anomos import BTFailure
 
 ignore = ['core', 'CVS', 'Thumbs.db']
