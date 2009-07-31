@@ -357,6 +357,8 @@ class SeedingButton(gtk.Button):
         
     def toggle(self, widget):
         for infohash, t in self.torrents.iteritems():
+            if t.widget is None:
+                return
             if t.completion < 1:
                 t.widget.hide()
             if t.completion >= 1:
@@ -392,11 +394,17 @@ class DownloadingButton(gtk.Button):
         self.torrents = t
 
     def show_downloading(self):
-        for infohash, t in self.torrents.iteritems():
-            if t.completion < 1:
-                t.widget.show()
-            if t.completion >= 1:
-                t.widget.hide()
+        try:
+            for infohash, t in self.torrents.iteritems():
+                if t.completion < 1:
+                    t.widget.show()
+                if t.completion >= 1:
+                    t.widget.hide()
+        except:
+            return
+
+    def send_torrents(self, t):
+        self.torrents = t
 
 class VersionWindow(Window):
     def __init__(self, main, newversion, download_url):
@@ -2902,6 +2910,7 @@ class DownloadInfoFrame(object):
         t.downtotal = downtotal
         self.torrents[infohash] = t
         self.create_torrent_widget(infohash)
+        self.dbutton.send_torrents(self.torrents)
         self.dbutton.show_downloading()
 
     def torrent_state_changed(self, infohash, state, completion,
