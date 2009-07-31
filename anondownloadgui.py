@@ -356,11 +356,17 @@ class SeedingButton(gtk.Button):
         self.connect('clicked', self.toggle)
         
     def toggle(self, widget):
+        if not self.main.dlclicked:
+            return
+        self.main.dlclicked=False
+        i=0
         for infohash, t in self.torrents.iteritems():
             if t.completion < 1:
                 t.widget.hide()
             if t.completion >= 1:
                 t.widget.show()
+                self.main.reorder_torrent(infohash,i)
+            i+=1
 
     def send(self, k, m, p, t):
         self.knowns=k
@@ -392,12 +398,18 @@ class DownloadingButton(gtk.Button):
         self.torrents = t
 
     def show_downloading(self):
+        if self.main.dlclicked:
+            return
+        self.main.dlclicked=True
+        i=0
         try:
             for infohash, t in self.torrents.iteritems():
                 if t.completion < 1:
                     t.widget.show()
+                    self.main.reorder_torrent(infohash, i)
                 if t.completion >= 1:
                     t.widget.hide()
+                i+=1
         except:
             return
 
@@ -2249,6 +2261,7 @@ class DownloadInfoFrame(object):
         self.lists = {}
         self.update_handle = None
         self.unhighlight_handle = None
+        self.dlclicked = False
         gtk.gdk.threads_enter()
         self.mainwindow = Window(gtk.WINDOW_TOPLEVEL)
         self.mainwindow.set_border_width(0)
