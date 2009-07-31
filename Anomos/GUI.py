@@ -71,7 +71,7 @@ for n in 'broken finished info pause paused play queued running remove running-u
 
     set = gtk.IconSet(pixbuf)
 
-    factory.add('bt-%s'%n, set)
+    factory.add('anon-%s'%n, set)
 
 factory.add_default()
 

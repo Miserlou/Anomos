@@ -1420,7 +1420,7 @@ class TorrentBox(gtk.EventBox):
 
         self.infobutton = gtk.Button()
         self.infoimage = gtk.Image()
-        self.infoimage.set_from_stock('bt-info', gtk.ICON_SIZE_BUTTON)
+        self.infoimage.set_from_stock('anon-info', gtk.ICON_SIZE_BUTTON)
         self.infobutton.add(self.infoimage)
         self.infobutton.connect('clicked', self.open_info)
         self.main.tooltips.set_tip(self.infobutton,
@@ -1431,7 +1431,7 @@ class TorrentBox(gtk.EventBox):
         self.cancelbutton = gtk.Button()
         self.cancelimage = gtk.Image()
         if self.completion is not None and self.completion >= 1:
-            self.cancelimage.set_from_stock('bt-remove', gtk.ICON_SIZE_BUTTON)
+            self.cancelimage.set_from_stock('anon-remove', gtk.ICON_SIZE_BUTTON)
             self.main.tooltips.set_tip(self.cancelbutton,
                                        'Remove torrent')
         else:
@@ -1614,11 +1614,11 @@ class KnownTorrentBox(TorrentBox):
 
         status_tip = ''
         if completion >= 1:
-            self.icon.set_from_stock('bt-finished', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.icon.set_from_stock('anon-finished', gtk.ICON_SIZE_LARGE_TOOLBAR)
             status_tip = 'Finished'
             known_torrent_dnd_tip = 'drag into list to seed'
         else:
-            self.icon.set_from_stock('bt-broken', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.icon.set_from_stock('anon-broken', gtk.ICON_SIZE_LARGE_TOOLBAR)
             status_tip = 'Failed'
             known_torrent_dnd_tip = 'drag into list to resume'
 
@@ -1679,7 +1679,7 @@ class DroppableTorrentBox(TorrentBox):
 
 class QueuedTorrentBox(DroppableTorrentBox):
 
-    icon_name = 'bt-queued'
+    icon_name = 'anon-queued'
     state_name = 'Waiting'
 
     def __init__(self, infohash, metainfo, dlpath, completion, main):
@@ -1719,7 +1719,7 @@ class QueuedTorrentBox(DroppableTorrentBox):
 
 
 class PausedTorrentBox(DroppableTorrentBox):
-    icon_name = 'bt-paused'
+    icon_name = 'anon-paused'
     state_name = 'Paused'
 
     def __init__(self, infohash, metainfo, dlpath, completion, main):
@@ -1771,9 +1771,9 @@ class RunningTorrentBox(DroppableTorrentBox):
         self.peerlistwindow = None
 
         if self.anon:
-            self.icon.set_from_stock('bt-running', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.icon.set_from_stock('anon-running', gtk.ICON_SIZE_LARGE_TOOLBAR)
         else:
-            self.icon.set_from_stock('bt-running-unsafe', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.icon.set_from_stock('anon-running-unsafe', gtk.ICON_SIZE_LARGE_TOOLBAR)
 
         self.rate_label_box = gtk.HBox(homogeneous=True)
 
@@ -1827,7 +1827,7 @@ class RunningTorrentBox(DroppableTorrentBox):
 
     def change_to_completed(self):
         self.completion = 1.0
-        self.cancelimage.set_from_stock('bt-remove', gtk.ICON_SIZE_BUTTON)
+        self.cancelimage.set_from_stock('anon-remove', gtk.ICON_SIZE_BUTTON)
         self.main.tooltips.set_tip(self.cancelbutton,
                                    'Remove torrent')
         
