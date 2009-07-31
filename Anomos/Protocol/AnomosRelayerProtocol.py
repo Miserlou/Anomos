@@ -17,6 +17,7 @@
 
 from Anomos.Protocol import TCODE, CONFIRM, RELAY, BREAK
 from Anomos.Protocol import AnomosProtocol
+from Anomos import WARNING
 
 class AnomosRelayerProtocol(AnomosProtocol):
     ## RelayerProtocol is intended to be implemented by Relayer ##
@@ -50,5 +51,11 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def got_unchoke(self, time):
         self.unchoke(time)
         self.orelay.send_unchoke()
-    def close(self, e=None):
+
+    def invalid_message(self, t):
+        self.close()
+        self.logfunc(WARNING, \
+                "Invalid message of type %02x on %s. Closing stream."% \
+                (ord(t), self.uniq_id()))
+    def close(self):
         self.neighbor.end_stream(self.stream_id)

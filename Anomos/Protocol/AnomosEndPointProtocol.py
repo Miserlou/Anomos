@@ -20,6 +20,7 @@ from Anomos.Protocol import CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, \
                             TCODE, CONFIRM, ENCRYPTED, RELAY, BREAK
 from Anomos.Protocol import tobinary, toint, AnomosProtocol
 from Anomos.bitfield import Bitfield
+from Anomos import WARNING
 
 class AnomosEndPointProtocol(AnomosProtocol):
     ## EndPointProtocol is intended to be implemented by EndPoint ##
@@ -131,7 +132,13 @@ class AnomosEndPointProtocol(AnomosProtocol):
         self.transfer_ctl_msg(HAVE, tobinary(index))
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
-    def close(self, e=None):
+
+    def invalid_message(self, t):
+        self.close()
+        self.logfunc(WARNING, \
+                "Invalid message of type %02x on %s. Closing stream."% \
+                (ord(t), self.uniq_id()))
+    def close(self):
         self.neighbor.end_stream(self.stream_id)
     ## Partial message sending methods ##
     ## these are used by send_partial, which we inherit from BitTorrentProtocol

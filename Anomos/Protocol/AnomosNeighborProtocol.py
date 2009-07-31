@@ -16,12 +16,15 @@
 # Written by John Schanck
 
 from Anomos.Protocol import TCODE, toint, AnomosProtocol
+from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.crypto import AESKey
+from Anomos import WARNING
 
-class AnomosNeighborProtocol(AnomosProtocol):
+class AnomosNeighborProtocol(Connection, AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
-    def __init__(self):
+    def __init__(self, socket):
+        Connection.__init__(self, socket)
         AnomosProtocol.__init__(self)
         self.msgmap.update({TCODE: self.got_tcode})
     def _read_messages(self):
@@ -38,6 +41,11 @@ class AnomosNeighborProtocol(AnomosProtocol):
             #    return
             yield l # Payload
             handler.got_message(self._message)
+    def invalid_message(self, t):
+        self.close()
+        self.logfunc(WARNING, \
+                "Invalid message of type %02x on %s. Closing neighbor."% \
+                (ord(t), self.uniq_id()))
     def got_tcode(self, message):
         tcreader = TCReader(self.manager.certificate)
         tcdata = tcreader.parseTC(message[1:])

@@ -68,8 +68,10 @@ class AnomosProtocol(object):
             else:
                 self.msgmap[t]()
         else:
-            self.close("Invalid message " + b2a_hex(message))
+            self.invalid_message(t)
             return
+    def invalid_message(self, t):
+        pass
     def _valid_msg_len(self, m):
         ''' Check length of received message m against dictionary
             of valid message lengths '''

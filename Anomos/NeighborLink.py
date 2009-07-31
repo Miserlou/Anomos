@@ -17,17 +17,15 @@
 from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.PartialMessageQueue import PartialMessageQueue
-from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.AnomosNeighborProtocol import AnomosNeighborProtocol
 from Anomos import default_logger, trace_on_call
 
-class NeighborLink(Connection, AnomosNeighborProtocol):
+class NeighborLink(AnomosNeighborProtocol):
     ''' NeighborLink handles the socket between two neighbors and keeps
         track of the objects used to manage the active streams between
         those neighbors. '''
     def __init__(self, manager, socket, id, logfunc=default_logger):
-        Connection.__init__(self, socket)
-        AnomosNeighborProtocol.__init__(self)
+        AnomosNeighborProtocol.__init__(self, socket)
         self.id = id
         self.manager = manager
         self.streams = {} # {StreamID : EndPoint or Relayer object}
