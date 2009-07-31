@@ -15,7 +15,7 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos.Connection import AnomosNeighborInitializer
+from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos import BTFailure
 
 class SingleportListener(object):

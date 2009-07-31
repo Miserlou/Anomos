@@ -13,7 +13,7 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos.Protocol.AnomosProtocol import AnomosEndPointProtocol
+from Anomos.Protocol.AnomosEndPointProtocol import AnomosEndPointProtocol
 from Anomos import BTFailure, ERROR, default_logger
 
 class EndPoint(AnomosEndPointProtocol):

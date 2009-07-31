@@ -14,11 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Written by John Schanck and Rich Jones
-from Anomos.Connection import Connection
 from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.PartialMessageQueue import PartialMessageQueue
-from Anomos.Protocol.AnomosProtocol import AnomosNeighborProtocol
+from Anomos.Protocol.Connection import Connection
+from Anomos.Protocol.AnomosNeighborProtocol import AnomosNeighborProtocol
 from Anomos import default_logger, trace_on_call
 
 class NeighborLink(Connection, AnomosNeighborProtocol):

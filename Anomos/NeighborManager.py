@@ -15,7 +15,7 @@
 
 # Written by John Schanck and Rich Jones
 
-from Anomos.Connection import AnomosNeighborInitializer
+from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
 from Anomos.Protocol.TCReader import TCReader
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
