@@ -13,8 +13,6 @@
 
 # written by Matt Chisholm
 
-from __future__ import division
-
 import gtk
 import pango
 import gobject

@@ -13,9 +13,6 @@
 
 # Written by Uoti Urpala
 
-# required for Python 2.2
-from __future__ import generators
-
 import os
 import sys
 import hashlib

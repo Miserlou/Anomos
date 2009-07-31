@@ -13,11 +13,6 @@
 
 # Written by Bram Cohen
 
-from __future__ import division
-
-from time import time
-
-
 class DownloaderFeedback(object):
 
     def __init__(self, choker, upfunc, upfunc2, downfunc, uptotal, downtotal,

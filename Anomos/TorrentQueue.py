@@ -13,8 +13,6 @@
 
 # Written by Uoti Urpala
 
-from __future__ import division
-
 import os
 import sys
 import threading
