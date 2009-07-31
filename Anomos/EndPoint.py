@@ -13,7 +13,7 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos.AnomosProtocol import AnomosEndPointProtocol
+from Anomos.Protocol.AnomosProtocol import AnomosEndPointProtocol
 from Anomos import BTFailure, ERROR, default_logger
 
 class EndPoint(AnomosEndPointProtocol):
@@ -36,6 +36,9 @@ class EndPoint(AnomosEndPointProtocol):
             self.send_confirm()
 
     def connection_completed(self):
+        ''' Called when a CONFIRM message is received
+            indicating that our peer has received our
+            tracking code '''
         self.complete = True
         self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
@@ -45,8 +48,6 @@ class EndPoint(AnomosEndPointProtocol):
         self.choker.connection_made(self)
 
     def connection_closed(self):
-        # Called by Connecter, which checks that the connection is complete
-        # prior to call
         self.closed = True
         self.torrent.rm_active_stream(self)
         self.choker.connection_lost(self)

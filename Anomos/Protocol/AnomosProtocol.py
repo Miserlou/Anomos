@@ -15,12 +15,12 @@
 
 # Written by John Schanck
 
-from Anomos.BitTorrentProtocol \
+from Anomos.Protocol.BitTorrentProtocol \
     import  BitTorrentProtocol, CHOKE, UNCHOKE, INTERESTED, \
             NOT_INTERESTED, HAVE, BITFIELD, REQUEST, PIECE, \
             CANCEL, toint, tobinary
 
-from Anomos.TCReader import TCReader
+from Anomos.Protocol.TCReader import TCReader
 from Anomos.crypto import AESKey
 from Anomos import log_on_call, trace_on_call
 

@@ -17,7 +17,7 @@
 
 from Anomos.Connection import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
-from Anomos.TCReader import TCReader
+from Anomos.Protocol.TCReader import TCReader
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
 class NeighborManager:
@@ -207,13 +207,7 @@ class NeighborManager:
         return len(self.relayers)
 
     def get_relay_rate(self):
-        rate = 0
-        for r in self.relayers:
-            rate  += r.get_rate()
-        return rate
+        return sum(r.get_rate() for r in self.relayers)
 
     def get_relay_sent(self):
-        sent = 0
-        for r in self.relayers:
-            sent  += r.get_sent()
-        return sent
+        return sum(r.get_sent() for r in self.relayers)

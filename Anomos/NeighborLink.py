@@ -18,7 +18,7 @@ from Anomos.Connection import Connection
 from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.PartialMessageQueue import PartialMessageQueue
-from Anomos.AnomosProtocol import AnomosNeighborProtocol
+from Anomos.Protocol.AnomosProtocol import AnomosNeighborProtocol
 from Anomos import default_logger, trace_on_call
 
 class NeighborLink(Connection, AnomosNeighborProtocol):
