@@ -15,8 +15,6 @@
 
 # Written by Bram Cohen, modified by the Anomos Riot Induction Brigade
 
-from __future__ import division
-
 import os
 import sys
 import httplib
@@ -27,8 +25,7 @@ from threading import Event
 from Anomos.bencode import bencode
 from Anomos.btformats import check_info
 from Anomos.parseargs import parseargs, printHelp
-from Anomos.platform import bttime
-from Anomos import BTFailure
+from Anomos import bttime, BTFailure
 
 ignore = ['core', 'CVS', 'Thumbs.db']
 

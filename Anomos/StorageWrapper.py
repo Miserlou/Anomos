@@ -13,8 +13,6 @@
 
 # Written by Bram Cohen
 
-from __future__ import division
-
 import hashlib
 from array import array
 from binascii import b2a_hex

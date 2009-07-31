@@ -32,7 +32,7 @@ from operator import itemgetter
 from sys import maxint as INFINITY
 import Anomos.crypto as crypto
 
-from Anomos.platform import bttime
+from Anomos import bttime
 from M2Crypto import RSA
 
 # Use psyco if it's available.

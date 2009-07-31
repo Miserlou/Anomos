@@ -5,7 +5,7 @@ import socket
 from cStringIO import StringIO
 from traceback import print_exc
 from errno import EWOULDBLOCK, ENOBUFS
-from Anomos.platform import bttime
+from Anomos import bttime
 from Anomos import INFO, CRITICAL, WARNING, FAQ_URL
 from Anomos import crypto
 from M2Crypto import SSL

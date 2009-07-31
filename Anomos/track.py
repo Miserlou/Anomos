@@ -35,7 +35,7 @@ from Anomos.HTTPHandler import HTTPHandler
 from Anomos.NetworkModel import NetworkModel
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
-from Anomos.platform import bttime
+from Anomos import bttime
 from Anomos.RawServer import RawServer
 from Anomos.zurllib import quote, unquote_plus as unquote
 

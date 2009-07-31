@@ -13,7 +13,7 @@
 
 # Written by Uoti Urpala
 
-from Anomos.platform import bttime
+from Anomos import bttime
 
 class RateLimiter(object):
 
