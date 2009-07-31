@@ -20,12 +20,10 @@ import os
 from cStringIO import StringIO
 from traceback import print_exc
 
-from Anomos import configfile
 from Anomos.parsedir import parsedir
 from Anomos.download import Multitorrent, Feedback
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
-from Anomos import BTFailure
-from Anomos.platform import bttime
+from Anomos import bttime, configfile, BTFailure
 
 from threading import Event
 

@@ -22,8 +22,14 @@ FAQ_URL = URL# + 'FAQ.html'
 HELP_URL = URL# + 'documentation.html'
 
 import sys
-assert sys.version_info >= (2, 2, 1), "Python 2.2.1 or newer required"
+#TODO: Check actual earliest supported version
+assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
 import os
+
+if sys.platform == 'win32':
+    import time.clock as bttime
+else:
+    import time.time as bttime
 
 def calc_unix_dirs():
     appdir = '%s-%s'%(app_name, version)

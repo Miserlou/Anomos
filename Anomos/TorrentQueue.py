@@ -19,7 +19,7 @@ import os
 import sys
 import threading
 
-from Anomos.platform import bttime
+from Anomos import bttime
 from Anomos.download import Feedback, Multitorrent
 from Anomos.controlsocket import ControlSocket
 from Anomos.bencode import bdecode

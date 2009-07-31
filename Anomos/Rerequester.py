@@ -20,7 +20,7 @@ from socket import gethostbyname
 from random import random, randrange
 from binascii import b2a_hex
 
-from Anomos.platform import bttime
+from Anomos import bttime
 from Anomos.zurllib import urlopen, quote
 from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode

@@ -21,10 +21,7 @@ try:
 except ImportError:
     from ConfigParser import ConfigParser as RawConfigParser
 
-from Anomos import parseargs
-from Anomos import ERROR
-from Anomos import version
-from __init__ import get_config_dir
+from Anomos import get_config_dir, parseargs, version, ERROR
 
 def get_config(defaults, section):
     dir_root = get_config_dir()

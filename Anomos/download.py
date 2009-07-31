@@ -41,8 +41,7 @@ from Anomos.Storage import Storage, FilePool
 from Anomos.StorageWrapper import StorageWrapper
 from Anomos.Torrent import Torrent
 from Anomos.Uploader import Upload
-from Anomos.platform import bttime
-from Anomos import version
+from Anomos import bttime, version
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 
 from Anomos.crypto import Certificate, initCrypto

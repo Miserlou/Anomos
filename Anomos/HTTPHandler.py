@@ -17,7 +17,7 @@ from cStringIO import StringIO
 from sys import stdout
 from time import localtime
 from gzip import GzipFile
-from Anomos.platform import bttime
+from Anomos import bttime
 
 DEBUG = False
 

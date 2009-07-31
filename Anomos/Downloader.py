@@ -15,7 +15,7 @@
 
 from random import shuffle
 
-from Anomos.platform import bttime
+from Anomos import bttime
 from Anomos.CurrentRateMeasure import Measure
 from Anomos.bitfield import Bitfield
 
