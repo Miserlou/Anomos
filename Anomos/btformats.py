@@ -94,36 +94,42 @@ def check_peers(message):
     if message.has_key('warning message'):
         if type(message['warning message']) != str:
             raise BTFailure, 'non-text warning message'
-    peers = message.get('peers')
-    if type(peers) == list:
-        for p in peers:
-            if type(p) != dict:
-                raise BTFailure, 'invalid entry in peer list'
-            if type(p.get('ip')) != str:
-                raise BTFailure, 'invalid entry in peer list'
-            port = p.get('port')
-            if type(port) not in ints or p <= 0:
-                raise BTFailure, 'invalid entry in peer list'
-            if p.has_key('peer id'):
-                peerid = p.get('peer id')
-                if type(peerid) != str or len(peerid) != 20:
-                    raise BTFailure, 'invalid entry in peer list'
-    elif type(peers) != str or len(peers) % 6 != 0:
+    peers = message.get('peers', [])
+    if type(peers) != list:
         raise BTFailure, 'invalid peer list'
+    for p in peers:
+        if type(p) != dict:
+            raise BTFailure, 'invalid entry in peer list'
+        if type(p.get('ip')) != str:
+            raise BTFailure, 'invalid entry in peer list'
+        port = p.get('port')
+        if type(port) not in ints or p <= 0:
+            raise BTFailure, 'invalid entry in peer list'
+        if p.has_key('nid'):
+            nid = p.get('nid')
+            if type(nid) != str or len(nid) != 1:
+                raise BTFailure, 'invalid entry in peer list'
+        #PeerID only used in BitTorrent
+        #if p.has_key('peer id'):
+        #    peerid = p.get('peer id')
+        #    if type(peerid) != str or len(peerid) != 20:
+        #        raise BTFailure, 'invalid entry in peer list'
     interval = message.get('interval', 1)
     if type(interval) not in ints or interval <= 0:
         raise BTFailure, 'invalid announce interval'
     minint = message.get('min interval', 1)
     if type(minint) not in ints or minint <= 0:
         raise BTFailure, 'invalid min announce interval'
-    if type(message.get('tracker id', '')) != str:
-        raise BTFailure, 'invalid tracker id'
-    npeers = message.get('num peers', 0)
-    if type(npeers) not in ints or npeers < 0:
-        raise BTFailure, 'invalid peer count'
-    dpeers = message.get('done peers', 0)
-    if type(dpeers) not in ints or dpeers < 0:
-        raise BTFailure, 'invalid seed count'
+    tcodes = message.get('tracking codes', [])
+    if type(tcodes) != list:
+        raise BTFailure, 'non-list tracking codes'
+    for t in tcodes:
+        if type(t) != list:
+            raise BTFailure, 'invalid entry in tracking code list'
+        if len(t) != 2:
+            raise BTFailure, 'invalid tracking code entry length'
+        if type(t[0]) != str or type(t[1]) != str:
+            raise BTFailure, 'invalid format for tracking code components'
 
 def statefiletemplate(x):
     if type(x) != DictType:

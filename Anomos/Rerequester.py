@@ -277,7 +277,7 @@ class Rerequester(object):
         try:
             # Here's where we receive/decrypt data from the tracker
             r = bdecode(data)
-            #check_peers(r)
+            check_peers(r)
         except BTFailure, e:
             if data != '':
                 self.logfunc(ERROR, 'bad data from tracker - ' + str(e))
