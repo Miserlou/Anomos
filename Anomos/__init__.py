@@ -17,7 +17,7 @@ version = '0.5.1'
 protocol_name = "Anomos"
 
 URL = 'http://www.anomos.info/'
-DONATE_URL = 'http://sourceforge.net/donate/index.php?group_id=203746'# + 'donate.html'
+DONATE_URL = URL+'donate'
 FAQ_URL = URL# + 'FAQ.html'
 HELP_URL = URL# + 'documentation.html'
 
