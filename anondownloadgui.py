@@ -365,7 +365,9 @@ class SeedingButton(gtk.Button):
                 t.widget.hide()
             if t.completion >= 1:
                 t.widget.show()
-                self.main.reorder_torrent(infohash,i)
+                #self.main.reorder_torrent(infohash,i)
+                self.knowns.reorder_child(t.widget, i)
+                self.mains.reorder_child(t.widget, i)
             i+=1
 
     def send(self, k, m, p, t):
@@ -406,11 +408,14 @@ class DownloadingButton(gtk.Button):
             for infohash, t in self.torrents.iteritems():
                 if t.completion < 1:
                     t.widget.show()
-                    self.main.reorder_torrent(infohash, i)
+                    #self.main.reorder_torrent(infohash, i)
+                    self.knowns.reorder_child(t.widget, i)
+                    #self.mains.reorder_child(t.widget, i)
                 if t.completion >= 1:
                     t.widget.hide()
                 i+=1
-        except:
+        except Exception, e:
+            print e
             return
 
     def send_torrents(self, t):
@@ -2409,8 +2414,8 @@ class DownloadInfoFrame(object):
 
         self.paned.pack2(self.mainscroll, resize=True, shrink=False)
 
-        self.dbutton.send(self.mainscroll, self.knownscroll, self.paned, self.torrents)
-        self.sbutton.send(self.mainscroll, self.knownscroll, self.paned, self.torrents)
+        self.dbutton.send(self.scrollbox, self.knownbox, self.paned, self.torrents)
+        self.sbutton.send(self.scrollbox, self.knownbox, self.paned, self.torrents)
 
         self.box1.pack_start(self.paned)
 
