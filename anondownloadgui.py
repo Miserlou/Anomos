@@ -365,9 +365,7 @@ class SeedingButton(gtk.Button):
                 t.widget.hide()
             if t.completion >= 1:
                 t.widget.show()
-                #self.main.reorder_torrent(infohash,i)
                 self.knowns.reorder_child(t.widget, i)
-                self.mains.reorder_child(t.widget, i)
             i+=1
 
     def send(self, k, m, p, t):
@@ -408,9 +406,7 @@ class DownloadingButton(gtk.Button):
             for infohash, t in self.torrents.iteritems():
                 if t.completion < 1:
                     t.widget.show()
-                    #self.main.reorder_torrent(infohash, i)
                     self.knowns.reorder_child(t.widget, i)
-                    #self.mains.reorder_child(t.widget, i)
                 if t.completion >= 1:
                     t.widget.hide()
                 i+=1
