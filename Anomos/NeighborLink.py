@@ -110,9 +110,11 @@ class NeighborLink(AnomosNeighborProtocol):
 
     def send_partial(self, numbytes):
         ''' Requests numbytes from the PartialMessageQueue
-            to be sent. 
+            to be sent.
             @return: Actual number of bytes sent.'''
-        sids, msg = self.pmq.dequeue_partial(numbytes)
+        sids,msg = self.pmq.dequeue_partial(numbytes)
+        if len(msg) == 0:
+            return 0
         #TODO: There should really be some kind of error handling here
         self.socket.write(msg)
         for s in sids:

@@ -42,10 +42,13 @@ class RateLimiter(object):
     def queue(self, conn):
         assert conn.next_upload is None
         if self.tail is None:
+            # Queue is empty, add the connection and give it a chance
+            # to send its messages.
             self.tail = conn
             conn.next_upload = conn
             self.try_send(True)
         else:
+            # Queue is non-empty, add the connection to the tail of it
             conn.next_upload = self.tail.next_upload
             self.tail.next_upload = conn
             self.tail = conn
@@ -64,16 +67,20 @@ class RateLimiter(object):
                 raise
             except Exception, e:
                 cur.got_exception(e)
-                cur = self.tail.next_upload()
+                cur = self.tail.next_upload
                 bytes = 0
 
             self.offset_amount += bytes
             if bytes == 0 or not cur.is_flushed():
+                # Nothing was sent during the last send_partial
                 if self.tail is cur:
+                    # Cur was the only connection in the queue, so stop
+                    # trying to send messages.
                     self.tail = None
                     cur.next_upload = None
                     break
                 else:
+                    # Dequeue cur
                     self.tail.next_upload = cur.next_upload
                     cur.next_upload = None
                     cur = self.tail.next_upload
