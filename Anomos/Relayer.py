@@ -57,15 +57,34 @@ class Relayer(AnomosRelayerProtocol):
         # the same rate measurer.
         self.rate_measure = measurer
 
+    def _incomplete_relay_message(self, msg):
+        if not self.complete:
+            # Buffer messages until neighbor connection completes
+            self.pre_complete_buffer.append(msg)
+        else:
+            self.relay_message = self._complete_relay_message
+            self.relay_message(msg)
+
+    def _complete_relay_message(self, msg):
+        if self.next_upload is None and self.is_flushed():
+            self.logfunc(INFO, "Queueing relayer")
+            self.ratelimiter.queue(self.orelay)
+        self.orelay.send_relay_message(msg)
+        self.rate_measure.update_rate(len(msg))
+        self.sent += len(msg)
+
     def relay_message(self, msg):
         if self.complete:
-            #XXX: This needs to be rate limited!
-            self.orelay.send_relay_message(msg)
-            self.rate_measure.update_rate(len(msg))
-            self.sent += len(msg)
-        else: # Buffer messages until connection is complete
-            #TODO: buffer size control, message rejection after a certain point.
-            self.pre_complete_buffer.append(msg)
+            self.relay_message = self._complete_relay_message
+            self.relay_message(msg)
+        else:
+            # Buffer messages until connection is complete
+            self.relay_message = self._incomplete_relay_message
+            self.relay_message(msg)
+
+    def send_partial(self, bytes):
+        self.logfunc(INFO, "Sending partial on relayer")
+        return self.orelay.neighbor.send_partial(bytes)
 
     def connection_completed(self):
         self.logfunc(INFO, "Relay connection [%02x:%d] established" %
