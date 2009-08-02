@@ -22,6 +22,7 @@ class EndPoint(AnomosEndPointProtocol):
         AnomosEndPointProtocol.__init__(self)
         self.stream_id = stream_id
         self.neighbor = neighbor
+        self.ratelimiter = neighbor.ratelimiter
         self.torrent = torrent
         self.e2e_key = aes
         self.logfunc = logfunc
@@ -46,7 +47,6 @@ class EndPoint(AnomosEndPointProtocol):
         self.complete = True
         #self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
-        self.ratelimiter = self.upload.ratelimiter
         self.download = self.torrent.make_download(self)
         self.choker = self.upload.choker
         self.choker.connection_made(self)

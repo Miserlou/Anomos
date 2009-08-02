@@ -36,9 +36,9 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
             handler = self.get_stream_handler(stream)
             yield 4   # Message Length
             l = toint(self._message)
-            #TODO: Neighbors need some access to config.
-            #if l > self.config['max_message_length']:
-            #    return
+            if l > self.config['max_message_length']:
+                self.logfunc(WARNING, "Received message longer than max length")
+                return
             yield l # Payload
             handler.got_message(self._message)
     def invalid_message(self, t):

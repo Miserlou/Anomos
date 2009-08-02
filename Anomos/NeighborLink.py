@@ -24,13 +24,15 @@ class NeighborLink(AnomosNeighborProtocol):
     ''' NeighborLink handles the socket between two neighbors and keeps
         track of the objects used to manage the active streams between
         those neighbors. '''
-    def __init__(self, manager, socket, id, logfunc=default_logger):
+    def __init__(self, manager, socket, id, config, ratelimiter, logfunc=default_logger):
         AnomosNeighborProtocol.__init__(self, socket)
         self.id = id
         self.manager = manager
         self.streams = {} # {StreamID : EndPoint or Relayer object}
         self.next_stream_id = 0
         self.pmq = PartialMessageQueue()
+        self.config = config
+        self.ratelimiter = ratelimiter
         self.logfunc = logfunc
 
         #Prepare to read messages
@@ -90,8 +92,8 @@ class NeighborLink(AnomosNeighborProtocol):
 
     def connection_flushed(self, socket):
         ''' Inform all streams that the connection is
-            flushed so they may requeue themselves if 
-            they need to'''
+            flushed so they may requeue themselves if
+            they need to '''
         for stream in self.streams.itervalues():
             stream.connection_flushed()
 

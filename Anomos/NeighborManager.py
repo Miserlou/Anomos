@@ -24,25 +24,25 @@ class NeighborManager:
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate, sessionid, logfunc):
+    def __init__(self, rawserver, config, certificate, sessionid, ratelimiter, logfunc):
         self.rawserver = rawserver
         self.config = config
         self.certificate = certificate
         self.sessionid = sessionid
+        self.ratelimiter = ratelimiter
         self.logfunc = logfunc
         self.neighbors = {}
         self.relayers = []
         self.incomplete = {}
         self.torrents = {}
 
-        self.port = None
         self.waiting_tcs = {}
 
         self.failedPeers = []
 
     ## Got new neighbor list from the tracker ##
     def update_neighbor_list(self, list):
-        freshids = dict([(i[2],(i[0],i[1])) for i in list])
+        freshids = dict([(i[2],(i[0],i[1])) for i in list]) #{nid : (ip, port)}
         # Remove neighbors not found in freshids
         for id in self.neighbors.keys():
             if not freshids.has_key(id):
@@ -50,19 +50,19 @@ class NeighborManager:
         # Start connections with the new neighbors
         for id, loc in freshids.iteritems():
             if not self.neighbors.has_key(id) and id not in self.failedPeers:
-                self.start_connection(loc, id)
+                self.start_connection(id, loc)
         # Remove the failedPeers that didn't come back as fresh IDs (presumably
         # the tracker has removed them from our potential neighbor list)
         self.failedPeers = [id for id in freshids if id in self.failedPeers]
 
     ## Start a new neighbor connection ##
-    def start_connection(self, loc, id):
-        """
-        @param loc: (IP, Port)
-        @param id: The neighbor ID to assign to this connection
-        @type loc: tuple
-        @type id: int
-        """
+    def start_connection(self, id, loc):
+        ''' Start a new SSL connection to the peer at loc and 
+            assign them the NeighborID id
+            @param loc: (IP, Port)
+            @param id: The neighbor ID to assign to this connection
+            @type loc: tuple
+            @type id: int '''
         #TODO: block multiple connections to the same location
         if self.has_neighbor(id) or \
                 (self.incomplete.get(id) == loc): #or \
@@ -80,27 +80,27 @@ class NeighborManager:
             if v == loc:
                 self.failedPeers.append(k)
                 del self.incomplete[k]
-        #TODO: Do something with the error msg.
+        self.logfunc(INFO, \
+                "Failed to open connection to %s\n\
+                 Reason: %s" % str(loc), str(err))
 
     def failed_connections(self):
         return self.failedPeers
 
     ## Socket opened successfully ##
     def sock_success(self, sock, loc):
-        """
-        @param sock: SingleSocket object for the newly created socket
-        """
+        ''' @param sock: SingleSocket object for the newly created socket '''
         for id,v in self.incomplete.iteritems():
             if v == loc:
                 break
         else: return #loc wasn't found
-        # Exchange the header and hold the connection open
         AnomosNeighborInitializer(self, sock, id, started_locally=True)
 
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
         self.logfunc(INFO, "Adding Neighbor: \\x%02x" % ord(id))
-        self.neighbors[id] = NeighborLink(self, socket, id, logfunc=self.logfunc)
+        self.neighbors[id] = NeighborLink(self, socket, id, \
+                self.config, self.ratelimiter, logfunc=self.logfunc)
 
     def rm_neighbor(self, nid):
         if self.incomplete.has_key(nid):
