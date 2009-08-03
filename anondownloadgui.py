@@ -1292,7 +1292,7 @@ class TorrentInfoWindow(object):
         add_item('Announce url:', self.torrent_box.metainfo.announce, y)
         y+=1
 
-        size = Size(self.torrent_box.metainfo.total_bytes)
+        size = Size(self.torrent_box.metainfo.file_size)
         num_files = ', in one file'
         if self.torrent_box.is_batch:
             num_files = ', in %d files' % len(self.torrent_box.metainfo.sizes)
@@ -1825,7 +1825,7 @@ class RunningTorrentBox(DroppableTorrentBox):
                 self.elabels.append(label)
 
             pl = self.metainfo.piece_length
-            tl = self.metainfo.total_bytes
+            tl = self.metainfo.file_size
             count, lastlen = divmod(tl, pl)
             self.piece_count = count + (lastlen > 0)
 

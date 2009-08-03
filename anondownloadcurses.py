@@ -341,7 +341,7 @@ class DL(Feedback):
                 saveas = torrent_name
 
             self.d.set_torrent_values(metainfo.name, os.path.abspath(saveas),
-                                metainfo.total_bytes, len(metainfo.hashes))
+                                metainfo.file_size, len(metainfo.hashes))
             self.torrent = self.multitorrent.start_torrent(metainfo,
                                 self.config, self, saveas)
         except BTFailure, e:

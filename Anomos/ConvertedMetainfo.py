@@ -87,7 +87,7 @@ class ConvertedMetainfo(object):
         self.is_batch = False
         self.orig_files = None
         self.files_fs = None
-        self.total_bytes = 0
+        self.file_size = 0
         self.sizes = []
         self.anon = None
 
@@ -97,8 +97,8 @@ class ConvertedMetainfo(object):
         btformats.check_message(metainfo, check_paths=False)
         info = metainfo['info']
         if info.has_key('length'):
-            self.total_bytes = info['length']
-            self.sizes.append(self.total_bytes)
+            self.file_size = info['length']
+            self.sizes.append(self.file_size)
         else:
             self.is_batch = True
             r = []
@@ -107,7 +107,7 @@ class ConvertedMetainfo(object):
             i = 0
             for f in info['files']:
                 l = f['length']
-                self.total_bytes += l
+                self.file_size += l
                 self.sizes.append(l)
                 path = self._get_attr_utf8(f, 'path')
                 for x in path:

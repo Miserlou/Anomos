@@ -148,7 +148,7 @@ class Multitorrent(object):
         else:
             myfiles = [save_path]
 
-        if metainfo.total_bytes == 0:
+        if metainfo.file_size == 0:
             if filelist:
                 return None
             return 1
@@ -173,8 +173,8 @@ class Multitorrent(object):
         if r is None:
             return None
         if filelist:
-            return r[0] / metainfo.total_bytes, r[1], r[2]
-        return r / metainfo.total_bytes
+            return r[0] / metainfo.file_size, r[1], r[2]
+        return r / metainfo.file_size
 
         ##Relayers don't exist at the torrent level, so we need these methods
         ## to access their stats through the NeighborManager.
@@ -214,7 +214,7 @@ class _SingleTorrent(object):
         self.is_seed = False
         self.closed = False
         self.infohash = None
-        self.total_bytes = None
+        self.file_size = None
         self._doneflag = threading.Event()
         self.finflag = threading.Event()
         self._hashcheck_thread = None
@@ -243,7 +243,7 @@ class _SingleTorrent(object):
         self._set_auto_uploads()
 
         self.infohash = metainfo.infohash
-        self.total_bytes = metainfo.total_bytes
+        self.file_size = metainfo.file_size
         if not metainfo.reported_errors:
             metainfo.show_encoding_errors(self._log)
 
@@ -358,7 +358,7 @@ class _SingleTorrent(object):
             upmeasure_seedtime.get_rate, downmeasure.get_rate,
             upmeasure.get_total, downmeasure.get_total,
             self._ratemeasure.get_time_left, self._ratemeasure.get_size_left,
-            self.total_bytes, self.finflag, downloader, self._myfiles)
+            self.file_size, self.finflag, downloader, self._myfiles)
 
         self._announced = True
         self._rerequest.begin()
@@ -428,9 +428,9 @@ class _SingleTorrent(object):
         if not self.config['data_dir']:
             return
         if on_finish:    # self._ratemeasure might not exist yet
-            amount_done = self.total_bytes
+            amount_done = self.file_size
         else:
-            amount_done = self.total_bytes - self._ratemeasure.get_size_left()
+            amount_done = self.file_size - self._ratemeasure.get_size_left()
         filename = os.path.join(self.config['data_dir'], 'resume',
                                 self.infohash.encode('hex'))
         resumefile = None
