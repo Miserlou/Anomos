@@ -480,7 +480,6 @@ class _SingleTorrent(object):
             self.neighbors.remove_torrent(self.infohash)
         for port in self.reserved_ports:
             self._singleport_listener.release_port(port)
-        #TODO: Close NeighborManager connections
         if self._storage is not None:
             self._storage.close()
         self._ratelimiter.clean_closed()

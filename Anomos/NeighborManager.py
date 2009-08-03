@@ -183,6 +183,7 @@ class NeighborManager:
         self.torrents[infohash] = torrent
 
     def remove_torrent(self, infohash):
+        self.torrents[infohash].close_all_streams()
         del self.torrents[infohash]
 
     def get_torrent(self, infohash):

@@ -30,5 +30,8 @@ class Torrent(object):
     def rm_active_stream(self, endpoint):
         if endpoint in self.active_streams:
             self.active_streams.remove(endpoint)
+    def close_all_streams(self):
+        for s in self.active_streams:
+            s.close()
     def ever_got_incoming(self):
         return self.ever_got_inc

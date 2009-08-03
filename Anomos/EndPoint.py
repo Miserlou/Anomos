@@ -45,7 +45,7 @@ class EndPoint(AnomosEndPointProtocol):
             self.logfunc(WARNING, "Double complete")
             return
         self.complete = True
-        #self.torrent.add_active_stream(self)
+        self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
         self.download = self.torrent.make_download(self)
         self.choker = self.upload.choker
@@ -56,9 +56,8 @@ class EndPoint(AnomosEndPointProtocol):
             self.logfunc(WARNING, "Double close")
             return
         self.closed = True
-        #self.torrent.rm_active_stream(self)
+        self.torrent.rm_active_stream(self)
         self.choker.connection_lost(self)
-        self.send_break()
         self.neighbor.end_stream(self.stream_id)
         self.download.disconnected()
         self.upload = None
@@ -69,6 +68,8 @@ class EndPoint(AnomosEndPointProtocol):
                 self.ratelimiter.queue(self)
 
     def close(self):
+        if not self.got_break:
+            self.send_break()
         self.connection_closed()
 
     def is_flushed(self):
