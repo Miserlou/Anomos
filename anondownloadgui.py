@@ -2846,6 +2846,7 @@ class DownloadInfoFrame(object):
         self.logbuffer.log_text(text, severity)
 
     def error(self, infohash, severity, text):
+        #XXX: Temporary fix
         try:
             name = self.torrents[infohash].metainfo.name
         except Exception, e:
