@@ -2846,7 +2846,10 @@ class DownloadInfoFrame(object):
         self.logbuffer.log_text(text, severity)
 
     def error(self, infohash, severity, text):
-        name = self.torrents[infohash].metainfo.name
+        try:
+            name = self.torrents[infohash].metainfo.name
+        except Exception, e:
+            return
         err_str = '"%s" : %s'%(name,text)
         err_str = err_str.decode('utf-8', 'replace').encode('utf-8')
         if severity >= ERROR:
