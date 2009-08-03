@@ -26,7 +26,7 @@ import random
 
 from Anomos.Choker import Choker
 from Anomos.ConvertedMetainfo import set_filesystem_encoding
-from Anomos.CurrentRateMeasure import Measure
+from Anomos.Measure import Measure
 from Anomos.Downloader import Downloader
 from Anomos.DownloaderFeedback import DownloaderFeedback
 from Anomos.EndPoint import EndPoint

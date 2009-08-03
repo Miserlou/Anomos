@@ -16,7 +16,7 @@
 from random import shuffle
 
 from Anomos import bttime
-from Anomos.CurrentRateMeasure import Measure
+from Anomos.Measure import Measure
 from Anomos.bitfield import Bitfield
 
 class PerStreamStats(object):

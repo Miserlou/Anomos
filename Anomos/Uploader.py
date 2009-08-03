@@ -13,7 +13,7 @@
 
 # Written by Bram Cohen
 
-from Anomos.CurrentRateMeasure import Measure
+from Anomos.Measure import Measure
 
 
 class Upload(object):

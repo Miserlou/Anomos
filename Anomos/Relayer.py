@@ -16,7 +16,7 @@
 # Written by Rich Jones, John Schanck
 
 from Anomos.Protocol.AnomosRelayerProtocol import AnomosRelayerProtocol
-from Anomos.CurrentRateMeasure import Measure
+from Anomos.Measure import Measure
 from Anomos import INFO, CRITICAL, WARNING, ERROR, default_logger
 from threading import Thread
 
