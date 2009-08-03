@@ -93,6 +93,8 @@ class TorrentQueue(Feedback):
         self.controlsocket = controlsocket
         self.config['def_running_torrents'] = 1 # !@# XXX
         self.config['max_running_torrents'] = 3 # !@# XXX
+        self.next_torrent_ratio = float(self.config['next_torrent_ratio'])
+        self.last_torrent_ratio = float(self.config['last_torrent_ratio'])
         self.doneflag = threading.Event()
         self.torrents = {}
         self.starting_torrent = None
@@ -376,10 +378,10 @@ class TorrentQueue(Feedback):
         now = bttime()
         if self.queue and self.starting_torrent is None:
             mintime = now - self.config['next_torrent_time'] * 60
-            minratio = self.config['next_torrent_ratio'] / 100
+            minratio = self.next_torrent_ratio / 100
         else:
             mintime = 0
-            minratio = self.config['last_torrent_ratio'] / 100
+            minratio = self.last_torrent_ratio / 100
             if not minratio:
                 return
         for infohash in self.running_torrents:
@@ -578,9 +580,9 @@ class TorrentQueue(Feedback):
             downtotal = status['downTotal'] + torrent.downtotal_old
             ulspeed = status['upRate2']
             if self.queue:
-                ratio = self.config['next_torrent_ratio'] / 100
+                ratio = self.next_torrent_ratio / 100
             else:
-                ratio = self.config['last_torrent_ratio'] / 100
+                ratio = self.last_torrent_ratio / 100
             if ratio <= 0 or ulspeed <= 0:
                 rem = 1e99
             else:
@@ -728,9 +730,9 @@ class TorrentQueue(Feedback):
         if infohash == self.starting_torrent:
             t = self.torrents[infohash]
             if self.queue:
-                ratio = self.config['next_torrent_ratio'] / 100
+                ratio = self.next_torrent_ratio / 100
             else:
-                ratio = self.config['last_torrent_ratio'] / 100
+                ratio = self.last_torrent_ratio / 100
             if ratio and t.uptotal >= t.downtotal * ratio:
                 raise BTShutdown("Not starting torrent as it already meets "
                                "the current settings for when to stop seeding")
