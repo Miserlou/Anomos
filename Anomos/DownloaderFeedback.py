@@ -62,7 +62,7 @@ class DownloaderFeedback(object):
             d = c.download
             rec["download"] = (d.measure.get_total(),int(d.measure.get_rate()),
                                d.interested, d.choked, d.is_snubbed())
-            rec['completed'] = 1 - d.have.numfalse / len(d.have)
+            rec['completed'] = 1 - float(d.have.numfalse) / len(d.have)
             rec['speed'] = d.connection.download.peermeasure.get_rate()
             l.append(rec)
         return l
@@ -89,7 +89,7 @@ class DownloaderFeedback(object):
             if missingPieces == 0:
                 numCopies += 1
             else:
-                fraction = 1 - missingPieces / self.picker.numpieces
+                fraction = 1 - float(missingPieces) / self.picker.numpieces
                 numCopyList.append(fraction)
                 if fraction == 0 or len(numCopyList) >= 3:
                     break
@@ -123,7 +123,7 @@ class DownloaderFeedback(object):
         status['timeEst'] = timeEst
 
         if self.file_length > 0:
-            fractionDone = 1 - self.leftfunc() / self.file_length
+            fractionDone = 1 - float(self.leftfunc()) / self.file_length
         else:
             fractionDone = 1
         status.update({

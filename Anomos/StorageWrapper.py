@@ -153,7 +153,7 @@ class StorageWrapper(object):
                     markgot(self.numpieces - 1, i)
                 else:
                     self._check_partial(i, partials, data)
-                statusfunc(fractionDone = 1 - self.amount_left /
+                statusfunc(fractionDone = 1 - float(self.amount_left) /
                            self.total_length)
             if flag.isSet():
                 return
@@ -231,7 +231,7 @@ class StorageWrapper(object):
         # "if self.rplaces[pos] != ALLOCATED:" to skip extra mark writes
         mark = self.partial_mark + tobinary(piece)
         mark += chr(0xff) * (self.config['download_slice_size'] - len(mark))
-        mark *= (length - 1) // len(mark) + 1
+        mark *= int((length - 1) / len(mark) + 1)
         self.storage.write(p, buffer(mark, 0, length))
 
     def _move_piece(self, oldpos, newpos):
