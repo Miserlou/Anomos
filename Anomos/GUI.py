@@ -13,6 +13,8 @@
 
 # written by Matt Chisholm
 
+from __future__ import division
+
 import gtk
 import pango
 import gobject
@@ -20,7 +22,6 @@ import os.path
 import threading
 
 from __init__ import image_root, app_name, FAQ_URL
-from __future__ import division
 
 SPACING = 8
 WINDOW_TITLE_LENGTH = 128 # do we need this?
