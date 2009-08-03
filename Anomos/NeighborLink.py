@@ -80,6 +80,7 @@ class NeighborLink(AnomosNeighborProtocol):
             @param id: Stream id of stream to end
             @type id: int in range 0 to 2**16'''
         if self.streams.has_key(id):
+            self.pmq.remove_by_sid(id)
             del self.streams[id]
 
     def get_stream_handler(self, id):
@@ -114,14 +115,15 @@ class NeighborLink(AnomosNeighborProtocol):
         ''' Requests numbytes from the PartialMessageQueue
             to be sent.
             @return: Actual number of bytes sent.'''
+        self.logfunc(INFO, "partialing")
         sids,msg = self.pmq.dequeue_partial(numbytes)
         if len(msg) == 0:
             return 0
         #TODO: There should really be some kind of error handling here
+        #      if this write fails.
         self.socket.write(msg)
         for s in sids:
-            if self.streams.has_key(s):
-                self.streams[s].piece_sent()
+            self.streams[s].piece_sent()
         return len(msg)
 
     def uniq_id(self):

@@ -61,6 +61,18 @@ class PartialMessageQueue(object):
         del self.sid_map[:i]
         self._deeplen -= len(deq)
         return (streams, deq)
+    def remove_by_sid(self, sid):
+        ''' Removes all messages queued by the stream given by sid '''
+        if sid not in self.sid_map:
+            return
+        tmpm = []
+        tmps = []
+        for i in range(len(self.msgs)):
+            if self.sid_map[i] != sid:
+                tmpm.append(self.msgs[i])
+                tmps.append(self.sid_map[i])
+        self.msgs = tmpm
+        self.sid_map = tmps
     def _pindex(self, p):
         # Returns index of p'th byte in message queue
         # (Treating the queue as an irregular 2d array)
