@@ -95,10 +95,11 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay.flush_buffer()
 
     def connection_closed(self):
-        self.orelay.send_break()
+        if not self.orelay.recvd_break:
+            self.logfunc(INFO, "Sending break on orelay")
+            self.orelay.send_break()
         self.pre_complete_buffer = None
         self.neighbor.end_stream(self.stream_id)
-        self.orelay.neighbor.end_stream(self.orelay.stream_id)
 
     def connection_flushed(self):
         pass

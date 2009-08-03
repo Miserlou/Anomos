@@ -24,17 +24,21 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def __init__(self):
         AnomosProtocol.__init__(self)
         self.msgmap.update({BREAK: self.got_break, RELAY: self.got_relay})
+        self.recvd_break = False
     ## Disable direct message reading. ##
     def send_break(self):
+        self.logfunc(INFO, "BREAK SENT")
+        self.recvd_break = True
         self.network_ctl_msg(BREAK)
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):
         self.network_ctl_msg('', msg)
-    #TODO: I have no idea if send break works --John
     def got_break(self):
-        #TODO: Lost uploader, schedule announce for new one..
-        self.close()
+        self.logfunc(INFO, 'Relayer Got Break')
+        self.recvd_break = True
+        self.network_ctl_msg(CONFIRM) # Confirm reception of break
+        self.close() # Close inbound connection
     def got_relay(self, message):
         #NOTE: message[0] == RELAY, there's no need to
         #      strip this since we'd just have to add
@@ -42,8 +46,12 @@ class AnomosRelayerProtocol(AnomosProtocol):
         #      send_relay does NOT add a control char.
         self.relay_message(message)
     def got_confirm(self):
-        self.connection_completed()
-        self.relay_message(CONFIRM)
+        if self.recvd_break:
+            self.logfunc(INFO, "Got Break Confirm")
+            self.close()
+        else:
+            self.connection_completed()
+            self.relay_message(CONFIRM)
     #TODO: Analyze effective choking strategies for Relayers
     def got_choke(self):
         self.choke(self)

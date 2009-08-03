@@ -39,9 +39,13 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             ENCRYPTED: self.got_encrypted,\
                             RELAY: self.got_relay, \
                             BREAK: self.got_break})
+        self.recvd_break = False
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
+        if self.recvd_break:
+            self.logfunc(INFO, "Break success")
+            self.close()
     def got_relay(self, message):
         self.got_message(message[1:])
     def got_encrypted(self, message):
@@ -51,6 +55,9 @@ class AnomosEndPointProtocol(AnomosProtocol):
         else:
             raise RuntimeError("Received encrypted data before we were ready")
     def got_break(self):
+        self.logfunc(INFO, 'Encoder Got Break')
+        self.recvd_break = True
+        self.send_confirm()
         self.close()
     def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages.
@@ -105,6 +112,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
                 ep.send_have(i)
     ## Send messages ##
     def send_break(self):
+        self.recvd_break = True
         self.network_ctl_msg(BREAK)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)

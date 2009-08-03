@@ -68,9 +68,12 @@ class EndPoint(AnomosEndPointProtocol):
                 self.ratelimiter.queue(self)
 
     def close(self):
-        if not self.got_break:
+        if not self.recvd_break:
+            self.logfunc(INFO, "Send Break on %s"%self.uniq_id())
             self.send_break()
-        self.connection_closed()
+        else:
+            self.logfunc(INFO, "Closing %s"%self.uniq_id())
+            self.connection_closed()
 
     def is_flushed(self):
         return self.neighbor.socket.is_flushed()
