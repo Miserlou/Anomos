@@ -18,12 +18,11 @@ from Anomos.Measure import Measure
 
 class Upload(object):
 
-    def __init__(self, stream, ratelimiter, totalup, totalup2, choker,
+    def __init__(self, stream, ratelimiter, totalup, choker,
                  storage, max_slice_length, max_rate_period):
         self.stream = stream
         self.ratelimiter = ratelimiter
         self.totalup = totalup
-        self.totalup2 = totalup2
         self.choker = choker
         self.storage = storage
         self.max_slice_length = max_slice_length
@@ -57,7 +56,6 @@ class Upload(object):
             return None
         self.measure.update_rate(len(piece))
         self.totalup.update_rate(len(piece))
-        self.totalup2.update_rate(len(piece))
         return (index, begin, piece)
 
     def got_request(self, index, begin, length):

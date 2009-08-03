@@ -313,7 +313,6 @@ class _SingleTorrent(object):
             self._finished()
         choker = Choker(self.config, schedfunc, self.finflag.isSet)
         upmeasure = Measure(self.config['max_rate_period'])
-        upmeasure_seedtime = Measure(self.config['max_rate_period_seedtime'])
         downmeasure = Measure(self.config['max_rate_period'])
         self._upmeasure = upmeasure
         self._downmeasure = downmeasure
@@ -333,9 +332,9 @@ class _SingleTorrent(object):
                                 len(metainfo.hashes), downmeasure,
                                 self._ratemeasure.data_came_in, kickpeer)
         def make_upload(connection):
-            return Upload(connection, self._ratelimiter, upmeasure,
-                        upmeasure_seedtime, choker, self._storagewrapper,
-                        self.config['max_slice_length'], self.config['max_rate_period'])
+            return Upload(connection, self._ratelimiter, upmeasure, choker,
+                    self._storagewrapper, self.config['max_slice_length'],
+                    self.config['max_rate_period'])
         self._torrent = Torrent(self.infohash, make_upload,
                                 downloader, len(metainfo.hashes)) 
         self.reported_port = self.config['forwarded_port']
@@ -355,8 +354,7 @@ class _SingleTorrent(object):
             # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure
             #             downmeasure, self)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
-            upmeasure_seedtime.get_rate, downmeasure.get_rate,
-            upmeasure.get_total, downmeasure.get_total,
+            downmeasure.get_rate, upmeasure.get_total, downmeasure.get_total,
             self._ratemeasure.get_time_left, self._ratemeasure.get_size_left,
             self.file_size, self.finflag, downloader, self._myfiles)
 

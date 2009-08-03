@@ -578,7 +578,7 @@ class TorrentQueue(Feedback):
             now = bttime()
             uptotal = status['upTotal'] + torrent.uptotal_old
             downtotal = status['downTotal'] + torrent.downtotal_old
-            ulspeed = status['upRate2']
+            ulspeed = status['upRate']
             if self.queue:
                 ratio = self.next_torrent_ratio / 100
             else:
