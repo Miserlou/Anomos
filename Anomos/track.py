@@ -618,7 +618,7 @@ class Tracker(object):
                  'port':vals['loc'][1], \
                  'nid':vals['nid']} for vals in sim.neighbors.values()]
 
-    def getTCs(self, peerid, infohash, is_seed, count):
+    def getTCs(self, peerid, infohash, count=3):
         """
         Gets a set of tracking codes from the specified peer to 'count' random
         peers with 'infohash'.
@@ -631,15 +631,12 @@ class Tracker(object):
         @type count: int
         @type is_seed: bool
         """
-        #TODO: Update the cache system, and only get peers in infohash's swarm
-        #cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
-
         # If is_seed then get the swarm without seeders
         #if is_seed:
         #    swarm = self.networkmodel.getDownloadingPeers(infohash)
         #else:
         #    #swarm = self.networkmodel.getSwarm(infohash)
-        paths = self.networkmodel.getTrackingCodes(peerid, infohash)
+        paths = self.networkmodel.getTrackingCodes(peerid, infohash, count)
         return paths
 
 #    def peerlist(self, peerid, infohash, stopped, is_seed, return_type, rsize):
@@ -794,16 +791,9 @@ class Tracker(object):
         data = {}
         if event != 'stopped':
             data['peers'] = self.neighborlist(simpeer.name)
-            #TODO: Replace "3" with actual number of TCs to get
             data['tracking codes'] = self.getTCs(simpeer.name, infohash,
-                                                 not int(params('left')),
                                                  self.config['response_size'])
-#            if params('left') and int(params('left')):
-#                data['tracking codes'] = self.getTCs(params('peer_id'),
-#                        infohash, True, 3)
-#            else:
-#                data['tracking codes'] = []
-
+            data['interval'] = self.reannounce_interval
         #if paramslist.has_key('scrape'):
         #    data['scrape'] = self.scrapedata(infohash, False)
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma':\

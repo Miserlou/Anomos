@@ -75,17 +75,18 @@ class Multitorrent(object):
         self.certificate = Certificate(self.config['identity'])
         self.rawserver = RawServer(doneflag, config, self.certificate, logfunc=logfunc,
                                    bindaddr=config['bind'])
+
+        self.ratelimiter = RateLimiter(self.rawserver.add_task)
+        self.ratelimiter.set_parameters(config['max_upload_rate'],
+                                        config['upload_unit_size'])
         self.neighbors = NeighborManager(self.rawserver, config,\
                                            self.certificate, self.sessionid,\
-                                           self.logfunc)
+                                           self.ratelimiter, self.logfunc)
         self.singleport_listener = SingleportListener(self.rawserver,\
                                                         self.config,\
                                                         self.neighbors)
         self._find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
-        self.ratelimiter = RateLimiter(self.rawserver.add_task)
-        self.ratelimiter.set_parameters(config['max_upload_rate'],
-                                        config['upload_unit_size'])
         set_filesystem_encoding(config['filesystem_encoding'],
                                                  logfunc)
 

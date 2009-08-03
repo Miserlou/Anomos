@@ -13,30 +13,25 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-import os
-
 from threading import Thread
 from socket import gethostbyname
-from random import random, randrange
-from binascii import b2a_hex
+from random import random
 
 from Anomos import bttime
-from Anomos.zurllib import urlopen, quote
+from Anomos.zurllib import quote
 from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
-from M2Crypto import httpslib, SSL, X509
+from M2Crypto import SSL, X509
+from M2Crypto.httpslib import HTTPSConnection
 from M2Crypto import version_info as m2version
 import urllib
 
-STARTED=0
-COMPLETED=1
-STOPPED=2
-
 if m2version < (0, 20, 0):
-    class M2CryptoProxyHTTPSHack(httpslib.ProxyHTTPSConnection):
+    from M2Crypto.httpslib import ProxyHTTPSConnection as BrokenHTTPSLib
+    class ProxyHTTPSConnection(BrokenHTTPSLib):
         '''M2Crypto currently fails to cast the port it gets from the url
            string to an integer -- this class hacks around that.'''
         def putrequest(self, method, url, skip_host=0, skip_accept_encoding=0):
@@ -58,7 +53,13 @@ if m2version < (0, 20, 0):
             self._real_host = host
             self._real_port = int(port) #This whole class exists for this line :/
             httpslib.HTTPSConnection.putrequest(self, method, url, skip_host, skip_accept_encoding)
+else:
+    from M2Crypto.httpslib import ProxyHTTPSConnection
 
+
+STARTED=0
+COMPLETED=1
+STOPPED=2
 
 class Rerequester(object):
 
@@ -233,13 +234,13 @@ class Rerequester(object):
             ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
         try:
             if self.proxy_url:
-                h = M2CryptoProxyHTTPSHack(self.proxy_url, \
-                                            username=self.proxy_username, \
-                                            password=self.proxy_password, \
-                                            ssl_context=ssl_contextual_healing)
+                h = ProxyHTTPSConnection(self.proxy_url, \
+                                         username=self.proxy_username, \
+                                         password=self.proxy_password, \
+                                         ssl_context=ssl_contextual_healing)
                 h.putrequest('GET', "https://"+self.url+":"+str(self.remote_port)+self.path+query)
             else:
-                h = httpslib.HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
+                h = HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
                 h.putrequest('GET', self.path+query)
             h.endheaders()
             resp = h.getresponse()
@@ -276,7 +277,7 @@ class Rerequester(object):
         try:
             # Here's where we receive/decrypt data from the tracker
             r = bdecode(data)
-            #check_peers(r)
+            check_peers(r)
         except BTFailure, e:
             if data != '':
                 self.logfunc(ERROR, 'bad data from tracker - ' + str(e))
