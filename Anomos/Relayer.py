@@ -95,10 +95,11 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay.flush_buffer()
 
     def connection_closed(self):
-        # if not self.recvd_break?...
+        if not self.recvd_break:
+            self.send_break()
         if not self.orelay.recvd_break:
-            self.manager.dec_relay_count()
             self.logfunc(INFO, "Sending break on orelay")
+            self.manager.dec_relay_count()
             self.orelay.send_break()
         self.pre_complete_buffer = None
         self.neighbor.end_stream(self.stream_id)
@@ -130,7 +131,8 @@ class Relayer(AnomosRelayerProtocol):
         return self.neighbor.socket.is_flushed()
 
     def got_exception(self, e):
-        self.logfunc(ERROR, e)
+        # TODO: find out why this is needed for RateLimiter
+        raise e
 
     def uniq_id(self):
         return "%02x%04x" % (ord(self.neighbor.id), self.stream_id)

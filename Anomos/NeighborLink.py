@@ -73,6 +73,11 @@ class NeighborLink(AnomosNeighborProtocol):
         self.next_stream_id += 1
         return self.streams[nxtid]
 
+    def close_relays(self):
+        for s in self.streams.values():
+            if isinstance(s, Relayer):
+                s.close()
+
     def end_stream(self, id):
         ''' Terminate the stream with specified stream id. Should be
             called by the stream object which is to be terminated to ensure
@@ -115,7 +120,6 @@ class NeighborLink(AnomosNeighborProtocol):
         ''' Requests numbytes from the PartialMessageQueue
             to be sent.
             @return: Actual number of bytes sent.'''
-        self.logfunc(INFO, "partialing")
         sids,msg = self.pmq.dequeue_partial(numbytes)
         if len(msg) == 0:
             return 0

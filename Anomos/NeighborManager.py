@@ -196,12 +196,16 @@ class NeighborManager:
     def remove_torrent(self, infohash):
         self.torrents[infohash].close_all_streams()
         del self.torrents[infohash]
+        if len(self.torrents) == 0:
+            # Close all relays when the last torrent is removed
+            for n in self.neighbors.itervalues():
+                n.close_relays()
 
     def get_torrent(self, infohash):
         return self.torrents.get(infohash, None)
 
     def count_streams(self):
-        return sum(len(x.streams)-1 for x in self.neighbors.itervalues())
+        return sum(len(x.streams) for x in self.neighbors.itervalues())
 
     ## Relay Management ##
     def make_relay(self, nid, data, orelay):
