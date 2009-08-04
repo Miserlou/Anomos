@@ -28,7 +28,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
     ## Disable direct message reading. ##
     def send_break(self):
         self.logfunc(INFO, "BREAK SENT")
-        self.recvd_break = True
         self.network_ctl_msg(BREAK)
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)

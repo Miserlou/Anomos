@@ -95,11 +95,21 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay.flush_buffer()
 
     def connection_closed(self):
+        # This section requires a little explaining. If neither
+        # self.recvd_break nor orelay.recvd_break is set then this
+        # this peer probably closed their client. So a break message
+        # will be sent on both relay streams. If self.recvd_break is
+        # set, then a break came in on this relay, and needs to be sent
+        # out on orelay. If orelay.recvd_break is set then this relay
+        # is in the process of being closed by orelay, which must have
+        # received a break.
         if not self.recvd_break:
+            self.recvd_break = True
             self.send_break()
         if not self.orelay.recvd_break:
             self.logfunc(INFO, "Sending break on orelay")
             self.manager.dec_relay_count()
+            self.orelay.recvd_break = True
             self.orelay.send_break()
         self.pre_complete_buffer = None
         self.neighbor.end_stream(self.stream_id)
