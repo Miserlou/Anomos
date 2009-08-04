@@ -162,7 +162,7 @@ class HeadlessDisplayer(object):
         #print '|-'
         print '| relay rate:     %s (%s)' % (self.relayRate, self.numRelays)
         print '|-'
-        for i in range(len(self.errors)):
+        while self.errors:
             print 'Log:\n' + self.errors.pop() + '\n'
 
 

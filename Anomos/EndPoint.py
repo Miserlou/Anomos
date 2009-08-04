@@ -56,11 +56,13 @@ class EndPoint(AnomosEndPointProtocol):
             self.logfunc(WARNING, "Double close")
             return
         self.closed = True
-        self.torrent.rm_active_stream(self)
-        self.choker.connection_lost(self)
+        if self.complete:
+            self.torrent.rm_active_stream(self)
+            self.choker.connection_lost(self)# Must come before changes to
+                                             # upload and download
+            self.download.disconnected()
+            self.upload = None
         self.neighbor.end_stream(self.stream_id)
-        self.download.disconnected()
-        self.upload = None
 
     def connection_flushed(self):
         if self.next_upload is None \
