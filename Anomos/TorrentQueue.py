@@ -28,18 +28,18 @@ import Anomos
 
 # check if dns library from http://www.dnspython.org/ is either installed
 # or the dns subdirectory has been copied to BitTorrent/dns
-HAVE_DNS = False
-try:
-    from Anomos import dns
-    sys.modules['dns'] = dns
-    import dns.resolver
-    HAVE_DNS = True
-except:
-    try:
-        import dns.resolver
-        HAVE_DNS = True
-    except:
-        pass
+#HAVE_DNS = False
+#try:
+#    from Anomos import dns
+#    sys.modules['dns'] = dns
+#    import dns.resolver
+#    HAVE_DNS = True
+#except:
+#    try:
+#        import dns.resolver
+#        HAVE_DNS = True
+#    except:
+#        pass
 
 RUNNING = 0
 RUN_QUEUED = 1
@@ -141,7 +141,7 @@ class TorrentQueue(Feedback):
         self._check_queue()
         startflag.set()
         self._queue_loop()
-        self._check_version()
+        #self._check_version()
         self.multitorrent.rawserver.listen_forever()
         self.multitorrent.close_listening_socket()
         self.controlsocket.close_socket()
@@ -156,62 +156,64 @@ class TorrentQueue(Feedback):
                 t.downtotal = t.downtotal_old + totals[1]
         self._dump_state()
 
-    def _check_version(self):
-        now = bttime()
-        if self.last_version_check > now - 24*3600:
-            return
-        self.last_version_check = now
-        if not HAVE_DNS:
-            self.global_error(WARNING, "Version check failed: no DNS library")
-            return
-        threading.Thread(target=self._version_thread).start()
+    #TODO: Would be a neat feature, let's add version checking back in at some
+    #      point
+    #def _check_version(self):
+    #    now = bttime()
+    #    if self.last_version_check > now - 24*3600:
+    #        return
+    #    self.last_version_check = now
+    #    if not HAVE_DNS:
+    #        self.global_error(WARNING, "Version check failed: no DNS library")
+    #        return
+    #    threading.Thread(target=self._version_thread).start()
 
     def getnumsocks(self):
         return self.rawserver.numsockets()
 
-    def _version_thread(self):
-        def error(level, text):
-            def f():
-                self.global_error(level, text)
-            self.rawserver.external_add_task(f, 0)
-        def splitversion(text):
-            return [int(t) for t in text.split('.')]
-        try:
-            try:
-                a = dns.resolver.query('version.bittorrent.com', 'TXT')
-            except:
-                # the exceptions from the library have empty str(),
-                # just different classes...
-                raise BTFailure('DNS query failed')
-            if len(a) != 1:
-                raise BTFailure('number of received TXT fields is not 1')
-            value = iter(a).next() # the object doesn't support a[0]
-            if len(value.strings) != 1:
-                raise BTFailure('number of strings in reply is not 1?')
-            s = value.strings[0].split(None, 2)
-            myversion = splitversion(Anomos.version)
-            if myversion[1] % 2 and len(s) > 1:
-                s = s[1]
-            else:
-                s = s[0]
-            try:
-                latest = splitversion(s)
-            except ValueError:
-                raise BTFailure("Could not parse new version string")
-            for my, new in zip(myversion, latest):
-                if my > new:
-                    break
-                if my < new:
-                    download_url = 'http://www.anomos.info'
-                    if hasattr(self.ui, 'new_version'):
-                        self.run_ui_task(self.ui.new_version, s,
-                                         download_url)
-                    else:
-                        error(ERROR, "A newer version of Anomos is "
-                              "available.\nYou can always get the latest "
-                              "version from\n%s." % download_url)
-        except Exception, e:
-            error(WARNING, "Version check failed: " + str(e))
+    #def _version_thread(self):
+    #    def error(level, text):
+    #        def f():
+    #            self.global_error(level, text)
+    #        self.rawserver.external_add_task(f, 0)
+    #    def splitversion(text):
+    #        return [int(t) for t in text.split('.')]
+    #    try:
+    #        try:
+    #            a = dns.resolver.query('version.bittorrent.com', 'TXT')
+    #        except:
+    #            # the exceptions from the library have empty str(),
+    #            # just different classes...
+    #            raise BTFailure('DNS query failed')
+    #        if len(a) != 1:
+    #            raise BTFailure('number of received TXT fields is not 1')
+    #        value = iter(a).next() # the object doesn't support a[0]
+    #        if len(value.strings) != 1:
+    #            raise BTFailure('number of strings in reply is not 1?')
+    #        s = value.strings[0].split(None, 2)
+    #        myversion = splitversion(Anomos.version)
+    #        if myversion[1] % 2 and len(s) > 1:
+    #            s = s[1]
+    #        else:
+    #            s = s[0]
+    #        try:
+    #            latest = splitversion(s)
+    #        except ValueError:
+    #            raise BTFailure("Could not parse new version string")
+    #        for my, new in zip(myversion, latest):
+    #            if my > new:
+    #                break
+    #            if my < new:
+    #                download_url = 'http://www.anomos.info'
+    #                if hasattr(self.ui, 'new_version'):
+    #                    self.run_ui_task(self.ui.new_version, s,
+    #                                     download_url)
+    #                else:
+    #                    error(ERROR, "A newer version of Anomos is "
+    #                          "available.\nYou can always get the latest "
+    #                          "version from\n%s." % download_url)
+    #    except Exception, e:
+    #        error(WARNING, "Version check failed: " + str(e))
 
     def _dump_config(self):
         configfile.save_ui_config(self.config, 'anondownloadgui',
@@ -609,7 +611,7 @@ class TorrentQueue(Feedback):
 
     def change_torrent_state(self, infohash, oldstate, newstate=None,
                      pred=None, succ=None, replaced=None, force_running=False):
-        self._check_version()
+        #self._check_version()
         t = self.torrents.get(infohash)
         if t is None or (t.state != oldstate and not (t.state == RUN_QUEUED and
                                                       oldstate == RUNNING)):
