@@ -106,7 +106,7 @@ class TorrentQueue(Feedback):
 
     def get_relay_stats(self):
         rate = self.multitorrent.get_relay_rate()
-        size = self.multitorrent.get_relay_size()
+        size = self.multitorrent.get_relay_count()
         sent = self.multitorrent.get_relay_sent()
         return {'rate' : rate, 'size' : size, 'sent' : sent}
 

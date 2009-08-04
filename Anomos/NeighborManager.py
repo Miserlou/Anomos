@@ -18,6 +18,7 @@
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
 from Anomos.Protocol.TCReader import TCReader
+from Anomos.Measure import Measure
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
 class NeighborManager:
@@ -32,7 +33,8 @@ class NeighborManager:
         self.ratelimiter = ratelimiter
         self.logfunc = logfunc
         self.neighbors = {}
-        self.relayers = []
+        self.relay_measure = Measure(self.config['max_rate_period'])
+        self.relay_count = 0
         self.incomplete = {}
         self.torrents = {}
         self.ips = set()
@@ -204,20 +206,25 @@ class NeighborManager:
     ## Relay Management ##
     def make_relay(self, nid, data, orelay):
         if self.neighbors.has_key(nid):
-            self.relayers.append(orelay)
-            return self.neighbors[nid].start_relay_stream(nid, data, orelay)
+            self.relay_count += 1
+            r = self.neighbors[nid].start_relay_stream(nid, data, orelay)
+            orelay.set_other_relay(r)
         elif self.incomplete.has_key(nid):
             def relay_tc():
-                self.relayers.append(orelay)
-                self.neighbors[nid].start_relay_stream(nid,data,orelay)
+                self.relay_count += 1
+                r = self.neighbors[nid].start_relay_stream(nid,data,orelay)
+                orelay.set_other_relay(r)
             self.waiting_tcs.set_default(nid, [])
             self.waiting_tcs[nid].append(relay_tc)
 
-    def get_relay_size(self):
-        return len(self.relayers)
+    def dec_relay_count(self):
+        self.relay_count -= 1
+
+    def get_relay_count(self):
+        return self.relay_count
 
     def get_relay_rate(self):
-        return sum(r.get_rate() for r in self.relayers)
+        return self.relay_measure.get_rate()
 
     def get_relay_sent(self):
-        return sum(r.get_sent() for r in self.relayers)
+        return self.relay_measure.get_total()

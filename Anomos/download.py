@@ -181,8 +181,8 @@ class Multitorrent(object):
     def get_relay_rate(self):
         return self.neighbors.get_relay_rate()
 
-    def get_relay_size(self):
-        return self.neighbors.get_relay_size()
+    def get_relay_count(self):
+        return self.neighbors.get_relay_count()
 
     def get_relay_sent(self):
         return self.neighbors.get_relay_sent()
@@ -355,6 +355,7 @@ class _SingleTorrent(object):
             #             downmeasure, self)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             downmeasure.get_rate, upmeasure.get_total, downmeasure.get_total,
+            self.neighbors.get_relay_rate, self.neighbors.get_relay_count,
             self._ratemeasure.get_time_left, self._ratemeasure.get_size_left,
             self.file_size, self.finflag, downloader, self._myfiles)
 

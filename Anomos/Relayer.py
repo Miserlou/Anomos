@@ -35,27 +35,28 @@ class Relayer(AnomosRelayerProtocol):
         self.neighbor = neighbor
         self.manager = neighbor.manager
         self.ratelimiter = neighbor.ratelimiter
-        self.rate_measure = Measure(max_rate_period)
+        self.measurer = self.manager.relay_measure
         self.choked = True
         self.unchoke_time = None
-        self.sent = 0
         self.pre_complete_buffer = []
         self.complete = False
         self.logfunc = logfunc
         self.next_upload = None
         # Make the other relayer which we'll send data through
         if orelay is None:
-            self.orelay = self.manager.make_relay(outnid, data, self)
-            self.orelay.set_rate_measurer(self.rate_measure)
+            self.manager.make_relay(outnid, data, self)
         else:
             self.orelay = orelay
             if data is not None:
                 self.send_tracking_code(data)
 
-    def set_rate_measurer(self, measurer):
+    def set_other_relay(self, r):
+        self.orelay = r
+
+    def set_measurer(self, measurer):
         # Both halves of the relayer should share
         # the same rate measurer.
-        self.rate_measure = measurer
+        self.measurer = measurer
 
     def _incomplete_relay_message(self, msg):
         if not self.complete:
@@ -70,8 +71,7 @@ class Relayer(AnomosRelayerProtocol):
             self.logfunc(INFO, "Queueing relayer")
             self.ratelimiter.queue(self.orelay)
         self.orelay.send_relay_message(msg)
-        self.rate_measure.update_rate(len(msg))
-        self.sent += len(msg)
+        self.measurer.update_rate(len(msg))
 
     def relay_message(self, msg):
         if self.complete:
@@ -95,7 +95,9 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay.flush_buffer()
 
     def connection_closed(self):
+        # if not self.recvd_break?...
         if not self.orelay.recvd_break:
+            self.manager.dec_relay_count()
             self.logfunc(INFO, "Sending break on orelay")
             self.orelay.send_break()
         self.pre_complete_buffer = None
@@ -112,12 +114,6 @@ class Relayer(AnomosRelayerProtocol):
         for msg in self.pre_complete_buffer:
             self.relay_message(msg)
         self.pre_complete_buffer = []
-
-    def get_rate(self):
-        return self.rate_measure.get_rate()
-
-    def get_sent(self):
-        return self.sent
 
     def choke(self):
         if not self.choked:

@@ -81,8 +81,8 @@ class HeadlessDisplayer(object):
         self.downloadTo = ''
         self.fileSize = ''
         self.numpieces = 0
-        self.rsent = 0
-        self.rrate = 0
+        self.relayRate = ''
+        self.numRelays = 0
 
     def set_torrent_values(self, name, path, size, numpieces):
         self.file = name
@@ -106,6 +106,8 @@ class HeadlessDisplayer(object):
         timeEst = statistics.get('timeEst')
         downRate = statistics.get('downRate')
         upRate = statistics.get('upRate')
+        relayRate = statistics.get('relayRate')
+        numRelays = statistics.get('numRelays')
         spew = statistics.get('spew')
 
         #print '\n\n\n\n'
@@ -123,6 +125,10 @@ class HeadlessDisplayer(object):
             self.downRate = '%.1f KB/s' % (downRate / (1 << 10))
         if upRate is not None:
             self.upRate = '%.1f KB/s' % (upRate / (1 << 10))
+        if relayRate is not None:
+            self.relayRate = '%.1f KB/s' % (relayRate / (1 << 10))
+        if numRelays is not None:
+            self.numRelays = numRelays
         downTotal = statistics.get('downTotal')
         if downTotal is not None:
             upTotal = statistics['upTotal']
@@ -154,6 +160,8 @@ class HeadlessDisplayer(object):
         #print 'seed status:   ', self.seedStatus
         #print 'peer status:   ', self.peerStatus
         #print '|-'
+        print '| relay rate:     %s (%s)' % (self.relayRate, self.numRelays)
+        print '|-'
         for i in range(len(self.errors)):
             print 'Log:\n' + self.errors.pop() + '\n'
 
@@ -201,16 +209,6 @@ class HeadlessDisplayer(object):
             s.write('\n')
         print s.getvalue()
 
-    def display_relay(self, rate, size, snt):
-        r = "%.1f" % (float(rate)/1024.0)
-        if snt != self.rsent:
-            print "| relay rate:     " + str(r) + " KB/s (" + str(size) + ")"
-            self.rsent = snt
-            print '|-'
-        else:
-            print "| relay rate:     0.0 KB/s (" + str(size) + ")"
-            print '|-'
-
 class DL(Feedback):
 
     def __init__(self, metainfo, config):
@@ -244,12 +242,8 @@ class DL(Feedback):
             print str(e)
             return
         self.get_status()
-        rate = self.multitorrent.get_relay_rate()
-        size = self.multitorrent.get_relay_size()
-        sent = self.multitorrent.get_relay_sent()
         self.multitorrent.rawserver.listen_forever()
         self.d.display({'activity':'shutting down', 'fractionDone':0})
-        #self.d.display_relay(rate, size, sent)
         self.torrent.shutdown()
 
     def reread_config(self):
@@ -272,11 +266,7 @@ class DL(Feedback):
         self.multitorrent.rawserver.add_task(self.get_status,
                                              self.config['display_interval'])
         status = self.torrent.get_status(self.config['spew'])
-        rate = self.multitorrent.get_relay_rate()
-        size = self.multitorrent.get_relay_size()
-        sent = self.multitorrent.get_relay_sent()
         self.d.display(status)
-        self.d.display_relay(rate, size, sent)
 
     def global_error(self, level, text):
         self.d.error(text)
