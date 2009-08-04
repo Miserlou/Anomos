@@ -293,6 +293,7 @@ class RawServer(object):
              self._close_socket(s)
 
     def _close_socket(self, s):
+        #TODO: Do NeighborLinks ever receive connection_lost events?
         sock = s.socket.fileno()
         self._make_wrapped_call(s.handler.connection_lost, (s,), s)
         s.close()

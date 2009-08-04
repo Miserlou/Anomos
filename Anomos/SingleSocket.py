@@ -48,10 +48,6 @@ class SingleSocket(object):
     def recv(self, bufsize=65536):
         return self.socket.recv(bufsize)
 
-    def has_socket(self):
-        return self.socket is not None
-
-
     def _set_shutdown(self, opt=SSL.SSL_RECEIVED_SHUTDOWN|SSL.SSL_SENT_SHUTDOWN):
         self.socket.set_shutdown(opt)
 
