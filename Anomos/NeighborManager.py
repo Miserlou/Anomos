@@ -35,6 +35,7 @@ class NeighborManager:
         self.relayers = []
         self.incomplete = {}
         self.torrents = {}
+        self.ips = set()
 
         self.waiting_tcs = {}
 
@@ -63,12 +64,17 @@ class NeighborManager:
             @param id: The neighbor ID to assign to this connection
             @type loc: tuple
             @type id: int '''
-        #TODO: block multiple connections to the same location
         if self.has_neighbor(id) or \
-                (self.incomplete.get(id) == loc): #or \
-            #   self.has_loc(loc):
+                (self.incomplete.get(id) == loc):
             #Already had neighbor by that id or at that location
             #TODO: Resolve conflict
+            self.logfunc(WARNING, 'NID collision')
+            return
+        #TODO: block multiple connections to the same location
+        if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
+            self.logfunc(WARNING, 'Got duplicate IP address in neighbor list. \
+                        Multiple connections to the same IP are disabled \
+                        in your config.')
             return
         self.incomplete[id] = loc
         self.rawserver.start_ssl_connection(loc, handler=self)
@@ -118,8 +124,9 @@ class NeighborManager:
     def check_session_id(self, sid):
         return sid == self.sessionid
 
-    def has_loc(self, loc):
-        return loc in [n.loc for n in self.neighbors.values()]
+    def has_ip(self, ip):
+        return ip in self.ips or \
+                ip in [x for x,y in self.incomplete.values()]
 
     def is_incomplete(self, nid):
         return self.incomplete.has_key(nid)
@@ -129,6 +136,8 @@ class NeighborManager:
 
     def connection_completed(self, socket, id):
         if self.incomplete.has_key(id):
+            assert socket.ip == self.incomplete[id][0]
+            self.ips.add(socket.ip)
             del self.incomplete[id]
         self.add_neighbor(socket, id)
         for task in self.waiting_tcs.get(id, []):
