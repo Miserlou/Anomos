@@ -66,6 +66,9 @@ class RateLimiter(object):
             except KeyboardInterrupt:
                 raise
             except Exception, e:
+                #TODO: This is stupid. Need to get
+                # from cur to the _SingleTorrent for the
+                # appropriate got_exception method.
                 cur.got_exception(e)
                 cur = self.tail.next_upload
                 bytes = 0

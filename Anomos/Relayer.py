@@ -27,8 +27,7 @@ class Relayer(AnomosRelayerProtocol):
         that the TC only needs to be sent once).
     """
     def __init__(self, stream_id, neighbor, outnid,
-                    data=None, orelay=None, max_rate_period=20.0,
-                    logfunc=default_logger):
+                    data=None, orelay=None, logfunc=default_logger):
                     #storage, uprate, downrate, choker, key):
         AnomosRelayerProtocol.__init__(self)
         self.stream_id = stream_id
@@ -121,7 +120,6 @@ class Relayer(AnomosRelayerProtocol):
         self.connection_closed()
 
     def flush_buffer(self):
-        #TODO: Check that it's okay to try and send all these at once.
         for msg in self.pre_complete_buffer:
             self.relay_message(msg)
         self.pre_complete_buffer = []
@@ -141,7 +139,7 @@ class Relayer(AnomosRelayerProtocol):
         return self.neighbor.socket.is_flushed()
 
     def got_exception(self, e):
-        # TODO: find out why this is needed for RateLimiter
+        #TODO: This actually needs to be _SingleTorrent.got_exception
         raise e
 
     def uniq_id(self):

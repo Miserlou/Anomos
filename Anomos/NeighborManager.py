@@ -72,7 +72,6 @@ class NeighborManager:
             #TODO: Resolve conflict
             self.logfunc(WARNING, 'NID collision')
             return
-        #TODO: block multiple connections to the same location
         if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
             self.logfunc(WARNING, 'Got duplicate IP address in neighbor list. \
                         Multiple connections to the same IP are disabled \

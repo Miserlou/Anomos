@@ -6,6 +6,9 @@ TODO:
     2.5) Need a better graph search algorithm.
     3) Multiple tracker support!
     4) Choking algorithm for relay nodes
+    4.5) RateLimiting for relay nodes. Partially implemented, sometimes runs
+         out of steam and leaves things in the queue, particularly when sending
+         breaks.
     5) Solid round of bugtesting
 
     Also:
