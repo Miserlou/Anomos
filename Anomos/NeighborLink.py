@@ -109,11 +109,13 @@ class NeighborLink(AnomosNeighborProtocol):
     def send_message(self, streamid, message):
         if len(self.pmq) > 0:
             # There are messages in the queue.
+            self.streams[streamid].piece_queued()
             self.pmq.queue_message(streamid, message)
         else:
             self.socket.write(message)
 
     def queue_piece(self, streamid, message):
+        self.streams[streamid].piece_queued()
         self.pmq.queue_message(streamid, message)
 
     def send_partial(self, numbytes):
@@ -127,7 +129,10 @@ class NeighborLink(AnomosNeighborProtocol):
         #      if this write fails.
         self.socket.write(msg)
         for s in sids:
-            self.streams[s].piece_sent()
+            #TODO: Remove this check (make sure the pmq doesn't return any dead
+            #      streams)
+            if self.streams.has_key(s):
+                self.streams[s].piece_sent()
         return len(msg)
 
     def uniq_id(self):

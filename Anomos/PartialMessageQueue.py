@@ -52,7 +52,7 @@ class PartialMessageQueue(object):
         # If numbytes fell within a message, not on a message
         # boundary, then add the remaining bytes (r) to the
         # dequeued portion.
-        if r > 0:
+        if i < len(self.msgs) and r > 0:
             deq += self.msgs[i][:r]
             self.msgs[i] = self.msgs[i][r:]
         streams = self.sid_map[:i]
@@ -79,7 +79,7 @@ class PartialMessageQueue(object):
         if self._deeplen <= p:
             return (len(self.msgs), 0)
         i = t = 0
-        while t + len(self.msgs[i]) < p:
+        while i < len(self.msgs) and t + len(self.msgs[i]) <= p:
             t += len(self.msgs[i])
             i += 1
         return (i, p-t)

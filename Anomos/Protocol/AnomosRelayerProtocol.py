@@ -25,10 +25,20 @@ class AnomosRelayerProtocol(AnomosProtocol):
         AnomosProtocol.__init__(self)
         self.msgmap.update({BREAK: self.got_break, RELAY: self.got_relay})
         self.recvd_break = False
+    def network_ctl_msg(self, type, message=""):
+        ''' Send message for network messages,
+            ie. CONFIRM, TCODE and for relaying messages'''
+        s = self.format_message(type, message)
+        self.neighbor.queue_piece(self.stream_id, s)
+        if self.next_upload is None:
+            self.logfunc(INFO, "Queueing relayer")
+            self.ratelimiter.queue(self)
     ## Disable direct message reading. ##
     def send_break(self):
         self.logfunc(INFO, "BREAK SENT")
         self.network_ctl_msg(BREAK)
+        #XXX: HACK
+        self.neighbor.send_partial(len(self.neighbor.pmq))
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):
@@ -47,7 +57,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def got_confirm(self):
         if self.recvd_break:
             self.logfunc(INFO, "Got Break Confirm")
-            self.close()
+            self.neighbor.end_stream(self.stream_id)
         else:
             self.connection_completed()
             self.relay_message(CONFIRM)
@@ -58,11 +68,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def got_unchoke(self, time):
         self.unchoke(time)
         self.orelay.send_unchoke()
-
     def invalid_message(self, t):
         self.close()
         self.logfunc(WARNING, \
                 "Invalid message of type %02x on %s. Closing stream."% \
                 (ord(t), self.uniq_id()))
-    def close(self):
-        self.neighbor.end_stream(self.stream_id)

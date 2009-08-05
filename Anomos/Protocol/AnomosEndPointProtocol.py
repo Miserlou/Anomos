@@ -121,12 +121,12 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_not_interested(self):
         self.transfer_ctl_msg(NOT_INTERESTED)
     def send_choke(self):
-        if self.queued == False:
+        if self.queued == 0:
             self.transfer_ctl_msg(CHOKE)
             self.choke_sent = True
             self.upload.sent_choke()
     def send_unchoke(self):
-        if self.queued == False:
+        if self.queued == 0:
             self.transfer_ctl_msg(UNCHOKE)
             self.choke_sent = False
     def send_request(self, index, begin, length):

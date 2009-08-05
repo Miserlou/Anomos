@@ -38,8 +38,10 @@ class Relayer(AnomosRelayerProtocol):
         self.unchoke_time = None
         self.pre_complete_buffer = []
         self.complete = False
+        self.closed = False
         self.logfunc = logfunc
         self.next_upload = None
+        self.in_queue = 0
         # Make the other relayer which we'll send data through
         if orelay is None:
             self.manager.make_relay(outnid, data, self)
@@ -91,33 +93,40 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay.flush_pre_buffer()
 
     def connection_closed(self):
+        if self.closed:
+            return
         self.closed = True
         if not self.recvd_break:
             # Connection must have been closed locally (as opposed to
             # being closed by receiving a BREAK message)
             self.recvd_break = True
             self.send_break()
+            # Will be disconnected from NbrLink after CONFIRM
+        else:
+            # Disconnect from the NeighborLink immediately
+            self.neighbor.end_stream(self.stream_id)
         # Tell the NeighborManger to decrease its relay count.
         # Should only be done once per relay pair.
         self.manager.dec_relay_count()
         # Tell our orelay to close.
         self.orelay.ore_closed()
-        # Disconnect from the NeighborLink
-        self.neighbor.end_stream(self.stream_id)
         self.pre_complete_buffer = None
 
     def ore_closed(self):
         ''' Closes the connection when a Break has been received by our
             other relay (ore). Called by this object by its ore during
             connection_closed '''
+        if self.closed:
+            return
         self.closed = True
         self.recvd_break = True
         self.send_break()
-        self.neighbor.end_stream(self.stream_id)
         self.pre_complete_buffer = None
 
     def connection_flushed(self):
-        pass
+        if self.next_upload is None and self.in_queue > 0:
+            self.logfunc(INFO, "Queueing relayer")
+            self.ratelimiter.queue(self)
 
     def close(self):
         self.connection_closed()
@@ -144,6 +153,12 @@ class Relayer(AnomosRelayerProtocol):
     def got_exception(self, e):
         #TODO: This actually needs to be _SingleTorrent.got_exception
         raise e
+
+    def piece_queued(self):
+        self.in_queue += 1
+
+    def piece_sent(self):
+        self.in_queue -= 1
 
     def uniq_id(self):
         return "%02x%04x" % (ord(self.neighbor.id), self.stream_id)

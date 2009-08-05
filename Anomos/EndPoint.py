@@ -30,7 +30,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.closed = False
         self.choker = None
         self.next_upload = None
-        self.queued = False
+        self.in_queue = 0
         if data is not None:
             self.send_tracking_code(data)
         else:
@@ -66,7 +66,7 @@ class EndPoint(AnomosEndPointProtocol):
 
     def connection_flushed(self):
         if self.next_upload is None \
-            and (self.queued or self.upload.buffer):
+            and (self.in_queue or self.upload.buffer):
                 self.ratelimiter.queue(self)
 
     def close(self):
@@ -91,7 +91,7 @@ class EndPoint(AnomosEndPointProtocol):
         if self.closed:
             # Send nothing if the connection is closed.
             return 0
-        if self.queued == False:
+        if self.in_queue == 0:
             # Nothing queued, so grab a piece and queue it with neighbor
             s = self.upload.get_upload_chunk()
             if s is None:
@@ -108,9 +108,11 @@ class EndPoint(AnomosEndPointProtocol):
                     partial_message += self.partial_unchoke_str()
                 self.choke_sent = self.upload.choked
             self.neighbor.queue_piece(self.stream_id, partial_message)
-            self.queued = True
         # Give neighbor permission to send "amount" bytes
         return self.neighbor.send_partial(amount)
 
+    def piece_queued(self):
+        self.in_queue += 1
+
     def piece_sent(self):
-        self.queued = False
+        self.in_queue -= 1

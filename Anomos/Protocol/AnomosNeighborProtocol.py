@@ -38,7 +38,7 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
             l = toint(self._message)
             if l > self.config['max_message_length']:
                 self.logfunc(WARNING, "Received message longer than max length")
-                return
+            #    return
             yield l # Payload
             handler.got_message(self._message)
     def invalid_message(self, t):
