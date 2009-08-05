@@ -18,7 +18,6 @@
 from Anomos.Protocol.AnomosRelayerProtocol import AnomosRelayerProtocol
 from Anomos.Measure import Measure
 from Anomos import INFO, CRITICAL, WARNING, ERROR, default_logger
-from threading import Thread
 
 class Relayer(AnomosRelayerProtocol):
     """ As a tracking code is being sent, each peer it reaches (other than the
@@ -66,11 +65,7 @@ class Relayer(AnomosRelayerProtocol):
             self.relay_message(msg)
 
     def _complete_relay_message(self, msg):
-        if self.next_upload is None and self.is_flushed():
-            self.logfunc(INFO, "Queueing relayer")
-            self.ratelimiter.queue(self.orelay)
         self.orelay.send_relay_message(msg)
-        self.measurer.update_rate(len(msg))
 
     def relay_message(self, msg):
         if self.complete:
@@ -83,35 +78,43 @@ class Relayer(AnomosRelayerProtocol):
 
     def send_partial(self, bytes):
         self.logfunc(INFO, "Sending partial on relayer")
-        return self.orelay.neighbor.send_partial(bytes)
+        b = self.neighbor.send_partial(bytes)
+        self.measurer.update_rate(b)
+        return b
 
     def connection_completed(self):
         self.logfunc(INFO, "Relay connection [%02x:%d] established" %
                             (int(ord(self.neighbor.id)),self.stream_id))
         self.complete = True
-        self.flush_buffer()
+        self.flush_pre_buffer()
         self.orelay.complete = True
-        self.orelay.flush_buffer()
+        self.orelay.flush_pre_buffer()
 
     def connection_closed(self):
-        # This section requires a little explaining. If neither
-        # self.recvd_break nor orelay.recvd_break is set then this
-        # this peer probably closed their client. So a break message
-        # will be sent on both relay streams. If self.recvd_break is
-        # set, then a break came in on this relay, and needs to be sent
-        # out on orelay. If orelay.recvd_break is set then this relay
-        # is in the process of being closed by orelay, which must have
-        # received a break.
+        self.closed = True
         if not self.recvd_break:
+            # Connection must have been closed locally (as opposed to
+            # being closed by receiving a BREAK message)
             self.recvd_break = True
             self.send_break()
-        if not self.orelay.recvd_break:
-            self.logfunc(INFO, "Sending break on orelay")
-            self.manager.dec_relay_count()
-            self.orelay.recvd_break = True
-            self.orelay.send_break()
-        self.pre_complete_buffer = None
+        # Tell the NeighborManger to decrease its relay count.
+        # Should only be done once per relay pair.
+        self.manager.dec_relay_count()
+        # Tell our orelay to close.
+        self.orelay.ore_closed()
+        # Disconnect from the NeighborLink
         self.neighbor.end_stream(self.stream_id)
+        self.pre_complete_buffer = None
+
+    def ore_closed(self):
+        ''' Closes the connection when a Break has been received by our
+            other relay (ore). Called by this object by its ore during
+            connection_closed '''
+        self.closed = True
+        self.recvd_break = True
+        self.send_break()
+        self.neighbor.end_stream(self.stream_id)
+        self.pre_complete_buffer = None
 
     def connection_flushed(self):
         pass
@@ -119,7 +122,7 @@ class Relayer(AnomosRelayerProtocol):
     def close(self):
         self.connection_closed()
 
-    def flush_buffer(self):
+    def flush_pre_buffer(self):
         for msg in self.pre_complete_buffer:
             self.relay_message(msg)
         self.pre_complete_buffer = []
