@@ -29,13 +29,16 @@ class EndPoint(AnomosEndPointProtocol):
         self.complete = False
         self.closed = False
         self.choker = None
+        self.choke_sent = False
         self.next_upload = None
         self.in_queue = 0
+        self.partial_recv = None
         if data is not None:
             self.send_tracking_code(data)
         else:
             self.send_confirm()
             self.connection_completed()
+            self.logfunc(INFO, "Sent confirm")
 
     def connection_completed(self):
         ''' Called when a CONFIRM message is received
@@ -96,23 +99,14 @@ class EndPoint(AnomosEndPointProtocol):
             s = self.upload.get_upload_chunk()
             if s is None:
                 return 0
-            index, begin, piece = s
-            partial_message = self.partial_msg_str(index, begin, piece)
-            # If upload has choked/unchoked and we haven't sent a message
-            # to reflect that, send it now.
-            if self.choke_sent != self.upload.choked:
-                if self.upload.choked:
-                    partial_message += self.partial_choke_str()
-                    self.upload.sent_choke()
-                else:
-                    partial_message += self.partial_unchoke_str()
-                self.choke_sent = self.upload.choked
-            self.neighbor.queue_piece(self.stream_id, partial_message)
+            self.send_piece(*s) # s = (index, begin, piece)
         # Give neighbor permission to send "amount" bytes
         return self.neighbor.send_partial(amount)
 
     def piece_queued(self):
         self.in_queue += 1
+        if self.next_upload is None:
+            self.ratelimiter.queue(self)
 
     def piece_sent(self):
         self.in_queue -= 1

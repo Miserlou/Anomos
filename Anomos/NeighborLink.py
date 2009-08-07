@@ -54,6 +54,7 @@ class NeighborLink(AnomosNeighborProtocol):
                     EndPoint(nxtid, self, torrent, aeskey, data,
                             logfunc=self.logfunc)
         self.next_stream_id += 1
+        self.logfunc(INFO, "Starting endpoint")
         return self.streams[nxtid]
 
     def start_relay_stream(self, nid, data=None, orelay=None):
@@ -115,25 +116,37 @@ class NeighborLink(AnomosNeighborProtocol):
             self.socket.write(message)
 
     def queue_piece(self, streamid, message):
-        self.streams[streamid].piece_queued()
-        self.pmq.queue_message(streamid, message)
+        if self.streams.has_key(streamid):
+            self.streams[streamid].piece_queued()
+            self.logfunc(INFO, "QUEUED Piece")
+            self.pmq.queue_message(streamid, message)
 
     def send_partial(self, numbytes):
         ''' Requests numbytes from the PartialMessageQueue
             to be sent.
             @return: Actual number of bytes sent.'''
-        sids,msg = self.pmq.dequeue_partial(numbytes)
-        if len(msg) == 0:
+        sids,msgs = self.pmq.dequeue_partial(numbytes)
+        if len(msgs) == 0:
             return 0
         #TODO: There should really be some kind of error handling here
         #      if this write fails.
-        self.socket.write(msg)
+        snt = 0
+        for i in range(len(sids)):
+            self.socket.write(self.format_message(sids[i], msgs[i]))
+            snt += len(msgs[i])
         for s in sids:
             #TODO: Remove this check (make sure the pmq doesn't return any dead
             #      streams)
             if self.streams.has_key(s):
                 self.streams[s].piece_sent()
-        return len(msg)
+        return snt
+
+    def connection_lost(self, conn):
+        assert conn is self.socket
+        self.logfunc(WARNING, "Connection lost!")
+        print self.streams
+        for s in self.streams.values():
+            s.close()
 
     def uniq_id(self):
         return "%02x:*" % (ord(self.id))

@@ -35,7 +35,6 @@ class Relayer(AnomosRelayerProtocol):
         self.ratelimiter = neighbor.ratelimiter
         self.measurer = self.manager.relay_measure
         self.choked = True
-        self.unchoke_time = None
         self.pre_complete_buffer = []
         self.complete = False
         self.closed = False
@@ -79,7 +78,6 @@ class Relayer(AnomosRelayerProtocol):
             self.relay_message(msg)
 
     def send_partial(self, bytes):
-        self.logfunc(INFO, "Sending partial on relayer")
         b = self.neighbor.send_partial(bytes)
         self.measurer.update_rate(b)
         return b
@@ -125,7 +123,6 @@ class Relayer(AnomosRelayerProtocol):
 
     def connection_flushed(self):
         if self.next_upload is None and self.in_queue > 0:
-            self.logfunc(INFO, "Queueing relayer")
             self.ratelimiter.queue(self)
 
     def close(self):
@@ -141,10 +138,9 @@ class Relayer(AnomosRelayerProtocol):
             self.choked = True
             self.orelay.send_choke()
 
-    def unchoke(self, time):
+    def unchoke(self):
         if self.choked:
             self.choked = False
-            self.unchoke_time = time
             self.orelay.send_unchoke()
 
     def is_flushed(self):

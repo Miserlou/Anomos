@@ -33,6 +33,7 @@ CONFIRM = chr(0xA)
 ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
 RELAY = chr(0xC)
 BREAK = chr(0xD)
+PARTIAL = chr(0xE)
 
 def toint(s):
     return int(b2a_hex(s), 16)

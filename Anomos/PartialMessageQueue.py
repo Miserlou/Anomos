@@ -23,6 +23,9 @@
 # of the stream which sent each message in the queue, so that the
 # stream can be notified when the message is dequeued for sending.
 
+from Anomos.Protocol import RELAY, PARTIAL
+from Anomos.Protocol import tobinary
+
 class PartialMessageQueue(object):
     #TODO: Give this a maximum length.
     def __init__(self):
@@ -48,18 +51,22 @@ class PartialMessageQueue(object):
         if self._deeplen == 0:
             return ([], '')
         i, r = self._pindex(numbytes)
-        deq = ''.join(self.msgs[:i])
+        deq = self.msgs[:i]
+        streams = self.sid_map[:i]
         # If numbytes fell within a message, not on a message
         # boundary, then add the remaining bytes (r) to the
         # dequeued portion.
-        if i < len(self.msgs) and r > 0:
-            deq += self.msgs[i][:r]
-            self.msgs[i] = self.msgs[i][r:]
-        streams = self.sid_map[:i]
+        if i < len(self.msgs) and r > 6:
+            #TODO: Consider minimum length for making a partial
+            deq.append(self.msgs[i][:r])
+            streams.append(self.sid_map[i])
+            fmt = RELAY + PARTIAL + tobinary(len(self.msgs[i][r:]))
+            self._deeplen += len(fmt)
+            self.msgs[i] = fmt + self.msgs[i][r:]
         # Delete the sent messages/informed stream ids
         del self.msgs[:i]
         del self.sid_map[:i]
-        self._deeplen -= len(deq)
+        self._deeplen -= sum([len(i) for i in deq])
         return (streams, deq)
     def remove_by_sid(self, sid):
         ''' Removes all messages queued by the stream given by sid '''

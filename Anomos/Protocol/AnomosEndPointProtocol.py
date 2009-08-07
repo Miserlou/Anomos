@@ -17,7 +17,7 @@
 
 from Anomos.Protocol import CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, \
                             HAVE, BITFIELD, REQUEST, PIECE, CANCEL, \
-                            TCODE, CONFIRM, ENCRYPTED, RELAY, BREAK
+                            TCODE, CONFIRM, ENCRYPTED, RELAY, BREAK, PARTIAL
 from Anomos.Protocol import tobinary, toint, AnomosProtocol
 from Anomos.bitfield import Bitfield
 from Anomos import INFO, WARNING, ERROR, CRITICAL
@@ -38,13 +38,13 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             CANCEL: self.got_cancel,\
                             ENCRYPTED: self.got_encrypted,\
                             RELAY: self.got_relay, \
-                            BREAK: self.got_break})
+                            BREAK: self.got_break, \
+                            PARTIAL: self.got_partial})
         self.recvd_break = False
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
         if self.recvd_break:
-            self.logfunc(INFO, "Break success")
             self.close()
     def got_relay(self, message):
         self.got_message(message[1:])
@@ -55,16 +55,31 @@ class AnomosEndPointProtocol(AnomosProtocol):
         else:
             raise RuntimeError("Received encrypted data before we were ready")
     def got_break(self):
-        self.logfunc(INFO, 'Encoder Got Break')
         self.recvd_break = True
         self.send_confirm()
         self.close()
+    def got_partial(self, message):
+        if self.partial_recv is None:
+            self.logfunc(ERROR, "Got partial without prior incomplete message")
+            return
+        self.partial_recv += self.e2e_key.decrypt(message[5:]) # Strip off [PARTIAL][Remaining amnt]
+        p_remain = toint(message[1:5])
+        if len(self.partial_recv) > self.neighbor.config['max_message_length']:
+            self.logfunc(ERROR, "Received message longer than max length, %d"%l)
+            return
+        if (len(message) - 5) == p_remain:
+            self.got_message(self.partial_recv)
+            self.partial_recv = None
     def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages.
             ie. CHOKE, INTERESTED, PIECE '''
         payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
-        s = self.format_message(RELAY, payload)
-        self.neighbor.send_message(self.stream_id, s)
+        if type == PIECE:
+            # Neighbor will add formatting
+            self.neighbor.queue_piece(self.stream_id, RELAY + payload)
+        else:
+            s = self.format_message(RELAY, payload)
+            self.neighbor.send_message(self.stream_id, s)
     def got_choke(self):
         if self.download:
             self.download.got_choke()
@@ -107,7 +122,15 @@ class AnomosEndPointProtocol(AnomosProtocol):
         if i >= self.torrent.numpieces:
             self.close("Piece index out of range")
             return
+        #XXX: Hack. We can in general assume that pieces have been partialed
+        #           but we should check against the actual length of the
+        #           requested piece to see if we got the whole thing in one
+        #           message.
+        if self.partial_recv is None and len(message[9:]) < 10000:
+            self.partial_recv = message
+            return
         if self.download.got_piece(i, toint(message[5:9]), message[9:]):
+            self.logfunc(INFO, "Not getting this far...?")
             for ep in self.torrent.active_streams:
                 ep.send_have(i)
     ## Send messages ##
@@ -121,14 +144,12 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_not_interested(self):
         self.transfer_ctl_msg(NOT_INTERESTED)
     def send_choke(self):
-        if self.queued == 0:
-            self.transfer_ctl_msg(CHOKE)
-            self.choke_sent = True
-            self.upload.sent_choke()
+        self.network_ctl_msg(CHOKE)
+        self.choke_sent = True
+        self.upload.sent_choke()
     def send_unchoke(self):
-        if self.queued == 0:
-            self.transfer_ctl_msg(UNCHOKE)
-            self.choke_sent = False
+        self.network_ctl_msg(UNCHOKE)
+        self.choke_sent = False
     def send_request(self, index, begin, length):
         self.transfer_ctl_msg(REQUEST, tobinary(index) +
             tobinary(begin) + tobinary(length))
@@ -141,7 +162,9 @@ class AnomosEndPointProtocol(AnomosProtocol):
         self.transfer_ctl_msg(HAVE, tobinary(index))
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
-
+    def send_piece(self, index, begin, piece):
+        msg = "".join([tobinary(index), tobinary(begin), piece])
+        self.transfer_ctl_msg(PIECE, msg)
     def invalid_message(self, t):
         self.close()
         self.logfunc(WARNING, \
@@ -149,12 +172,3 @@ class AnomosEndPointProtocol(AnomosProtocol):
                 (ord(t), self.uniq_id()))
     def close(self):
         self.neighbor.end_stream(self.stream_id)
-    ## Partial message sending methods ##
-    ## these are used by send_partial, which we inherit from BitTorrentProtocol
-    def partial_msg_str(self, index, begin, piece):
-        msg = "".join([PIECE, tobinary(index), tobinary(begin), piece])
-        return self.format_message(RELAY, ENCRYPTED + self.e2e_key.encrypt(msg))
-    def partial_choke_str(self):
-        return self.format_message(RELAY, ENCRYPTED + self.e2e_key.encrypt(CHOKE))
-    def partial_unchoke_str(self):
-        return self.format_message(RELAY, ENCRYPTED + self.e2e_key.encrypt(UNCHOKE))
