@@ -1,16 +1,8 @@
-import os
-import sys
-from bisect import insort
 import socket
-from cStringIO import StringIO
-from traceback import print_exc
-from errno import EWOULDBLOCK, ENOBUFS
+from errno import EWOULDBLOCK
 from Anomos import bttime
-from Anomos import INFO, CRITICAL, WARNING, FAQ_URL
-from Anomos import crypto
+from Anomos import INFO, CRITICAL, WARNING
 from M2Crypto import SSL
-from threading import Thread
-import random
 
 try:
     from select import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
