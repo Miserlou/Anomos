@@ -15,17 +15,15 @@
 
 import os
 import sys
-from bisect import insort
 import socket
+from bisect import insort
 from cStringIO import StringIO
 from traceback import print_exc
-from errno import EWOULDBLOCK, ENOBUFS
+from errno import ENOBUFS
 from Anomos import INFO, CRITICAL, WARNING, FAQ_URL, default_logger, bttime
-from Anomos import crypto
 from Anomos.SingleSocket import SingleSocket
 from M2Crypto import SSL
 from threading import Thread
-import random
 
 try:
     from select import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
@@ -118,20 +116,22 @@ class RawServer(object):
 
     def _start_ssl_connection(self, dns, handler=None, context=None,
             session=None, do_bind=True, timeout=15): #TODO: Is timeout long enough?
-        self.logfunc(INFO, "Starting SSL Connection to %s" % str(dns))
+
+        def threadsafe_log():
+            self.logfunc(INFO, "Starting SSL Connection to %s" % str(dns))
+        self.external_add_task(threadsafe_log, 0)
 
         sock = SSL.Connection(self.certificate.getContext())
         if session:
             sock.set_session(session)
         sock.set_socket_read_timeout(SSL.timeout(timeout))
         sock.set_socket_write_timeout(SSL.timeout(timeout))
-        #TODO: Better post connection check, this just ensures that the peer
-        #      returned a cert
+        #XXX: Write a better post connection check. This one only
+        #     ensures that the peer returned a cert
         sock.set_post_connection_check_callback(lambda x,y: x != None)
         try:
             sock.connect(dns)
         except Exception, e:
-            #TODO: verify this is the correct behavior
             sock.close()
             if handler:
                 def fail():
@@ -182,7 +182,7 @@ class RawServer(object):
                             self._make_wrapped_call(s.handler.data_came_in, \
                                                     (s, data), s)
                     except SSL.SSLError, errstr:
-                        #TODO: Log error message
+                        self.logfunc(WARNING, "SSLError: " + str(errstr))
                         self._safe_shutdown(s)
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
@@ -293,7 +293,6 @@ class RawServer(object):
              self._close_socket(s)
 
     def _close_socket(self, s):
-        #TODO: Do NeighborLinks ever receive connection_lost events?
         sock = s.socket.fileno()
         self._make_wrapped_call(s.handler.connection_lost, (s,), s)
         s.close()
