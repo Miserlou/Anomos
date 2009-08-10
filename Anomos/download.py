@@ -176,18 +176,6 @@ class Multitorrent(object):
             return r[0] / metainfo.file_size, r[1], r[2]
         return r / metainfo.file_size
 
-        ##Relayers don't exist at the torrent level, so we need these methods
-        ## to access their stats through the NeighborManager.
-    def get_relay_rate(self):
-        return self.neighbors.get_relay_rate()
-
-    def get_relay_count(self):
-        return self.neighbors.get_relay_count()
-
-    def get_relay_sent(self):
-        return self.neighbors.get_relay_sent()
-
-
 class _SingleTorrent(object):
 
     def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
@@ -355,9 +343,9 @@ class _SingleTorrent(object):
             #             downmeasure, self)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             downmeasure.get_rate, upmeasure.get_total, downmeasure.get_total,
-            self.neighbors.get_relay_rate, self.neighbors.get_relay_count,
-            self._ratemeasure.get_time_left, self._ratemeasure.get_size_left,
-            self.file_size, self.finflag, downloader, self._myfiles)
+            self.neighbors.get_relay_stats, self._ratemeasure.get_time_left,
+            self._ratemeasure.get_size_left, self.file_size, self.finflag,
+            downloader, self._myfiles)
 
         self._announced = True
         self._rerequest.begin()

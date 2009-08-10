@@ -226,8 +226,8 @@ class NeighborManager:
     def get_relay_count(self):
         return self.relay_count
 
-    def get_relay_rate(self):
-        return self.relay_measure.get_rate()
-
-    def get_relay_sent(self):
-        return self.relay_measure.get_total()
+    def get_relay_stats(self):
+        rate = self.relay_measure.get_rate()
+        count = self.relay_count
+        sent = self.relay_measure.get_total()
+        return {'relayRate' : rate, 'relayCount' : count, 'relaySent' : sent}

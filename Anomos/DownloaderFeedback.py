@@ -16,8 +16,8 @@
 class DownloaderFeedback(object):
 
     def __init__(self, choker, upfunc, downfunc, uptotal, downtotal,
-                 relayrate, relaycount, remainingfunc, leftfunc,
-                 file_length, finflag, downloader, files):
+                 relaystats, remainingfunc, leftfunc, file_length,
+                 finflag, downloader, files):
         self.downloader = downloader
         self.picker = downloader.picker
         self.storage = downloader.storage
@@ -26,8 +26,7 @@ class DownloaderFeedback(object):
         self.downfunc = downfunc
         self.uptotal = uptotal
         self.downtotal = downtotal
-        self.relayrate = relayrate
-        self.relaycount = relaycount
+        self.relaystats = relaystats
         self.remainingfunc = remainingfunc
         self.leftfunc = leftfunc
         self.file_length = file_length
@@ -81,8 +80,7 @@ class DownloaderFeedback(object):
         status['numPeers'] = numPeers
         status['upRate'] = self.upfunc()
         status['upTotal'] = self.uptotal()
-        status['relayRate'] = self.relayrate()
-        status['numRelays'] = self.relaycount()
+        status.update(self.relaystats()) # relayRate, relayCount, relaySent
         missingPieces = 0
         numCopyList = []
         numCopies = 0

@@ -107,7 +107,7 @@ class HeadlessDisplayer(object):
         downRate = statistics.get('downRate')
         upRate = statistics.get('upRate')
         relayRate = statistics.get('relayRate')
-        numRelays = statistics.get('numRelays')
+        numRelays = statistics.get('relayCount')
         spew = statistics.get('spew')
 
         #print '\n\n\n\n'

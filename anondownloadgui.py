@@ -1895,7 +1895,7 @@ class RunningTorrentBox(DroppableTorrentBox):
         if self.peerlistwindow is not None:
             self.peerlistwindow.close()
 
-    def update_status(self, statistics, rstats):
+    def update_status(self, statistics):
         fractionDone = statistics.get('fractionDone')
         activity = statistics.get('activity')
 
@@ -1942,7 +1942,7 @@ class RunningTorrentBox(DroppableTorrentBox):
         self.up_rate.set_text ('Upload'  + rate_label %
                                 Rate(statistics['upRate']))
         self.relay_rate.set_text ('Relay'  + rate_label %
-                                Rate(rstats['rate']))
+                                Rate(statistics['relayRate']))
 
 
         if advanced_ui:
@@ -2914,8 +2914,7 @@ class DownloadInfoFrame(object):
     def update_status(self, torrent, statistics):
         if self.config['pause']:
             return
-        rstats = self.torrentqueue.wrapped.get_relay_stats()
-        self.running_torrents[torrent].widget.update_status(statistics, rstats)
+        self.running_torrents[torrent].widget.update_status(statistics)
 
     def new_displayed_torrent(self, infohash, metainfo, dlpath, state,
                               completion=None, uptotal=0, downtotal=0):

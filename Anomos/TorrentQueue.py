@@ -104,12 +104,6 @@ class TorrentQueue(Feedback):
         self.last_save_time = 0
         self.last_version_check = 0
 
-    def get_relay_stats(self):
-        rate = self.multitorrent.get_relay_rate()
-        size = self.multitorrent.get_relay_count()
-        sent = self.multitorrent.get_relay_sent()
-        return {'rate' : rate, 'size' : size, 'sent' : sent}
-
     def run(self, ui, ui_wrap, startflag):
         self.ui = ui
         self.run_ui_task = ui_wrap
@@ -167,9 +161,6 @@ class TorrentQueue(Feedback):
     #        self.global_error(WARNING, "Version check failed: no DNS library")
     #        return
     #    threading.Thread(target=self._version_thread).start()
-
-    def getnumsocks(self):
-        return self.rawserver.numsockets()
 
     #def _version_thread(self):
     #    def error(level, text):
