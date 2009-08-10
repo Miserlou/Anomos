@@ -95,32 +95,37 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def got_have(self, message):
         i = toint(message[1:])
         if i >= self.torrent.numpieces:
-            self.close("Piece index out of range")
+            self.logfunc(ERROR, "Piece index out of range")
+            self.close()
             return
         self.download.got_have(i)
     def got_bitfield(self, message):
         try:
             b = Bitfield(self.torrent.numpieces, message[1:])
         except ValueError:
-            self.close("Bad Bitfield")
+            self.logfunc(ERROR, "Bad Bitfield")
+            self.close()
             return
         self.download.got_have_bitfield(b)
     def got_request(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
-            self.close("Piece index out of range")
+            self.logfunc(ERROR, "Piece index out of range")
+            self.close()
             return
         self.upload.got_request(i, toint(message[5:9]), toint(message[9:]))
     def got_cancel(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
-            self.close("Piece index out of range")
+            self.logfunc(ERROR, "Piece index out of range")
+            self.close()
             return
         self.upload.got_cancel(i, toint(message[5:9]), toint(message[9:]))
     def got_piece(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
-            self.close("Piece index out of range")
+            self.logfunc(ERROR, "Piece index out of range")
+            self.close()
             return
         #XXX: Hack. We can in general assume that pieces have been partialed
         #           but we should check against the actual length of the

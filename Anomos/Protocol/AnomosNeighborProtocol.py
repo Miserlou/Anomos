@@ -19,6 +19,7 @@ from Anomos.Protocol import TCODE, tobinary, toint, AnomosProtocol
 from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.crypto import AESKey
+from Anomos import WARNING
 
 class AnomosNeighborProtocol(Connection, AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
@@ -55,7 +56,8 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
         if not self.manager.check_session_id(sid):
             #TODO: Key mismatch is pretty serious, probably want to do
             #      something besides just close the connection
-            self.close("Session id mismatch")
+            self.logfunc(ERROR, "Session id mismatch")
+            self.close()
         if tcdata.type == chr(0): # Relayer type
             nextTC = tcdata.nextLayer
             nid = tcdata.neighborID
@@ -66,8 +68,10 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
             e2e_key = AESKey(keydata[:32],keydata[32:])
             torrent = self.manager.get_torrent(infohash)
             if not torrent:
-                self.close("Requested torrent not found")
+                self.logfunc(ERROR, "Requested torrent not found")
+                self.close()
                 return
             self.start_endpoint_stream(torrent, e2e_key)
         else:
-            self.close("Unsupported TCode Format")
+            self.logfunc(ERROR, "Unsupported TCode Format")
+            self.close()
