@@ -118,8 +118,8 @@ class NeighborLink(AnomosNeighborProtocol):
     def queue_piece(self, streamid, message):
         if self.streams.has_key(streamid):
             self.streams[streamid].piece_queued()
-            self.logfunc(INFO, "QUEUED Piece")
             self.pmq.queue_message(streamid, message)
+            self.logfunc(INFO, "QUEUED Piece -- " + str(len(self.pmq)))
 
     def send_partial(self, numbytes):
         ''' Requests numbytes from the PartialMessageQueue
@@ -135,10 +135,7 @@ class NeighborLink(AnomosNeighborProtocol):
             self.socket.write(self.format_message(sids[i], msgs[i]))
             snt += len(msgs[i])
         for s in sids:
-            #TODO: Remove this check (make sure the pmq doesn't return any dead
-            #      streams)
-            if self.streams.has_key(s):
-                self.streams[s].piece_sent()
+            self.streams[s].piece_sent()
         return snt
 
     def connection_lost(self, conn):

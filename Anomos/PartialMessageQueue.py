@@ -26,6 +26,8 @@
 from Anomos.Protocol import RELAY, PARTIAL
 from Anomos.Protocol import tobinary
 
+PARTIAL_FMT_LEN = len(RELAY+PARTIAL+tobinary(0))
+
 class PartialMessageQueue(object):
     #TODO: Give this a maximum length.
     def __init__(self):
@@ -56,12 +58,12 @@ class PartialMessageQueue(object):
         # If numbytes fell within a message, not on a message
         # boundary, then add the remaining bytes (r) to the
         # dequeued portion.
-        if i < len(self.msgs) and r > 6:
+        if r > PARTIAL_FMT_LEN and i < len(self.msgs):
             #TODO: Consider minimum length for making a partial
             deq.append(self.msgs[i][:r])
             streams.append(self.sid_map[i])
             fmt = RELAY + PARTIAL + tobinary(len(self.msgs[i][r:]))
-            self._deeplen += len(fmt)
+            self._deeplen += PARTIAL_FMT_LEN
             self.msgs[i] = fmt + self.msgs[i][r:]
         # Delete the sent messages/informed stream ids
         del self.msgs[:i]

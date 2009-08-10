@@ -81,7 +81,7 @@ class HeadlessDisplayer(object):
         self.downloadTo = ''
         self.fileSize = ''
         self.numpieces = 0
-        self.relayRate = ''
+        self.relayRate = '---'
         self.numRelays = 0
 
     def set_torrent_values(self, name, path, size, numpieces):

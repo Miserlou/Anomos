@@ -15,11 +15,10 @@
 
 # Written by John Schanck
 
-from Anomos.Protocol import TCODE, toint, AnomosProtocol
+from Anomos.Protocol import TCODE, tobinary, toint, AnomosProtocol
 from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.crypto import AESKey
-from Anomos import WARNING
 
 class AnomosNeighborProtocol(Connection, AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
@@ -27,6 +26,9 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
         Connection.__init__(self, socket)
         AnomosProtocol.__init__(self)
         self.msgmap.update({TCODE: self.got_tcode})
+    def format_message(self, stream_id, message):
+        return tobinary(stream_id)[2:] + \
+               tobinary(len(message)) + message
     def _read_messages(self):
         ''' Read messages off the line and relay or process them
             depending on connection type '''
