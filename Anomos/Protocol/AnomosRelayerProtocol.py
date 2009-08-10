@@ -15,8 +15,8 @@
 
 # Written by John Schanck
 
-from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, RELAY, BREAK
-from Anomos.Protocol import AnomosProtocol
+from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, RELAY, BREAK, PARTIAL
+from Anomos.Protocol import AnomosProtocol, toint
 from Anomos import bttime, INFO, WARNING, ERROR, CRITICAL
 
 class AnomosRelayerProtocol(AnomosProtocol):
@@ -26,7 +26,9 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.msgmap.update({CHOKE: self.got_choke,\
                             UNCHOKE: self.got_unchoke,\
                             BREAK: self.got_break,\
-                            RELAY: self.got_relay})
+                            RELAY: self.got_relay,\
+                            PARTIAL: self.got_partial})
+        self.partial_recv = ''
         self.recvd_break = False
     ## Disable direct message reading. ##
     def send_break(self):
@@ -54,6 +56,15 @@ class AnomosRelayerProtocol(AnomosProtocol):
         else:
             self.connection_completed()
             self.relay_message(CONFIRM)
+    def got_partial(self, message):
+        p_remain = toint(message[1:5])
+        self.partial_recv += message[5:]
+        if len(self.partial_recv) > self.neighbor.config['max_message_length']:
+            self.logfunc(ERROR, "Received message longer than max length, %d"%l)
+            return
+        if len(message[5:]) == p_remain:
+            self.got_message(self.partial_recv)
+            self.partial_recv = ''
     #TODO: Analyze effective choking strategies for Relayers
     def send_choke(self):
         self.network_ctl_msg(CHOKE)

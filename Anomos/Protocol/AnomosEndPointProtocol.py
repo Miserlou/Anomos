@@ -40,6 +40,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             RELAY: self.got_relay, \
                             BREAK: self.got_break, \
                             PARTIAL: self.got_partial})
+        self.partial_recv = ''
         self.recvd_break = False
     def got_confirm(self):
         if not self.complete:
@@ -59,17 +60,15 @@ class AnomosEndPointProtocol(AnomosProtocol):
         self.send_confirm()
         self.close()
     def got_partial(self, message):
-        if self.partial_recv is None:
-            self.logfunc(ERROR, "Got partial without prior incomplete message")
-            return
-        self.partial_recv += self.e2e_key.decrypt(message[5:]) # Strip off [PARTIAL][Remaining amnt]
         p_remain = toint(message[1:5])
+        payload = message[5:]
+        self.partial_recv += payload
         if len(self.partial_recv) > self.neighbor.config['max_message_length']:
             self.logfunc(ERROR, "Received message longer than max length, %d"%l)
             return
-        if (len(message) - 5) == p_remain:
+        if len(payload) == p_remain:
             self.got_message(self.partial_recv)
-            self.partial_recv = None
+            self.partial_recv = ''
     def transfer_ctl_msg(self, type, message=""):
         ''' Send method for file transfer messages.
             ie. CHOKE, INTERESTED, PIECE '''
@@ -127,15 +126,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
             self.logfunc(ERROR, "Piece index out of range")
             self.close()
             return
-        #XXX: Hack. We can in general assume that pieces have been partialed
-        #           but we should check against the actual length of the
-        #           requested piece to see if we got the whole thing in one
-        #           message.
-        if self.partial_recv is None and len(message[9:]) < 10000:
-            self.partial_recv = message
-            return
         if self.download.got_piece(i, toint(message[5:9]), message[9:]):
-            self.logfunc(INFO, "Not getting this far...?")
+            self.logfunc(INFO, "download.got_piece")
             for ep in self.torrent.active_streams:
                 ep.send_have(i)
     ## Send messages ##

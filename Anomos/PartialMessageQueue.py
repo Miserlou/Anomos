@@ -26,7 +26,7 @@
 from Anomos.Protocol import RELAY, PARTIAL
 from Anomos.Protocol import tobinary
 
-PARTIAL_FMT_LEN = len(RELAY+PARTIAL+tobinary(0))
+PARTIAL_FMT_LEN = len(PARTIAL+tobinary(0))
 
 class PartialMessageQueue(object):
     #TODO: Give this a maximum length.
@@ -43,6 +43,12 @@ class PartialMessageQueue(object):
         self._deeplen += len(message)
         self.msgs.append(message)
         self.sid_map.append(streamid)
+    def is_partial(self, message):
+        return message[0] == PARTIAL
+    def mk_partial(self, message):
+        fmt = PARTIAL + tobinary(len(message))
+        self._deeplen += PARTIAL_FMT_LEN
+        return fmt + message
     def dequeue_partial(self, numbytes):
         ''' Dequeue numbytes from the message queue. Return
             the stream IDs associated with the messages which
@@ -60,11 +66,11 @@ class PartialMessageQueue(object):
         # dequeued portion.
         if r > PARTIAL_FMT_LEN and i < len(self.msgs):
             #TODO: Consider minimum length for making a partial
+            if not self.is_partial(self.msgs[i]):
+                self.msgs[i] = self.mk_partial(self.msgs[i])
             deq.append(self.msgs[i][:r])
             streams.append(self.sid_map[i])
-            fmt = RELAY + PARTIAL + tobinary(len(self.msgs[i][r:]))
-            self._deeplen += PARTIAL_FMT_LEN
-            self.msgs[i] = fmt + self.msgs[i][r:]
+            self.msgs[i] = self.mk_partial(self.msgs[i][r:])
         # Delete the sent messages/informed stream ids
         del self.msgs[:i]
         del self.sid_map[:i]
