@@ -45,6 +45,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.network_ctl_msg(CONFIRM) # Confirm reception of break
         self.close() # Close inbound connection
     def got_relay(self, message):
+        #TODO: This could just be replaced with a direct call to relay_message
+
         #NOTE: message[0] == RELAY, there's no need to
         #      strip this since we'd just have to add
         #      it again in send_relay. As a result,
@@ -71,10 +73,10 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def send_unchoke(self):
         self.network_ctl_msg(UNCHOKE)
     def got_choke(self):
-        self.choke()
+        self.choked = True
         self.orelay.send_choke()
     def got_unchoke(self):
-        self.unchoke()
+        self.choked = False
         self.orelay.send_unchoke()
     def invalid_message(self, t):
         self.logfunc(WARNING, \

@@ -133,16 +133,6 @@ class Relayer(AnomosRelayerProtocol):
             self.relay_message(msg)
         self.pre_complete_buffer = []
 
-    def choke(self):
-        if not self.choked:
-            self.choked = True
-            self.orelay.send_choke()
-
-    def unchoke(self):
-        if self.choked:
-            self.choked = False
-            self.orelay.send_unchoke()
-
     def is_flushed(self):
         return self.neighbor.socket.is_flushed()
 
