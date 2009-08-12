@@ -48,21 +48,6 @@ KNOWN = 3
 ASKING_LOCATION = 4
 
 
-class TorrentInfo(object):
-
-    def __init__(self):
-        self.metainfo = None
-        self.dlpath = None
-        self.dl = None
-        self.state = None
-        self.completion = None
-        self.finishtime = None
-        self.uptotal = 0
-        self.uptotal_old = 0
-        self.downtotal = 0
-        self.downtotal_old = 0
-
-
 def decode_position(l, pred, succ, default=None):
     if default is None:
         default = len(l)
@@ -266,7 +251,7 @@ class TorrentQueue(Feedback):
                 return None
             if infohash in self.torrents:
                 raise BTFailure("Invalid state file (duplicate entry)")
-            t = TorrentInfo()
+            t = Torrent(infohash)
             self.torrents[infohash] = t
             try:
                 t.metainfo = ConvertedMetainfo(bdecode(data))
@@ -506,7 +491,7 @@ class TorrentQueue(Feedback):
             self._dump_state()
 
     def start_new_torrent(self, data):
-        t = TorrentInfo()
+        t = Torrent()
         try:
             t.metainfo = ConvertedMetainfo(bdecode(data))
         except Exception, e:
