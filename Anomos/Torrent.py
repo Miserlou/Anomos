@@ -28,7 +28,8 @@ class Torrent(object):
         self.infohash = infohash
         self.make_upload = make_upload
         self.downloader = downloader
-        self.make_download = downloader.make_download
+        if downloader is not None:
+            self.make_download = downloader.make_download
         self.numpieces = numpieces
         #self.metainfo.infohash is the same as should be the same as self.infohash
         self.metainfo = None
@@ -41,10 +42,10 @@ class Torrent(object):
         self.uptotal_old = 0
         self.downtotal = 0
         self.downtotal_old = 0
-
         self.active_streams = []
         #XXX: This needs to reflect whether we ever got incoming data
         self.ever_got_inc = True
+
     def add_active_stream(self, endpoint):
         if endpoint not in self.active_streams:
             self.active_streams.append(endpoint)

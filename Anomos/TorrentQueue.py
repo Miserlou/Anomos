@@ -24,6 +24,7 @@ from Anomos.bencode import bdecode
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
 from Anomos import configfile
+from Anomos.Torrent import Torrent
 import Anomos
 
 # check if dns library from http://www.dnspython.org/ is either installed
@@ -499,6 +500,7 @@ class TorrentQueue(Feedback):
                               % str(e))
             return
         infohash = t.metainfo.infohash
+        t.infohash = t.metainfo.infohash
         if infohash in self.torrents:
             self.global_error(ERROR, "Cannot start another torrent with the "
                               "same contents (infohash) as an existing one")
