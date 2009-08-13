@@ -140,11 +140,5 @@ class Relayer(AnomosRelayerProtocol):
         #TODO: This actually needs to be _SingleTorrent.got_exception
         raise e
 
-    def piece_queued(self):
-        self.in_queue += 1
-
-    def piece_sent(self):
-        self.in_queue -= 1
-
     def uniq_id(self):
-        return "%02x%04x" % (ord(self.neighbor.id), self.stream_id)
+        return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)

@@ -67,9 +67,12 @@ class EndPoint(AnomosEndPointProtocol):
         self.neighbor.end_stream(self.stream_id)
 
     def connection_flushed(self):
-        if self.next_upload is None \
-            and (self.in_queue or self.upload.buffer):
-                self.ratelimiter.queue(self)
+        if self.should_queue():
+            self.ratelimiter.queue(self)
+
+    def should_queue(self):
+        return self.next_upload is None and \
+                (self.neighbor.in_queue(self.stream_id) or self.upload.buffer)
 
     def close(self):
         if not self.recvd_break:
@@ -86,14 +89,14 @@ class EndPoint(AnomosEndPointProtocol):
         self.logfunc(ERROR, e)
 
     def uniq_id(self):
-        return "%02x%04x" % (ord(self.neighbor.id), self.stream_id)
+        return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)
 
     def send_partial(self, amount):
         """ Provides partial sending of messages for RateLimiter """
         if self.closed:
             # Send nothing if the connection is closed.
             return 0
-        if self.in_queue == 0:
+        if not self.neighbor.in_queue(self.stream_id):
             # Nothing queued, so grab a piece and queue it with neighbor
             s = self.upload.get_upload_chunk()
             if s is None:
@@ -101,11 +104,3 @@ class EndPoint(AnomosEndPointProtocol):
             self.send_piece(*s) # s = (index, begin, piece)
         # Give neighbor permission to send "amount" bytes
         return self.neighbor.send_partial(amount)
-
-    def piece_queued(self):
-        self.in_queue += 1
-        if self.next_upload is None:
-            self.ratelimiter.queue(self)
-
-    def piece_sent(self):
-        self.in_queue -= 1

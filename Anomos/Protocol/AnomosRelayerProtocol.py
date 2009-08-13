@@ -32,7 +32,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.recvd_break = False
     ## Disable direct message reading. ##
     def send_break(self):
-        self.logfunc(INFO, "BREAK SENT")
         self.network_ctl_msg(BREAK)
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
@@ -40,9 +39,11 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.neighbor.queue_piece(self.stream_id, msg)
         if self.next_upload is None:
             self.ratelimiter.queue(self)
+    def send_confirm(self):
+        self.network_ctl_msg(CONFIRM)
     def got_break(self):
         self.recvd_break = True
-        self.network_ctl_msg(CONFIRM) # Confirm reception of break
+        self.send_confirm() # Confirm reception of break
         self.close() # Close inbound connection
     def got_relay(self, message):
         #TODO: This could just be replaced with a direct call to relay_message

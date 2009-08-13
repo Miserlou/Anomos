@@ -26,7 +26,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
     ## EndPointProtocol is intended to be implemented by EndPoint ##
     def __init__(self):
         AnomosProtocol.__init__(self)
-        #msgmap => Lookup table for methods to use when responding to message types
+        #msgmap := Lookup table for methods to use when responding to message types
         self.msgmap.update({CHOKE: self.got_choke,\
                             UNCHOKE: self.got_unchoke,\
                             INTERESTED: self.got_interested,\
@@ -127,7 +127,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
             self.close()
             return
         if self.download.got_piece(i, toint(message[5:9]), message[9:]):
-            self.logfunc(INFO, "download.got_piece")
             for ep in self.torrent.active_streams:
                 ep.send_have(i)
     ## Send messages ##

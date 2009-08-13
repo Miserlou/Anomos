@@ -23,8 +23,7 @@
 # of the stream which sent each message in the queue, so that the
 # stream can be notified when the message is dequeued for sending.
 
-from Anomos.Protocol import RELAY, PARTIAL
-from Anomos.Protocol import tobinary
+from Anomos.Protocol import tobinary, PARTIAL
 
 PARTIAL_FMT_LEN = len(PARTIAL+tobinary(0))
 

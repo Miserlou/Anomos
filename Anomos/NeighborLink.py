@@ -18,6 +18,7 @@ from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.PartialMessageQueue import PartialMessageQueue
 from Anomos.Protocol.AnomosNeighborProtocol import AnomosNeighborProtocol
+from Anomos.Protocol import PIECE
 from Anomos import INFO, WARNING, ERROR, default_logger, trace_on_call
 
 class NeighborLink(AnomosNeighborProtocol):
@@ -108,18 +109,18 @@ class NeighborLink(AnomosNeighborProtocol):
     #   send_message queue anything longer than the maximum
     #   single message length.
     def send_message(self, streamid, message):
-        if len(self.pmq) > 0:
+        if message[6] == PIECE: #len(self.pmq) > 0:
             # There are messages in the queue.
-            self.streams[streamid].piece_queued()
             self.pmq.queue_message(streamid, message)
         else:
             self.socket.write(message)
 
     def queue_piece(self, streamid, message):
         if self.streams.has_key(streamid):
-            self.streams[streamid].piece_queued()
             self.pmq.queue_message(streamid, message)
-            self.logfunc(INFO, "QUEUED Piece -- " + str(len(self.pmq)))
+
+    def in_queue(self, id):
+        return id in self.pmq.sid_map
 
     def send_partial(self, numbytes):
         ''' Requests numbytes from the PartialMessageQueue
@@ -134,8 +135,6 @@ class NeighborLink(AnomosNeighborProtocol):
         for i in range(len(sids)):
             self.socket.write(self.format_message(sids[i], msgs[i]))
             snt += len(msgs[i])
-        for s in sids:
-            self.streams[s].piece_sent()
         return snt
 
     def connection_lost(self, conn):

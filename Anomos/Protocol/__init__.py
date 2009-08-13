@@ -15,6 +15,7 @@
 #      get to that point.
 
 from binascii import b2a_hex
+from Anomos import INFO, WARNING, ERROR, CRITICAL
 
 #--Message Control Characters--#
 #--BitTorrent--#
@@ -34,6 +35,13 @@ ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
 RELAY = chr(0xC)
 BREAK = chr(0xD)
 PARTIAL = chr(0xE)
+
+_MCODES = ['CHOKE', 'UNCHOKE', 'INTERESTED', 'NOT_INTERESTED', 'HAVE',\
+           'BITFIELD', 'REQUEST', 'PIECE', 'CANCEL', 'TCODE', 'CONFIRM',\
+           'ENCRYPTED', 'RELAY', 'BREAK', 'PARTIAL']
+
+def mcode_to_name(c):
+    return _MCODES[c]
 
 def toint(s):
     return int(b2a_hex(s), 16)
@@ -64,6 +72,7 @@ class AnomosProtocol(object):
         """
         t = message[0]
         if self.msgmap.has_key(t):
+            #self.logfunc(INFO, self.uniq_id() + " got "+mcode_to_name(ord(t)))
             if len(message[1:]) > 0:
                 self.msgmap[t](message)
             else:

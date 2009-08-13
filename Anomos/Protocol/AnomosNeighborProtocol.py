@@ -19,7 +19,7 @@ from Anomos.Protocol import TCODE, tobinary, toint, AnomosProtocol
 from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.crypto import AESKey
-from Anomos import WARNING
+from Anomos import INFO, WARNING, ERROR, CRITICAL
 
 class AnomosNeighborProtocol(Connection, AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
