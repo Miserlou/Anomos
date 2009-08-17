@@ -24,13 +24,12 @@ from Anomos.bencode import bdecode
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
-from M2Crypto import SSL, X509
 from M2Crypto.httpslib import HTTPSConnection
 from M2Crypto import version_info as m2version
-import urllib
 
 if m2version < (0, 20, 0):
     from M2Crypto.httpslib import ProxyHTTPSConnection as BrokenHTTPSLib
+    import urllib
     class ProxyHTTPSConnection(BrokenHTTPSLib):
         '''M2Crypto currently fails to cast the port it gets from the url
            string to an integer -- this class hacks around that.'''
@@ -52,7 +51,7 @@ if m2version < (0, 20, 0):
                     raise ValueError, "unknown protocol for: %s" % url
             self._real_host = host
             self._real_port = int(port) #This whole class exists for this line :/
-            httpslib.HTTPSConnection.putrequest(self, method, url, skip_host, skip_accept_encoding)
+            HTTPSConnection.putrequest(self, method, url, skip_host, skip_accept_encoding)
 else:
     from M2Crypto.httpslib import ProxyHTTPSConnection
 
@@ -65,8 +64,7 @@ class Rerequester(object):
 
     def __init__(self, url, config, sched, neighbors, externalsched,
             amount_left, up, down, local_port, infohash, logfunc, doneflag,
-            upratefunc, downratefunc, ever_got_incoming, diefunc, sfunc,
-            certificate, sessionid):
+            ever_got_incoming, diefunc, sfunc, certificate, sessionid):
         ##########################
         self.config = config
         self.sched = sched
@@ -79,8 +77,6 @@ class Rerequester(object):
         self.infohash = infohash
         self.logfunc = logfunc
         self.doneflag = doneflag
-        self.upratefunc = upratefunc
-        self.downratefunc = downratefunc
         self.ever_got_incoming = ever_got_incoming
         self.diefunc = diefunc
         self.successfunc = sfunc
@@ -193,8 +189,8 @@ class Rerequester(object):
             query += '&compact=1'
         if event is not None:
             query += '&event=' + ['started', 'completed', 'stopped'][event]
-        if event == STARTED:
-            query += '&sessionid='+quote(self.sessionid)
+            if event == STARTED:
+                query += '&sessionid='+quote(self.sessionid)
         if self.config['ip']:
             query += '&ip=' + gethostbyname(self.config['ip'])
         failedPeers = self.neighbors.failed_connections()
@@ -212,8 +208,6 @@ class Rerequester(object):
         self.up = None
         self.down = None
         self.logfunc = None
-        self.upratefunc = None
-        self.downratefunc = None
         self.ever_got_incoming = None
         self.diefunc = None
         self.successfunc = None

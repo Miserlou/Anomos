@@ -267,11 +267,11 @@ class _SingleTorrent(object):
             self._ratemeasure.data_rejected(amount)
             self._log(INFO, 'piece %d failed hash check, '
                         're-downloading it' % index)
-        backthread_exception = []
+        backthread_exception = None
         def safelogfunc(level, text):
-            def e():
+            def l():
                 self._log(level, text)
-            externalsched(e, 0)
+            externalsched(l, 0)
         def hashcheck():
             def statusfunc(activity = None, fractionDone = 0):
                 if activity is None:
@@ -283,7 +283,7 @@ class _SingleTorrent(object):
                      self._finished, statusfunc, self._doneflag, data_flunked,
                      self.infohash, safelogfunc, resumefile)
             except:
-                backthread_exception.append(sys.exc_info())
+                backthread_exception = sys.exc_info()
             self._contfunc()
         thread = threading.Thread(target = hashcheck)
         thread.setDaemon(False)
@@ -294,7 +294,7 @@ class _SingleTorrent(object):
         if resumefile is not None:
             resumefile.close()
         if backthread_exception:
-            a, b, c = backthread_exception[0]
+            a, b, c = backthread_exception
             raise a, b, c
 
         if self._storagewrapper.amount_left == 0:
@@ -335,8 +335,7 @@ class _SingleTorrent(object):
             schedfunc, self.neighbors, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
             downmeasure.get_total, self.reported_port, self.infohash,
-            self._log, self.finflag, upmeasure.get_rate,
-            downmeasure.get_rate, self._torrent.ever_got_incoming,
+            self._log, self.finflag, self._torrent.ever_got_incoming,
             self.internal_shutdown, self._announce_done, self.certificate,
             self.sessionid)
             # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure
