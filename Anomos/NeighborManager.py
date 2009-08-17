@@ -21,7 +21,7 @@ from Anomos.Protocol.TCReader import TCReader
 from Anomos.Measure import Measure
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
-class NeighborManager:
+class NeighborManager(object):
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
@@ -136,14 +136,19 @@ class NeighborManager:
         return len(self.neighbors)
 
     def connection_completed(self, socket, id):
+        '''Called by AnomosNeighborInitializer'''
         if self.incomplete.has_key(id):
             assert socket.ip == self.incomplete[id][0]
             self.ips.add(socket.ip)
             del self.incomplete[id]
         self.add_neighbor(socket, id)
-        for task in self.waiting_tcs.get(id, []):
+        tasks = self.waiting_tcs.get(id)
+        if not tasks:
+            return
+        for task in tasks:
             #TODO: is it still necessary to queue these with RawServer?
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
+        del self.waiting_tcs[id]
 
     def connection_closed(self, con):
         self.rm_neighbor(con.id)
@@ -199,6 +204,7 @@ class NeighborManager:
             # Close all relays when the last torrent is removed
             for n in self.neighbors.itervalues():
                 n.close_relays()
+                n.close()
 
     def get_torrent(self, infohash):
         return self.torrents.get(infohash, None)
