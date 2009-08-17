@@ -121,3 +121,10 @@ def log_on_call(fn):
         self.logfunc(INFO, "Calling %s" % fn.__name__)
         return fn(self, *args, **kwargs)
     return ret_fn
+
+def toint(s):
+    return int(b2a_hex(s), 16)
+
+def tobinary(i):
+    return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
+        chr((i >> 8) & 0xFF) + chr(i & 0xFF))
