@@ -88,7 +88,7 @@ rare_options = [
 
 def get_defaults(ui):
     assert ui in "anondownloadheadless anondownloadcurses anondownloadgui " \
-           "anonlaunchmany anonlaunchmanycurses anonmaketorrentgui".split()
+           "anonlaunchmany anonlaunchmanycurses makeatorrentgui".split()
 
     r = list(common_options)
 
@@ -144,7 +144,7 @@ def get_defaults(ui):
               "whether to display the full path or the torrent contents for each torrent" ),
             ])
 
-    if ui.startswith('anonlaunchmany') or ui == 'anonmaketorrentgui':
+    if ui.startswith('anonlaunchmany') or ui == 'makeatorrentgui':
         r.append(
             ('torrent_dir', '',
              'directory to look for .atorrent files (semi-recursive)'),)
@@ -154,7 +154,7 @@ def get_defaults(ui):
             ('spew', 0,
              "whether to display diagnostic info to stdout"))
 
-    if ui == 'anonmaketorrentgui':
+    if ui == 'makeatorrentgui':
         r.extend([
             ('piece_size_pow2', 18,
              "which power of two to set the piece size to"),

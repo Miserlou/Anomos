@@ -35,7 +35,7 @@ from Anomos.defaultargs import get_defaults
 from Anomos.makemetafile import make_meta_files
 from Anomos.parseargs import makeHelp
 
-defaults = get_defaults('btmaketorrentgui')
+defaults = get_defaults('makeatorrentgui')
 defconfig = dict([(name, value) for (name, value, doc) in defaults])
 del name, value, doc
 
@@ -309,7 +309,7 @@ class ProgressDialog(gtk.Dialog):
 if __name__ == '__main__':
 
     config, args = configfile.parse_configuration_and_args(defaults,
-                                    'btmaketorrentgui', sys.argv[1:], 0, None)
+                                    'makeatorrentgui', sys.argv[1:], 0, None)
     w = MainWindow(config)
     try:
         gtk.main()
@@ -320,4 +320,4 @@ if __name__ == '__main__':
 
     save_options = ('torrent_dir','piece_size_pow2','tracker_name')
     def error_callback(error, string): print string
-    configfile.save_ui_config(w.config, 'btmaketorrentgui', save_options, error_callback)
+    configfile.save_ui_config(w.config, 'makeatorrentgui', save_options, error_callback)
