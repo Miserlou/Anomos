@@ -158,7 +158,7 @@ def get_defaults(ui):
         r.extend([
             ('piece_size_pow2', 18,
              "which power of two to set the piece size to"),
-            ('tracker_name', 'http://my.tracker:6969/announce',
+            ('tracker_name', 'https://my.tracker:6969/announce',
              "default tracker name"),
             ])
 
