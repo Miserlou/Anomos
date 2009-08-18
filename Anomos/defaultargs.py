@@ -125,7 +125,7 @@ def get_defaults(ui):
              'file the server response was stored in, alternative to url'),
             ('url', '',
              'url to get file from, alternative to responsefile'),
-            ('ask_for_save', 0,
+            ('ask_for_save', 1,
              'whether or not to ask for a location to save downloaded files in'),
             ])
 
