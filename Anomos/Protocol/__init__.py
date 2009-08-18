@@ -64,7 +64,7 @@ class AnomosProtocol(object):
         ''' Send message for network messages,
             ie. CONFIRM, TCODE and for relaying messages'''
         s = self.format_message(type, message)
-        self.neighbor.send_message(self.stream_id, s)
+        self.neighbor.send_immediately(s)
     def got_message(self, message):
         """ Handles an incoming message. First byte designates message type,
             may be any one of (CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED,

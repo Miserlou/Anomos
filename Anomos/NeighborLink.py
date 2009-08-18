@@ -105,19 +105,11 @@ class NeighborLink(AnomosNeighborProtocol):
         for stream in self.streams.itervalues():
             stream.connection_flushed()
 
-    #TODO: Unify send_message and queue piece by making
-    #   send_message queue anything longer than the maximum
-    #   single message length.
-    def send_message(self, streamid, message):
-        if message[6] == PIECE: #len(self.pmq) > 0:
-            # There are messages in the queue.
-            self.pmq.queue_message(streamid, message)
-        else:
-            self.socket.write(message)
+    def send_immediately(self, message):
+        self.socket.write(message)
 
-    def queue_piece(self, streamid, message):
-        if self.streams.has_key(streamid):
-            self.pmq.queue_message(streamid, message)
+    def queue_message(self, streamid, message):
+        self.pmq.queue_message(streamid, message)
 
     def in_queue(self, id):
         return id in self.pmq.sid_map
@@ -140,7 +132,6 @@ class NeighborLink(AnomosNeighborProtocol):
     def connection_lost(self, conn):
         assert conn is self.socket
         self.logfunc(WARNING, "Connection lost!")
-        print self.streams
         for s in self.streams.values():
             s.close()
 

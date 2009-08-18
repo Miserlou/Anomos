@@ -73,12 +73,9 @@ class AnomosEndPointProtocol(AnomosProtocol):
         ''' Send method for file transfer messages.
             ie. CHOKE, INTERESTED, PIECE '''
         payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
-        if type == PIECE:
-            # Neighbor will add formatting
-            self.neighbor.queue_piece(self.stream_id, RELAY + payload)
-        else:
-            s = self.format_message(RELAY, payload)
-            self.neighbor.send_message(self.stream_id, s)
+        self.neighbor.queue_message(self.stream_id, RELAY + payload)
+        if self.should_queue():
+            self.ratelimiter.queue(self)
     def got_choke(self):
         if self.download:
             self.download.got_choke()
@@ -140,11 +137,11 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_not_interested(self):
         self.transfer_ctl_msg(NOT_INTERESTED)
     def send_choke(self):
-        self.network_ctl_msg(CHOKE)
+        self.transfer_ctl_msg(CHOKE)
         self.choke_sent = True
         self.upload.sent_choke()
     def send_unchoke(self):
-        self.network_ctl_msg(UNCHOKE)
+        self.transfer_ctl_msg(UNCHOKE)
         self.choke_sent = False
     def send_request(self, index, begin, length):
         self.transfer_ctl_msg(REQUEST, tobinary(index) +

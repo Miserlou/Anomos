@@ -31,7 +31,6 @@ class EndPoint(AnomosEndPointProtocol):
         self.choker = None
         self.choke_sent = False
         self.next_upload = None
-        self.in_queue = 0
         if data is not None:
             self.send_tracking_code(data)
         else:

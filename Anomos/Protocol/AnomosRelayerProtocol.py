@@ -23,8 +23,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
     ## RelayerProtocol is intended to be implemented by Relayer ##
     def __init__(self):
         AnomosProtocol.__init__(self)
-        self.msgmap.update({CHOKE: self.got_choke,\
-                            UNCHOKE: self.got_unchoke,\
+        self.msgmap.update({#CHOKE: self.got_choke,\
+                            #UNCHOKE: self.got_unchoke,\
                             BREAK: self.got_break,\
                             RELAY: self.got_relay,\
                             PARTIAL: self.got_partial})
@@ -36,7 +36,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):
-        self.neighbor.queue_piece(self.stream_id, msg)
+        self.neighbor.queue_message(self.stream_id, msg)
         if self.next_upload is None:
             self.ratelimiter.queue(self)
     def send_confirm(self):
@@ -46,8 +46,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.send_confirm() # Confirm reception of break
         self.close() # Close inbound connection
     def got_relay(self, message):
-        #TODO: This could just be replaced with a direct call to relay_message
-
         #NOTE: message[0] == RELAY, there's no need to
         #      strip this since we'd just have to add
         #      it again in send_relay. As a result,
@@ -69,16 +67,16 @@ class AnomosRelayerProtocol(AnomosProtocol):
             self.got_message(self.partial_recv)
             self.partial_recv = ''
     #TODO: Analyze effective choking strategies for Relayers
-    def send_choke(self):
-        self.network_ctl_msg(CHOKE)
-    def send_unchoke(self):
-        self.network_ctl_msg(UNCHOKE)
-    def got_choke(self):
-        self.choked = True
-        self.orelay.send_choke()
-    def got_unchoke(self):
-        self.choked = False
-        self.orelay.send_unchoke()
+    #def send_choke(self):
+    #    self.network_ctl_msg(CHOKE)
+    #def send_unchoke(self):
+    #    self.network_ctl_msg(UNCHOKE)
+    #def got_choke(self):
+    #    self.choked = True
+    #    self.orelay.send_choke()
+    #def got_unchoke(self):
+    #    self.choked = False
+    #    self.orelay.send_unchoke()
     def invalid_message(self, t):
         self.logfunc(WARNING, \
                 "Invalid message of type %02x on %s. Closing stream."% \

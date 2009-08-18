@@ -40,7 +40,6 @@ class Relayer(AnomosRelayerProtocol):
         self.closed = False
         self.logfunc = logfunc
         self.next_upload = None
-        self.in_queue = 0
         # Make the other relayer which we'll send data through
         if orelay is None:
             self.manager.make_relay(outnid, data, self)
@@ -122,8 +121,11 @@ class Relayer(AnomosRelayerProtocol):
         self.pre_complete_buffer = None
 
     def connection_flushed(self):
-        if self.next_upload is None and self.in_queue > 0:
+        if self.should_queue():
             self.ratelimiter.queue(self)
+
+    def should_queue(self):
+        return self.next_upload is None and self.neighbor.in_queue(self.stream_id)
 
     def close(self):
         self.connection_closed()
