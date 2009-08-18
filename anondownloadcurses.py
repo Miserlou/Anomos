@@ -98,6 +98,8 @@ class CursesDisplayer(object):
         self.progress = ''
         self.downRate = '---'
         self.upRate = '---'
+        self.relayRate = '---'
+        self.relayCount = 0
         self.shareRating = ''
         self.seedStatus = ''
         self.peerStatus = ''
@@ -153,11 +155,12 @@ class CursesDisplayer(object):
         self.labelwin.addstr(2, 0, 'dest:')
         self.labelwin.addstr(3, 0, 'progress:')
         self.labelwin.addstr(4, 0, 'status:')
-        self.labelwin.addstr(5, 0, 'dl speed:')
-        self.labelwin.addstr(6, 0, 'ul speed:')
-        self.labelwin.addstr(7, 0, 'sharing:')
-        self.labelwin.addstr(8, 0, 'seeds:')
-        self.labelwin.addstr(9, 0, 'peers:')
+        self.labelwin.addstr(5, 0, 'dl rate:')
+        self.labelwin.addstr(6, 0, 'ul rate:')
+        self.labelwin.addstr(7, 0, 're rate:')
+        self.labelwin.addstr(8, 0, 'sharing:')
+        self.labelwin.addstr(9, 0, 'seeds:')
+        self.labelwin.addstr(10, 0, 'peers:')
         curses.panel.update_panels()
         curses.doupdate()
         self.changeflag.clear()
@@ -180,6 +183,8 @@ class CursesDisplayer(object):
         timeEst = statistics.get('timeEst')
         downRate = statistics.get('downRate')
         upRate = statistics.get('upRate')
+        relayRate = statistics.get('relayRate')
+        relayCount = statistics.get('relayCount')
         spew = statistics.get('spew')
 
         inchar = self.fieldwin.getch()
@@ -206,6 +211,10 @@ class CursesDisplayer(object):
             self.downRate = '%.1f KB/s' % (downRate / (1 << 10))
         if upRate is not None:
             self.upRate = '%.1f KB/s' % (upRate / (1 << 10))
+        if relayCount is not None:
+            self.relayCount = relayCount
+        if relayRate is not None:
+            self.relayRate = '%.1f KB/s (%d)' % (relayRate / (1 << 10), self.relayCount)
         downTotal = statistics.get('downTotal')
         if downTotal is not None:
             upTotal = statistics['upTotal']
@@ -236,9 +245,10 @@ class CursesDisplayer(object):
         self.fieldwin.addnstr(4, 0, self.status, self.fieldw)
         self.fieldwin.addnstr(5, 0, self.downRate, self.fieldw)
         self.fieldwin.addnstr(6, 0, self.upRate, self.fieldw)
-        self.fieldwin.addnstr(7, 0, self.shareRating, self.fieldw)
-        self.fieldwin.addnstr(8, 0, self.seedStatus, self.fieldw)
-        self.fieldwin.addnstr(9, 0, self.peerStatus, self.fieldw)
+        self.fieldwin.addnstr(7, 0, self.relayRate, self.fieldw)
+        self.fieldwin.addnstr(8, 0, self.shareRating, self.fieldw)
+        self.fieldwin.addnstr(9, 0, self.seedStatus, self.fieldw)
+        self.fieldwin.addnstr(10, 0, self.peerStatus, self.fieldw)
 
         self.spewwin.erase()
 
