@@ -343,79 +343,54 @@ class StopStartButton(gtk.Button):
         self.has_image = True
 
 class SeedingButton(gtk.Button):
-    tip = "List seeds"
-    knowns = None
-    mains = None
-    paned = None
-    torrents = None
+    tip = "List torrents you're seeding"
 
-    def __init__(self, main):
+    def __init__(self, main, torrents):
         gtk.Button.__init__(self)
         self.main = main
         self.main.tooltips.set_tip(self, self.tip)
+        self.torrents = torrents
         self.connect('clicked', self.toggle)
+        self.update_label()
         
     def toggle(self, widget):
-        if not self.main.dlclicked:
-            return
-        self.main.dlclicked=False
-        i=0
-        for infohash, t in self.torrents.iteritems():
-            if t.completion < 1:
-                t.widget.hide()
-            if t.completion >= 1:
-                t.widget.show()
-                self.knowns.reorder_child(t.widget, i)
-            i+=1
+        self.show_seeding()
 
-    def send(self, k, m, p, t):
-        self.knowns=k
-        self.mains=m
-        self.paned=p
-        self.torrents = t
-        
+    def show_seeding(self):
+        if self.main.dlclicked == True:
+            self.main.dlclicked=False
+            self.main.update_torrent_widgets()
+
+    def update_label(self):
+        self.set_label("Seeds (%d)" % self.count_torrents())
+
+    def count_torrents(self):
+        return sum([1 for _,t in self.torrents.iteritems() if t.completion >= 1])
 
 class DownloadingButton(gtk.Button):
-    tip = "List current downloads"
-    knowns = None
-    mains = None
-    paned = None
-    torrents = None
+    tip = "List torrents you're downloading"
 
-    def __init__(self, main):
+    def __init__(self, main, torrents):
         gtk.Button.__init__(self)
         self.main = main
         self.main.tooltips.set_tip(self, self.tip)
+        self.torrents = torrents
         self.connect('clicked', self.toggle)
-        
+        self.update_label()
+
     def toggle(self, widget):
         self.show_downloading()
 
-    def send(self, k, m, p, t):
-        self.knowns=k
-        self.mains=m
-        self.paned=p
-        self.torrents = t
+    def update_label(self):
+        self.set_label("Downloads (%d)" % self.count_torrents())
 
     def show_downloading(self):
-        if self.main.dlclicked:
-            return
-        self.main.dlclicked=True
-        i=0
-        try:
-            for infohash, t in self.torrents.iteritems():
-                if t.completion < 1:
-                    t.widget.show()
-                    self.knowns.reorder_child(t.widget, i)
-                if t.completion >= 1:
-                    t.widget.hide()
-                i+=1
-        except Exception, e:
-            print e
-            return
+        if self.main.dlclicked == False:
+            self.main.dlclicked=True
+            self.main.update_torrent_widgets()
 
-    def send_torrents(self, t):
-        self.torrents = t
+    def count_torrents(self):
+        return sum([1 for _,t in self.torrents.iteritems() if t.completion < 1])
 
 class VersionWindow(Window):
     def __init__(self, main, newversion, download_url):
@@ -2297,10 +2272,10 @@ class DownloadInfoFrame(object):
     
         self.ofbutton = OpenFileButton(self)
 
-        self.dbutton = DownloadingButton(self)
-        self.dbutton.set_label("Downloads")
-        self.sbutton = SeedingButton(self)
-        self.sbutton.set_label("Seeds")
+        self.dbutton = DownloadingButton(self, self.torrents)
+        self.dbutton.set_label("Downloads ()")
+        self.sbutton = SeedingButton(self, self.torrents)
+        self.sbutton.set_label("Seeds ()")
 
         file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
 
@@ -2409,9 +2384,6 @@ class DownloadInfoFrame(object):
         self.mainscroll.add_with_viewport(self.scrollbox)
 
         self.paned.pack2(self.mainscroll, resize=True, shrink=False)
-
-        self.dbutton.send(self.scrollbox, self.knownbox, self.paned, self.torrents)
-        self.sbutton.send(self.scrollbox, self.knownbox, self.paned, self.torrents)
 
         self.box1.pack_start(self.paned)
 
@@ -2784,6 +2756,21 @@ class DownloadInfoFrame(object):
             int(self.config['display_interval'] * 1000),
             self.make_statusrequest)
 
+    def update_torrent_widgets(self):
+        # Separate by downloading/seeding status
+        dl = [t for _,t in self.torrents.items() if t.completion < 1]
+        sd = [t for _,t in self.torrents.items() if t.completion >= 1]
+        if self.dlclicked:
+            to_show, to_hide = dl, sd
+        else:
+            to_show, to_hide = sd, dl
+        for i,s in enumerate(to_show):
+            s.widget.show()
+        #XXX: Was this necessary?
+        #    self.knownbox.reorder_child(s.widget, i)
+        for h in to_hide:
+            h.widget.hide()
+
     def remove_torrent_widget(self, infohash):
         t = self.torrents[infohash]
         self.lists[t.state].remove(infohash)
@@ -2927,8 +2914,12 @@ class DownloadInfoFrame(object):
         t.downtotal = downtotal
         self.torrents[infohash] = t
         self.create_torrent_widget(infohash)
-        self.dbutton.send_torrents(self.torrents)
-        self.dbutton.show_downloading()
+        if t.completion < 1:
+            self.dbutton.show_downloading()
+        else:
+            self.sbutton.show_seeding()
+        self.dbutton.update_label()
+        self.sbutton.update_label()
 
     def torrent_state_changed(self, infohash, state, completion,
                               uptotal, downtotal, queuepos=None):
@@ -2939,6 +2930,9 @@ class DownloadInfoFrame(object):
         t.uptotal = uptotal
         t.downtotal = downtotal
         self.create_torrent_widget(infohash, queuepos)
+        self.dbutton.update_label()
+        self.sbutton.update_label()
+        self.update_torrent_widgets()
 
     def reorder_torrent(self, infohash, queuepos):
         self.remove_torrent_widget(infohash)
@@ -2946,14 +2940,19 @@ class DownloadInfoFrame(object):
 
     def update_completion(self, infohash, completion, files_left=None,
                           files_allocated=None):
-        self.dbutton.show_downloaded()
         t = self.torrents[infohash]
         if files_left is not None and t.widget.filelistwindow is not None:
             t.widget.filelistwindow.update(files_left, files_allocated)
+        self.dbutton.update_label()
+        self.sbutton.update_label()
+        self.update_torrent_widgets()
 
     def removed_torrent(self, infohash):
         self.remove_torrent_widget(infohash)
         del self.torrents[infohash]
+        self.dbutton.update_label()
+        self.sbutton.update_label()
+        self.update_torrent_widgets()
 
     def change_torrent_state(self, infohash, newstate, index=None,
                              replaced=None, force_running=False):
@@ -2973,6 +2972,7 @@ class DownloadInfoFrame(object):
         if t is None or t.state == KNOWN:
             return
         self.change_torrent_state(infohash, KNOWN)
+        self.update_torrent_widgets()
 
     def confirm_replace_running_torrent(self, infohash, replaced, index):
         replace_func = lambda *args: self.change_torrent_state(infohash,
