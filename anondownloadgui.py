@@ -2218,11 +2218,15 @@ class QueuedBox(ReorderableBox):
         pass
         # BUG: Don't know how I will indicate in the UI that the bottom of the list is highlighted
 
-
-
 class Struct(object):
-    pass
-
+    def __init__(self):
+        self.metainfo = None
+        self.dlpath = None
+        self.state = None
+        self.completion = None
+        self.uptotal = None
+        self.downtotal = None
+        self.widget = None
 
 class DownloadInfoFrame(object):
 
@@ -2273,9 +2277,9 @@ class DownloadInfoFrame(object):
         self.ofbutton = OpenFileButton(self)
 
         self.dbutton = DownloadingButton(self, self.torrents)
-        self.dbutton.set_label("Downloads ()")
+        self.dbutton.set_label("Downloads (0)")
         self.sbutton = SeedingButton(self, self.torrents)
-        self.sbutton.set_label("Seeds ()")
+        self.sbutton.set_label("Seeds (0)")
 
         file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
 
@@ -2765,11 +2769,13 @@ class DownloadInfoFrame(object):
         else:
             to_show, to_hide = sd, dl
         for i,s in enumerate(to_show):
-            s.widget.show()
+            if s.widget:
+                s.widget.show()
         #XXX: Was this necessary?
         #    self.knownbox.reorder_child(s.widget, i)
         for h in to_hide:
-            h.widget.hide()
+            if h.widget:
+                h.widget.hide()
 
     def remove_torrent_widget(self, infohash):
         t = self.torrents[infohash]
@@ -2966,6 +2972,7 @@ class DownloadInfoFrame(object):
                 succ = l[index]
         self.torrentqueue.change_torrent_state(infohash, t.state, newstate,
                                          pred, succ, replaced, force_running)
+        self.update_torrent_widgets()
 
     def finish(self, infohash):
         t = self.torrents[infohash]
