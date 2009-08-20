@@ -86,8 +86,8 @@ class NeighborLink(AnomosNeighborProtocol):
             proper shutdown of that stream.
             @param id: Stream id of stream to end
             @type id: int in range 0 to 2**16'''
+        self.pmq.remove_by_sid(id)
         if self.streams.has_key(id):
-            self.pmq.remove_by_sid(id)
             del self.streams[id]
 
     def get_stream_handler(self, id):
@@ -125,8 +125,9 @@ class NeighborLink(AnomosNeighborProtocol):
         #      if this write fails.
         snt = 0
         for i in range(len(sids)):
-            self.socket.write(self.format_message(sids[i], msgs[i]))
-            snt += len(msgs[i])
+            f = self.format_message(sids[i], msgs[i])
+            self.socket.write(f)
+            snt += len(f)
         return snt
 
     def connection_lost(self, conn):
