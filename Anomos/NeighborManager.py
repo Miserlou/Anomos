@@ -89,7 +89,7 @@ class NeighborManager(object):
                 del self.incomplete[k]
         self.logfunc(INFO, \
                 "Failed to open connection to %s\n\
-                 Reason: %s" % str(loc), str(err))
+                 Reason: %s" % (str(loc), str(err)))
 
     def failed_connections(self):
         return self.failedPeers
