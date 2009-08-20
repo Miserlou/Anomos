@@ -52,7 +52,7 @@ class SimPeer:
     Container for some information tracker needs to know about each peer, also
     node in Graph model of network topology used for Tracking Code generation.
     """
-    def __init__(self, name, pubkey, loc, sid):
+    def __init__(self, name, pubkey, ip, port, sid):
         """
         @param name: Peer ID to be assigned to this SimPeer
         @type name: string
@@ -60,9 +60,10 @@ class SimPeer:
         @type pubkey: Anomos.crypto.RSAPubKey
         """
         self.name = name
-        self.loc = loc      # Client (ip, port)
+        self.ip = ip
+        self.port = port
         self.pubkey = crypto.PeerCert(pubkey)
-        self.neighbors = {} # {PeerID: {dist:#, nid:#, loc:(#,#)}}
+        self.neighbors = {} # {PeerID: {dist:#, nid:#, ip:"", port:#}}
         self.id_map = {}    # {NeighborID : PeerID}
         self.infohashes = {} # {infohash: (downloaded, left)}
         self.last_seen = 0  # Time of last client announce
@@ -70,6 +71,8 @@ class SimPeer:
         self.failedNeighbors = []
         self.needsNeighbors = 0
         self.sessionid = sid
+        self.num_natcheck = 0
+        self.nat = True # assume NAT
 
     def needsUpdate(self):
         return self.last_modified > self.last_seen
@@ -95,14 +98,14 @@ class SimPeer:
             # tracker.
             self.infohashes[ihash] = (int(dl), int(left))
 
-    def addNeighbor(self, peerid, nid, loc):
+    def addNeighbor(self, peerid, nid, ip, port):
         """
         Assign Neighbor ID to peer
         @type peerid: string
         @type nid: int
         """
         #TODO: What happens if we get a new neighbor we're already connected to
-        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid,'loc':loc})
+        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid,'ip':ip, 'port':port})
         self.id_map[nid] = peerid
         self.last_modified = bttime()
 
@@ -128,11 +131,11 @@ class SimPeer:
 
     def getAvailableNIDs(self):
         """
-        @return: set object containing NIDs in range 0 -> 255 which are not in use
+        @return: set object containing NIDs in range 0 -> 254 which are not in use
         @rtype: set of ints
         """
         used = set(self.id_map.keys())
-        idrange = set([chr(i) for i in range(0, 256)])
+        idrange = set([chr(i) for i in range(0, 255)])
         return idrange - used
 
     def reWeight(self, peerid, weight):
@@ -205,7 +208,7 @@ class NetworkModel:
     def getNames(self):
         return self.names.keys()
 
-    def initPeer(self, peerid, pubkey, loc, sid, num_neighbors=4):
+    def initPeer(self, peerid, pubkey, ip, port, sid, num_neighbors=4):
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
@@ -213,7 +216,7 @@ class NetworkModel:
         @returns: a reference to the created peer
         @rtype: SimPeer
         """
-        self.names[peerid] = SimPeer(peerid, pubkey, loc, sid)
+        self.names[peerid] = SimPeer(peerid, pubkey, ip, port, sid)
         self.randConnect(peerid, num_neighbors)
         return self.names[peerid]
 
@@ -232,8 +235,8 @@ class NetworkModel:
         l = list(nidsP1.intersection(nidsP2))
         if len(l):
             nid = random.choice(l)
-            p1.addNeighbor(v2, nid, p2.loc)
-            p2.addNeighbor(v1, nid, p1.loc)
+            p1.addNeighbor(v2, nid, p2.ip, p2.port)
+            p2.addNeighbor(v1, nid, p1.ip, p2.port)
         else:
             raise RuntimeError("No available NeighborIDs. It's possible the \
                                 network is being attacked.")

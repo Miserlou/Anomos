@@ -19,7 +19,8 @@ from Anomos.Protocol.Connection import Connection
 from Anomos import protocol_name as anomos_protocol_name
 
 class AnomosNeighborInitializer(Connection):
-    """ Extends Anomos specific Forward Link properties of Connection """
+    ''' Temporary connection handler created to instantiate
+        or receive connections '''
     def __init__(self, manager, socket, id=None, started_locally=True):
         Connection.__init__(self, socket)
         self.manager = manager
@@ -65,4 +66,6 @@ class AnomosNeighborInitializer(Connection):
         hdr = chr(len(anomos_protocol_name)) + anomos_protocol_name + \
                        self.protocol_extensions()
         self.socket.write(hdr)
+    def connection_closed(self):
+        self.manager.initializer_failed(self.id)
 

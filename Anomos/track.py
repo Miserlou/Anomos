@@ -31,7 +31,7 @@ from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.btformats import statefiletemplate
 from Anomos.crypto import Certificate, initCrypto
 from Anomos.HTTPHandler import HTTPHandler
-#from Anomos.NatCheck import NatCheck
+from Anomos.NatCheck import NatCheck
 from Anomos.NetworkModel import NetworkModel
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
@@ -162,7 +162,7 @@ class Tracker(object):
         self.response_size = config['response_size']
         self.max_give = config['max_give']
         self.dfile = config['dfile']
-        #self.natcheck = config['nat_check']
+        self.natcheck = config['nat_check']
 
         # Set the favicon
         favicon = config['favicon']
@@ -466,18 +466,22 @@ class Tracker(object):
         #     any IP address they want.
         if params('ip') != ip and ip == '127.0.0.1':
             ip = params('ip', '127.0.0.1')
+        port = int(params('port'))
         if not simpeer: # Tracker hasn't seen this peer before
-            loc = (ip, int(params('port')))
             skey = params('sessionid')
-            if not skey:
-                return None # When this method returns None a 400: Bad Request
-                            # is sent to the requester
-            simpeer = self.networkmodel.initPeer(peerid, peercert, loc, skey)
-            if loc[1] != simpeer.loc[1]:
-                return None
-        # Check that peer certificate matches
-        if not simpeer.cmpCertificate(peercert):
+            if not skey:    # When this method returns None a 400: Bad Request
+                return None # is sent to the requester
+            simpeer = self.networkmodel.initPeer(peerid, peercert, ip, port, skey)
+        elif not simpeer.cmpCertificate(peercert):
+            # Certificate mismatch
             return None
+        if ip != simpeer.ip or port != simpeer.port:
+            # IP or port changed so we should natcheck again
+            simpeer.num_natcheck = 0
+            simpeer.nat = True
+        if simpeer.nat and simpeer.num_natcheck < self.natcheck:
+            NatCheck(self.connectback_result,peerid,ip,port,self.rawserver)
+        # Check that peer certificate matches
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
             # Peer stopped their only/last torrent
@@ -614,8 +618,8 @@ class Tracker(object):
         sim = self.networkmodel.get(peerid)
         if not sim:
             return []
-        return [{'ip':vals['loc'][0],   \
-                 'port':vals['loc'][1], \
+        return [{'ip':vals['ip'],   \
+                 'port':vals['port'], \
                  'nid':vals['nid']} for vals in sim.neighbors.values()]
 
     def getTCs(self, peerid, infohash, count=3):
@@ -834,32 +838,24 @@ class Tracker(object):
     #    bc[2][not not_seed][peerid] = compact_peer_info(ip, port)
 
     #def natchecklog(self, peerid, ip, port, result):
-
     #    print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
     #        ip, quote(peerid), strftime("[%d/%b/%Y:%H:%M:%S]"), ip, port, result)
 
-    #def connectback_result(self, result, downloadid, peerid, ip, port):
-    #    record = self.downloads.get(downloadid, {}).get(peerid)
-    #    if ( record is None
-    #             or (record['ip'] != ip and record.get('given ip') != ip)
-    #             or record['port'] != port ):
-    #        if self.config['log_nat_checks']:
-    #            self.natchecklog(peerid, ip, port, 404)
-    #        return
-    #    if self.config['log_nat_checks']:
-    #        if result:
-    #            self.natchecklog(peerid, ip, port, 200)
-    #        else:
-    #            self.natchecklog(peerid, ip, port, 503)
-    #   if not record.has_key('nat'):
-    #       record['nat'] = int(not result)
-    #       if result:
-    #           self.natcheckOK(downloadid,peerid,ip,port,record['left'])
-    #   elif result and record['nat']:
-    #       record['nat'] = 0
-    #       self.natcheckOK(downloadid,peerid,ip,port,record['left'])
-    #   elif not result:
-    #       record['nat'] += 1
+    def connectback_result(self, peerid, result):
+        record = self.networkmodel.get(peerid)
+        if record is not None:
+            record.nat = not result
+            record.num_natcheck += 1
+        #if self.config['log_nat_checks']:
+        #    if ( record is None
+        #             or (record['ip'] != ip and record.get('given ip') != ip)
+        #             or record['port'] != port ):
+        #        self.natchecklog(peerid, ip, port, 404)
+        #        return
+        #    if result:
+        #        self.natchecklog(peerid, ip, port, 200)
+        #    else:
+        #        self.natchecklog(peerid, ip, port, 503)
 
     def save_dfile(self):
         self.rawserver.add_task(self.save_dfile, self.save_dfile_interval)

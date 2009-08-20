@@ -22,8 +22,6 @@ class Connection(object):
     def __init__(self, socket):
         self.socket = socket
         self.socket.handler = self
-        self.ip = socket.ip
-        self.complete = False
         self.closed = False
         self._buffer = array.array('c',"")
     def data_came_in(self, conn, s):
@@ -54,8 +52,8 @@ class Connection(object):
             try:
                 # Hand control over to Protocol until they yield another data length
                 self._next_len = self._reader.next()
-            except StopIteration:
-                self.close("Closing. Was not expecting data.")
+            except StopIteration, e:
+                self.close("Closing. " + str(e))
                 return
     def close(self, e=None):
         if self.socket.handler != self:
@@ -69,8 +67,7 @@ class Connection(object):
     def _sever(self):
         self.closed = True
         self._reader = None
-        if self.complete:
-            self.connection_closed(self)
+        self.connection_closed()
     def connection_flushed(self, socket): pass
     def connection_closed(self): pass # Used by subclasses.
     def connection_lost(self, conn):

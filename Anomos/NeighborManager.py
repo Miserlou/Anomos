@@ -100,7 +100,8 @@ class NeighborManager(object):
         for id,v in self.incomplete.iteritems():
             if v == loc:
                 break
-        else: return #loc wasn't found
+        else:
+            return #loc wasn't found
         AnomosNeighborInitializer(self, sock, id, started_locally=True)
 
     ## AnomosNeighborInitializer got a full handshake ##
@@ -143,15 +144,19 @@ class NeighborManager(object):
             del self.incomplete[id]
         self.add_neighbor(socket, id)
         tasks = self.waiting_tcs.get(id)
-        if not tasks:
+        if tasks is None:
             return
         for task in tasks:
             #TODO: is it still necessary to queue these with RawServer?
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
         del self.waiting_tcs[id]
 
-    def connection_closed(self, con):
-        self.rm_neighbor(con.id)
+    def initializer_failed(self, id):
+        '''Connection closed before finishing initialization'''
+        #TODO: Does anything else need to be done here?
+        if self.incomplete.has_key(id):
+            self.failedPeers.append(id)
+            del self.incomplete[id]
 
     def start_circuit(self, tc, infohash, aeskey):
         '''Called from Rerequester to initialize new circuits we've
