@@ -187,18 +187,14 @@ class NetworkModel:
         """
         return self.names.get(peerid, None)
 
-    def getSwarm(self, infohash, withSeeders=True):
-        """
-        @param infohash: specifies the torrent
-        @param withSeeders: specifies whether returned list should include
-        seeders
-        @returns: PeerID of each client in Swarm
-        """
-        return [k for k,v in self.names.iteritems() if v.isSharing(infohash)]
+    def getSwarm(self, infohash):
+        return set(i for i in self.names \
+                if self.names[i].isSharing(infohash))
 
     def getDownloadingPeers(self, infohash):
         return set(i for i in self.names \
-                if self.names[i].isSharing(infohash))
+                if self.names[i].isSharing(infohash) and \
+                    not self.names[i].isSeeding(infohash))
 
     def getSeedingPeers(self, infohash):
         return set(i for i in self.names \
@@ -276,63 +272,130 @@ class NetworkModel:
                 self.names[neighborOf].rmNeighbor(peerid)
             del self.names[peerid]
 
-    def getPathsToFile(self, src, infohash, is_seed=False, minpathlen=3):
-        """
-        Modified Dijkstra with the added condition that if the peer
-        corresponding to a vertex is sharing the desired file then paths less
-        than minpathlen hops long act as if they have infinite weight.
+    def nbrsOf(self, peerid):
+        return self.get(peerid).neighbors.keys()
 
-        @param src: Peer ID (str) of the start node
-        @param infohash: File to search for
-        @param minpathlen: Minimum path length to accept
-        @return: list of Peer IDs
-        """
+    def getPathsToFile(self, src, infohash, how_many=5, is_seed=False, minpathlen=3):
         source = self.get(src)
-        if not is_seed:
-            dests = self.getDownloadingPeers(infohash)
+        snbrs = set(source.neighbors.keys())
+        if is_seed:
+            dests = list(self.getDownloadingPeers(infohash))
         else:
-            dests = self.getSeedingPeers(infohash)
-        paths = dict.fromkeys(self.getNames(), [])
-        known = dict.fromkeys(self.getNames(), [INFINITY, 0])
-        DIST, PATHLEN = 0, 1 # For easy to read indicies
-        known[source.name] = [0, 0] # The distance of the source to itself is 0
-        unexplored = known.copy() # Safe to destroy copy
-        while len(unexplored) > 0:
-            # Select the next vertex to explore, which is not yet fully explored and which
-            # minimizes the already-known distances.
-            if len(unexplored) > 1:
-                cur_name = min(*unexplored.items(), **{'key':itemgetter(1)})[0]
-            else:
-                cur_name = unexplored.keys()[0]
-            cur_obj = self.get(cur_name)
-            del unexplored[cur_name] # Remove cur_name from future candidates
-
-            # If the smallest distance is INFINITY, the remaining nodes are all
-            # unreachable.
-            if known[cur_name][DIST] == INFINITY:
+            dests = list(self.getSwarm(infohash))
+            if src in dests:
+                dests.remove(src)
+        if len(dests) == 0:
+            return []
+        paths = []
+        #destination = self.get(random.choice(dests))
+        for dname in dests:
+            if len(paths) >= how_many:
                 break
-            for n in cur_obj.neighbors:
-                distToN = cur_obj.neighbors[n].get('dist')
-                # If the distance to N through cur is less than the
-                # current shortest distance to N through other nodes,
-                # or N is a potential destination and the best path to
-                # N is shorter than our minimum allowed path, then update
-                # the best distance and path to N so that connections to
-                # N will be routed through cur.
-                if not known.get(cur_name) or not known.get(n):
-                    continue
-                if known[cur_name][DIST] + distToN < known[n][DIST] \
-                  or (n in dests and known[n][PATHLEN] < minpathlen):
-                    known[n][DIST] = known[cur_name][DIST] + distToN
-                    known[n][PATHLEN] = len(paths[cur_name]) + 1
-                    # Keep unexplored in sync with distances
-                    if unexplored.has_key(n):
-                        unexplored[n] = known[n]
-                    paths[n] = paths[cur_name] + [cur_name]
-        gps = [paths[p] for p in paths.iterkeys() if p in dests and
-                len(paths[p]) >= minpathlen]
-        print "Generated path: ", gps
-        return gps
+            destination = self.get(dname)
+            # Pick a destination node
+            dnbrs = set(destination.neighbors.keys())
+            if len(dnbrs) == 0:
+                return []
+            lvls = [dnbrs,]
+            #lvls[0] = the neighbors of destination
+            #lvls[1] = the neighbors of neighbors (nbrs^2) of destination
+            #lvls[2] = the nbrs^3 of destination
+            for i in range(1, minpathlen-2):
+                # Take the union of all the neighbor sets of peers in the last
+                # level and append the result to lvls
+                lvls.append( \
+                        reduce(set.union, \
+                            [set(self.nbrsOf(n)) for n in lvls[i-1]]))
+            isect = snbrs.intersection(lvls[-1])
+            allc = 0
+            all = reduce(set.union, lvls)
+            # Keep growing until we find an snbr or exhaust the searchable space
+            while isect == set([]) and allc != len(all):
+                lvls.append(reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]]))
+                isect = snbrs.intersection(lvls[-1])
+                allc = len(all)
+                all = all.union(lvls[-1])
+            isect.discard(dname)
+            if isect == set([]):
+                return []
+            cur = random.choice(list(isect))
+            path = [cur,]
+            c = len(lvls) - 2
+            exclude = set([source.name, destination.name])
+            while c >= 0:
+                exclude.update(path[-1])
+                validChoices = lvls[c].difference(exclude)
+                nbrsOfLast = set(self.nbrsOf(path[-1]))
+                candidates = list(nbrsOfLast.intersection(validChoices))
+                if candidates == []:
+                    break
+                #TODO: We can fork the path at this point and create an
+                #   alternate if there is more than one candidate
+                path.append(random.choice(candidates))
+                c -= 1
+            path.insert(0, source.name)
+            path.append(destination.name)
+            paths.append(path)
+        print paths
+        return paths
+
+    #def getPathsToFile(self, src, infohash, is_seed=False, minpathlen=3):
+    #    """
+    #    Modified Dijkstra with the added condition that if the peer
+    #    corresponding to a vertex is sharing the desired file then paths less
+    #    than minpathlen hops long act as if they have infinite weight.
+
+    #    @param src: Peer ID (str) of the start node
+    #    @param infohash: File to search for
+    #    @param minpathlen: Minimum path length to accept
+    #    @return: list of Peer IDs
+    #    """
+    #    source = self.get(src)
+    #    if not is_seed:
+    #        dests = self.getDownloadingPeers(infohash)
+    #    else:
+    #        dests = self.getSeedingPeers(infohash)
+    #    paths = dict.fromkeys(self.getNames(), [])
+    #    known = dict.fromkeys(self.getNames(), [INFINITY, 0])
+    #    DIST, PATHLEN = 0, 1 # For easy to read indicies
+    #    known[source.name] = [0, 0] # The distance of the source to itself is 0
+    #    unexplored = known.copy() # Safe to destroy copy
+    #    while len(unexplored) > 0:
+    #        # Select the next vertex to explore, which is not yet fully explored and which
+    #        # minimizes the already-known distances.
+    #        if len(unexplored) > 1:
+    #            cur_name = min(*unexplored.items(), **{'key':itemgetter(1)})[0]
+    #        else:
+    #            cur_name = unexplored.keys()[0]
+    #        cur_obj = self.get(cur_name)
+    #        del unexplored[cur_name] # Remove cur_name from future candidates
+
+    #        # If the smallest distance is INFINITY, the remaining nodes are all
+    #        # unreachable.
+    #        if known[cur_name][DIST] == INFINITY:
+    #            break
+    #        for n in cur_obj.neighbors:
+    #            distToN = cur_obj.neighbors[n].get('dist')
+    #            # If the distance to N through cur is less than the
+    #            # current shortest distance to N through other nodes,
+    #            # or N is a potential destination and the best path to
+    #            # N is shorter than our minimum allowed path, then update
+    #            # the best distance and path to N so that connections to
+    #            # N will be routed through cur.
+    #            if not known.get(cur_name) or not known.get(n):
+    #                continue
+    #            if known[cur_name][DIST] + distToN < known[n][DIST] \
+    #              or (n in dests and known[n][PATHLEN] < minpathlen):
+    #                known[n][DIST] = known[cur_name][DIST] + distToN
+    #                known[n][PATHLEN] = len(paths[cur_name]) + 1
+    #                # Keep unexplored in sync with distances
+    #                if unexplored.has_key(n):
+    #                    unexplored[n] = known[n]
+    #                paths[n] = paths[cur_name] + [cur_name]
+    #    gps = [paths[p] for p in paths.iterkeys() if p in dests and
+    #            len(paths[p]) >= minpathlen]
+    #    print "Generated path: ", gps
+    #    return gps
 
     def getTrackingCodes(self, source, infohash, count=3):
         seedp = self.get(source).isSeeding(infohash)
@@ -340,7 +403,7 @@ class NetworkModel:
                                     is_seed=seedp, minpathlen=4)
         tcs = []
         if len(paths) > count:
-            rand.shuffle(paths)
+            random.shuffle(paths)
         for p in paths[:min(count, len(paths))]:
             aes = crypto.AESKey()
             kiv = ''.join((aes.key, aes.iv))
