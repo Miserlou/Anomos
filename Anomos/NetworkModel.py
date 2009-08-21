@@ -247,17 +247,24 @@ class NetworkModel:
         peer with id == peerid
         """
         peer = self.get(peerid)
-        others = self.names.keys()
-        others.remove(peerid) # Remove source peer
-        toRm = set(peer.neighbors.keys()).union(peer.failedNeighbors)
-        for pid in toRm.intersection(set(others)):
-            others.remove(pid) # and the peers source is connected to
-        for c in range(numpeers): # Connect to numpeers randomly selected peers
-            if len(others) == 0: # Unless there aren't that many in the network.
+        order = range(len(self.names.keys()))
+        random.shuffle(order)
+        candidates = self.names.keys()
+        c = 0
+        for i in order:
+            if c >= numpeers:
                 break
-            otherpeerid = random.choice(others)
-            self.connect(peerid, otherpeerid)
-            others.remove(otherpeerid)
+            opid = candidates[i]
+            # Don't connect peers to: Themselves, peers who
+            # they're already neighbors with, peers they've failed
+            # to make connections to in the past, or NAT'd peers.
+            if  opid == peerid or \
+                opid in peer.neighbors.keys() or \
+                opid in peer.failedNeighbors or \
+                self.get(opid).nat:
+                    continue
+            self.connect(peerid, opid)
+            c += 1
 
     def disconnect(self, peerid):
         """
