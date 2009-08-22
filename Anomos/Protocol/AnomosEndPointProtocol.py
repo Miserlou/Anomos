@@ -163,5 +163,3 @@ class AnomosEndPointProtocol(AnomosProtocol):
         self.logfunc(WARNING, \
                 "Invalid message of type %02x on %s. Closing stream."% \
                 (ord(t), self.uniq_id()))
-    def close(self):
-        self.neighbor.end_stream(self.stream_id)
