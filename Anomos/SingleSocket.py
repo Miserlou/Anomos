@@ -25,7 +25,9 @@ class SingleSocket(object):
         self.peer_cert = sock.get_peer_cert()
         if ip is not None:
             self.ip = ip
+            self.local = True
         else: # Try to get the IP from the socket
+            self.local = False
             try:
                 peername = self.socket.getpeername()
             except SSL.SSLError:
@@ -50,11 +52,12 @@ class SingleSocket(object):
         self.connected = False
 
     def close(self):
-        self._set_shutdown()
-        self.socket.close()
-        self._clear_state()
-        del self.rawserver.single_sockets[self.fileno]
-        self.rawserver.poll.unregister(self.fileno)
+        if self.socket is not None:
+            self._set_shutdown()
+            self.socket.close()
+            self._clear_state()
+            del self.rawserver.single_sockets[self.fileno]
+            self.rawserver.poll.unregister(self.fileno)
 
     def is_flushed(self):
         return len(self.buffer) == 0

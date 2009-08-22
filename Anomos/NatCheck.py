@@ -27,7 +27,7 @@ class NatCheck(object):
 
     def sock_success(self, sock, *args):
         self.socket = sock
-        AnomosNeighborInitializer(self, sock, self.id, started_locally=True)
+        AnomosNeighborInitializer(self, sock, self.id)
 
     def sock_fail(self, *args):
         self.answer(False)

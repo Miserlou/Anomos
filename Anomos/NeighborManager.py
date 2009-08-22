@@ -102,7 +102,7 @@ class NeighborManager(object):
                 break
         else:
             return #loc wasn't found
-        AnomosNeighborInitializer(self, sock, id, started_locally=True)
+        AnomosNeighborInitializer(self, sock, id)
 
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):

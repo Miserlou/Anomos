@@ -22,6 +22,7 @@ class Connection(object):
     def __init__(self, socket):
         self.socket = socket
         self.socket.handler = self
+        self.started_locally = self.socket.local
         self.closed = False
         self._buffer = array.array('c',"")
     def data_came_in(self, conn, s):

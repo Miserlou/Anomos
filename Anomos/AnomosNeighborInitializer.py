@@ -21,11 +21,10 @@ from Anomos import protocol_name as anomos_protocol_name
 class AnomosNeighborInitializer(Connection):
     ''' Temporary connection handler created to instantiate
         or receive connections '''
-    def __init__(self, manager, socket, id=None, started_locally=True):
+    def __init__(self, manager, socket, id=None):
         Connection.__init__(self, socket)
         self.manager = manager
         self.id = id
-        self.started_locally = started_locally
         self._reader = self._read_header() # Starts the generator
         self._next_len = self._reader.next() # Gets the first yield
         if self.started_locally:
