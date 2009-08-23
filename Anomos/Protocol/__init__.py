@@ -11,9 +11,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO: Maybe a list of supported protocols to query.. should we ever
-#      get to that point.
-
 from binascii import b2a_hex
 from Anomos import INFO, WARNING, ERROR, CRITICAL
 
@@ -59,7 +56,7 @@ class AnomosProtocol(object):
                               NOT_INTERESTED: 1, HAVE: 5, REQUEST: 13, \
                               PIECE: 9, CANCEL: 13, BREAK: 1, CONFIRM: 1}
         #msgmap => Lookup table for methods to use when responding to message types
-        self.msgmap = {CONFIRM: self.got_confirm}
+        self.msgmap = {}
     def network_ctl_msg(self, type, message=""):
         ''' Send message for network messages,
             ie. CONFIRM, TCODE and for relaying messages'''
@@ -93,8 +90,6 @@ class AnomosProtocol(object):
             if len(m) != self.msglens[m[0]]:
                 validp = False
         return validp
-    def got_confirm(self):
-        self.connection_completed()
     def format_message(self, type, message=""):
         ''' Anomos messages are slightly different from
             BitTorrent messages because of the virtual

@@ -25,6 +25,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
         AnomosProtocol.__init__(self)
         self.msgmap.update({#CHOKE: self.got_choke,\
                             #UNCHOKE: self.got_unchoke,\
+                            CONFIRM: self.got_confirm, \
                             BREAK: self.got_break,\
                             RELAY: self.got_relay,\
                             PARTIAL: self.got_partial})
@@ -33,6 +34,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
     ## Disable direct message reading. ##
     def send_break(self):
         self.network_ctl_msg(BREAK)
+        self.neighbor.pmq.remove_by_sid(self.stream_id)
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):

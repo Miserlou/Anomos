@@ -128,6 +128,7 @@ class Relayer(AnomosRelayerProtocol):
         return self.next_upload is None and self.neighbor.in_queue(self.stream_id)
 
     def close(self):
+        self.logfunc(INFO, "Closing %s"%self.uniq_id())
         self.connection_closed()
 
     def flush_pre_buffer(self):

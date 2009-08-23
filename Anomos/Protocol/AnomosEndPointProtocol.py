@@ -36,6 +36,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             REQUEST: self.got_request,\
                             PIECE: self.got_piece,\
                             CANCEL: self.got_cancel,\
+                            CONFIRM: self.got_confirm, \
                             ENCRYPTED: self.got_encrypted,\
                             RELAY: self.got_relay, \
                             BREAK: self.got_break, \
@@ -130,6 +131,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_break(self):
         self.recvd_break = True
         self.network_ctl_msg(BREAK)
+        self.neighbor.pmq.remove_by_sid(self.stream_id)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
     def send_interested(self):
