@@ -146,9 +146,9 @@ class NeighborManager(object):
         tasks = self.waiting_tcs.get(id)
         if tasks is None:
             return
-        for task in tasks:
+        for i, task in enumerate(tasks):
             #TODO: is it still necessary to queue these with RawServer?
-            self.rawserver.add_task(task, 0) #TODO: add a min-wait time
+            self.rawserver.add_task(task, i) #TODO: add a min-wait time
         del self.waiting_tcs[id]
 
     def initializer_failed(self, id):
