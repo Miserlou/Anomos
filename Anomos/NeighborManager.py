@@ -166,6 +166,9 @@ class NeighborManager(object):
             return
         tcreader = TCReader(self.certificate)
         tcdata = tcreader.parseTC(tc)
+        if tcdata is None:
+            self.logfunc(WARNING, "Received bad tracking code from the tracker")
+            return
         nid = tcdata.neighborID
         sid = tcdata.sessionID
         torrent = self.get_torrent(infohash)
