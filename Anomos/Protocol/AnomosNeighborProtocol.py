@@ -27,6 +27,7 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
         Connection.__init__(self, socket)
         AnomosProtocol.__init__(self)
         self.msgmap.update({TCODE: self.got_tcode})
+        self.incoming_stream_id = 0
     def format_message(self, stream_id, message):
         return tobinary(stream_id)[2:] + \
                tobinary(len(message)) + message
@@ -43,6 +44,8 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
                 self.logfunc(WARNING, "Received message longer than max length")
             #    return
             yield l # Payload
+            if handler == self:
+                self.incoming_stream_id = stream
             handler.got_message(self._message)
     def invalid_message(self, t):
         self.close()
