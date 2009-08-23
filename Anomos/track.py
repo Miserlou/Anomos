@@ -18,12 +18,11 @@ import re
 import signal
 import sys
 
-from binascii import b2a_hex
-from cStringIO import StringIO
-from random import sample
+#from binascii import b2a_hex
+#from cStringIO import StringIO
 from threading import Event
 from time import gmtime, strftime
-from traceback import print_exc
+#from traceback import print_exc
 from urlparse import urlparse
 
 #from Anomos import version
@@ -635,11 +634,6 @@ class Tracker(object):
         @type count: int
         @type is_seed: bool
         """
-        # If is_seed then get the swarm without seeders
-        #if is_seed:
-        #    swarm = self.networkmodel.getDownloadingPeers(infohash)
-        #else:
-        #    #swarm = self.networkmodel.getSwarm(infohash)
         paths = self.networkmodel.getTrackingCodes(peerid, infohash, count)
         return paths
 
