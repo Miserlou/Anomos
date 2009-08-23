@@ -74,6 +74,9 @@ class EndPoint(AnomosEndPointProtocol):
                 (self.neighbor.in_queue(self.stream_id) or self.upload.buffer)
 
     def close(self):
+        if self.closed:
+            self.logfunc(WARNING, "Double close")
+            return
         if not self.recvd_break:
             self.logfunc(INFO, "Send Break on %s"%self.uniq_id())
             self.send_break()

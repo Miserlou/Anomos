@@ -51,10 +51,10 @@ class NeighborLink(AnomosNeighborProtocol):
             @type data: String
             @return: Newly created EndPoint object'''
         nxtid = self.next_stream_id
+        self.next_stream_id += 1
         self.streams[nxtid] = \
                     EndPoint(nxtid, self, torrent, aeskey, data,
                             logfunc=self.logfunc)
-        self.next_stream_id += 1
         self.logfunc(INFO, "Starting endpoint")
         return self.streams[nxtid]
 
@@ -69,10 +69,10 @@ class NeighborLink(AnomosNeighborProtocol):
             @type orelay: Anomos.Relayer.Relayer
             @return: Newly created Relayer object'''
         nxtid = self.next_stream_id
+        self.next_stream_id += 1
         self.streams[nxtid] = \
                     Relayer(nxtid, self, nid, data, orelay,
                             logfunc=self.logfunc)
-        self.next_stream_id += 1
         return self.streams[nxtid]
 
     def close_relays(self):

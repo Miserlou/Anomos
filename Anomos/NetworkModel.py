@@ -333,8 +333,7 @@ class NetworkModel:
                 #   alternate if there is more than one candidate
                 path.append(random.choice(candidates))
                 c -= 1
-            path.insert(0, source.name)
-            path.append(destination.name)
+            path = [source.name] + path + [destination.name]
             paths.append(path)
         print paths
         return paths
