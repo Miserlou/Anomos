@@ -31,6 +31,14 @@ if sys.platform == 'win32':
 else:
     from time import time as bttime
 
+import logging
+#logging.basicConfig(
+#    level=logging.DEBUG,
+#    format="[%(levelname)-8s] %(asctime)s %(module)s:%(lineno)d %(message)s",
+#    datefmt="%H:%M:%S",
+#    )
+LOG = logging.getLogger('anomos')
+
 def calc_unix_dirs():
     appdir = '%s-%s'%(app_name, version)
     ip = os.path.join('share', 'pixmaps', appdir)
@@ -118,7 +126,7 @@ def trace_on_call(fn):
 def log_on_call(fn):
     '''Logs a message when the decorated method is called'''
     def ret_fn(self, *args, **kwargs):
-        self.logfunc(INFO, "Calling %s" % fn.__name__)
+        self.logfunc(INFO, self.uniq_id() + " calling %s" % fn.__name__)
         return fn(self, *args, **kwargs)
     return ret_fn
 
