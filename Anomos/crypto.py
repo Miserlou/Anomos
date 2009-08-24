@@ -190,7 +190,7 @@ class Certificate:
     def getVerifiedContext(self, pem):
         global global_cryptodir
         cloc = os.path.join(global_cryptodir, pem)
-        ctx = SSL.Context("sslv23") # Defaults to SSLv23
+        ctx = SSL.Context("tlsv1") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
         ctx.load_verify_locations(cafile=cloc)
         ctx.set_allow_unknown_ca(1)
