@@ -51,7 +51,10 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def got_relay(self, message):
         self.got_message(message[1:])
     def got_encrypted(self, message):
-        if self.complete and self.e2e_key is not None:
+        if self.complete:
+            raise RuntimeError("Received encrypted data \
+                                before connection was complete")
+        if self.e2e_key is not None:
             m = self.e2e_key.decrypt(message[1:])
             self.got_message(m)
         else:

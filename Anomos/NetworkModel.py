@@ -269,7 +269,8 @@ class NetworkModel:
         """
         if peerid in self.names:
             for neighborOf in self.names[peerid].getNbrs():
-                self.names[neighborOf].rmNeighbor(peerid)
+                if neighborOf in self.names:
+                    self.names[neighborOf].rmNeighbor(peerid)
             del self.names[peerid]
 
     def nbrsOf(self, peerid):
@@ -337,64 +338,6 @@ class NetworkModel:
             paths.append(path)
         print paths
         return paths
-
-    #def getPathsToFile(self, src, infohash, is_seed=False, minpathlen=3):
-    #    """
-    #    Modified Dijkstra with the added condition that if the peer
-    #    corresponding to a vertex is sharing the desired file then paths less
-    #    than minpathlen hops long act as if they have infinite weight.
-
-    #    @param src: Peer ID (str) of the start node
-    #    @param infohash: File to search for
-    #    @param minpathlen: Minimum path length to accept
-    #    @return: list of Peer IDs
-    #    """
-    #    source = self.get(src)
-    #    if not is_seed:
-    #        dests = self.getDownloadingPeers(infohash)
-    #    else:
-    #        dests = self.getSeedingPeers(infohash)
-    #    paths = dict.fromkeys(self.getNames(), [])
-    #    known = dict.fromkeys(self.getNames(), [INFINITY, 0])
-    #    DIST, PATHLEN = 0, 1 # For easy to read indicies
-    #    known[source.name] = [0, 0] # The distance of the source to itself is 0
-    #    unexplored = known.copy() # Safe to destroy copy
-    #    while len(unexplored) > 0:
-    #        # Select the next vertex to explore, which is not yet fully explored and which
-    #        # minimizes the already-known distances.
-    #        if len(unexplored) > 1:
-    #            cur_name = min(*unexplored.items(), **{'key':itemgetter(1)})[0]
-    #        else:
-    #            cur_name = unexplored.keys()[0]
-    #        cur_obj = self.get(cur_name)
-    #        del unexplored[cur_name] # Remove cur_name from future candidates
-
-    #        # If the smallest distance is INFINITY, the remaining nodes are all
-    #        # unreachable.
-    #        if known[cur_name][DIST] == INFINITY:
-    #            break
-    #        for n in cur_obj.neighbors:
-    #            distToN = cur_obj.neighbors[n].get('dist')
-    #            # If the distance to N through cur is less than the
-    #            # current shortest distance to N through other nodes,
-    #            # or N is a potential destination and the best path to
-    #            # N is shorter than our minimum allowed path, then update
-    #            # the best distance and path to N so that connections to
-    #            # N will be routed through cur.
-    #            if not known.get(cur_name) or not known.get(n):
-    #                continue
-    #            if known[cur_name][DIST] + distToN < known[n][DIST] \
-    #              or (n in dests and known[n][PATHLEN] < minpathlen):
-    #                known[n][DIST] = known[cur_name][DIST] + distToN
-    #                known[n][PATHLEN] = len(paths[cur_name]) + 1
-    #                # Keep unexplored in sync with distances
-    #                if unexplored.has_key(n):
-    #                    unexplored[n] = known[n]
-    #                paths[n] = paths[cur_name] + [cur_name]
-    #    gps = [paths[p] for p in paths.iterkeys() if p in dests and
-    #            len(paths[p]) >= minpathlen]
-    #    print "Generated path: ", gps
-    #    return gps
 
     def getTrackingCodes(self, source, infohash, count=3):
         seedp = self.get(source).isSeeding(infohash)
