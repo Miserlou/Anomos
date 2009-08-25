@@ -355,6 +355,8 @@ class SeedingButton(gtk.Button):
         
     def toggle(self, widget):
         self.show_seeding()
+        self.update_label()
+        self.main.dbutton.update_label()
 
     def show_seeding(self):
         if self.main.dlclicked == True:
@@ -380,6 +382,8 @@ class DownloadingButton(gtk.Button):
 
     def toggle(self, widget):
         self.show_downloading()
+        self.update_label()
+        self.main.sbutton.update_label()
 
     def update_label(self):
         self.set_label("Downloads (%d)" % self.count_torrents())
@@ -1594,6 +1598,9 @@ class TorrentBox(gtk.EventBox):
     def remove(self):
         self.main.torrentqueue.remove_torrent(self.infohash)
 
+    def complete(self):
+        self.main.torrents[self.infohash].completion = 1.0
+
 
 class KnownTorrentBox(TorrentBox):
 
@@ -1820,6 +1827,13 @@ class RunningTorrentBox(DroppableTorrentBox):
                                    'Remove torrent')
         
         self.make_menu()
+        self.complete()
+        self.main.dbutton.show_downloading()
+        self.main.sbutton.show_seeding()
+        self.main.dbutton.show_downloading()
+        self.main.dbutton.update_label()
+        self.main.sbutton.update_label()
+
 
     def make_menu(self):
         menu_items = [("Download _later", self.move_to_end),
@@ -2936,9 +2950,9 @@ class DownloadInfoFrame(object):
         t.uptotal = uptotal
         t.downtotal = downtotal
         self.create_torrent_widget(infohash, queuepos)
+        self.update_torrent_widgets()
         self.dbutton.update_label()
         self.sbutton.update_label()
-        self.update_torrent_widgets()
 
     def reorder_torrent(self, infohash, queuepos):
         self.remove_torrent_widget(infohash)
@@ -2972,6 +2986,8 @@ class DownloadInfoFrame(object):
                 succ = l[index]
         self.torrentqueue.change_torrent_state(infohash, t.state, newstate,
                                          pred, succ, replaced, force_running)
+        self.dbutton.update_label()
+        self.sbutton.update_label()
         self.update_torrent_widgets()
 
     def finish(self, infohash):
@@ -2979,6 +2995,8 @@ class DownloadInfoFrame(object):
         if t is None or t.state == KNOWN:
             return
         self.change_torrent_state(infohash, KNOWN)
+        self.dbutton.update_label()
+        self.sbutton.update_label()
         self.update_torrent_widgets()
 
     def confirm_replace_running_torrent(self, infohash, replaced, index):
