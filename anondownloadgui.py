@@ -2775,7 +2775,10 @@ class DownloadInfoFrame(object):
         for i,s in enumerate(to_show):
             if s.widget:
                 s.widget.show()
-                self.runbox.reorder_child(s.widget, i)
+                try:
+                    self.runbox.reorder_child(s.widget, i)
+                except ValueError:
+                    pass
         for h in to_hide:
             if h.widget:
                 h.widget.hide()
