@@ -1830,7 +1830,7 @@ class RunningTorrentBox(DroppableTorrentBox):
 
     def change_to_completed(self):
         self.completion = 1.0
-        self.cancelimage.set_from_stock('anon-remove', gtk.ICON_SIZE_BUTTON)
+        self.cancelimage.set_from_stock(gtk.STOCK_CANCEL, gtk.ICON_SIZE_BUTTON)
         self.main.tooltips.set_tip(self.cancelbutton,
                                    'Remove torrent')
         
@@ -2793,8 +2793,6 @@ class DownloadInfoFrame(object):
         for i,s in enumerate(to_show):
             if s.widget:
                 s.widget.show()
-        #XXX: Was this necessary?
-        #    self.knownbox.reorder_child(s.widget, i)
         for h in to_hide:
             if h.widget:
                 h.widget.hide()
