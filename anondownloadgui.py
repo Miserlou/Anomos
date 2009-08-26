@@ -1423,7 +1423,7 @@ class TorrentBox(gtk.EventBox):
         self.cancelbutton = gtk.Button()
         self.cancelimage = gtk.Image()
         if self.completion is not None and self.completion >= 1:
-            self.cancelimage.set_from_stock('anon-remove', gtk.ICON_SIZE_BUTTON)
+            self.cancelimage.set_from_stock(gtk.STOCK_CANCEL, gtk.ICON_SIZE_BUTTON)
             self.main.tooltips.set_tip(self.cancelbutton,
                                        'Remove torrent')
         else:
