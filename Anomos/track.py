@@ -466,6 +466,11 @@ class Tracker(object):
         if params('ip') != ip and ip == '127.0.0.1':
             ip = params('ip', '127.0.0.1')
         port = int(params('port'))
+        if simpeer and params('event') == 'started':
+            # Peer most likely disconnected without reannouncing.
+            # TODO: limit the number of times we allow this to happen
+            self.networkmodel.disconnect(simpeer.name)
+            simpeer = None
         if not simpeer: # Tracker hasn't seen this peer before
             skey = params('sessionid')
             if not skey:    # When this method returns None a 400: Bad Request
