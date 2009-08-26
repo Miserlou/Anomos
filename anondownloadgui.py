@@ -334,12 +334,20 @@ class StopStartButton(gtk.Button):
             self.add(self.start_image)
             self.main.tooltips.set_tip(self, self.start_tip)
             self.main.stop_queue()
+            self.main.dbutton.show_downloading()
+            self.main.dbutton.update_label()
+            self.main.sbutton.show_seeding()
+            self.main.dbutton.show_downloading()
         else:
             if self.has_image:
                 self.remove(self.start_image)
             self.add(self.stop_image)
             self.main.tooltips.set_tip(self, self.stop_tip )
             self.main.restart_queue()
+            self.main.dbutton.show_downloading()
+            self.main.dbutton.update_label()
+            self.main.sbutton.show_seeding()
+            self.main.dbutton.show_downloading()
         self.has_image = True
 
 class SeedingButton(gtk.Button):
