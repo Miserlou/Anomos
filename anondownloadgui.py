@@ -1457,10 +1457,6 @@ class TorrentBox(gtk.EventBox):
         self.drag_source_set(gtk.gdk.BUTTON1_MASK,
                              [BT_TARGET],
                              gtk.gdk.ACTION_MOVE)
-        self.connect('drag_data_get', self.drag_data_get)
-
-        self.connect('drag_begin' , self.drag_begin )
-        self.connect('drag_end'   , self.drag_end   )
         self.cursor_handler_id = self.connect('enter_notify_event', self.change_cursors)
 
     def change_cursors(self, *args):
@@ -1652,9 +1648,6 @@ class DroppableTorrentBox(TorrentBox):
         self.drag_dest_set(gtk.DEST_DEFAULT_DROP,
                            [BT_TARGET,],
                            gtk.gdk.ACTION_MOVE)
-
-        self.connect('drag_data_received', self.drag_data_received)
-        self.connect('drag_motion', self.drag_motion)
         self.index = None
 
     def drag_data_received(self, widget, context, x, y, selection, targetType, time):
@@ -1988,9 +1981,6 @@ class DroppableHSeparator(PaddedHSeparator):
             [BT_TARGET],
             gtk.gdk.ACTION_MOVE )
 
-        self.connect('drag_data_received', self.drag_data_received)
-        self.connect('drag_motion'       , self.drag_motion       )
-
     def drag_highlight(self):
         self.sep.drag_highlight()
         self.main.main.add_unhighlight_handle()
@@ -2013,8 +2003,6 @@ class DroppableBox(HSeparatedBox):
         self.drag_dest_set(gtk.DEST_DEFAULT_DROP,
                            [BT_TARGET],
                            gtk.gdk.ACTION_MOVE)
-        self.connect('drag_data_received', self.drag_data_received)
-        self.connect('drag_motion', self.drag_motion)
 
     def drag_motion(self, *args):
         return False
@@ -2101,9 +2089,6 @@ class ReorderableBox(DroppableBox):
                            0,
                            [BT_TARGET],
                            gtk.gdk.ACTION_MOVE)
-
-        self.connect('drag_data_received', self.drag_data_received)
-        self.connect('drag_motion'       , self.drag_motion)
 
 
     def drag_data_received(self, widget, context, x, y, selection, targetType, time):
@@ -2271,9 +2256,6 @@ class DownloadInfoFrame(object):
         self.mainwindow.drag_dest_set(gtk.DEST_DEFAULT_ALL,
                                       [EXTERNAL_TARGET,],
                                       gtk.gdk.ACTION_MOVE)
-
-        self.mainwindow.connect('drag_leave'        , self.drag_leave         )
-        self.mainwindow.connect('drag_data_received', self.accept_dropped_file)
 
         self.mainwindow.connect('destroy', self.cancel)
 
