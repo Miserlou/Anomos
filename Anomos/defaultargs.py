@@ -17,8 +17,8 @@ common_options = [
     ('forwarded_port', 0,
         "world-visible port number if it's different from the one the client "
         "listens on locally"),
-    ('minport', 6881, 'minimum port to listen on, counts up if unavailable'),
-    ('maxport', 6999, 'maximum port to listen on'),
+    ('minport', 5061, 'minimum port to listen on, counts up if unavailable'),
+    ('maxport', 5069, 'maximum port to listen on'),
     ('bind', '',
         'ip to bind to locally'),
     ('display_interval', .5,
