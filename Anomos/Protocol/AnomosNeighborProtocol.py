@@ -48,6 +48,7 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
                 self.incoming_stream_id = stream
             handler.got_message(self._message)
     def invalid_message(self, t):
+        #XXX: Uncomment this before 1.0 - enforces strict protocol compliance
         #self.close()
         self.logfunc(WARNING, \
                 "Invalid message of type %02x on %s. Closing neighbor."% \
