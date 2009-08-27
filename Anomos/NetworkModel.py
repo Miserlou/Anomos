@@ -199,7 +199,7 @@ class NetworkModel:
     def getSeedingPeers(self, infohash):
         return set(i for i in self.names \
                 if self.names[i].isSharing(infohash) and \
-                    not self.names[i].isSeeding(infohash))
+                    self.names[i].isSeeding(infohash))
 
     def getNames(self):
         return self.names.keys()
