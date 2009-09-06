@@ -1696,7 +1696,6 @@ class QueuedTorrentBox(DroppableTorrentBox):
 
 
         if self.completion is not None and self.completion >= 1:
-            self.menu_items += [('_Finish', self.finish),]
             self.menu_items += [('_Remove', self.confirm_remove),]
         else:
             self.menu_items += [('_Abort', self.confirm_remove),]
@@ -1733,9 +1732,7 @@ class PausedTorrentBox(DroppableTorrentBox):
                       
 
         if self.completion >= 1:
-            menu_items = [("_Finish", self.finish),
-                          ("_Remove", self.confirm_remove),
-                          ]
+            menu_items = [("_Remove", self.confirm_remove)]
 
         self.menu_items = [("----", None), ] + menu_items
 
@@ -1840,9 +1837,8 @@ class RunningTorrentBox(DroppableTorrentBox):
         menu_items = [("_Abort"  , self.confirm_remove)] #[("Download _later", self.move_to_end),
 
         if self.completion >= 1:
-            menu_items = [("_Finish", self.finish),
-                          ("_Remove", self.confirm_remove),
-                          ]
+            menu_items = [("_Remove", self.confirm_remove)]
+                          
 
         self.menu_items = [('----'        , None),
                            ] + menu_items
