@@ -45,6 +45,7 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
             #    return
             yield l # Payload
             if handler == self:
+                # Grab the stream ID to initialize the received stream
                 self.incoming_stream_id = stream
             handler.got_message(self._message)
     def invalid_message(self, t):

@@ -53,9 +53,9 @@ class NeighborLink(AnomosNeighborProtocol):
             @type aeskey: Anomos.crypto.AESKey
             @type data: String
             @return: Newly created EndPoint object'''
-        if data is None:
+        if data is None: # Incoming stream
             nxtid = self.incoming_stream_id
-        else:
+        else: # Localy initialized stream
             nxtid = self.next_stream_id
             self.next_stream_id += 1
         self.streams[nxtid] = \
@@ -74,9 +74,9 @@ class NeighborLink(AnomosNeighborProtocol):
             @type data: String
             @type orelay: Anomos.Relayer.Relayer
             @return: Newly created Relayer object'''
-        if orelay is None:
+        if orelay is None: # Incoming stream
             nxtid = self.incoming_stream_id
-        else:
+        else: # Locally initialized stream
             nxtid = self.next_stream_id
             self.next_stream_id += 2
         self.streams[nxtid] = \
