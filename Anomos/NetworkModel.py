@@ -28,12 +28,10 @@
 ########################################################################
 
 import random
-from operator import itemgetter
 from sys import maxint as INFINITY
 import Anomos.crypto as crypto
 
 from Anomos import bttime
-from M2Crypto import RSA
 
 # Use psyco if it's available.
 try:
@@ -41,11 +39,6 @@ try:
     psyco.full()
 except ImportError:
     pass
-
-DEBUG_ON = True
-def DEBUG(*args):
-    if DEBUG_ON:
-        print args
 
 class SimPeer:
     """
@@ -63,7 +56,7 @@ class SimPeer:
         self.ip = ip
         self.port = port
         self.pubkey = crypto.PeerCert(pubkey)
-        self.neighbors = {} # {PeerID: {dist:#, nid:#, ip:"", port:#}}
+        self.neighbors = {} # {PeerID: {nid:#, ip:"", port:#}}
         self.id_map = {}    # {NeighborID : PeerID}
         self.infohashes = {} # {infohash: (downloaded, left)}
         self.last_seen = 0  # Time of last client announce
@@ -105,7 +98,7 @@ class SimPeer:
         @type nid: int
         """
         #TODO: What happens if we get a new neighbor we're already connected to
-        self.neighbors.setdefault(peerid, {'dist':1,'nid':nid,'ip':ip, 'port':port})
+        self.neighbors.setdefault(peerid, {'nid':nid,'ip':ip, 'port':port})
         self.id_map[nid] = peerid
         self.last_modified = bttime()
 
@@ -137,21 +130,6 @@ class SimPeer:
         used = set(self.id_map.keys())
         idrange = set([chr(i) for i in range(0, 255)])
         return idrange - used
-
-    def reWeight(self, peerid, weight):
-        """
-        Reset the weight between this SimPeer and one referenced by peerid
-        @type peerid: string
-        @type weight: int in range 0 -> INFINITY
-        """
-        if self.neighbors.has_key(peerid):
-            self.neighbors[peerid]['dist'] = weight
-
-    def getWeight(self, nid):
-        """
-        Returns weight on edge between this peer and
-        """
-        return self.neighbors.get(nid, {}).get('dist', INFINITY)
 
     def getNID(self, peerid, default=None):
         """ Return the relative ID associated with peerid
