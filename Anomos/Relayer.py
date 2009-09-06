@@ -40,6 +40,8 @@ class Relayer(AnomosRelayerProtocol):
         self.closed = False
         self.logfunc = logfunc
         self.next_upload = None
+        self.decremented_count = False # Hack to prevent double decrementing of relay count
+        self.queued_break = False
         # Make the other relayer which we'll send data through
         if orelay is None:
             self.manager.make_relay(outnid, data, self)
@@ -52,37 +54,28 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay = r
 
     def set_measurer(self, measurer):
-        # Both halves of the relayer should share
-        # the same rate measurer.
         self.measurer = measurer
 
-    def _incomplete_relay_message(self, msg):
-        if not self.complete:
-            # Buffer messages until neighbor connection completes
-            self.pre_complete_buffer.append(msg)
-        else:
-            self.relay_message = self._complete_relay_message
-            self.relay_message(msg)
-
     def _complete_relay_message(self, msg):
-        self.orelay.send_relay_message(msg)
+        if not self.orelay.closed:
+            self.orelay.send_relay_message(msg)
 
     def relay_message(self, msg):
         if self.complete:
             self.relay_message = self._complete_relay_message
             self.relay_message(msg)
         else:
-            # Buffer messages until connection is complete
-            self.relay_message = self._incomplete_relay_message
-            self.relay_message(msg)
+            self.pre_complete_buffer.append(msg)
 
     def send_partial(self, bytes):
+        if self.closed:
+            return 0
         b = self.neighbor.send_partial(bytes)
-        if self.recvd_break:
-            if not self.neighbor.in_queue(self.stream_id):
-                self.neighbor.end_stream(self.stream_id)
-                return 0 # The 0 tells ratelimiter pop this stream
         self.measurer.update_rate(b)
+        if self.queued_break and self.neighbor.in_queue(self.stream_id):
+            self.logfunc(INFO, "And we do it like this.")
+            self.closed = True
+            self.neighbor.end_stream(self.stream_id)
         return b
 
     def connection_completed(self):
@@ -93,36 +86,6 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay.complete = True
         self.orelay.flush_pre_buffer()
 
-    def connection_closed(self):
-        if self.closed:
-            return
-        self.closed = True
-        if not self.recvd_break:
-            # Connection must have been closed locally (as opposed to
-            # being closed by receiving a BREAK message)
-            self.recvd_break = True
-            self.send_break()
-            # Will be disconnected from NbrLink after CONFIRM
-        else:
-            # Disconnect from the NeighborLink immediately
-            self.neighbor.end_stream(self.stream_id)
-        # Tell the NeighborManger to decrease its relay count.
-        # Should only be done once per relay pair.
-        self.manager.dec_relay_count()
-        # Tell our orelay to close.
-        self.orelay.ore_closed()
-        self.pre_complete_buffer = None
-
-    def ore_closed(self):
-        ''' Closes the connection when a Break has been received by our
-            other relay (ore). Called by this object by its ore during
-            connection_closed '''
-        if self.closed:
-            return
-        self.recvd_break = True
-        self.send_break()
-        self.pre_complete_buffer = None
-
     def connection_flushed(self):
         if self.should_queue():
             self.ratelimiter.queue(self)
@@ -131,8 +94,37 @@ class Relayer(AnomosRelayerProtocol):
         return self.next_upload is None and self.neighbor.in_queue(self.stream_id)
 
     def close(self):
+        # Connection was closed locally (as opposed to
+        # being closed by receiving a BREAK message)
+        if self.closed:
+            self.logfunc(WARNING, "Double close 1")
+            return
         self.logfunc(INFO, "Closing %s"%self.uniq_id())
-        self.connection_closed()
+        self.send_break()
+        self.queued_break = True
+        self.shutdown()
+
+    def shutdown(self):
+        if not self.orelay.decremented_count:
+            self.manager.dec_relay_count()
+            self.decremented_count = True
+        self.closed = True
+        # Tell our orelay to close.
+        self.orelay.ore_closed()
+        self.neighbor.end_stream(self.stream_id)
+        self.neighbor = None
+        self.pre_complete_buffer = None
+
+    def ore_closed(self):
+        ''' Closes the connection when a Break has been received by our
+            other relay (ore). Called by this object's ore during
+            shutdown '''
+        if self.closed:
+            self.logfunc(WARNING, "Double close 2")
+            return
+        self.send_break()
+        self.queued_break = True
+        self.pre_complete_buffer = None
 
     def flush_pre_buffer(self):
         for msg in self.pre_complete_buffer:

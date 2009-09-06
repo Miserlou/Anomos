@@ -64,7 +64,6 @@ class PartialMessageQueue(object):
         # boundary, then add the remaining bytes (r) to the
         # dequeued portion.
         if r > PARTIAL_FMT_LEN and i < len(self.msgs):
-            #TODO: Consider minimum length for making a partial
             if not self.is_partial(self.msgs[i]):
                 self.msgs[i] = self.mk_partial(self.msgs[i])
             deq.append(self.msgs[i][:r])

@@ -17,7 +17,7 @@
 
 from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, RELAY, BREAK, PARTIAL
 from Anomos.Protocol import AnomosProtocol, toint
-from Anomos import bttime, INFO, WARNING, ERROR, CRITICAL
+from Anomos import bttime, INFO, WARNING, ERROR, CRITICAL, log_on_call
 
 class AnomosRelayerProtocol(AnomosProtocol):
     ## RelayerProtocol is intended to be implemented by Relayer ##
@@ -27,11 +27,12 @@ class AnomosRelayerProtocol(AnomosProtocol):
                             #UNCHOKE: self.got_unchoke,\
                             CONFIRM: self.got_confirm, \
                             BREAK: self.got_break,\
-                            RELAY: self.got_relay,\
+                            RELAY: self.relay_message,\
                             PARTIAL: self.got_partial})
         self.partial_recv = ''
         self.recvd_break = False
     ## Disable direct message reading. ##
+    @log_on_call
     def send_break(self):
         #self.network_ctl_msg(BREAK)
         self.neighbor.queue_message(self.stream_id, BREAK)
@@ -40,22 +41,21 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):
-        if self.recvd_break: # Don't send anything if we've received a break
-            return
         self.neighbor.queue_message(self.stream_id, msg)
         if self.next_upload is None:
             self.ratelimiter.queue(self)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
+    @log_on_call
     def got_break(self):
         self.recvd_break = True
-        self.close() # Close inbound connection
-    def got_relay(self, message):
-        #NOTE: message[0] == RELAY, there's no need to
-        #      strip this since we'd just have to add
-        #      it again in send_relay. As a result,
-        #      send_relay does NOT add a control char.
-        self.relay_message(message)
+        self.shutdown() # Close inbound connection
+    #def got_relay(self, message):
+    #    #NOTE: message[0] == RELAY, there's no need to
+    #    #      strip this since we'd just have to add
+    #    #      it again in send_relay. As a result,
+    #    #      send_relay does NOT add a control char.
+    #    self.relay_message(message)
     def got_confirm(self):
         self.connection_completed()
         self.relay_message(CONFIRM)
@@ -83,4 +83,4 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.logfunc(WARNING, \
                 "Invalid message of type %02x on %s. Closing stream."% \
                 (ord(t), self.uniq_id()))
-        self.close()
+        self.shutdown()

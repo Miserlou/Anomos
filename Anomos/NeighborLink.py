@@ -143,7 +143,7 @@ class NeighborLink(AnomosNeighborProtocol):
         assert conn is self.socket
         self.logfunc(WARNING, "Connection lost!")
         for s in self.streams.values():
-            s.close()
+            s.shutdown()
 
     def uniq_id(self):
         return "%02x:*" % (ord(self.id))

@@ -21,6 +21,7 @@ from Anomos.Protocol import CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, \
 from Anomos.Protocol import tobinary, toint, AnomosProtocol
 from Anomos.bitfield import Bitfield
 from Anomos import INFO, WARNING, ERROR, CRITICAL
+from Anomos import log_on_call
 
 class AnomosEndPointProtocol(AnomosProtocol):
     ## EndPointProtocol is intended to be implemented by EndPoint ##
@@ -42,7 +43,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             BREAK: self.got_break, \
                             PARTIAL: self.got_partial})
         self.partial_recv = ''
-        self.recvd_break = False
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
@@ -56,9 +56,9 @@ class AnomosEndPointProtocol(AnomosProtocol):
             import pdb
             pdb.set_trace()
             raise RuntimeError("Received encrypted data before we were ready")
+    @log_on_call
     def got_break(self):
-        self.recvd_break = True
-        self.close()
+        self.shutdown()
     def got_partial(self, message):
         p_remain = toint(message[1:5])
         payload = message[5:]
@@ -127,10 +127,9 @@ class AnomosEndPointProtocol(AnomosProtocol):
             for ep in self.torrent.active_streams:
                 ep.send_have(i)
     ## Send messages ##
+    @log_on_call
     def send_break(self):
-        self.recvd_break = True
         self.network_ctl_msg(BREAK)
-        self.close()
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
     def send_interested(self):
@@ -160,7 +159,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
         msg = "".join([tobinary(index), tobinary(begin), piece])
         self.transfer_ctl_msg(PIECE, msg)
     def invalid_message(self, t):
-        self.close()
         self.logfunc(WARNING, \
                 "Invalid message of type %02x on %s. Closing stream."% \
                 (ord(t), self.uniq_id()))
+        self.shutdown()

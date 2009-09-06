@@ -56,7 +56,7 @@ class Torrent(object):
 
     def close_all_streams(self):
         for s in self.active_streams:
-            s.close()
+            s.shutdown()
 
     def ever_got_incoming(self):
         return self.ever_got_inc
