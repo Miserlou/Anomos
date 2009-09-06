@@ -78,6 +78,10 @@ class Relayer(AnomosRelayerProtocol):
 
     def send_partial(self, bytes):
         b = self.neighbor.send_partial(bytes)
+        if self.recvd_break:
+            if not self.neighbor.in_queue(self.stream_id):
+                self.neighbor.end_stream(self.stream_id)
+                return 0 # The 0 tells ratelimiter pop this stream
         self.measurer.update_rate(b)
         return b
 
@@ -115,7 +119,6 @@ class Relayer(AnomosRelayerProtocol):
             connection_closed '''
         if self.closed:
             return
-        self.closed = True
         self.recvd_break = True
         self.send_break()
         self.pre_complete_buffer = None

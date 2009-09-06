@@ -33,11 +33,15 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.recvd_break = False
     ## Disable direct message reading. ##
     def send_break(self):
-        self.network_ctl_msg(BREAK)
-        self.neighbor.pmq.remove_by_sid(self.stream_id)
+        #self.network_ctl_msg(BREAK)
+        self.neighbor.queue_message(self.stream_id, BREAK)
+        if self.should_queue():
+            self.ratelimiter.queue(self)
     def send_tracking_code(self, trackcode):
         self.network_ctl_msg(TCODE, trackcode)
     def send_relay_message(self, msg):
+        if self.recvd_break: # Don't send anything if we've received a break
+            return
         self.neighbor.queue_message(self.stream_id, msg)
         if self.next_upload is None:
             self.ratelimiter.queue(self)
@@ -45,7 +49,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
         self.network_ctl_msg(CONFIRM)
     def got_break(self):
         self.recvd_break = True
-        self.send_confirm() # Confirm reception of break
         self.close() # Close inbound connection
     def got_relay(self, message):
         #NOTE: message[0] == RELAY, there's no need to
@@ -54,11 +57,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
         #      send_relay does NOT add a control char.
         self.relay_message(message)
     def got_confirm(self):
-        if self.recvd_break:
-            self.neighbor.end_stream(self.stream_id)
-        else:
-            self.connection_completed()
-            self.relay_message(CONFIRM)
+        self.connection_completed()
+        self.relay_message(CONFIRM)
     def got_partial(self, message):
         p_remain = toint(message[1:5])
         self.partial_recv += message[5:]

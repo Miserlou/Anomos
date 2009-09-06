@@ -46,8 +46,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
-        if self.recvd_break:
-            self.close()
     def got_relay(self, message):
         self.got_message(message[1:])
     def got_encrypted(self, message):
@@ -60,7 +58,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
             raise RuntimeError("Received encrypted data before we were ready")
     def got_break(self):
         self.recvd_break = True
-        self.send_confirm()
         self.close()
     def got_partial(self, message):
         p_remain = toint(message[1:5])
@@ -133,7 +130,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_break(self):
         self.recvd_break = True
         self.network_ctl_msg(BREAK)
-        self.neighbor.pmq.remove_by_sid(self.stream_id)
+        self.close()
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
     def send_interested(self):
