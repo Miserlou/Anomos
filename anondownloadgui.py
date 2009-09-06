@@ -1729,9 +1729,8 @@ class PausedTorrentBox(DroppableTorrentBox):
         self.icon.set_from_stock(self.icon_name, gtk.ICON_SIZE_LARGE_TOOLBAR)
 
         
-        menu_items = [("Download _later", self.move_to_end   ),
-                      ("_Abort"        , self.confirm_remove),
-                      ]
+        menu_items = [("_Abort"        , self.confirm_remove)] #[("Download _later", self.move_to_end   ),
+                      
 
         if self.completion >= 1:
             menu_items = [("_Finish", self.finish),
@@ -1837,9 +1836,8 @@ class RunningTorrentBox(DroppableTorrentBox):
 
 
     def make_menu(self):
-        menu_items = [("Download _later", self.move_to_end),
-                      ("_Abort"  , self.confirm_remove),
-                      ]
+
+        menu_items = [("_Abort"  , self.confirm_remove)] #[("Download _later", self.move_to_end),
 
         if self.completion >= 1:
             menu_items = [("_Finish", self.finish),
