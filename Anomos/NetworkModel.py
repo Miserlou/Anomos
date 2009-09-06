@@ -276,7 +276,7 @@ class NetworkModel:
     def nbrsOf(self, peerid):
         return self.get(peerid).neighbors.keys()
 
-    def getPathsToFile(self, src, infohash, how_many=5, is_seed=False, minpathlen=3):
+    def getPathsToFile(self, src, infohash, how_many=5, is_seed=False, minhops=3):
         source = self.get(src)
         snbrs = set(source.neighbors.keys())
         if is_seed:
@@ -287,6 +287,7 @@ class NetworkModel:
                 dests.remove(src)
         if len(dests) == 0:
             return []
+
         paths = []
         #destination = self.get(random.choice(dests))
         for dname in dests:
@@ -296,29 +297,25 @@ class NetworkModel:
             # Pick a destination node
             dnbrs = set(destination.neighbors.keys())
             if len(dnbrs) == 0:
-                return []
+                continue
             lvls = [dnbrs,]
             #lvls[0] = the neighbors of destination
             #lvls[1] = the neighbors of neighbors (nbrs^2) of destination
             #lvls[2] = the nbrs^3 of destination
-            for i in range(1, minpathlen-2):
+            for i in range(1, minhops-1):
                 # Take the union of all the neighbor sets of peers in the last
                 # level and append the result to lvls
-                lvls.append( \
-                        reduce(set.union, \
-                            [set(self.nbrsOf(n)) for n in lvls[i-1]]))
+                t = reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]])
+                lvls.append(t)
             isect = snbrs.intersection(lvls[-1])
-            allc = 0
-            all = reduce(set.union, lvls)
             # Keep growing until we find an snbr or exhaust the searchable space
-            while isect == set([]) and allc != len(all):
-                lvls.append(reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]]))
+            while isect == set([]) or len(lvls) > minhops*2: #TODO: Make actual max hop count
+                t = reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]])
+                lvls.append(t)
                 isect = snbrs.intersection(lvls[-1])
-                allc = len(all)
-                all = all.union(lvls[-1])
             isect.discard(dname)
             if isect == set([]):
-                return []
+                continue
             cur = random.choice(list(isect))
             path = [cur,]
             c = len(lvls) - 2
@@ -328,21 +325,24 @@ class NetworkModel:
                 validChoices = lvls[c].difference(exclude)
                 nbrsOfLast = set(self.nbrsOf(path[-1]))
                 candidates = list(nbrsOfLast.intersection(validChoices))
-                if candidates == []:
+                if candidates == []: # No non-cyclic path available
                     break
                 #TODO: We can fork the path at this point and create an
                 #   alternate if there is more than one candidate
                 path.append(random.choice(candidates))
                 c -= 1
-            path = [source.name] + path + [destination.name]
+            path.append(destination.name)
+            if len(path) < minhops: # Should occur only w/ cyclic paths
+                continue
+            path.insert(0, source.name)
             paths.append(path)
-        print paths
+        print [len(i) for i in paths], paths
         return paths
 
     def getTrackingCodes(self, source, infohash, count=3):
         seedp = self.get(source).isSeeding(infohash)
         paths = self.getPathsToFile(source, infohash, \
-                                    is_seed=seedp, minpathlen=4)
+                                    is_seed=seedp, minhops=3)
         tcs = []
         if len(paths) > count:
             random.shuffle(paths)
