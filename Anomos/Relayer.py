@@ -76,6 +76,8 @@ class Relayer(AnomosRelayerProtocol):
             self.logfunc(INFO, "And we do it like this.")
             self.closed = True
             self.neighbor.end_stream(self.stream_id)
+            self.neighbor = None
+            return 0
         return b
 
     def connection_completed(self):
