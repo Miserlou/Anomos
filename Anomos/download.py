@@ -79,9 +79,6 @@ class Multitorrent(object):
         self.ratelimiter = RateLimiter(self.rawserver.add_task)
         self.ratelimiter.set_parameters(config['max_upload_rate'],
                                         config['upload_unit_size'])
-        self.neighbors = NeighborManager(self.rawserver, config,\
-                                           self.certificate, self.sessionid,\
-                                           self.ratelimiter, self.logfunc)
 
         self.nbr_mngrs = {}
 
@@ -115,6 +112,7 @@ class Multitorrent(object):
         if metainfo.announce in self.nbr_mngrs:
             pass
         else:
+            ### XXX: Is using the same cert on different trackers a threat to anonymity?
             self.nbr_mngrs[metainfo.announce] = NeighborManager(self.rawserver, config,\
                                            self.certificate, self.sessionid,\
                                            self.ratelimiter, self.logfunc)
