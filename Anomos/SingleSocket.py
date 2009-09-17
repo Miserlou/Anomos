@@ -13,7 +13,7 @@ except ImportError:
 
 class SingleSocket(object):
 
-    def __init__(self, rawserver, sock, handler, context, ip=None):
+    def __init__(self, rawserver, sock, handler, context, peer_ip=None):
         self.rawserver = rawserver
         self.socket = sock
         self.handler = handler
@@ -22,22 +22,23 @@ class SingleSocket(object):
         self.last_hit = bttime()
         self.fileno = sock.fileno()
         self.connected = False
+        self.ip, self.port = sock.getsockname()
         self.peer_cert = sock.get_peer_cert()
-        if ip is not None:
-            self.ip = ip
+        if peer_ip is not None:
+            self.peer_ip = peer_ip
             self.local = True
         else: # Try to get the IP from the socket
             self.local = False
             try:
                 peername = self.socket.getpeername()
             except SSL.SSLError:
-                self.ip = 'unknown'
+                self.peer_ip = 'unknown'
             else:
                 try:
-                    self.ip = peername[0]
+                    self.peer_ip = peername[0]
                 except:
                     assert isinstance(peername, basestring)
-                    self.ip = peername # UNIX socket, not really ip
+                    self.peer_ip = peername # UNIX socket, not really ip
 
     def recv(self, bufsize=65536):
         return self.socket.recv(bufsize)

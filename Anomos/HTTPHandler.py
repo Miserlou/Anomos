@@ -38,7 +38,7 @@ class HTTPConnection(object):
         self.next_func = self.read_type
 
     def get_ip(self):
-        return self.connection.ip
+        return self.connection.peer_ip
 
     def data_came_in(self, data):
         if self.donereading or self.next_func is None:
@@ -139,7 +139,7 @@ class HTTPConnection(object):
         useragent = self.headers.get('user-agent','-')
         year, month, day, hour, minute, second, a, b, c = localtime(bttime())
         print '%s %s %s [%02d/%3s/%04d:%02d:%02d:%02d] "%s" %i %i "%s" "%s"' % (
-            self.connection.ip, ident, username, day, months[month], year, hour,
+            self.connection.peer_ip, ident, username, day, months[month], year, hour,
             minute, second, self.header, responsecode, len(data), referer, useragent)
         t = bttime()
         if t - self.handler.lastflush > self.handler.minflush:

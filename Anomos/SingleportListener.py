@@ -69,7 +69,7 @@ class SingleportListener(object):
         """
         Connection came in.
         """
-        AnomosNeighborInitializer(self.managers[socknum], socket)
+        AnomosNeighborInitializer(self.managers[socket.port], socket)
 
     def replace_connection(self):
         pass

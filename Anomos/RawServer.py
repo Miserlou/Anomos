@@ -144,7 +144,7 @@ class RawServer(object):
 
     def register_sock(self, sock, dns, handler=None, context=None):
         self.poll.register(sock, POLLIN)
-        s = SingleSocket(self, sock, handler, context, dns[0])
+        s = SingleSocket(self, sock, handler, context, peer_ip=dns[0])
         self.single_sockets[sock.fileno()] = s
         if handler:
             handler.sock_success(s, dns)

@@ -112,15 +112,15 @@ class Multitorrent(object):
         if metainfo.announce in self.nbr_mngrs:
             pass
         else:
-            ### XXX: Is using the same cert on different trackers a threat to anonymity?
-            self.nbr_mngrs[metainfo.announce] = NeighborManager(self.rawserver, config,\
-                                           self.certificate, self.sessionid,\
-                                           self.ratelimiter, self.logfunc)
-        
+            ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
+            self.nbr_mngrs[metainfo.announce] = mgr = \
+                    NeighborManager(self.rawserver, config,\
+                                       self.certificate, self.sessionid,\
+                                       self.ratelimiter, self.logfunc)
+
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
                                  self.ratelimiter, self.filepool, config,
-                                 self.nbr_mngrs[metainfo.announce], self.certificate,
-                                 self.sessionid)
+                                 mgr, self.certificate, self.sessionid)
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)

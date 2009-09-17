@@ -139,8 +139,8 @@ class NeighborManager(object):
     def connection_completed(self, socket, id):
         '''Called by AnomosNeighborInitializer'''
         if self.incomplete.has_key(id):
-            assert socket.ip == self.incomplete[id][0]
-            self.ips.add(socket.ip)
+            assert socket.peer_ip == self.incomplete[id][0]
+            self.ips.add(socket.peer_ip)
             del self.incomplete[id]
         self.add_neighbor(socket, id)
         tasks = self.waiting_tcs.get(id)
