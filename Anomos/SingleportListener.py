@@ -20,15 +20,15 @@ from Anomos import BTFailure
 
 class SingleportListener(object):
     '''SingleportListener gets events from the server sockets (of which there
-        is one per torrent), initializes connection objects, and determines
+        is one per **tracker**), initializes connection objects, and determines
         what to do with the connection once some data has been read.
     '''
-    def __init__(self, rawserver, config, manager):
+    def __init__(self, rawserver, config):
         self.rawserver = rawserver
         self.config = config
         self.port = 0
         self.ports = {}
-        self.manager = manager
+        self.managers = {}
         self.download_id = None
 
     def _check_close(self, port):
@@ -47,13 +47,14 @@ class SingleportListener(object):
         self.rawserver.start_listening(serversocket, self)
         oldport = self.port
         self.port = port
-        self.manager.port = port
+        #self.manager.port = port
         self.ports[port] = [serversocket, 0]
         self._check_close(oldport)
 
-    def get_port(self):
+    def get_port(self, nbrs):
         if self.port:
             self.ports[self.port][1] += 1
+        self.managers[self.port] = nbrs
         return self.port
 
     def release_port(self, port):
@@ -68,9 +69,14 @@ class SingleportListener(object):
     def external_connection_made(self, socket):
         """
         Connection came in.
-        @param socket: SingleSocket
         """
-        AnomosNeighborInitializer(self.manager, socket)
-
+        socknum = socket.socket.socket.getsockname()[1]
+        if socknum in self.managers:
+            self.managers[socknum].port = socknum
+            AnomosNeighborInitializer(self.managers[socknum], socket)
+        else:
+            ### Should something happen here?
+            pass
+            
     def replace_connection(self):
         pass

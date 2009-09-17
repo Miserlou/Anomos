@@ -82,9 +82,11 @@ class Multitorrent(object):
         self.neighbors = NeighborManager(self.rawserver, config,\
                                            self.certificate, self.sessionid,\
                                            self.ratelimiter, self.logfunc)
+
+        self.nbr_mngrs = {}
+
         self.singleport_listener = SingleportListener(self.rawserver,\
-                                                        self.config,\
-                                                        self.neighbors)
+                                                        self.config)
         self._find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
         set_filesystem_encoding(config['filesystem_encoding'],
@@ -109,9 +111,17 @@ class Multitorrent(object):
         self.singleport_listener.close_sockets()
 
     def start_torrent(self, metainfo, config, feedback, filename):
+
+        if metainfo.announce in self.nbr_mngrs:
+            pass
+        else:
+            self.nbr_mngrs[metainfo.announce] = NeighborManager(self.rawserver, config,\
+                                           self.certificate, self.sessionid,\
+                                           self.ratelimiter, self.logfunc)
+        
         torrent = _SingleTorrent(self.rawserver, self.singleport_listener,
                                  self.ratelimiter, self.filepool, config,
-                                 self.neighbors, self.certificate,
+                                 self.nbr_mngrs[metainfo.announce], self.certificate,
                                  self.sessionid)
         self.rawserver.add_context(torrent)
         def start():
@@ -327,7 +337,7 @@ class _SingleTorrent(object):
                                 downloader, len(metainfo.hashes)) 
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
-            self.reported_port = self._singleport_listener.get_port()
+            self.reported_port = self._singleport_listener.get_port(self.neighbors)
             self.reserved_ports.append(self.reported_port)
         self.neighbors.add_torrent(self.infohash, self._torrent)
         self._listening = True
