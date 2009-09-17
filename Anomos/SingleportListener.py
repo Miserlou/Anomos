@@ -47,14 +47,13 @@ class SingleportListener(object):
         self.rawserver.start_listening(serversocket, self)
         oldport = self.port
         self.port = port
-        #self.manager.port = port
         self.ports[port] = [serversocket, 0]
         self._check_close(oldport)
 
-    def get_port(self, nbrs):
+    def get_port(self, nbrmgr):
         if self.port:
             self.ports[self.port][1] += 1
-        self.managers[self.port] = nbrs
+        self.managers[self.port] = nbrmgr
         return self.port
 
     def release_port(self, port):
@@ -70,13 +69,7 @@ class SingleportListener(object):
         """
         Connection came in.
         """
-        socknum = socket.socket.socket.getsockname()[1]
-        if socknum in self.managers:
-            self.managers[socknum].port = socknum
-            AnomosNeighborInitializer(self.managers[socknum], socket)
-        else:
-            ### Should something happen here?
-            pass
-            
+        AnomosNeighborInitializer(self.managers[socknum], socket)
+
     def replace_connection(self):
         pass
