@@ -31,6 +31,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.choker = None
         self.choke_sent = False
         self.next_upload = None
+        self.locked = False
         if data is not None:
             self.send_tracking_code(data)
         else:
@@ -46,11 +47,11 @@ class EndPoint(AnomosEndPointProtocol):
             self.logfunc(WARNING, "Double complete")
             return
         self.complete = True
-        self.torrent.add_active_stream(self)
         self.upload = self.torrent.make_upload(self)
-        self.download = self.torrent.make_download(self)
         self.choker = self.upload.choker
         self.choker.connection_made(self)
+        self.download = self.torrent.make_download(self)
+        self.torrent.add_active_stream(self)
 
     def connection_flushed(self):
         if self.should_queue():
@@ -61,22 +62,27 @@ class EndPoint(AnomosEndPointProtocol):
                 (self.neighbor.in_queue(self.stream_id) or self.upload.buffer)
 
     def shutdown(self):
-        self.closed = True
-        if self.complete:
+        if self.complete and not self.closed:
             self.torrent.rm_active_stream(self)
             self.choker.connection_lost(self)# Must come before changes to
                                              # upload and download
             self.download.disconnected()
             self.upload = None
-        self.neighbor.end_stream(self.stream_id)
-        self.neighbor = None
+        self.closed = True
 
     def close(self):
         if self.closed:
             self.logfunc(WARNING, "Double close")
             return
         self.logfunc(INFO, "Closing %s"%self.uniq_id())
-        self.send_break()
+        if self.complete:
+            self.send_break()
+        self.shutdown()
+
+    def fatal_error(self, msg=""):
+        self.logfunc(ERROR, msg)
+        if self.complete:
+            self.send_break()
         self.shutdown()
 
     def is_flushed(self):

@@ -41,7 +41,7 @@ class Relayer(AnomosRelayerProtocol):
         self.logfunc = logfunc
         self.next_upload = None
         self.decremented_count = False # Hack to prevent double decrementing of relay count
-        self.queued_break = False
+        self.locked = False
         # Make the other relayer which we'll send data through
         if orelay is None:
             self.manager.make_relay(outnid, data, self)
@@ -72,12 +72,6 @@ class Relayer(AnomosRelayerProtocol):
             return 0
         b = self.neighbor.send_partial(bytes)
         self.measurer.update_rate(b)
-        if self.queued_break and self.neighbor.in_queue(self.stream_id):
-            self.logfunc(INFO, "And we do it like this.")
-            self.closed = True
-            self.neighbor.end_stream(self.stream_id)
-            self.neighbor = None
-            return 0
         return b
 
     def connection_completed(self):
@@ -103,19 +97,18 @@ class Relayer(AnomosRelayerProtocol):
             return
         self.logfunc(INFO, "Closing %s"%self.uniq_id())
         self.send_break()
-        self.queued_break = True
         self.shutdown()
 
     def shutdown(self):
+        if self.closed:
+            self.logfunc(WARNING, "Double close 3")
+            return
         if not self.orelay.decremented_count:
             self.manager.dec_relay_count()
             self.decremented_count = True
         self.closed = True
         # Tell our orelay to close.
         self.orelay.ore_closed()
-        self.neighbor.end_stream(self.stream_id)
-        self.neighbor = None
-        self.pre_complete_buffer = None
 
     def ore_closed(self):
         ''' Closes the connection when a Break has been received by our
@@ -125,8 +118,6 @@ class Relayer(AnomosRelayerProtocol):
             self.logfunc(WARNING, "Double close 2")
             return
         self.send_break()
-        self.queued_break = True
-        self.pre_complete_buffer = None
 
     def flush_pre_buffer(self):
         for msg in self.pre_complete_buffer:

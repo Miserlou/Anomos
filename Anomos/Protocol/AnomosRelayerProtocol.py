@@ -15,7 +15,7 @@
 
 # Written by John Schanck
 
-from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, RELAY, BREAK, PARTIAL
+from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, RELAY, BREAK, PARTIAL, ACKBREAK
 from Anomos.Protocol import AnomosProtocol, toint
 from Anomos import bttime, INFO, WARNING, ERROR, CRITICAL, log_on_call
 
@@ -28,14 +28,18 @@ class AnomosRelayerProtocol(AnomosProtocol):
                             CONFIRM: self.got_confirm, \
                             BREAK: self.got_break,\
                             RELAY: self.relay_message,\
-                            PARTIAL: self.got_partial})
+                            PARTIAL: self.got_partial,\
+                            ACKBREAK: self.got_ack_break})
         self.partial_recv = ''
         self.recvd_break = False
+        self.sent_break = False
     ## Disable direct message reading. ##
     @log_on_call
     def send_break(self):
         #self.network_ctl_msg(BREAK)
+        self.sent_break = True
         self.neighbor.queue_message(self.stream_id, BREAK)
+        self.locked = True
         if self.should_queue():
             self.ratelimiter.queue(self)
     def send_tracking_code(self, trackcode):
@@ -46,10 +50,20 @@ class AnomosRelayerProtocol(AnomosProtocol):
             self.ratelimiter.queue(self)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
+    def send_ack_break(self):
+        if self.sent_break:
+            self.network_ctl_msg(ACKBREAK)
     @log_on_call
     def got_break(self):
         self.recvd_break = True
-        self.shutdown() # Close inbound connection
+        self.send_ack_break()
+        #self.shutdown() # Close inbound connection
+    @log_on_call
+    def got_ack_break(self):
+        if self.sent_break:
+            self.shutdown()
+            self.neighbor.end_stream(self.stream_id)
+            self.neighbor = None
     #def got_relay(self, message):
     #    #NOTE: message[0] == RELAY, there's no need to
     #    #      strip this since we'd just have to add

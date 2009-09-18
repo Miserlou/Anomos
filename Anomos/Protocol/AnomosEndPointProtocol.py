@@ -17,7 +17,8 @@
 
 from Anomos.Protocol import CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, \
                             HAVE, BITFIELD, REQUEST, PIECE, CANCEL, \
-                            TCODE, CONFIRM, ENCRYPTED, RELAY, BREAK, PARTIAL
+                            TCODE, CONFIRM, ENCRYPTED, RELAY, BREAK, PARTIAL, \
+                            ACKBREAK
 from Anomos.Protocol import tobinary, toint, AnomosProtocol
 from Anomos.bitfield import Bitfield
 from Anomos import INFO, WARNING, ERROR, CRITICAL
@@ -38,11 +39,13 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             PIECE: self.got_piece,\
                             CANCEL: self.got_cancel,\
                             CONFIRM: self.got_confirm, \
-                            ENCRYPTED: self.got_encrypted,\
+                            ENCRYPTED: self.got_encrypted, \
                             RELAY: self.got_relay, \
                             BREAK: self.got_break, \
-                            PARTIAL: self.got_partial})
+                            PARTIAL: self.got_partial, \
+                            ACKBREAK: self.got_ack_break})
         self.partial_recv = ''
+        self.sent_break = False
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
@@ -58,7 +61,16 @@ class AnomosEndPointProtocol(AnomosProtocol):
             raise RuntimeError("Received encrypted data before we were ready")
     @log_on_call
     def got_break(self):
+        self.send_ack_break()
         self.shutdown()
+        self.neighbor.end_stream(self.stream_id)
+        self.neighbor = None
+    @log_on_call
+    def got_ack_break(self):
+        if self.sent_break:
+            self.shutdown()
+            self.neighbor.end_stream(self.stream_id)
+            self.neighbor = None
     def got_partial(self, message):
         p_remain = toint(message[1:5])
         payload = message[5:]
@@ -92,44 +104,43 @@ class AnomosEndPointProtocol(AnomosProtocol):
         i = toint(message[1:])
         if i >= self.torrent.numpieces:
             self.logfunc(ERROR, "Piece index out of range")
-            self.close()
+            self.fatal_error()
             return
         self.download.got_have(i)
     def got_bitfield(self, message):
         try:
             b = Bitfield(self.torrent.numpieces, message[1:])
         except ValueError:
-            self.logfunc(ERROR, "Bad Bitfield")
-            self.close()
+            self.fatal_error("Bad Bitfield")
             return
         self.download.got_have_bitfield(b)
     def got_request(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
-            self.logfunc(ERROR, "Piece index out of range")
-            self.close()
+            self.fatal_error("Piece index out of range")
             return
         self.upload.got_request(i, toint(message[5:9]), toint(message[9:]))
     def got_cancel(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
-            self.logfunc(ERROR, "Piece index out of range")
-            self.close()
+            self.fatal_error("Piece index out of range")
             return
         self.upload.got_cancel(i, toint(message[5:9]), toint(message[9:]))
     def got_piece(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
-            self.logfunc(ERROR, "Piece index out of range")
-            self.close()
+            self.fatal_error("Piece index out of range")
             return
         if self.download.got_piece(i, toint(message[5:9]), message[9:]):
             for ep in self.torrent.active_streams:
                 ep.send_have(i)
     ## Send messages ##
-    @log_on_call
     def send_break(self):
         self.network_ctl_msg(BREAK)
+        self.locked = True
+        self.sent_break = True
+    def send_ack_break(self):
+        self.network_ctl_msg(ACKBREAK)
     def send_confirm(self):
         self.network_ctl_msg(CONFIRM)
     def send_interested(self):

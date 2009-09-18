@@ -118,7 +118,9 @@ class NeighborLink(AnomosNeighborProtocol):
         self.socket.write(message)
 
     def queue_message(self, streamid, message):
-        self.pmq.queue_message(streamid, message)
+        t = self.streams.has_key(streamid)
+        if not t or (t and not self.streams[streamid].locked):
+            self.pmq.queue_message(streamid, message)
 
     def in_queue(self, id):
         return id in self.pmq.sid_map
@@ -144,6 +146,7 @@ class NeighborLink(AnomosNeighborProtocol):
         self.logfunc(WARNING, "Connection lost!")
         for s in self.streams.values():
             s.shutdown()
+        #XXX: Tell manager that this NeighborLink was lost
 
     def uniq_id(self):
         return "%02x:*" % (ord(self.id))
