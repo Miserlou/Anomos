@@ -782,16 +782,6 @@ class Tracker(object):
             return notallowed
         event = params('event')
 
-        #rsize = self.add_data(infohash, event, ip, paramslist)
-
-        #TODO: deprecate return type
-        #if params('compact'):
-        #    return_type = 2
-        #elif params('no_peer_id'):
-        #    return_type = 1
-        #else:
-        #    return_type = 0
-
         data = {}
         if event != 'stopped':
             data['peers'] = self.neighborlist(simpeer.name)

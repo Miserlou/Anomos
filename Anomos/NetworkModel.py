@@ -85,7 +85,6 @@ class SimPeer:
         @type peerid: string
         @type nid: int
         """
-        #TODO: What happens if we get a new neighbor we're already connected to
         self.neighbors.setdefault(peerid, {'nid':nid,'ip':ip, 'port':port})
         self.id_map[nid] = peerid
         self.last_modified = bttime()

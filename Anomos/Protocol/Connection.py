@@ -88,8 +88,7 @@ class Connection(object):
 #        BitTorrentProtocol.__init__(self) 
 #        self._reader = BitTorrentProtocol_read_header(self) # Starts the generator
 #        self._next_len = self._reader.next() # Gets the first yield
-#        #TODO: Connection no longer has self.established. BT things need to be
-#        #       updated
+#        # Connection no longer has self.established. BT things need to be updated
 #        if not self.established: # New neighbor, send header
 #            self.write_header()
 #    def _got_full_header(self):

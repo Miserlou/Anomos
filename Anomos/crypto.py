@@ -130,6 +130,8 @@ class Certificate:
         if self.secure:
             self.rsakey = RSA.load_key(self.keyfile)
         else:
+            #TODO: Allow users to specify a password to unlock their
+            # certificates.
             self.rsakey = RSA.load_key(self.keyfile, util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
@@ -143,8 +145,6 @@ class Certificate:
             self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
         else:
             # Save the key unencrypted.
-            # TODO: Find workaround, M2Crypto doesn't include the function to load
-            # a cert from memory, storing them unencrypted on disk isn't safe.
             self.rsakey.save_key(self.keyfile, None, callback=util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None, callback=util.no_passphrase_callback)
         # Make the public key

@@ -153,8 +153,8 @@ class NeighborManager(object):
         if tasks is None:
             return
         for task in tasks:
-            #TODO: is it still necessary to queue these with RawServer?
-            self.rawserver.add_task(task, 0) #TODO: add a min-wait time
+            #TODO: Would a minimum wait between these tasks aid anonymity?
+            self.rawserver.add_task(task, 0)
         del self.waiting_tcs[id]
 
     def lost_neighbor(self, id):
