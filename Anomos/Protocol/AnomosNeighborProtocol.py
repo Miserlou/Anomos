@@ -18,7 +18,7 @@
 from Anomos.Protocol import TCODE, tobinary, toint, AnomosProtocol
 from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.TCReader import TCReader
-from Anomos.crypto import AESKey
+from Anomos.crypto import AESKey, CryptoError
 from Anomos import INFO, WARNING, ERROR, CRITICAL
 
 class AnomosNeighborProtocol(Connection, AnomosProtocol):
@@ -55,13 +55,18 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
         self.close()
     def got_tcode(self, message):
         tcreader = TCReader(self.manager.certificate)
-        tcdata = tcreader.parseTC(message[1:])
+        try:
+            tcdata = tcreader.parseTC(message[1:])
+        except CryptoError, e:
+            self.logfunc(ERROR, "Decryption Error: %s" % str(e))
+            return
         sid = tcdata.sessionID
         if not self.manager.check_session_id(sid):
-            #TODO: Key mismatch is pretty serious, probably want to do
-            #      something besides just close the connection
+            #TODO: Key mismatch is pretty serious, probably want to ban the
+            # user who sent this TCode
             self.logfunc(ERROR, "Session id mismatch")
             self.close()
+            return
         if tcdata.type == chr(0): # Relayer type
             nextTC = tcdata.nextLayer
             nid = tcdata.neighborID

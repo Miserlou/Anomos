@@ -22,16 +22,11 @@ import Anomos.crypto as crypto
 class TCReader(object):
     def __init__(self, cert):
         self.cert = cert
-    def parseTC(self, tc):
-        try:
-            # Payload is the readable data at this layer of the onion
-            # nextLayer is the encrypted portion for the next peer
-            payload, nextLayer = self.cert.decrypt(tc, True)
-        except crypto.CryptoError, e:
-            #TODO: Log an error message
-            return
-        else:
-            return TCodeData(payload, self.repad(nextLayer, len(tc)))
+    def parseTC(self, tc): # Raises CryptoError!
+        # Payload is the readable data at this layer of the onion
+        # nextLayer is the encrypted portion for the next peer
+        payload, nextLayer = self.cert.decrypt(tc, True)
+        return TCodeData(payload, self.repad(nextLayer, len(tc)))
     def repad(self, layer, size):
         return layer + crypto.getRand(size-len(layer))
 

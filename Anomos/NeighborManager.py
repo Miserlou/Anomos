@@ -170,10 +170,12 @@ class NeighborManager(object):
         if self.count_streams() >= self.config['max_initiate']:
             self.logfunc(WARNING, "Not starting circuit -- Stream count exceeds maximum")
             return
+
         tcreader = TCReader(self.certificate)
-        tcdata = tcreader.parseTC(tc)
-        if tcdata is None:
-            self.logfunc(WARNING, "Received bad tracking code from the tracker")
+        try:
+            tcdata = tcreader.parseTC(message[1:])
+        except CryptoError, e:
+            self.logfunc(ERROR, "Decryption Error: %s" % str(e))
             return
         nid = tcdata.neighborID
         sid = tcdata.sessionID
