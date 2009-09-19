@@ -36,7 +36,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
     ## Disable direct message reading. ##
     @log_on_call
     def send_break(self):
-        #self.network_ctl_msg(BREAK)
         self.sent_break = True
         self.neighbor.queue_message(self.stream_id, BREAK)
         self.locked = True
@@ -57,7 +56,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
     def got_break(self):
         self.recvd_break = True
         self.send_ack_break()
-        #self.shutdown() # Close inbound connection
+        self.shutdown() # Close inbound connection
     @log_on_call
     def got_ack_break(self):
         if self.sent_break:
