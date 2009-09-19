@@ -179,9 +179,6 @@ class NetworkModel:
                 if self.names[i].isSharing(infohash) and \
                     self.names[i].isSeeding(infohash))
 
-    def getNames(self):
-        return self.names.keys()
-
     def initPeer(self, peerid, pubkey, ip, port, sid, num_neighbors=4):
         """
         @type peerid: string
@@ -287,7 +284,7 @@ class NetworkModel:
                 lvls.append(t)
             isect = snbrs.intersection(lvls[-1])
             # Keep growing until we find an snbr or exhaust the searchable space
-            while isect == set([]) or len(lvls) > minhops*2: #TODO: Make actual max hop count
+            while isect == set([]) and len(lvls) < minhops*2: #TODO: Make actual max hop count
                 t = reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]])
                 lvls.append(t)
                 isect = snbrs.intersection(lvls[-1])
@@ -314,7 +311,7 @@ class NetworkModel:
                 continue
             path.insert(0, source.name)
             paths.append(path)
-        print [len(i) for i in paths], paths
+        print paths
         return paths
 
     def getTrackingCodes(self, source, infohash, count=3):
