@@ -343,9 +343,8 @@ class _SingleTorrent(object):
             schedfunc, self.neighbors, externalsched,
             self._storagewrapper.get_amount_left, upmeasure.get_total,
             downmeasure.get_total, self.reported_port, self.infohash,
-            self._log, self.finflag, self._torrent.ever_got_incoming,
-            self.internal_shutdown, self._announce_done, self.certificate,
-            self.sessionid)
+            self._log, self.finflag, self.internal_shutdown,
+            self._announce_done, self.certificate, self.sessionid)
             # = Requester(metainfo.announce, schedfunc, externalsched, upmeasure
             #             downmeasure, self)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,

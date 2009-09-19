@@ -64,7 +64,7 @@ class Rerequester(object):
 
     def __init__(self, url, config, sched, neighbors, externalsched,
             amount_left, up, down, local_port, infohash, logfunc, doneflag,
-            ever_got_incoming, diefunc, sfunc, certificate, sessionid):
+            diefunc, sfunc, certificate, sessionid):
         ##########################
         self.config = config
         self.sched = sched
@@ -77,7 +77,6 @@ class Rerequester(object):
         self.infohash = infohash
         self.logfunc = logfunc
         self.doneflag = doneflag
-        self.ever_got_incoming = ever_got_incoming
         self.diefunc = diefunc
         self.successfunc = sfunc
         self.certificate = certificate
@@ -171,10 +170,7 @@ class Rerequester(object):
             return
         if self.neighbors.failed_connections():
             getmore = True
-        elif self.ever_got_incoming():
-            getmore = self.neighbors.count() <= self.config['min_peers'] / 3
-        else:
-            getmore = self.neighbors.count() < self.config['min_peers']
+        #TODO: also reannounce when TCs have failed
         if getmore or bttime() - self.last_time > self.announce_interval:
             self._announce()
 
@@ -208,7 +204,6 @@ class Rerequester(object):
         self.up = None
         self.down = None
         self.logfunc = None
-        self.ever_got_incoming = None
         self.diefunc = None
         self.successfunc = None
 

@@ -43,8 +43,6 @@ class Torrent(object):
         self.downtotal = 0
         self.downtotal_old = 0
         self.active_streams = []
-        #XXX: This needs to reflect whether we ever got incoming data
-        self.ever_got_inc = True
 
     def add_active_stream(self, endpoint):
         if endpoint not in self.active_streams:
