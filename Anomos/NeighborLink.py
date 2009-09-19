@@ -84,9 +84,9 @@ class NeighborLink(AnomosNeighborProtocol):
                             logfunc=self.logfunc)
         return self.streams[nxtid]
 
-    def close_relays(self):
+    def close_streams(self):
         for s in self.streams.values():
-            if isinstance(s, Relayer) and not s.closed:
+            if not s.closed:
                 s.close()
 
     def end_stream(self, id):
@@ -145,9 +145,10 @@ class NeighborLink(AnomosNeighborProtocol):
         assert conn is self.socket
         if self.id != NAT_CHECK_ID:
             self.logfunc(WARNING, "Neighbor disconnected")
-        for s in self.streams.values():
-            if not s.closed:
-                s.shutdown()
+        self.connection_closed()
+
+    def connection_closed(self):
+        self.close_streams()
         self.manager.lost_neighbor(self.id)
 
     def uniq_id(self):

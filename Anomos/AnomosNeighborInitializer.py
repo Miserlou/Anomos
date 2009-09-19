@@ -66,6 +66,10 @@ class AnomosNeighborInitializer(Connection):
         hdr = chr(len(anomos_protocol_name)) + anomos_protocol_name + \
                        self.protocol_extensions()
         self.socket.write(hdr)
+    def connection_lost(self, conn):
+        assert conn is self.socket
+        self._sever()
+        self.connection_closed()
     def connection_closed(self):
         self.manager.initializer_failed(self.id)
 

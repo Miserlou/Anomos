@@ -217,8 +217,7 @@ class NeighborManager(object):
         del self.torrents[infohash]
         if len(self.torrents) == 0:
             # Close all relays when the last torrent is removed
-            for n in self.neighbors.itervalues():
-                n.close_relays()
+            for n in self.neighbors.values():
                 n.close()
 
     def get_torrent(self, infohash):
