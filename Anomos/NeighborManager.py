@@ -18,6 +18,7 @@
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
 from Anomos.Protocol.TCReader import TCReader
+from Anomos.Protocol import NAT_CHECK_ID
 from Anomos.Measure import Measure
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
@@ -140,6 +141,9 @@ class NeighborManager(object):
         if self.incomplete.has_key(id):
             assert socket.peer_ip == self.incomplete[id][0]
             del self.incomplete[id]
+        if id == NAT_CHECK_ID:
+            self.logfunc(INFO, "Nat check ok.")
+            return
         self.add_neighbor(socket, id)
         tasks = self.waiting_tcs.get(id)
         if tasks is None:

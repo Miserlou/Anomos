@@ -63,8 +63,6 @@ class Connection(object):
             # hacks elsewhere.
             return
         if not self.closed:
-            # TODO: Logfunc here!
-            print e
             self.socket.close()
             self._sever()
     def _sever(self):
