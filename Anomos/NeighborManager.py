@@ -183,18 +183,15 @@ class NeighborManager(object):
         nextTC = tcdata.nextLayer
         if sid != self.sessionid:
             self.logfunc(ERROR, "Not starting circuit -- SessionID mismatch!")
-            return
-        if torrent is None:
+        elif torrent is None:
             self.logfunc(ERROR, "Not starting circuit -- Unknown torrent")
-            return
-        if nid in self.incomplete:
+        elif nid in self.incomplete:
             self.logfunc(INFO, "Postponing circuit until neighbor \\x%02x completes " % ord(nid))
             self.schedule_tc(nid, infohash, aeskey, nextTC)
-            return
-        if nid not in self.neighbors:
+        elif nid not in self.neighbors:
             self.logfunc(ERROR, "Not starting circuit -- NID \\x%02x is not assigned" % ord(nid))
-            return
-        self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
+        else:
+            self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
 
     def schedule_tc(self, nid, infohash, aeskey, nextTC):
         '''Sometimes a tracking code is received before a neighbor is fully
