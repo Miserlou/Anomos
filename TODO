@@ -1,15 +1,10 @@
 TODO:
     1) **Finish Protocol Specification!**: Path Generation, Hybrid Encryption
-    2) Tracker side TCode generation is currently making a lot of duplicates
-       Eliminate duplicate TCode generation and randomize paths a bit more.
-       (particularly important for small networks)
-    2.5) Need a better graph search algorithm.
-    3) Multiple tracker support!
-    4) Choking algorithm for relay nodes
-    4.5) RateLimiting for relay nodes. Partially implemented, sometimes runs
-         out of steam and leaves things in the queue, particularly when sending
-         breaks.
-    5) Solid round of bugtesting
+    2) PartialMessageQueue max length and in turn a choking
+        algorithm for relay nodes, so that they may signal that
+        their PMQ is full.
+    3) Banning
+    4) Solid round of bugtesting
 
     Also:
         Have some seeds on something we share! Dedicated seedbox!
