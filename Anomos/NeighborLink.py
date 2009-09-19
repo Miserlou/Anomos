@@ -147,7 +147,7 @@ class NeighborLink(AnomosNeighborProtocol):
             self.logfunc(WARNING, "Neighbor disconnected")
         for s in self.streams.values():
             s.shutdown()
-        #XXX: Tell manager that this NeighborLink was lost
+        self.manager.lost_neighbor(self.id)
 
     def uniq_id(self):
         return "%02x:*" % (ord(self.id))

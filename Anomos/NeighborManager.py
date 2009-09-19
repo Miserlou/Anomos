@@ -149,6 +149,10 @@ class NeighborManager(object):
             self.rawserver.add_task(task, 0) #TODO: add a min-wait time
         del self.waiting_tcs[id]
 
+    def lost_neighbor(self, id):
+        self.rm_neighbor(id)
+        self.failedPeers.append(id)
+
     def initializer_failed(self, id):
         '''Connection closed before finishing initialization'''
         #TODO: Does anything else need to be done here?
