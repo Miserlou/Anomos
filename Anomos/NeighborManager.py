@@ -69,9 +69,12 @@ class NeighborManager(object):
             @type id: int '''
         if self.has_neighbor(id) or \
                 (self.incomplete.get(id) == loc):
-            #Already had neighbor by that id or at that location
-            #TODO: Resolve conflict
+            # Already had neighbor by that id or at that location
             self.logfunc(WARNING, 'NID collision')
+            # To be safe, kill connection with the neighbor we already
+            # had with the requested ID and add ID to the failed
+            self.rm_neighbor(id)
+            self.failedPeers.append(id)
             return
         if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
             self.logfunc(WARNING, 'Got duplicate IP address in neighbor list. \
@@ -86,8 +89,7 @@ class NeighborManager(object):
         #Remove nid,loc pair from incomplete
         for k,v in self.incomplete.items():
             if v == loc:
-                self.failedPeers.append(k)
-                del self.incomplete[k]
+                self.rm_neighbor(k)
         self.logfunc(INFO, \
                 "Failed to open connection to %s\n\
                  Reason: %s" % (str(loc), str(err)))
@@ -116,6 +118,7 @@ class NeighborManager(object):
             self.incomplete.pop(nid)
         if self.has_neighbor(nid):
             self.neighbors.pop(nid)
+        self.failedPeers.append(id)
 
     #TODO: implement banning
     def ban(self, ip):
@@ -156,14 +159,10 @@ class NeighborManager(object):
 
     def lost_neighbor(self, id):
         self.rm_neighbor(id)
-        self.failedPeers.append(id)
 
     def initializer_failed(self, id):
         '''Connection closed before finishing initialization'''
-        #TODO: Does anything else need to be done here?
-        if self.incomplete.has_key(id):
-            self.failedPeers.append(id)
-            del self.incomplete[id]
+        self.rm_neighbor(id)
 
     def start_circuit(self, tc, infohash, aeskey):
         '''Called from Rerequester to initialize new circuits we've
@@ -216,7 +215,7 @@ class NeighborManager(object):
         self.torrents[infohash].close_all_streams()
         del self.torrents[infohash]
         if len(self.torrents) == 0:
-            # Close all relays when the last torrent is removed
+            # Close all streams when the last torrent is removed
             for n in self.neighbors.values():
                 n.close()
 
