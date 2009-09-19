@@ -14,6 +14,8 @@
 from binascii import b2a_hex
 from Anomos import INFO, WARNING, ERROR, CRITICAL
 
+NAT_CHECK_ID = chr(255)
+
 #--Message Control Characters--#
 #--BitTorrent--#
 CHOKE = chr(0x0) # Single byte

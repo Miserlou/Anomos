@@ -18,7 +18,7 @@ from Anomos.EndPoint import EndPoint
 from Anomos.Relayer import Relayer
 from Anomos.PartialMessageQueue import PartialMessageQueue
 from Anomos.Protocol.AnomosNeighborProtocol import AnomosNeighborProtocol
-from Anomos.Protocol import PIECE
+from Anomos.Protocol import NAT_CHECK_ID
 from Anomos import INFO, WARNING, ERROR, default_logger, trace_on_call
 
 class NeighborLink(AnomosNeighborProtocol):
@@ -143,7 +143,8 @@ class NeighborLink(AnomosNeighborProtocol):
 
     def connection_lost(self, conn):
         assert conn is self.socket
-        self.logfunc(WARNING, "Connection lost!")
+        if self.id != NAT_CHECK_ID:
+            self.logfunc(WARNING, "Neighbor disconnected")
         for s in self.streams.values():
             s.shutdown()
         #XXX: Tell manager that this NeighborLink was lost

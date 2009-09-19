@@ -16,6 +16,7 @@
 # Written by John M. Schanck
 
 from Anomos.Protocol.Connection import Connection
+from Anomos.Protocol import NAT_CHECK_ID
 from Anomos import protocol_name as anomos_protocol_name
 
 class AnomosNeighborInitializer(Connection):
@@ -52,7 +53,10 @@ class AnomosNeighborInitializer(Connection):
             self.write_header()
         # Tell the neighbor manager we've got a completed connection
         # so that it can create a NeighborLink
-        self.manager.connection_completed(self.socket, self.id)
+        if self.id == NAT_CHECK_ID: # Was a NAT Check, don't bother completing the connection
+            raise StopIteration("NAT check ok.")
+        else:
+            self.manager.connection_completed(self.socket, self.id)
     def protocol_extensions(self):
         """Anomos puts [1:nid][7:null char] into the
            BitTorrent reserved header bytes"""
