@@ -118,7 +118,7 @@ class NeighborManager(object):
             self.incomplete.pop(nid)
         if self.has_neighbor(nid):
             self.neighbors.pop(nid)
-        self.failedPeers.append(id)
+        self.failedPeers.append(nid)
 
     #TODO: implement banning
     def ban(self, ip):
