@@ -86,7 +86,7 @@ class NeighborLink(AnomosNeighborProtocol):
 
     def close_relays(self):
         for s in self.streams.values():
-            if isinstance(s, Relayer):
+            if isinstance(s, Relayer) and not s.closed:
                 s.close()
 
     def end_stream(self, id):
@@ -146,7 +146,8 @@ class NeighborLink(AnomosNeighborProtocol):
         if self.id != NAT_CHECK_ID:
             self.logfunc(WARNING, "Neighbor disconnected")
         for s in self.streams.values():
-            s.shutdown()
+            if not s.closed:
+                s.shutdown()
         self.manager.lost_neighbor(self.id)
 
     def uniq_id(self):
