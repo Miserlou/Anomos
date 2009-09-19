@@ -218,6 +218,7 @@ class _SingleTorrent(object):
         self.feedback = None
         self.messages = []
         self.neighbors = neighbors
+        self.neighbors.deep_exception = self.got_exception
         self.certificate = certificate
         self.sessionid = sessionid
 

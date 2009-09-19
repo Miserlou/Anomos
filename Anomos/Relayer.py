@@ -129,8 +129,8 @@ class Relayer(AnomosRelayerProtocol):
         return self.neighbor.socket.is_flushed()
 
     def got_exception(self, e):
-        #TODO: This actually needs to be _SingleTorrent.got_exception
-        raise e
+        if self.manager.deep_exception:
+            self.manager.deep_exception(e)
 
     def uniq_id(self):
         return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)

@@ -22,6 +22,7 @@ class EndPoint(AnomosEndPointProtocol):
         AnomosEndPointProtocol.__init__(self)
         self.stream_id = stream_id
         self.neighbor = neighbor
+        self.manager = neighbor.manager
         self.ratelimiter = neighbor.ratelimiter
         self.torrent = torrent
         self.e2e_key = aes
@@ -89,7 +90,8 @@ class EndPoint(AnomosEndPointProtocol):
         return self.neighbor.socket.is_flushed()
 
     def got_exception(self, e):
-        self.logfunc(ERROR, e)
+        if self.manager.deep_exception:
+            self.manager.deep_exception(e)
 
     def uniq_id(self):
         return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)

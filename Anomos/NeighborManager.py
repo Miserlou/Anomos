@@ -38,6 +38,7 @@ class NeighborManager(object):
         self.relay_count = 0
         self.incomplete = {}
         self.torrents = {}
+        self.deep_exception = None
 
         self.waiting_tcs = {}
 
