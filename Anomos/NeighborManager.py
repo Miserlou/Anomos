@@ -37,7 +37,6 @@ class NeighborManager(object):
         self.relay_count = 0
         self.incomplete = {}
         self.torrents = {}
-        self.ips = set()
 
         self.waiting_tcs = {}
 
@@ -127,8 +126,8 @@ class NeighborManager(object):
         return sid == self.sessionid
 
     def has_ip(self, ip):
-        return ip in self.ips or \
-                ip in [x for x,y in self.incomplete.values()]
+        return ip in [n.socket.peer_ip for n in self.neighbors.values()] \
+                or ip in [x for x,y in self.incomplete.values()]
 
     def is_incomplete(self, nid):
         return self.incomplete.has_key(nid)
@@ -140,7 +139,6 @@ class NeighborManager(object):
         '''Called by AnomosNeighborInitializer'''
         if self.incomplete.has_key(id):
             assert socket.peer_ip == self.incomplete[id][0]
-            self.ips.add(socket.peer_ip)
             del self.incomplete[id]
         self.add_neighbor(socket, id)
         tasks = self.waiting_tcs.get(id)
