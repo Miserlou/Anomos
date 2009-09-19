@@ -72,6 +72,7 @@ defaults = [
     ('scrape_allowed', 'full', 'scrape access allowed (can be none, specific or full)'),
     ('max_give', 200, 'maximum number of peers to give with any one request'),
     ('data_dir', '', 'Directory in which to store cryptographic keys'),
+    ('max_path_len', 6, 'Maximum number of hops in a circuit')
     ]
 
 alas = 'your file may exist elsewhere in the universe\nbut alas, not here\n'
@@ -183,7 +184,7 @@ class Tracker(object):
         #self.seedcount = {}
 
         self.certificate = certificate
-        self.networkmodel = NetworkModel()
+        self.networkmodel = NetworkModel(config)
     
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:

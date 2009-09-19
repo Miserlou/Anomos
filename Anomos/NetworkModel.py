@@ -15,18 +15,6 @@
 
 # Written by John M. Schanck and Rich Jones
 
-########################################################################
-# Note:
-# The Anomos tracker keeps a running model of the
-# network at all times, and uses it to control the flow
-# of file chunks. Each peer is represented by a Vertex
-# object; the connections between peers are called edges and
-# are tuples of the form (IP address, weight). Each Vertex
-# assigns relative IDs to its edges. The IP addresses these
-# relative IDs represent are only known by the Anomos tracker
-# and the peer which the Vertex object represents.
-########################################################################
-
 import random
 from sys import maxint as INFINITY
 import Anomos.crypto as crypto
@@ -154,8 +142,9 @@ class SimPeer:
 
 class NetworkModel:
     """Simple Graph model of network"""
-    def __init__(self):
+    def __init__(self, config):
         self.names = {}
+        self.config = config
 
     def get(self, peerid):
         """
@@ -284,7 +273,7 @@ class NetworkModel:
                 lvls.append(t)
             isect = snbrs.intersection(lvls[-1])
             # Keep growing until we find an snbr or exhaust the searchable space
-            while isect == set([]) and len(lvls) < minhops*2: #TODO: Make actual max hop count
+            while isect == set([]) and len(lvls) < self.config['max_path_len']:
                 t = reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]])
                 lvls.append(t)
                 isect = snbrs.intersection(lvls[-1])
