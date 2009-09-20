@@ -15,7 +15,7 @@
 
 # Written by John Schanck
 
-from Anomos.Protocol import TCODE, tobinary, toint, AnomosProtocol
+from Anomos.Protocol import PARTIAL, TCODE, tobinary, toint, AnomosProtocol
 from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.crypto import AESKey, CryptoError
@@ -26,8 +26,10 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
     def __init__(self, socket):
         Connection.__init__(self, socket)
         AnomosProtocol.__init__(self)
-        self.msgmap.update({TCODE: self.got_tcode})
+        self.msgmap.update({PARTIAL:self.got_partial,
+                            TCODE: self.got_tcode})
         self.incoming_stream_id = 0
+        self.partial_recv = ''
     def format_message(self, stream_id, message):
         return tobinary(stream_id)[2:] + \
                tobinary(len(message)) + message
@@ -53,6 +55,16 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
                 "Invalid message of type %02x on %s. Closing neighbor."% \
                 (ord(t), self.uniq_id()))
         self.close()
+    def got_partial(self, message):
+        p_remain = toint(message[1:5])
+        payload = message[5:]
+        self.partial_recv += payload
+        if len(self.partial_recv) > self.config['max_message_length']:
+            self.logfunc(ERROR, "Received message longer than max length, %d"%l)
+            return
+        if len(payload) == p_remain:
+            self.got_message(self.partial_recv)
+            self.partial_recv = ''
     def got_tcode(self, message):
         tcreader = TCReader(self.manager.certificate)
         try:

@@ -42,13 +42,12 @@ class Relayer(AnomosRelayerProtocol):
         self.next_upload = None
         self.decremented_count = False # Hack to prevent double decrementing of relay count
         self.locked = False
+        self.orelay = orelay
         # Make the other relayer which we'll send data through
         if orelay is None:
             self.manager.make_relay(outnid, data, self)
-        else:
-            self.orelay = orelay
-            if data is not None:
-                self.send_tracking_code(data)
+        elif data is not None:
+            self.send_tracking_code(data)
 
     def set_other_relay(self, r):
         self.orelay = r

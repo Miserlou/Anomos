@@ -165,7 +165,12 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_have(self, index):
         self.transfer_ctl_msg(HAVE, tobinary(index))
     def send_tracking_code(self, trackcode):
-        self.network_ctl_msg(TCODE, trackcode)
+        #XXX: Just a test, Throw tcodes into the PMQ instead of sending them
+        # immediately
+        #self.network_ctl_msg(TCODE, trackcode)
+        self.neighbor.queue_message(self.stream_id, TCODE+trackcode)
+        if self.next_upload is None:
+            self.ratelimiter.queue(self)
     def send_piece(self, index, begin, piece):
         msg = "".join([tobinary(index), tobinary(begin), piece])
         self.transfer_ctl_msg(PIECE, msg)

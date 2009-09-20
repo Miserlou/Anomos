@@ -101,7 +101,7 @@ class EndPoint(AnomosEndPointProtocol):
         if self.closed:
             # Send nothing if the connection is closed.
             return 0
-        if not self.neighbor.in_queue(self.stream_id):
+        if self.complete and not self.neighbor.in_queue(self.stream_id):
             # Nothing queued, so grab a piece and queue it with neighbor
             s = self.upload.get_upload_chunk()
             if s is None:
