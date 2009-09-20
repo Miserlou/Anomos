@@ -514,7 +514,7 @@ class _SingleTorrent(object):
             if self.reported_port == r:
                 return
         elif self._singleport_listener.port != self.reported_port:
-            r = self._singleport_listener.get_port()
+            r = self._singleport_listener.get_port(self.neighbors)
             self.reserved_ports.append(r)
         else:
             return
