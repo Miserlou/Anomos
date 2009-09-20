@@ -102,7 +102,7 @@ class Relayer(AnomosRelayerProtocol):
         if self.closed:
             self.logfunc(WARNING, "Double close")
             return
-        if not (self.decremented_count or self.orelay.decremented_count):
+        if not (self.decremented_count or (self.orelay and self.orelay.decremented_count)):
             self.manager.dec_relay_count()
             self.decremented_count = True
         self.closed = True
