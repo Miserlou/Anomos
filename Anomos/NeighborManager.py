@@ -119,7 +119,8 @@ class NeighborManager(object):
             self.incomplete.pop(nid)
         if self.has_neighbor(nid):
             self.neighbors.pop(nid)
-        self.failedPeers.append(nid)
+        if nid is not None:
+            self.failedPeers.append(nid)
 
     #TODO: implement banning
     def ban(self, ip):
@@ -174,7 +175,7 @@ class NeighborManager(object):
 
         tcreader = TCReader(self.certificate)
         try:
-            tcdata = tcreader.parseTC(message[1:])
+            tcdata = tcreader.parseTC(tc)
         except CryptoError, e:
             self.logfunc(ERROR, "Decryption Error: %s" % str(e))
             return
