@@ -168,7 +168,7 @@ class Rerequester(object):
             return
         if self.last_time > bttime() - self.config['rerequest_interval']:
             return
-        getmore = bool(self.neighbors.failed_connections()):
+        getmore = bool(self.neighbors.failed_connections())
         #TODO: also reannounce when TCs have failed
         if getmore or bttime() - self.last_time > self.announce_interval:
             self._announce()
