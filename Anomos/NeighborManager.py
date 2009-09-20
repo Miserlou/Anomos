@@ -68,12 +68,11 @@ class NeighborManager(object):
             @param id: The neighbor ID to assign to this connection
             @type loc: tuple
             @type id: int '''
-        if self.has_neighbor(id) or \
-                (self.incomplete.get(id) == loc):
+        if self.has_neighbor(id) or self.incomplete.has_key(id):
             # Already had neighbor by that id or at that location
             self.logfunc(WARNING, 'NID collision')
             # To be safe, kill connection with the neighbor we already
-            # had with the requested ID and add ID to the failed
+            # had with the requested ID and add ID to the failed list
             self.rm_neighbor(id)
             self.failedPeers.append(id)
             return
