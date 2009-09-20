@@ -1,12 +1,11 @@
 TODO:
     1) **Finish Protocol Specification!**: Path Generation, Hybrid Encryption
-    2) Requested torrent not found bug!
-    3) Pause individual torrents in GUI
-    4) PartialMessageQueue max length and in turn a choking
+    2) Pause individual torrents in GUI
+    3) PartialMessageQueue max length and in turn a choking
         algorithm for relay nodes, so that they may signal that
         their PMQ is full.
-    5) Banning
-    6) Solid round of bugtesting
+    4) Banning
+    5) Solid round of bugtesting
 
     Also:
         Have some seeds on something we share! Dedicated seedbox!
