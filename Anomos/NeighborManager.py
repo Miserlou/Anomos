@@ -20,6 +20,7 @@ from Anomos.NeighborLink import NeighborLink
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos.Measure import Measure
+from Anomos.crypto import CryptoError
 from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
 
 class NeighborManager(object):
