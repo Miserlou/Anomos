@@ -237,6 +237,8 @@ class NetworkModel:
             del self.names[peerid]
 
     def nbrsOf(self, peerid):
+        if not self.get(peerid):
+            return []
         return self.get(peerid).neighbors.keys()
 
     def getPathsToFile(self, src, infohash, how_many=5, is_seed=False, minhops=3):
