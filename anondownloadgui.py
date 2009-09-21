@@ -2413,6 +2413,9 @@ class DownloadInfoFrame(object):
         self.rate_slider_box.start()
         self.init_updates()
 
+        statusIcon = gtk.StatusIcon()
+        statusIcon.set_from_file('./images/anomos.ico')
+
         try:
             gtk.main() 
         except KeyboardInterrupt:
