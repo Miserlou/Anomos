@@ -1,4 +1,6 @@
 TODO:
+    0) Switch to python's logging module so we can deploy on Planet-Lab and
+       have each node log errors to our webserver
     1) **Finish Protocol Specification!**: Path Generation, Hybrid Encryption
     2) Pause individual torrents in GUI
     3) PartialMessageQueue max length and in turn a choking
