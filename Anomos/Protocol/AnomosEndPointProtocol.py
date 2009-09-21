@@ -62,13 +62,15 @@ class AnomosEndPointProtocol(AnomosProtocol):
     @log_on_call
     def got_break(self):
         self.send_ack_break()
-        self.shutdown()
+        if not self.closed:
+            self.shutdown()
         self.neighbor.end_stream(self.stream_id)
         self.neighbor = None
     @log_on_call
     def got_ack_break(self):
         if self.sent_break:
-            self.shutdown()
+            if not self.closed:
+                self.shutdown()
             self.neighbor.end_stream(self.stream_id)
             self.neighbor = None
     def got_partial(self, message):
