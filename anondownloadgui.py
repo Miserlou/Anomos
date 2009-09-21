@@ -2415,6 +2415,9 @@ class DownloadInfoFrame(object):
 
         statusIcon = gtk.StatusIcon()
         statusIcon.set_from_file('./images/anomos.ico')
+        ##this needs a whole bunch of window-state-event bullshit to make a haxxx
+        ##Internet says there is no good way to do this properly
+        ##whatever
 
         try:
             gtk.main() 
