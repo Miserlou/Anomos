@@ -33,8 +33,8 @@ CONFIRM = chr(0xA)
 ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
 RELAY = chr(0xC)
 BREAK = chr(0xD)
-PARTIAL = chr(0xE)
-ACKBREAK = chr(0xF)
+ACKBREAK = chr(0xE)
+PARTIAL = chr(0xF)
 
 _MCODES = ['CHOKE', 'UNCHOKE', 'INTERESTED', 'NOT_INTERESTED', 'HAVE',\
            'BITFIELD', 'REQUEST', 'PIECE', 'CANCEL', 'TCODE', 'CONFIRM',\
