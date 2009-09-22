@@ -2409,10 +2409,16 @@ class DownloadInfoFrame(object):
         self.mainwindow.show()
         self.paned.set_position(0)
         gtk.gdk.threads_leave()
+        self.iconified = False
 
     def onStatusIconActivate(self, widget):
-        self.mainwindow.deiconify()
-        self.mainwindow.show()
+        if self.iconified:
+            self.mainwindow.deiconify()
+            self.mainwindow.show()
+            self.iconified = False
+        else:
+            self.mainwindow.iconify()
+            self.iconified = True
 
     def main(self):
         gtk.gdk.threads_enter()
