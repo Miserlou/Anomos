@@ -2418,7 +2418,7 @@ class DownloadInfoFrame(object):
         self.init_updates()
 
         self.statusIcon = gtk.StatusIcon()
-        self.statusIcon.set_from_file('./images/anomos.ico')
+        self.statusIcon.set_from_file('./images/small.png')
         self.statusIcon.connect('activate', self.onStatusIconActivate)
 
         try:
@@ -3167,3 +3167,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         # the gtk main loop is closed in DownloadInfoFrame
         sys.exit(1)
+
