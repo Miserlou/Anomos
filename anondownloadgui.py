@@ -1601,7 +1601,10 @@ class TorrentBox(gtk.EventBox):
                           )
 
     def remove(self):
+        ##Improve
         self.main.torrentqueue.remove_torrent(self.infohash)
+        if len(self.main.torrentqueue.wrapped.running_torrents) <= 1:
+            self.main.stausIcon = "Anomos has no running torrents"
 
     def complete(self):
         self.main.torrents[self.infohash].completion = 1.0
@@ -2922,7 +2925,11 @@ class DownloadInfoFrame(object):
         if self.config['pause']:
             return
         self.running_torrents[torrent].widget.update_status(statistics)
-        self.statusIcon.set_tooltip('Complete:   ' + (str(statistics['fractionDone']*100)[:3] + '%\nDown:\t' + str(statistics['downRate']) + 'KB/s\nUp:\t\t' + str(statistics['upRate']) + 'KB/s'))
+        try:
+            self.statusIcon.set_tooltip('Complete:   ' + (str(statistics['fractionDone']*100)[:3] + '%\nDown:\t' + str(statistics['downRate']) + 'KB/s\nUp:\t\t' + str(statistics['upRate']) + 'KB/s'))
+        except KeyError:
+            ##Stupid race
+            self.statusIcon.set_tooltip('Anomos')
 
     def new_displayed_torrent(self, infohash, metainfo, dlpath, state,
                               completion=None, uptotal=0, downtotal=0):
