@@ -2419,6 +2419,7 @@ class DownloadInfoFrame(object):
 
         self.statusIcon = gtk.StatusIcon()
         self.statusIcon.set_from_file('./images/small.png')
+        self.statusIcon.set_tooltip("Anomos")
         self.statusIcon.connect('activate', self.onStatusIconActivate)
 
         try:
@@ -2920,6 +2921,7 @@ class DownloadInfoFrame(object):
         if self.config['pause']:
             return
         self.running_torrents[torrent].widget.update_status(statistics)
+        self.statusIcon.set_tooltip('Complete:   ' + (str(statistics['fractionDone']*100)[:3] + '%\nDown:\t' + str(statistics['downRate']) + 'KB/s\nUp:\t\t' + str(statistics['upRate']) + 'KB/s'))
 
     def new_displayed_torrent(self, infohash, metainfo, dlpath, state,
                               completion=None, uptotal=0, downtotal=0):
