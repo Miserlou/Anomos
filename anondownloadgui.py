@@ -338,6 +338,7 @@ class StopStartButton(gtk.Button):
             self.main.dbutton.update_label()
             self.main.sbutton.show_seeding()
             self.main.dbutton.show_downloading()
+            self.main.statusIcon.set_tooltip("Anomos is paused")
         else:
             if self.has_image:
                 self.remove(self.start_image)
