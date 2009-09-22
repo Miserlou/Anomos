@@ -2252,6 +2252,7 @@ class DownloadInfoFrame(object):
                                       gtk.gdk.ACTION_MOVE)
 
         self.mainwindow.connect('destroy', self.cancel)
+        self.mainwindow.connect('window-state-event', self.on_iconify)
 
         self.accel_group = gtk.AccelGroup()
 
@@ -2405,6 +2406,9 @@ class DownloadInfoFrame(object):
         self.paned.set_position(0)
         gtk.gdk.threads_leave()
 
+    def onStatusIconActivate(self, widget):
+        self.mainwindow.deiconify()
+        self.mainwindow.show()
 
     def main(self):
         gtk.gdk.threads_enter()
@@ -2413,11 +2417,9 @@ class DownloadInfoFrame(object):
         self.rate_slider_box.start()
         self.init_updates()
 
-        statusIcon = gtk.StatusIcon()
-        statusIcon.set_from_file('./images/anomos.ico')
-        ##this needs a whole bunch of window-state-event bullshit to make a haxxx
-        ##Internet says there is no good way to do this properly
-        ##whatever
+        self.statusIcon = gtk.StatusIcon()
+        self.statusIcon.set_from_file('./images/anomos.ico')
+        self.statusIcon.connect('activate', self.onStatusIconActivate)
 
         try:
             gtk.main() 
@@ -2641,6 +2643,11 @@ class DownloadInfoFrame(object):
         if self.paned.get_position() > 0:
             self.toggle_known()
 
+    ##MAKE THIS SOMETHING ELSE
+    def on_iconify(self, widget, event):
+        state = event.new_window_state
+        if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
+            widget.hide()
 
     def cancel(self, widget):
         for window_name in self.child_windows.keys():
