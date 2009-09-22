@@ -2252,7 +2252,7 @@ class DownloadInfoFrame(object):
                                       gtk.gdk.ACTION_MOVE)
 
         self.mainwindow.connect('destroy', self.cancel)
-        self.mainwindow.connect('window-state-event', self.on_iconify)
+        self.mainwindow.connect('window-state-event', self.on_window_event)
 
         self.accel_group = gtk.AccelGroup()
 
@@ -2643,8 +2643,7 @@ class DownloadInfoFrame(object):
         if self.paned.get_position() > 0:
             self.toggle_known()
 
-    ##MAKE THIS SOMETHING ELSE
-    def on_iconify(self, widget, event):
+    def on_window_event(self, widget, event):
         state = event.new_window_state
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
             widget.hide()
