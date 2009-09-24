@@ -6,7 +6,8 @@ TODO:
     3) PartialMessageQueue max length and in turn a choking
         algorithm for relay nodes, so that they may signal that
         their PMQ is full.
-    4) Banning
+    4) Banning -- What does this actually mean? Perma-ban, or for session only?
+        And when to ban? On first misbehavior? Repeated misbehavior?
     5) Solid round of bugtesting
 
     Also:
