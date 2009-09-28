@@ -2,10 +2,17 @@ TODO:
     0) Switch to python's logging module so we can deploy on Planet-Lab and
        have each node log errors to our webserver
     1) Finish Protocol Specification!: Path Generation, Hybrid Encryption
-    2) PartialMessageQueue max length and in turn a choking
+    2) Pause individual torrents in GUI
+    3) PartialMessageQueue max length and in turn a choking
         algorithm for relay nodes, so that they may signal that
         their PMQ is full. This requires testing.
-    3) Solid round of bugtesting
+    4) Solid round of bugtesting
+    5) Throw TCode generation into its own thread, or have a unique thread
+        for each request (Much harder!)
+    6) SOCKS support
+    7) Solid round of bugtesting
+
+
 
     Also:
         Have some seeds on something we share! Dedicated seedbox!
