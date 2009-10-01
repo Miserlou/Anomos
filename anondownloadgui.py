@@ -2422,8 +2422,8 @@ class DownloadInfoFrame(object):
             self.mainwindow.hide()
             self.iconified = True
 
-    def quitDialog(yes_text="Yes", no_text="No", cancel_text="Cancel"):
-        message = gtk.MessageDialog(None, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_NONE, "Do you really want to quit?")
+    def quitDialog(self, yes_text="Yes", no_text="No", cancel_text="Cancel"):
+        message = gtk.MessageDialog(self.mainwindow, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_NONE, "Do you really want to quit?")
         message.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
         message.add_button(gtk.STOCK_QUIT, gtk.RESPONSE_CLOSE)
         resp = message.run()
