@@ -15,30 +15,21 @@
 
 import os
 import sys
-# Python 2.2 doesn't have RawConfigParser
-try:
-    from ConfigParser import RawConfigParser
-except ImportError:
-    from ConfigParser import ConfigParser as RawConfigParser
+import shutil
+from ConfigParser import SafeConfigParser
 
-from Anomos import get_config_dir, parseargs, version, ERROR
+from Anomos import get_config_dir, parseargs, version
 
 def get_config(defaults, section):
-    dir_root = get_config_dir()
+    configdir = get_config_dir()
 
-    if dir_root is None:
+    if configdir is None:
         return {}
 
-    configdir = os.path.join(dir_root, '.anomos')
-    if not os.path.isdir(configdir):
-        try:
-            os.mkdir(configdir, 0700)
-        except:
-            pass
-
-    p = RawConfigParser()
+    p = SafeConfigParser()
     p.read(os.path.join(configdir, 'config'))
     values = {}
+    values['data_dir'] = configdir
     if p.has_section(section):
         for name, value in p.items(section):
             if name in defaults:
@@ -47,16 +38,11 @@ def get_config(defaults, section):
         for name, value in p.items('common'):
             if name in defaults and name not in values:
                 values[name] = value
-    if defaults.get('data_dir') == '' and \
-           'data_dir' not in values and os.path.isdir(configdir):
-        datadir = os.path.join(configdir, 'data')
-        values['data_dir'] = datadir
     parseargs.parse_options(defaults, values)
     return values
 
-
 def save_ui_config(defaults, section, save_options, error_callback):
-    p = RawConfigParser()
+    p = SafeConfigParser()
     filename = os.path.join(defaults['data_dir'], 'ui_config')
     p.read(filename)
     p.remove_section(section)
@@ -93,7 +79,7 @@ def parse_configuration_and_args(defaults, uiname, arglist=[], minargs=0,
     datadir = config['data_dir']
     if datadir:
         if uiname in ('anondownloadgui', 'anonmaketorrentgui'):
-            p = RawConfigParser()
+            p = SafeConfigParser()
             values = {}
             p.read(os.path.join(datadir, 'ui_config'))
             if p.has_section(uiname):

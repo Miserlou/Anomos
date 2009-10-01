@@ -17,7 +17,7 @@
 
 from Anomos.Protocol.AnomosRelayerProtocol import AnomosRelayerProtocol
 from Anomos.Measure import Measure
-from Anomos import INFO, CRITICAL, WARNING, ERROR, default_logger
+from Anomos import LOG as log
 
 class Relayer(AnomosRelayerProtocol):
     """ As a tracking code is being sent, each peer it reaches (other than the
@@ -25,8 +25,7 @@ class Relayer(AnomosRelayerProtocol):
         association between the incoming socket and the outgoing socket (so
         that the TC only needs to be sent once).
     """
-    def __init__(self, stream_id, neighbor, outnid,
-                    data=None, orelay=None, logfunc=default_logger):
+    def __init__(self, stream_id, neighbor, outnid, data=None, orelay=None):
                     #storage, uprate, downrate, choker, key):
         AnomosRelayerProtocol.__init__(self)
         self.stream_id = stream_id
@@ -38,7 +37,6 @@ class Relayer(AnomosRelayerProtocol):
         self.pre_complete_buffer = []
         self.complete = False
         self.closed = False
-        self.logfunc = logfunc
         self.next_upload = None
         self.decremented_count = False # Hack to prevent double decrementing of relay count
         self.locked = False
@@ -74,7 +72,7 @@ class Relayer(AnomosRelayerProtocol):
         return b
 
     def connection_completed(self):
-        self.logfunc(INFO, "Relay connection [%02x:%d] established" %
+        log.info("Relay connection [%02x:%d] established" %
                             (int(ord(self.neighbor.id)),self.stream_id))
         self.complete = True
         self.flush_pre_buffer()
@@ -92,15 +90,15 @@ class Relayer(AnomosRelayerProtocol):
         # Connection was closed locally (as opposed to
         # being closed by receiving a BREAK message)
         if self.closed:
-            self.logfunc(WARNING, "Double close")
+            log.warning("Double close")
             return
-        self.logfunc(INFO, "Closing %s"%self.uniq_id())
+        log.info("Closing %s"%self.uniq_id())
         self.send_break()
         self.shutdown()
 
     def shutdown(self):
         if self.closed:
-            self.logfunc(WARNING, "Double close")
+            log.warning("Double close")
             return
         self.closed = True
         if not self.complete:
@@ -117,7 +115,7 @@ class Relayer(AnomosRelayerProtocol):
             other relay (ore). Called by this object's ore during
             shutdown '''
         if self.closed:
-            self.logfunc(WARNING, "Double close")
+            log.warning("Double close")
             return
         self.send_break()
 

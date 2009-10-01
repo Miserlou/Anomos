@@ -21,8 +21,7 @@ from Anomos.Protocol import CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, \
                             ACKBREAK
 from Anomos.Protocol import tobinary, toint, AnomosProtocol
 from Anomos.bitfield import Bitfield
-from Anomos import INFO, WARNING, ERROR, CRITICAL
-from Anomos import log_on_call
+from Anomos import log_on_call, LOG as log
 
 class AnomosEndPointProtocol(AnomosProtocol):
     ## EndPointProtocol is intended to be implemented by EndPoint ##
@@ -78,7 +77,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
         payload = message[5:]
         self.partial_recv += payload
         if len(self.partial_recv) > self.neighbor.config['max_message_length']:
-            self.logfunc(ERROR, "Received message longer than max length, %d"%l)
+            log.error("Received message longer than max length, %d"%l)
             return
         if len(payload) == p_remain:
             self.got_message(self.partial_recv)
@@ -105,7 +104,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def got_have(self, message):
         i = toint(message[1:])
         if i >= self.torrent.numpieces:
-            self.logfunc(ERROR, "Piece index out of range")
+            log.error("Piece index out of range")
             self.fatal_error()
             return
         self.download.got_have(i)
@@ -177,7 +176,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
         msg = "".join([tobinary(index), tobinary(begin), piece])
         self.transfer_ctl_msg(PIECE, msg)
     def invalid_message(self, t):
-        self.logfunc(WARNING, \
-                "Invalid message of type %02x on %s. Closing stream."% \
-                (ord(t), self.uniq_id()))
+        log.warning("Invalid message of type %02x on %s. Closing stream."% \
+                    (ord(t), self.uniq_id()))
         self.close()

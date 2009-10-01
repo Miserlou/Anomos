@@ -17,7 +17,7 @@
 
 from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, RELAY, BREAK, PARTIAL, ACKBREAK
 from Anomos.Protocol import AnomosProtocol, toint
-from Anomos import bttime, INFO, WARNING, ERROR, CRITICAL, log_on_call
+from Anomos import bttime, log_on_call, LOG as log
 
 class AnomosRelayerProtocol(AnomosProtocol):
     ## RelayerProtocol is intended to be implemented by Relayer ##
@@ -45,10 +45,10 @@ class AnomosRelayerProtocol(AnomosProtocol):
         #XXX: Just a test, Throw tcodes into the PMQ instead of sending them
         # immediately
         #self.network_ctl_msg(TCODE, trackcode)
-        self.logfunc(INFO, "Queuing Tracking code!")
+        log.info("Queuing Tracking code!")
         self.neighbor.queue_message(self.stream_id, TCODE+trackcode)
         if self.next_upload is None:
-            self.logfunc(INFO, "Queuing Self!")
+            log.info("Queuing Self!")
             self.ratelimiter.queue(self)
     def send_relay_message(self, msg):
         self.neighbor.queue_message(self.stream_id, msg)
@@ -83,7 +83,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
         p_remain = toint(message[1:5])
         self.partial_recv += message[5:]
         if len(self.partial_recv) > self.neighbor.config['max_message_length']:
-            self.logfunc(ERROR, "Received message longer than max length, %d"%l)
+            log.error("Received message longer than max length, %d"%l)
             return
         if len(message[5:]) == p_remain:
             self.got_message(self.partial_recv)
@@ -100,7 +100,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
     #    self.choked = False
     #    self.orelay.send_unchoke()
     def invalid_message(self, t):
-        self.logfunc(WARNING, \
-                "Invalid message of type %02x on %s. Closing stream."% \
-                (ord(t), self.uniq_id()))
+        log.warning("Invalid message of type %02x on %s. Closing stream."% \
+                    (ord(t), self.uniq_id()))
         self.close()

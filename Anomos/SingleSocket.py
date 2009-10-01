@@ -1,7 +1,6 @@
 import socket
 from errno import EWOULDBLOCK
 from Anomos import bttime
-from Anomos import INFO, CRITICAL, WARNING
 from M2Crypto import SSL
 
 try:

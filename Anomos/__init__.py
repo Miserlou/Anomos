@@ -31,14 +31,6 @@ if sys.platform == 'win32':
 else:
     from time import time as bttime
 
-import logging
-#logging.basicConfig(
-#    level=logging.DEBUG,
-#    format="[%(levelname)-8s] %(asctime)s %(module)s:%(lineno)d %(message)s",
-#    datefmt="%H:%M:%S",
-#    )
-LOG = logging.getLogger('anomos')
-
 def calc_unix_dirs():
     appdir = '%s-%s'%(app_name, version)
     ip = os.path.join('share', 'pixmaps', appdir)
@@ -57,7 +49,7 @@ if app_root.startswith(os.path.join(sys.prefix,'bin')):
 # a cross-platform way to get user's home directory
 def get_config_dir():
     shellvars = ['${APPDATA}', '${HOME}', '${USERPROFILE}']
-    return get_dir_root(shellvars)
+    return os.path.join(get_dir_root(shellvars),'.anomos')
 
 def get_home_dir():
     shellvars = ['${HOME}', '${USERPROFILE}']
@@ -81,7 +73,6 @@ def get_dir_root(shellvars):
             dir_root = None
     return dir_root
 
-
 is_frozen_exe = (os.name == 'nt') and hasattr(sys, 'frozen') and (sys.frozen == 'windows_exe')
 
 if is_frozen_exe:
@@ -99,15 +90,31 @@ if is_frozen_exe:
             baseclass.write(self, text, fname=fname)
     sys.stderr = Stderr()
 
+def ensure_minimum_config():
+    import shutil
+    app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
+    configdir = get_config_dir()
+    if not os.path.isdir(configdir):
+        try:
+            os.mkdir(configdir, 0700)
+            self.copy_config_skel(configdir)
+            shutil.copytree(os.path.join(app_root, 'default_config'), configdir)
+        except:
+            pass
+    else:
+        default_configs = os.path.join(app_root, 'default_config')
+        if not os.path.exists(os.path.join(configdir, 'config')):
+            shutil.copy(os.path.join(default_configs, 'config'), configdir)
+        if not os.path.exists(os.path.join(configdir, 'logging.conf')):
+            shutil.copy(os.path.join(default_configs, 'logging.conf'), configdir)
+
+ensure_minimum_config()
+
+import logging.config
+logging.config.fileConfig(os.path.join(get_config_dir(), 'logging.conf'))
+LOG = logging.getLogger('testing') #XXX: logger must be 'anomos' in production versions
+
 del sys
-
-INFO = 0
-WARNING = 1
-ERROR = 2
-CRITICAL = 3
-
-def default_logger(x, y):
-    print x, y
 
 class BTFailure(Exception):
     pass
@@ -126,7 +133,7 @@ def trace_on_call(fn):
 def log_on_call(fn):
     '''Logs a message when the decorated method is called'''
     def ret_fn(self, *args, **kwargs):
-        self.logfunc(INFO, self.uniq_id() + " calling %s" % fn.__name__)
+        LOG.info(self.uniq_id() + " calling %s" % fn.__name__)
         return fn(self, *args, **kwargs)
     return ret_fn
 

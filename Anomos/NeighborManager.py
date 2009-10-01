@@ -21,19 +21,18 @@ from Anomos.Protocol.TCReader import TCReader
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos.Measure import Measure
 from Anomos.crypto import CryptoError
-from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
+from Anomos import BTFailure, LOG as log
 
 class NeighborManager(object):
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate, sessionid, ratelimiter, logfunc):
+    def __init__(self, rawserver, config, certificate, sessionid, ratelimiter):
         self.rawserver = rawserver
         self.config = config
         self.certificate = certificate
         self.sessionid = sessionid
         self.ratelimiter = ratelimiter
-        self.logfunc = logfunc
         self.neighbors = {}
         self.relay_measure = Measure(self.config['max_rate_period'])
         self.relay_count = 0
@@ -70,14 +69,14 @@ class NeighborManager(object):
             @type id: int '''
         if self.has_neighbor(id) or self.incomplete.has_key(id):
             # Already had neighbor by that id or at that location
-            self.logfunc(WARNING, 'NID collision')
+            log.warning('NID collision')
             # To be safe, kill connection with the neighbor we already
             # had with the requested ID and add ID to the failed list
             self.rm_neighbor(id)
             self.failedPeers.append(id)
             return
         if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
-            self.logfunc(WARNING, 'Got duplicate IP address in neighbor list. \
+            log.warning('Got duplicate IP address in neighbor list. \
                         Multiple connections to the same IP are disabled \
                         in your config.')
             return
@@ -90,8 +89,7 @@ class NeighborManager(object):
         for k,v in self.incomplete.items():
             if v == loc:
                 self.rm_neighbor(k)
-        self.logfunc(INFO, \
-                "Failed to open connection to %s\n\
+        log.info("Failed to open connection to %s\n\
                  Reason: %s" % (str(loc), str(err)))
 
     def failed_connections(self):
@@ -109,9 +107,9 @@ class NeighborManager(object):
 
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
-        self.logfunc(INFO, "Adding Neighbor: \\x%02x" % ord(id))
+        log.info("Adding Neighbor: \\x%02x" % ord(id))
         self.neighbors[id] = NeighborLink(self, socket, id, \
-                self.config, self.ratelimiter, logfunc=self.logfunc)
+                self.config, self.ratelimiter)
 
     def rm_neighbor(self, nid):
         if self.incomplete.has_key(nid):
@@ -147,7 +145,7 @@ class NeighborManager(object):
             assert socket.peer_ip == self.incomplete[id][0]
             del self.incomplete[id]
         if id == NAT_CHECK_ID:
-            self.logfunc(INFO, "Nat check ok.")
+            log.info("Nat check ok.")
             return
         self.add_neighbor(socket, id)
         tasks = self.waiting_tcs.get(id)
@@ -169,28 +167,28 @@ class NeighborManager(object):
         '''Called from Rerequester to initialize new circuits we've
         just gotten TCs for from the Tracker'''
         if self.count_streams() >= self.config['max_initiate']:
-            self.logfunc(WARNING, "Not starting circuit -- Stream count exceeds maximum")
+            log.warning("Not starting circuit -- Stream count exceeds maximum")
             return
 
         tcreader = TCReader(self.certificate)
         try:
             tcdata = tcreader.parseTC(tc)
         except CryptoError, e:
-            self.logfunc(ERROR, "Decryption Error: %s" % str(e))
+            log.error("Decryption Error: %s" % str(e))
             return
         nid = tcdata.neighborID
         sid = tcdata.sessionID
         torrent = self.get_torrent(infohash)
         nextTC = tcdata.nextLayer
         if sid != self.sessionid:
-            self.logfunc(ERROR, "Not starting circuit -- SessionID mismatch!")
+            log.error("Not starting circuit -- SessionID mismatch!")
         elif torrent is None:
-            self.logfunc(ERROR, "Not starting circuit -- Unknown torrent")
+            log.error("Not starting circuit -- Unknown torrent")
         elif nid in self.incomplete:
-            self.logfunc(INFO, "Postponing circuit until neighbor \\x%02x completes " % ord(nid))
+            log.info("Postponing circuit until neighbor \\x%02x completes " % ord(nid))
             self.schedule_tc(nid, infohash, aeskey, nextTC)
         elif nid not in self.neighbors:
-            self.logfunc(ERROR, "Not starting circuit -- NID \\x%02x is not assigned" % ord(nid))
+            log.error("Not starting circuit -- NID \\x%02x is not assigned" % ord(nid))
         else:
             self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
 

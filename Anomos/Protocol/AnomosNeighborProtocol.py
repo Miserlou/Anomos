@@ -19,7 +19,7 @@ from Anomos.Protocol import PARTIAL, TCODE, tobinary, toint, AnomosProtocol
 from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.crypto import AESKey, CryptoError
-from Anomos import INFO, WARNING, ERROR, CRITICAL
+from Anomos import LOG as log
 
 class AnomosNeighborProtocol(Connection, AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
@@ -43,7 +43,7 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
             yield 4   # Message Length
             l = toint(self._message)
             if l > self.config['max_message_length']:
-                self.logfunc(WARNING, "Received message longer than max length")
+                log.warning("Received message longer than max length")
             #    return
             yield l # Payload
             if handler == self:
@@ -51,16 +51,15 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
                 self.incoming_stream_id = stream
             handler.got_message(self._message)
     def invalid_message(self, t):
-        self.logfunc(WARNING, \
-                "Invalid message of type %02x on %s. Closing neighbor."% \
-                (ord(t), self.uniq_id()))
+        log.warning("Invalid message of type %02x on %s. Closing neighbor."% \
+                    (ord(t), self.uniq_id()))
         self.close()
     def got_partial(self, message):
         p_remain = toint(message[1:5])
         payload = message[5:]
         self.partial_recv += payload
         if len(self.partial_recv) > self.config['max_message_length']:
-            self.logfunc(ERROR, "Received message longer than max length, %d"%l)
+            log.error("Received message longer than max length, %d"%l)
             return
         if len(payload) == p_remain:
             self.got_message(self.partial_recv)
@@ -70,13 +69,13 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
         try:
             tcdata = tcreader.parseTC(message[1:])
         except CryptoError, e:
-            self.logfunc(ERROR, "Decryption Error: %s" % str(e))
+            log.error("Decryption Error: %s" % str(e))
             return
         sid = tcdata.sessionID
         if not self.manager.check_session_id(sid):
             #TODO: Key mismatch is pretty serious, probably want to ban the
             # user who sent this TCode
-            self.logfunc(ERROR, "Session id mismatch")
+            log.error("Session id mismatch")
             self.close()
             return
         if tcdata.type == chr(0): # Relayer type
@@ -89,10 +88,10 @@ class AnomosNeighborProtocol(Connection, AnomosProtocol):
             e2e_key = AESKey(keydata[:32],keydata[32:])
             torrent = self.manager.get_torrent(infohash)
             if not torrent:
-                self.logfunc(ERROR, "Requested torrent not found")
+                log.error("Requested torrent not found")
                 self.close()
                 return
             self.start_endpoint_stream(torrent, e2e_key)
         else:
-            self.logfunc(ERROR, "Unsupported TCode Format")
+            log.error("Unsupported TCode Format")
             self.close()

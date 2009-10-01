@@ -18,10 +18,11 @@ from socket import gethostbyname
 from random import random
 
 from Anomos import bttime
+from Anomos import LOG as log
 from Anomos.zurllib import quote
 from Anomos.btformats import check_peers
 from Anomos.bencode import bdecode
-from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
+from Anomos import BTFailure
 import Anomos.crypto as crypto
 from urlparse import urlparse, urlunparse
 from M2Crypto.httpslib import HTTPSConnection
@@ -63,7 +64,7 @@ STOPPED=2
 class Rerequester(object):
 
     def __init__(self, url, config, sched, neighbors, externalsched,
-            amount_left, up, down, local_port, infohash, logfunc, doneflag,
+            amount_left, up, down, local_port, infohash, doneflag,
             diefunc, sfunc, certificate, sessionid):
         ##########################
         self.config = config
@@ -75,7 +76,6 @@ class Rerequester(object):
         self.down = down
         self.local_port = local_port
         self.infohash = infohash
-        self.logfunc = logfunc
         self.doneflag = doneflag
         self.diefunc = diefunc
         self.successfunc = sfunc
@@ -110,7 +110,7 @@ class Rerequester(object):
         if self.proxy_url:
             self.parse_proxy_url()
         if parsed[0] != 'https':
-            self.logfunc(ERROR, "You are trying to make an unencrypted connection to a tracker, and this has been disabled for security reasons. Halting.")
+            log.error("You are trying to make an unencrypted connection to a tracker, and this has been disabled for security reasons. Halting.")
             self.https = False
 
     def parse_proxy_url(self):
@@ -120,7 +120,7 @@ class Rerequester(object):
                 self.proxy_username, self.proxy_password = auth.split(':',1)
 
     def _makequery(self):
-        self.logfunc(INFO, "Connecting!")
+        log.info("Connecting!")
         return ('?info_hash=%s&port=%s'%
                 (quote(self.infohash), str(self.local_port)))
 
@@ -143,7 +143,7 @@ class Rerequester(object):
     def _check(self):
         if self.current_started is not None:
             if self.current_started <= bttime() - 58:
-                self.logfunc(WARNING, "Tracker announce still not complete "
+                log.warning("Tracker announce still not complete "
                                "%d seconds after starting it" %
                                int(bttime() - self.current_started))
             return
@@ -202,7 +202,6 @@ class Rerequester(object):
         self.amount_left = None
         self.up = None
         self.down = None
-        self.logfunc = None
         self.diefunc = None
         self.successfunc = None
 
@@ -215,7 +214,7 @@ class Rerequester(object):
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
         if pcertname not in dcerts and not self.warned:
-            self.logfunc(ERROR, "WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
+            log.error("WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
             self.warned = True
             ssl_contextual_healing=self.certificate.getContext()
         else:
@@ -259,7 +258,7 @@ class Rerequester(object):
         self.current_started = None
         self.last_time = bttime()
         if errormsg is not None:
-            self.logfunc(WARNING, errormsg)
+            log.warning(errormsg)
             self._fail()
             return
         try:
@@ -268,26 +267,25 @@ class Rerequester(object):
             check_peers(r)
         except BTFailure, e:
             if data != '':
-                self.logfunc(ERROR, 'bad data from tracker - ' + str(e))
+                log.error('bad data from tracker - ' + str(e))
             self._fail()
             return
         if r.has_key('failure reason'):
             if self.neighbors.count() > 0:
-                self.logfunc(ERROR, 'rejected by tracker - ' +
-                               r['failure reason'])
+                log.error('rejected by tracker - ' + r['failure reason'])
             else:
                 # sched shouldn't be strictly necessary
                 def die():
-                    self.diefunc(CRITICAL, "Aborting the torrent as it was "
+                    log.critical("Aborting the torrent as it was "
                     "rejected by the tracker while not connected to any peers."
                     " Message from the tracker:     " + r['failure reason'])
+                    self.diefunc()
                 self.sched(die, 0)
             self._fail()
         else:
             self.fail_wait = None
             if r.has_key('warning message'):
-                self.logfunc(ERROR, 'warning from tracker - ' +
-                               r['warning message'])
+                log.error('warning from tracker - ' + r['warning message'])
             self.announce_interval = r.get('interval', self.announce_interval)
             self.config['rerequest_interval'] = r.get('min interval',
                                             self.config['rerequest_interval'])

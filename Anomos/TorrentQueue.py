@@ -22,7 +22,7 @@ from Anomos.download import Feedback, Multitorrent
 from Anomos.controlsocket import ControlSocket
 from Anomos.bencode import bdecode
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
-from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
+from Anomos import BTFailure, BTShutdown
 from Anomos import configfile
 from Anomos.Torrent import Torrent
 import Anomos

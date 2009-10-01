@@ -19,13 +19,13 @@ from Anomos.Relayer import Relayer
 from Anomos.PartialMessageQueue import PartialMessageQueue
 from Anomos.Protocol.AnomosNeighborProtocol import AnomosNeighborProtocol
 from Anomos.Protocol import NAT_CHECK_ID
-from Anomos import INFO, WARNING, ERROR, default_logger, trace_on_call
+from Anomos import LOG as log
 
 class NeighborLink(AnomosNeighborProtocol):
     ''' NeighborLink handles the socket between two neighbors and keeps
         track of the objects used to manage the active streams between
         those neighbors. '''
-    def __init__(self, manager, socket, id, config, ratelimiter, logfunc=default_logger):
+    def __init__(self, manager, socket, id, config, ratelimiter):
         AnomosNeighborProtocol.__init__(self, socket)
         self.id = id
         self.manager = manager
@@ -37,7 +37,6 @@ class NeighborLink(AnomosNeighborProtocol):
         self.pmq = PartialMessageQueue()
         self.config = config
         self.ratelimiter = ratelimiter
-        self.logfunc = logfunc
 
         #Prepare to read messages
         self._reader = self._read_messages()
@@ -59,9 +58,8 @@ class NeighborLink(AnomosNeighborProtocol):
             nxtid = self.next_stream_id
             self.next_stream_id += 1
         self.streams[nxtid] = \
-                    EndPoint(nxtid, self, torrent, aeskey, data,
-                            logfunc=self.logfunc)
-        self.logfunc(INFO, "Starting endpoint")
+                    EndPoint(nxtid, self, torrent, aeskey, data)
+        log.info("Starting endpoint")
         return self.streams[nxtid]
 
     def start_relay_stream(self, nid, data=None, orelay=None):
@@ -80,8 +78,7 @@ class NeighborLink(AnomosNeighborProtocol):
             nxtid = self.next_stream_id
             self.next_stream_id += 2
         self.streams[nxtid] = \
-                    Relayer(nxtid, self, nid, data, orelay,
-                            logfunc=self.logfunc)
+                    Relayer(nxtid, self, nid, data, orelay)
         return self.streams[nxtid]
 
     def close_streams(self):
@@ -144,7 +141,7 @@ class NeighborLink(AnomosNeighborProtocol):
     def connection_lost(self, conn):
         assert conn is self.socket
         if self.id != NAT_CHECK_ID:
-            self.logfunc(WARNING, "Neighbor disconnected")
+            log.info("Neighbor disconnected")
         self.connection_closed()
 
     def connection_closed(self):

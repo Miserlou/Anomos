@@ -19,7 +19,6 @@ import hashlib
 
 from Anomos.bencode import bencode
 from Anomos import btformats
-from Anomos import WARNING, ERROR
 
 WINDOWS_UNSUPPORTED_CHARS ='"*/:<>?\|'
 windows_translate = [chr(i) for i in range(256)]
@@ -44,16 +43,16 @@ def set_filesystem_encoding(encoding, errorfunc):
         try:
             sys.getfilesystemencoding
         except AttributeError:
-            errorfunc(WARNING, "This seems to be an old Python version which does not support detecting the filesystem encoding. Assuming 'ascii'.")
+            errorfunc("This seems to be an old Python version which does not support detecting the filesystem encoding. Assuming 'ascii'.")
             return
         encoding = sys.getfilesystemencoding()
         if encoding is None:
-            errorfunc(WARNING, "Python failed to autodetect filesystem encoding. Using 'ascii' instead.")
+            errorfunc("Python failed to autodetect filesystem encoding. Using 'ascii' instead.")
             return
     try:
         'a1'.decode(encoding)
     except:
-        errorfunc(ERROR, "Filesystem encoding '"+encoding+"' is not supported. Using 'ascii' instead.")
+        errorfunc("Filesystem encoding '"+encoding+"' is not supported. Using 'ascii' instead.")
         return
     filesystem_encoding = encoding
 
@@ -171,17 +170,17 @@ class ConvertedMetainfo(object):
     def show_encoding_errors(self, errorfunc):
         self.reported_errors = True
         if self.bad_torrent_unsolvable:
-            errorfunc(ERROR, "This .atorrent file has been created with a broken tool and has incorrectly encoded filenames. Some or all of the filenames may appear different from what the creator of the .atorrent file intended.")
+            errorfunc("This .atorrent file has been created with a broken tool and has incorrectly encoded filenames. Some or all of the filenames may appear different from what the creator of the .atorrent file intended.")
         elif self.bad_torrent_noncharacter:
-            errorfunc(ERROR, "This .atorrent file has been created with a broken tool and has bad character values that do not correspond to any real character. Some or all of the filenames may appear different from what the creator of the .atorrent file intended.")
+            errorfunc("This .atorrent file has been created with a broken tool and has bad character values that do not correspond to any real character. Some or all of the filenames may appear different from what the creator of the .atorrent file intended.")
         elif self.bad_torrent_wrongfield:
-            errorfunc(ERROR, "This .atorrent file has been created with a broken tool and has incorrectly encoded filenames. The names used may still be correct.")
+            errorfunc("This .atorrent file has been created with a broken tool and has incorrectly encoded filenames. The names used may still be correct.")
         elif self.bad_conversion:
-            errorfunc(WARNING, 'The character set used on the local filesystem ("'+filesystem_encoding+'") cannot represent all characters used in the filename(s) of this torrent. Filenames have been changed from the original.')
+            errorfunc('The character set used on the local filesystem ("'+filesystem_encoding+'") cannot represent all characters used in the filename(s) of this torrent. Filenames have been changed from the original.')
         elif self.bad_windows:
-            errorfunc(WARNING, 'The Windows filesystem cannot handle some characters used in the filename(s) of this torrent. Filenames have been changed from the original.')
+            errorfunc('The Windows filesystem cannot handle some characters used in the filename(s) of this torrent. Filenames have been changed from the original.')
         elif self.bad_path:
-            errorfunc(WARNING, "This .atorrent file has been created with a broken tool and has at least 1 file with an invalid file or directory name. However since all such files were marked as having length 0 those files are just ignored.")
+            errorfunc("This .atorrent file has been created with a broken tool and has at least 1 file with an invalid file or directory name. However since all such files were marked as having length 0 those files are just ignored.")
 
     # At least BitComet seems to make bad .torrent files that have
     # fields in an arbitrary encoding but separate 'field.utf-8' attributes

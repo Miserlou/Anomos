@@ -14,11 +14,10 @@
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
 from Anomos.Protocol.AnomosEndPointProtocol import AnomosEndPointProtocol
-from Anomos import INFO, WARNING, ERROR, default_logger
+from Anomos import LOG as log
 
 class EndPoint(AnomosEndPointProtocol):
-    def __init__(self, stream_id, neighbor, torrent, aes, data=None,
-            logfunc=default_logger):
+    def __init__(self, stream_id, neighbor, torrent, aes, data=None):
         AnomosEndPointProtocol.__init__(self)
         self.stream_id = stream_id
         self.neighbor = neighbor
@@ -26,7 +25,6 @@ class EndPoint(AnomosEndPointProtocol):
         self.ratelimiter = neighbor.ratelimiter
         self.torrent = torrent
         self.e2e_key = aes
-        self.logfunc = logfunc
         self.complete = False
         self.closed = False
         self.choker = None
@@ -38,14 +36,14 @@ class EndPoint(AnomosEndPointProtocol):
         else:
             self.send_confirm()
             self.connection_completed()
-            self.logfunc(INFO, "Sent confirm")
+            log.info("Sent confirm")
 
     def connection_completed(self):
         ''' Called when a CONFIRM message is received
             indicating that our peer has received our
             tracking code '''
         if self.complete:
-            self.logfunc(WARNING, "Double complete")
+            log.warning("Double complete")
             return
         self.complete = True
         self.upload = self.torrent.make_upload(self)
@@ -73,15 +71,15 @@ class EndPoint(AnomosEndPointProtocol):
 
     def close(self):
         if self.closed:
-            self.logfunc(WARNING, "Double close")
+            log.warning("Double close")
             return
-        self.logfunc(INFO, "Closing %s"%self.uniq_id())
+        log.info("Closing %s"%self.uniq_id())
         if self.complete:
             self.send_break()
         self.shutdown()
 
     def fatal_error(self, msg=""):
-        self.logfunc(ERROR, msg)
+        log.error(msg)
         if self.complete:
             self.send_break()
         self.shutdown()

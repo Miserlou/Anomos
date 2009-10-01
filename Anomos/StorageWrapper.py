@@ -18,7 +18,7 @@ from array import array
 from binascii import b2a_hex
 
 from Anomos.bitfield import Bitfield
-from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
+from Anomos import BTFailure, LOG as log
 
 def toint(s):
     return int(b2a_hex(s), 16)
@@ -36,7 +36,7 @@ FASTRESUME_PARTIAL = -3
 class StorageWrapper(object):
 
     def __init__(self, storage, config, hashes, piece_size, finished,
-            statusfunc, flag, data_flunked, infohash, errorfunc, resumefile):
+            statusfunc, flag, data_flunked, infohash, resumefile):
         self.numpieces = len(hashes)
         self.storage = storage
         self.config = config
@@ -44,7 +44,6 @@ class StorageWrapper(object):
         self.hashes = hashes
         self.piece_size = piece_size
         self.data_flunked = data_flunked
-        self.errorfunc = errorfunc
         self.total_length = storage.get_total_length()
         self.amount_left = self.total_length
         self.partial_mark = "Anomos - this part has not been "+\
@@ -282,8 +281,7 @@ class StorageWrapper(object):
                 r.fromfile(resumefile, self.numpieces)
                 return r
             except Exception, e:
-                self.errorfunc(WARNING, "Couldn't read fastresume data: " +
-                               str(e))
+                log.warning("Couldn't read fastresume data: " + str(e))
         return None
 
     def write_fastresume(self, resumefile):
