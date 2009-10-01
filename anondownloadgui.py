@@ -2670,8 +2670,7 @@ class DownloadInfoFrame(object):
     def on_window_event(self, widget, event):
         state = event.new_window_state
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
-            x = self.quitDialog()
-            print x
+            pass
 
     def ask_quit(self, widget, event):
         x = self.quitDialog()
