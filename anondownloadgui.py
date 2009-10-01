@@ -2418,6 +2418,7 @@ class DownloadInfoFrame(object):
             self.iconified = False
         else:
             self.mainwindow.iconify()
+            self.mainwindow.hide()
             self.iconified = True
 
     def main(self):
@@ -2657,7 +2658,7 @@ class DownloadInfoFrame(object):
     def on_window_event(self, widget, event):
         state = event.new_window_state
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
-            widget.hide()
+            pass
 
     def cancel(self, widget):
         for window_name in self.child_windows.keys():
