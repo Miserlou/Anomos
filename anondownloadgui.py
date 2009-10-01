@@ -2256,6 +2256,7 @@ class DownloadInfoFrame(object):
                                       gtk.gdk.ACTION_MOVE)
 
         self.mainwindow.connect('destroy', self.cancel)
+        self.mainwindow.connect('delete-event', self.ask_quit)
         self.mainwindow.connect('window-state-event', self.on_window_event)
 
         self.accel_group = gtk.AccelGroup()
@@ -2420,6 +2421,17 @@ class DownloadInfoFrame(object):
             self.mainwindow.iconify()
             self.mainwindow.hide()
             self.iconified = True
+
+    def quitDialog(yes_text="Yes", no_text="No", cancel_text="Cancel"):
+        message = gtk.MessageDialog(None, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_NONE, "Do you really want to quit?")
+        message.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+        message.add_button(gtk.STOCK_QUIT, gtk.RESPONSE_CLOSE)
+        resp = message.run()
+        message.destroy()
+        if resp == gtk.RESPONSE_CLOSE:
+            return 1
+        else:
+            return 0
 
     def main(self):
         gtk.gdk.threads_enter()
@@ -2658,12 +2670,19 @@ class DownloadInfoFrame(object):
     def on_window_event(self, widget, event):
         state = event.new_window_state
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
-            pass
+            x = self.quitDialog()
+            print x
+
+    def ask_quit(self, widget, event):
+        x = self.quitDialog()
+        if x == 1:
+            self.cancel(widget)
+        return True
 
     def cancel(self, widget):
         for window_name in self.child_windows.keys():
             self.close_window(window_name)
-        
+            
         if self.errordialog is not None:
             self.errordialog.destroy()
             self.errors_closed()
