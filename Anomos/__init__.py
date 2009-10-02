@@ -113,6 +113,9 @@ ensure_minimum_config()
 import logging.config
 logging.config.fileConfig(os.path.join(get_config_dir(), 'logging.conf'))
 LOG = logging.getLogger()
+if sys.platform == 'win32':
+    map(LOG.removeHandler,\
+        [x for x in LOG.handlers if isinstance(x, logging.StreamHandler)])
 
 del sys
 
