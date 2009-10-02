@@ -84,7 +84,7 @@ class Multitorrent(object):
                                                         self.config)
         self._find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
-        set_filesystem_encoding(config['filesystem_encoding'], log.warning)
+        set_filesystem_encoding(config['filesystem_encoding'], log)
 
     def _find_port(self, listen_fail_ok=True):
         e = 'maxport less than minport - no ports to check'

@@ -319,5 +319,4 @@ if __name__ == '__main__':
         sys.exit(1)
 
     save_options = ('torrent_dir','piece_size_pow2','tracker_name')
-    def error_callback(error, string): print string
-    configfile.save_ui_config(w.config, 'makeatorrentgui', save_options, error_callback)
+    configfile.save_ui_config(w.config, 'makeatorrentgui', save_options)

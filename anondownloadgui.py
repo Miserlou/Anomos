@@ -32,6 +32,7 @@ import gtk
 import pango
 import gobject
 import webbrowser
+import logging
 from urllib import quote, url2pathname, urlopen
 
 from Anomos import configfile
@@ -43,10 +44,11 @@ from Anomos.defaultargs import get_defaults
 from Anomos import TorrentQueue
 from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
 from Anomos.controlsocket import ControlSocket
-from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
+from Anomos import BTFailure
 from Anomos import OpenPath
 from Anomos import Desktop
 from Anomos import ClientIdentifier
+from Anomos import LOG as log
 from Anomos.GUI import * 
 
 defaults = get_defaults('anondownloadgui')
@@ -575,8 +577,7 @@ class LogWindow(object):
         f = file(saveas, 'w')
         f.write(self.buffer.get_text(self.buffer.get_start_iter(),
                                      self.buffer.get_end_iter()))
-        save_message = self.buffer.log_text('log saved', None)
-        f.write(save_message)
+        log.info('log saved')
         f.close()
 
     def clear_log(self, *args):
@@ -585,15 +586,11 @@ class LogWindow(object):
     def close(self, widget):
         self.win.destroy()
 
-
-class LogBuffer(gtk.TextBuffer):
-    h = { CRITICAL:'critical',
-          ERROR   :'error'   ,
-          WARNING :'warning' ,
-          INFO    :'info'    , } 
-
+class LogBuffer(gtk.TextBuffer, logging.Handler):
     def __init__(self):
-        gtk.TextBuffer.__init__(self)        
+        gtk.TextBuffer.__init__(self)
+        logging.Handler.__init__(self)
+        logging.getLogger().addHandler(self)
 
         tt = self.get_tag_table()
 
@@ -618,23 +615,16 @@ class LogBuffer(gtk.TextBuffer):
         critical_tag.set_property('weight', pango.WEIGHT_BOLD)
         tt.add(critical_tag)
 
-
-    def log_text(self, text, severity=CRITICAL):
-        now_str = datetime.datetime.strftime(datetime.datetime.now(),
-                                             '[%Y-%m-%d %H:%M:%S] ')
+    def emit(self, record):
+        now_str = datetime.datetime.strftime(datetime.datetime.now(), '[%Y-%m-%d %H:%M:%S] ')
         self.insert_with_tags_by_name(self.get_end_iter(), now_str, 'small')
-        if severity is not None:
-            self.insert_with_tags_by_name(self.get_end_iter(), '%s\n'%text,
-                                          'small', self.h[severity])
-        else:
-            self.insert_with_tags_by_name(self.get_end_iter(),
-                                          ' -- %s -- \n'%text, 'small')
-            
-        return now_str+text+'\n'
+        text = record.msg
+        level = record.levelname.lower()
+        self.insert_with_tags_by_name(self.get_end_iter(), '%s\n'%text, 'small', level)
 
     def clear_log(self):
         self.set_text('')
-        self.log_text('log cleared', None)
+        log.info('log cleared')
 
 
 
@@ -2254,7 +2244,7 @@ class DownloadInfoFrame(object):
         self.mainwindow.add_accel_group(self.accel_group)
 
         self.logbuffer = LogBuffer()
-        self.log_text('%s started'%app_name, severity=None)
+        log.info('%s started'%app_name)
 
         self.box1 = gtk.VBox(homogeneous=False, spacing=0)
 
@@ -2865,9 +2855,7 @@ class DownloadInfoFrame(object):
 
         self.set_size()
 
-    def log_text(self, text, severity=ERROR):
-        self.logbuffer.log_text(text, severity)
-
+    #TODO: Make this better fit the current logging model.
     def error(self, infohash, severity, text):
         #XXX: Temporary fix
         try:
@@ -2876,16 +2864,18 @@ class DownloadInfoFrame(object):
             return
         err_str = '"%s" : %s'%(name,text)
         err_str = err_str.decode('utf-8', 'replace').encode('utf-8')
-        if severity >= ERROR:
+        if severity.lower() in ("error", "critical"):
             self.error_modal(err_str)
-        self.log_text(err_str, severity)
+        logfunc = getattr(log, severity.lower()) # hacky
+        logfunc(err_str)
 
     def global_error(self, severity, text):
         err_str = '(global message) : %s'%text
         err_str = err_str.decode('utf-8', 'replace').encode('utf-8')
-        if severity >= ERROR:
+        if severity.lower() in ("error", "critical"):
             self.error_modal(text)
-        self.log_text(err_str, severity)
+        logfunc = getattr(log, severity.lower()) # hacky
+        logfunc(err_str)
 
     def error_modal(self, text):
         title = '%s Error' % app_name
@@ -3183,7 +3173,7 @@ if __name__ == '__main__':
     for data in datas:
         d.torrentqueue.start_new_torrent(data)
     for error in errors:
-        d.global_error(ERROR, error)
+        d.global_error("ERROR", error)
 
     try:
         d.main()

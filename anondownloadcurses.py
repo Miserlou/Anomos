@@ -335,8 +335,7 @@ class DL(Feedback):
             self.multitorrent.rawserver.external_add_task(self.reread_config,0)
         self.d = CursesDisplayer(scrwin, self.errlist, self.doneflag, reread)
         try:
-            self.multitorrent = Multitorrent(self.config, self.doneflag,
-                                             self.global_error)
+            self.multitorrent = Multitorrent(self.config, self.doneflag)
             # raises BTFailure if bad
             metainfo = ConvertedMetainfo(bdecode(self.metainfo))
             torrent_name = metainfo.name_fs
@@ -384,11 +383,11 @@ class DL(Feedback):
         status = self.torrent.get_status(self.config['spew'])
         self.d.display(status)
 
-    def global_error(self, level, text):
-        self.d.error(text)
+    #def global_error(self, level, text):
+    #    self.d.error(text)
 
-    def error(self, torrent, level, text):
-        self.d.error(text)
+    #def error(self, torrent, level, text):
+    #    self.d.error(text)
 
     def failed(self, torrent, is_external):
         self.doneflag.set()

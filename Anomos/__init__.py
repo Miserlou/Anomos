@@ -112,7 +112,7 @@ ensure_minimum_config()
 
 import logging.config
 logging.config.fileConfig(os.path.join(get_config_dir(), 'logging.conf'))
-LOG = logging.getLogger('testing') #XXX: logger must be 'anomos' in production versions
+LOG = logging.getLogger()
 
 del sys
 

@@ -24,6 +24,7 @@ from Anomos.bencode import bdecode
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import BTFailure, BTShutdown
 from Anomos import configfile
+from Anomos import LOG as log
 from Anomos.Torrent import Torrent
 import Anomos
 
@@ -93,8 +94,7 @@ class TorrentQueue(Feedback):
     def run(self, ui, ui_wrap, startflag):
         self.ui = ui
         self.run_ui_task = ui_wrap
-        self.multitorrent = Multitorrent(self.config, self.doneflag,
-                                        self.global_error, listen_fail_ok=True)
+        self.multitorrent = Multitorrent(self.config, self.doneflag, listen_fail_ok=True)
         self.rawserver = self.multitorrent.rawserver
         self.controlsocket.set_rawserver(self.rawserver)
         self.controlsocket.start_listening(self.external_command)
@@ -104,7 +104,7 @@ class TorrentQueue(Feedback):
             self.queue = []
             self.other_torrents = []
             self.torrents = {}
-            self.global_error(ERROR, "Could not load saved state: "+str(e))
+            self.global_error("ERROR", "Could not load saved state: "+str(e))
         else:
             for infohash in self.running_torrents + self.queue + \
                     self.other_torrents:
@@ -144,14 +144,14 @@ class TorrentQueue(Feedback):
     #        return
     #    self.last_version_check = now
     #    if not HAVE_DNS:
-    #        self.global_error(WARNING, "Version check failed: no DNS library")
+    #        log.warning("Version check failed: no DNS library")
     #        return
     #    threading.Thread(target=self._version_thread).start()
 
     #def _version_thread(self):
     #    def error(level, text):
     #        def f():
-    #            self.global_error(level, text)
+    #            log.level(text)
     #        self.rawserver.external_add_task(f, 0)
     #    def splitversion(text):
     #        return [int(t) for t in text.split('.')]
@@ -193,8 +193,7 @@ class TorrentQueue(Feedback):
     #        error(WARNING, "Version check failed: " + str(e))
 
     def _dump_config(self):
-        configfile.save_ui_config(self.config, 'anondownloadgui',
-                               self.ui_options, self.global_error)
+        configfile.save_ui_config(self.config, 'anondownloadgui', self.ui_options)
 
     def _dump_state(self):
         self.last_save_time = bttime()
@@ -223,7 +222,7 @@ class TorrentQueue(Feedback):
             f.write(''.join(r))
             f.close()
         except Exception, e:
-            self.global_error(ERROR, 'Could not save UI state: ' + str(e))
+            self.global_error("ERROR", 'Could not save UI state: ' + str(e))
             if f is not None:
                 f.close()
 
@@ -247,8 +246,8 @@ class TorrentQueue(Feedback):
                     f.close()
                 except:
                     pass
-                self.global_error(ERROR,"Error reading file "+path+" ("+str(e)+
-                                  "), cannot restore state completely")
+                self.global_error("ERROR", "Error reading file %s (%s), \
+                            cannot restore state completely" % (path, str(e)))
                 return None
             if infohash in self.torrents:
                 raise BTFailure("Invalid state file (duplicate entry)")
@@ -257,12 +256,12 @@ class TorrentQueue(Feedback):
             try:
                 t.metainfo = ConvertedMetainfo(bdecode(data))
             except Exception, e:
-                self.global_error(ERROR, "Corrupt data in "+path+
+                self.global_error("ERROR", "Corrupt data in "+path+
                                   " , cannot restore torrent ("+str(e)+")")
                 return None
             t.metainfo.reported_errors = True # suppress redisplay on restart
             if infohash != t.metainfo.infohash:
-                self.global_error(ERROR, "Corrupt data in "+path+
+                self.global_error("ERROR", "Corrupt data in "+path+
                                   " , cannot restore torrent ("+str(e)+")")
                 return None
             if len(line) == 41:
@@ -451,7 +450,7 @@ class TorrentQueue(Feedback):
         if action == 'start_torrent':
             self.start_new_torrent(data)
         elif action == 'show_error':
-            self.global_error(ERROR, data)
+            self.global_error("ERROR", data)
         elif action == 'no-op':
             pass
 
@@ -473,8 +472,8 @@ class TorrentQueue(Feedback):
         try:
             os.remove(filename)
         except Exception, e:
-            self.global_error(WARNING, 'Could not delete cached metainfo file:'
-                              + str(e))
+            self.global_error("WARNING", 'Could not delete cached metainfo file:'
+                                          + str(e))
         self._dump_state()
 
     def set_save_location(self, infohash, dlpath):
@@ -496,13 +495,13 @@ class TorrentQueue(Feedback):
         try:
             t.metainfo = ConvertedMetainfo(bdecode(data))
         except Exception, e:
-            self.global_error(ERROR, "This is not a valid torrent file. (%s)"
+            self.global_error("ERROR", "This is not a valid torrent file. (%s)"
                               % str(e))
             return
         infohash = t.metainfo.infohash
         t.infohash = t.metainfo.infohash
         if infohash in self.torrents:
-            self.global_error(ERROR, "Cannot start another torrent with the "
+            self.global_error("ERROR", "Cannot start another torrent with the "
                               "same contents (infohash) as an existing one")
             return
         path = os.path.join(self.config['data_dir'], 'metainfo',
@@ -516,7 +515,7 @@ class TorrentQueue(Feedback):
                 f.close()
             except:
                 pass
-            self.global_error(ERROR, 'Could not write file '+path+' ('+str(e)+
+            self.global_error("ERROR", 'Could not write file '+path+' ('+str(e)+
                               '), torrent will not be restarted correctly on '
                               'client restart')
         self.torrents[infohash] = t

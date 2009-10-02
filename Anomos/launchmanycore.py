@@ -49,8 +49,7 @@ class LaunchMany(Feedback):
             self.hashcheck_store = {}
             self.hashcheck_current = None
 
-            self.multitorrent = Multitorrent(config, self.doneflag,
-                                             self.global_error)
+            self.multitorrent = Multitorrent(config, self.doneflag)
             self.rawserver = self.multitorrent.rawserver
 
             self.rawserver.add_task(self.scan, 0)
@@ -213,9 +212,6 @@ class LaunchMany(Feedback):
         if self.hashcheck_current == infohash:
             self.hashcheck_current = None
         self.check_hashcheck_queue()
-
-    def global_error(self, level, text):
-        self.output.message(text)
 
     def exchandler(self, s):
         self.output.exception(s)

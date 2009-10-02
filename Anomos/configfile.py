@@ -18,7 +18,7 @@ import sys
 import shutil
 from ConfigParser import SafeConfigParser
 
-from Anomos import get_config_dir, parseargs, version
+from Anomos import get_config_dir, parseargs, version, LOG as log
 
 def get_config(defaults, section):
     configdir = get_config_dir()
@@ -41,14 +41,14 @@ def get_config(defaults, section):
     parseargs.parse_options(defaults, values)
     return values
 
-def save_ui_config(defaults, section, save_options, error_callback):
+def save_ui_config(defaults, section, save_options):
     p = SafeConfigParser()
     filename = os.path.join(defaults['data_dir'], 'ui_config')
     p.read(filename)
     p.remove_section(section)
     p.add_section(section)
     for name in save_options:
-        p.set(section, name, defaults[name])
+        p.set(section, name, str(defaults[name]))
     try:
         f = file(filename, 'w')
         p.write(f)
@@ -58,8 +58,7 @@ def save_ui_config(defaults, section, save_options, error_callback):
             f.close()
         except:
             pass
-        error_callback(ERROR, 'Could not permanently save options: '+
-                       str(e))
+        log.error('Could not permanently save options: '+ str(e))
 
 
 def parse_configuration_and_args(defaults, uiname, arglist=[], minargs=0,

@@ -32,6 +32,7 @@ from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import configfile
 from Anomos import BTFailure
 from Anomos import version
+from Anomos import LOG as log
 
 
 def fmttime(n):
@@ -76,7 +77,6 @@ class HeadlessDisplayer(object):
         self.shareRating = ''
         self.seedStatus = ''
         self.peerStatus = ''
-        self.errors = []
         self.file = ''
         self.downloadTo = ''
         self.fileSize = ''
@@ -94,11 +94,6 @@ class HeadlessDisplayer(object):
         self.done = True
         self.downRate = '---'
         self.display({'activity':'download succeeded', 'fractionDone':1})
-
-    def error(self, errormsg):
-        newerrmsg = strftime('[%H:%M:%S] ') + str(errormsg)
-        self.errors.append(newerrmsg)
-        self.display({})
 
     def display(self, statistics):
         fractionDone = statistics.get('fractionDone')
@@ -162,9 +157,6 @@ class HeadlessDisplayer(object):
         #print '|-'
         print '| relay rate:     %s (%s)' % (self.relayRate, self.numRelays)
         print '|-'
-        while self.errors:
-            print 'Log:\n' + self.errors.pop() + '\n'
-
 
     def print_spew(self, spew):
         s = StringIO()
@@ -219,8 +211,7 @@ class DL(Feedback):
     def run(self):
         self.d = HeadlessDisplayer(self.doneflag)
         try:
-            self.multitorrent = Multitorrent(self.config, self.doneflag,
-                                             self.global_error)
+            self.multitorrent = Multitorrent(self.config, self.doneflag)
             # raises BTFailure if bad
             metainfo = ConvertedMetainfo(bdecode(self.metainfo))
             torrent_name = metainfo.name_fs
@@ -250,7 +241,7 @@ class DL(Feedback):
         try:
             newvalues = configfile.get_config(self.config, 'anondownloadcurses')
         except Exception, e:
-            self.d.error('Error reading config: ' + str(e))
+            log.error('Error reading config: ' + str(e))
             return
         self.config.update(newvalues)
         # The set_option call can potentially trigger something that kills
@@ -267,12 +258,6 @@ class DL(Feedback):
                                              self.config['display_interval'])
         status = self.torrent.get_status(self.config['spew'])
         self.d.display(status)
-
-    def global_error(self, level, text):
-        self.d.error(text)
-
-    def error(self, torrent, level, text):
-        self.d.error(text)
 
     def failed(self, torrent, is_external):
         self.doneflag.set()
