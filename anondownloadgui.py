@@ -292,7 +292,7 @@ class OpenFileButton(gtk.Button):
         gtk.Button.__init__(self)
         self.main = main
         self.connect('clicked', self.open_file)
-        self.main.tooltips.set_tip(self, self.open_tip )
+        self.set_tooltip_text(self.open_tip)
 
         self.open_image = gtk.Image()
         self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
@@ -332,7 +332,7 @@ class StopStartButton(gtk.Button):
             if self.has_image:
                 self.remove(self.stop_image)
             self.add(self.start_image)
-            self.main.tooltips.set_tip(self, self.start_tip)
+            self.set_tooltip_text(self.start_tip)
             self.main.stop_queue()
             self.main.dbutton.show_downloading()
             self.main.dbutton.update_label()
@@ -343,7 +343,7 @@ class StopStartButton(gtk.Button):
             if self.has_image:
                 self.remove(self.start_image)
             self.add(self.stop_image)
-            self.main.tooltips.set_tip(self, self.stop_tip )
+            self.set_tooltip_text(self.stop_tip )
             self.main.restart_queue()
             self.main.dbutton.show_downloading()
             self.main.dbutton.update_label()
@@ -357,7 +357,7 @@ class SeedingButton(gtk.Button):
     def __init__(self, main, torrents):
         gtk.Button.__init__(self)
         self.main = main
-        self.main.tooltips.set_tip(self, self.tip)
+        self.set_tooltip_text(self.tip)
         self.torrents = torrents
         self.connect('clicked', self.toggle)
         self.update_label()
@@ -384,7 +384,7 @@ class DownloadingButton(gtk.Button):
     def __init__(self, main, torrents):
         gtk.Button.__init__(self)
         self.main = main
-        self.main.tooltips.set_tip(self, self.tip)
+        self.set_tooltip_text(self.tip)
         self.torrents = torrents
         self.connect('clicked', self.toggle)
         self.update_label()
@@ -743,8 +743,7 @@ class SettingsWindow(object):
         self.proxy_box = gtk.VBox()
         self.proxy_box.set_border_width(SPACING)
         self.proxy_field = URLValidator('tracker_proxy', self.config, self.setfunc)
-        self.main.tooltips.set_tip(self.proxy_field,
-                                   'Where is your proxy?')
+        self.proxy_field.set_tooltip_text('Where is your proxy?')
         self.proxy_box.pack_start(self.proxy_field, expand=False, fill=False)
         #self.ip_box.pack_start(lalign(gtk.Label('()')), expand=False, fill=False)
         self.proxy_frame.add(self.proxy_box)
@@ -754,8 +753,7 @@ class SettingsWindow(object):
         self.ip_box = gtk.VBox()
         self.ip_box.set_border_width(SPACING)
         self.ip_field = IPValidator('ip', self.config, self.setfunc)
-        self.main.tooltips.set_tip(self.ip_field,
-                                   'If you want to connect through Tor')
+        self.ip_field.set_tooltip_text('If you want to connect through Tor')
         self.ip_box.pack_start(self.ip_field, expand=False, fill=False)
         #self.ip_box.pack_start(lalign(gtk.Label('()')), expand=False, fill=False)
         self.ip_frame.add(self.ip_box)
@@ -1424,8 +1422,7 @@ class TorrentBox(gtk.EventBox):
         self.infoimage.set_from_stock('anon-info', gtk.ICON_SIZE_BUTTON)
         self.infobutton.add(self.infoimage)
         self.infobutton.connect('clicked', self.open_info)
-        self.main.tooltips.set_tip(self.infobutton,
-                                   'Torrent info')
+        self.infobutton.set_tooltip_text('Torrent info')
 
         self.buttonbox.pack_start(self.infobutton, expand=True)
 
@@ -1433,12 +1430,10 @@ class TorrentBox(gtk.EventBox):
         self.cancelimage = gtk.Image()
         if self.completion is not None and self.completion >= 1:
             self.cancelimage.set_from_stock(gtk.STOCK_CANCEL, gtk.ICON_SIZE_BUTTON)
-            self.main.tooltips.set_tip(self.cancelbutton,
-                                       'Remove torrent')
+            self.cancelbutton.set_tooltip_text('Remove torrent')
         else:
             self.cancelimage.set_from_stock(gtk.STOCK_CANCEL, gtk.ICON_SIZE_BUTTON)
-            self.main.tooltips.set_tip(self.cancelbutton,
-                                       'Abort torrent')
+            self.cancelbutton.set_tooltip_text('Abort torrent')
             
         self.cancelbutton.add(self.cancelimage)
         self.cancelbutton.connect('clicked', self.confirm_remove)
@@ -1625,8 +1620,7 @@ class KnownTorrentBox(TorrentBox):
             status_tip = 'Failed'
             known_torrent_dnd_tip = 'drag into list to resume'
 
-        self.main.tooltips.set_tip(self.iconevbox,
-                                   torrent_tip_format % (status_tip,
+        self.iconevbox.set_tooltip_text(torrent_tip_format % (status_tip,
                                                          known_torrent_dnd_tip,
                                                          torrent_menu_tip))
 
@@ -1685,8 +1679,7 @@ class QueuedTorrentBox(DroppableTorrentBox):
     def __init__(self, infohash, metainfo, dlpath, completion, main):
         DroppableTorrentBox.__init__(self, infohash, metainfo, dlpath, completion, main)
 
-        self.main.tooltips.set_tip(self.iconevbox,
-                                   torrent_tip_format % (self.state_name,
+        self.iconevbox.set_tooltip_text(torrent_tip_format % (self.state_name,
                                                          main_torrent_dnd_tip,
                                                          torrent_menu_tip))
 
@@ -1724,8 +1717,7 @@ class PausedTorrentBox(DroppableTorrentBox):
     def __init__(self, infohash, metainfo, dlpath, completion, main):
         DroppableTorrentBox.__init__(self, infohash, metainfo, dlpath, completion, main)
 
-        self.main.tooltips.set_tip(self.iconevbox,
-                                   torrent_tip_format % (self.state_name,
+        self.iconevbox.set_tooltip_text(torrent_tip_format % (self.state_name,
                                                          main_torrent_dnd_tip,
                                                          torrent_menu_tip))
 
@@ -1758,8 +1750,7 @@ class RunningTorrentBox(DroppableTorrentBox):
 
         self.anon = metainfo.is_anon()
 
-        self.main.tooltips.set_tip(self.iconevbox,
-                                   torrent_tip_format % ('Running',
+        self.iconevbox.set_tooltip_text(torrent_tip_format % ('Running',
                                                          main_torrent_dnd_tip,
                                                          torrent_menu_tip))
 
@@ -1824,8 +1815,7 @@ class RunningTorrentBox(DroppableTorrentBox):
     def change_to_completed(self):
         self.completion = 1.0
         self.cancelimage.set_from_stock(gtk.STOCK_CANCEL, gtk.ICON_SIZE_BUTTON)
-        self.main.tooltips.set_tip(self.cancelbutton,
-                                   'Remove torrent')
+        self.cancelbutton.set_tooltip_text('Remove torrent')
         
         self.make_menu()
         self.complete()
@@ -2262,8 +2252,6 @@ class DownloadInfoFrame(object):
         self.accel_group = gtk.AccelGroup()
 
         self.mainwindow.add_accel_group(self.accel_group)
-
-        self.tooltips = gtk.Tooltips()
 
         self.logbuffer = LogBuffer()
         self.log_text('%s started'%app_name, severity=None)
