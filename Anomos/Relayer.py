@@ -67,7 +67,7 @@ class Relayer(AnomosRelayerProtocol):
     def send_partial(self, bytes):
         if self.closed:
             return 0
-        b = self.neighbor.send_partial(bytes)
+        b = self.neighbor.send_partial(self.stream_id, bytes)
         self.measurer.update_rate(b)
         return b
 
