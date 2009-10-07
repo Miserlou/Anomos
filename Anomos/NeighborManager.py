@@ -147,8 +147,6 @@ class NeighborManager(object):
         if id == NAT_CHECK_ID:
             log.info("Nat check ok.")
             return
-        else:
-            log.info("NAT check failed")
         self.add_neighbor(socket, id)
         tasks = self.waiting_tcs.get(id)
         if tasks is None:
