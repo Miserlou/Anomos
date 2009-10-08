@@ -749,7 +749,7 @@ class SettingsWindow(object):
         self.ip_frame.add(self.ip_box)
         self.vbox.pack_start(self.ip_frame, expand=False, fill=False)
 
-        self.auto_ip_checkbutton = gtk.CheckButton("Automatically fetch external IP (uses showmyip.com)")
+        self.auto_ip_checkbutton = gtk.CheckButton("Automatically fetch external IP (uses anomos.info)")
         self.auto_ip_checkbutton.set_active( bool(self.config['auto_ip']) )
         self.auto_ip_checkbutton.original_value = bool(self.config['auto_ip'])
 
@@ -3076,7 +3076,7 @@ class DownloadInfoFrame(object):
 
 #is this a privacy concern?
 def getExternalIP():
-    f = urlopen("http://www.showmyip.com/simple/")
+    f = urlopen("http://anomos.info/getip/")
     s = str(f.read())
     f.close()
     return s
