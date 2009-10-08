@@ -2395,8 +2395,6 @@ class DownloadInfoFrame(object):
         gtk.gdk.threads_leave()
         self.iconified = False
 
-        self.warnIcon()
-
     def onStatusIconActivate(self, widget):
         if self.iconified:
             self.mainwindow.deiconify()
