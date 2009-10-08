@@ -2340,7 +2340,7 @@ class DownloadInfoFrame(object):
 
         self.box2.pack_start(self.controlbox, expand=False, fill=False, padding=0)
 
-        #This is the splitter thingy.
+        #This is thecheckPo splitter thingy.
         self.paned = gtk.VPaned()
 
         self.knownscroll = ScrolledWindow()
@@ -3084,20 +3084,21 @@ class DownloadInfoFrame(object):
         self.controlbox.pack_start(self.warning, expand=False, fill=True,
                                    padding=0)
         self.warning.set_tooltip_text("The ports on your router are not configured properly. This will interefere with file transfers. Please forward the appropriate ports to your machine.")
-        self.warning.hide()
 
 ## This is almost certainly insufficient.
     def checkPort(self):
         serverSocket = socket.socket()
-        serverSocket.settimeout(0.5)
+        serverSocket.settimeout(.5)
         try:
             print getExternalIP()
             serverSocket.connect((getExternalIP(), 22))
+            #serverSocket.connect(('google.com', 80))
         except socket.error:
             print socket.error
             print "Port closed"
-            self.warning.show()
-
+            return
+        self.controlbox.remove(self.warning)
+        
 #is this a privacy concern?
 def getExternalIP():
     f = urlopen("http://anomos.info/getip/")
