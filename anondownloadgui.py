@@ -2329,6 +2329,10 @@ class DownloadInfoFrame(object):
 
         self.controlbox.pack_start(self.ofb, expand=False, fill=False)
         self.controlbox.pack_start(self.ssb, expand=False, fill=False, padding=5)
+
+        self.warnIcon()
+        self.checkPort()
+
         self.controlbox.pack_end(get_logo(32), expand=False, fill=False,
                                    padding=5)
         self.controlbox.pack_end(self.sb, expand=False, fill=False, padding=5)
@@ -2390,6 +2394,8 @@ class DownloadInfoFrame(object):
         self.paned.set_position(0)
         gtk.gdk.threads_leave()
         self.iconified = False
+
+        self.warnIcon()
 
     def onStatusIconActivate(self, widget):
         if self.iconified:
@@ -3075,6 +3081,25 @@ class DownloadInfoFrame(object):
     def raiseerror(self, *args):
         raise ValueError('test traceback behavior')
 
+    def warnIcon(self):
+        self.warning = get_warning()
+        self.controlbox.pack_start(self.warning, expand=False, fill=True,
+                                   padding=0)
+        self.warning.set_tooltip_text("The ports on your router are not configured properly. This will interefere with file transfers. Please forward the appropriate ports to your machine.")
+        self.warning.hide()
+
+## This is almost certainly insufficient.
+    def checkPort(self):
+        serverSocket = socket.socket()
+        serverSocket.settimeout(0.5)
+        try:
+            print getExternalIP()
+            serverSocket.connect((getExternalIP(), 22))
+        except socket.error:
+            print socket.error
+            print "Port closed"
+            self.warning.show()
+
 #is this a privacy concern?
 def getExternalIP():
     f = urlopen("http://anomos.info/getip/")
@@ -3082,16 +3107,7 @@ def getExternalIP():
     f.close()
     return s
 
-## This is almost certainly insufficient.
-def checkPort():
-    serverSocket = socket.socket()
-    serverSocket.settimeout(0.5)
-    try:
-        print getExternalIP()
-        serverSocket.connect((getExternalIP(), 22))
-    except socket.error:
-        print socket.error
-        print "Port closed"
+
 
 
 if __name__ == '__main__':
@@ -3166,9 +3182,6 @@ if __name__ == '__main__':
 
     torrentqueue = TorrentQueue.TorrentQueue(config, ui_options, controlsocket)
     d = DownloadInfoFrame(config,TorrentQueue.ThreadWrappedQueue(torrentqueue))
-
-    ##do this properly
-    checkPort()
 
     def lock_wrap(function, *args):
         gtk.gdk.threads_enter()

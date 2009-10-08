@@ -81,6 +81,11 @@ def get_logo(size=32):
     logo.set_from_file(fn)
     return logo
 
+def get_warning():
+    logo = gtk.Image()
+    logo.set_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DND)
+    return logo
+
 class Size(long):
     """displays size in human-readable format"""
     size_labels = ['','K','M','G','T','P','E','Z','Y']
