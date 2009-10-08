@@ -34,6 +34,7 @@ import gobject
 import webbrowser
 import logging
 from urllib import quote, url2pathname, urlopen
+import socket
 
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
@@ -3081,6 +3082,18 @@ def getExternalIP():
     f.close()
     return s
 
+## This is almost certainly insufficient.
+def checkPort():
+    serverSocket = socket.socket()
+    serverSocket.settimeout(0.5)
+    try:
+        print getExternalIP()
+        serverSocket.connect((getExternalIP(), 22))
+    except socket.error:
+        print socket.error
+        print "Port closed"
+
+
 if __name__ == '__main__':
 
     try:
@@ -3153,6 +3166,9 @@ if __name__ == '__main__':
 
     torrentqueue = TorrentQueue.TorrentQueue(config, ui_options, controlsocket)
     d = DownloadInfoFrame(config,TorrentQueue.ThreadWrappedQueue(torrentqueue))
+
+    ##do this properly
+    checkPort()
 
     def lock_wrap(function, *args):
         gtk.gdk.threads_enter()
