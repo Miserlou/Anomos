@@ -3093,8 +3093,8 @@ class DownloadInfoFrame(object):
             print getExternalIP()
             serverSocket.connect((getExternalIP(), 22))
             #serverSocket.connect(('google.com', 80))
-        except socket.error:
-            print socket.error
+        except socket.error, e:
+            print e
             print "Port closed"
             return
         self.controlbox.remove(self.warning)
