@@ -105,7 +105,6 @@ class HeadlessDisplayer(object):
         numRelays = statistics.get('relayCount')
         spew = statistics.get('spew')
 
-        #print '\n\n\n\n'
         if spew is not None:
             self.print_spew(spew)
 
