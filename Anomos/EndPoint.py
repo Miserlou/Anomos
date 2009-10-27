@@ -57,8 +57,10 @@ class EndPoint(AnomosEndPointProtocol):
             self.ratelimiter.queue(self)
 
     def should_queue(self):
-        return self.next_upload is None and \
+        if self.upload:
+            return self.next_upload is None and \
                 (self.neighbor.in_queue(self.stream_id) or self.upload.buffer)
+        return False
 
     def shutdown(self):
         if self.complete and not self.closed:
