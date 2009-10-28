@@ -2395,6 +2395,11 @@ class DownloadInfoFrame(object):
         gtk.gdk.threads_leave()
         self.iconified = False
 
+        self.statusIcon = gtk.StatusIcon()
+        self.statusIcon.set_from_file('./images/small.png')
+        self.statusIcon.set_tooltip("Anomos")
+        self.statusIcon.connect('activate', self.onStatusIconActivate)
+
     def onStatusIconActivate(self, widget):
         if self.iconified:
             self.mainwindow.deiconify()
@@ -2423,10 +2428,7 @@ class DownloadInfoFrame(object):
         self.rate_slider_box.start()
         self.init_updates()
 
-        self.statusIcon = gtk.StatusIcon()
-        self.statusIcon.set_from_file('./images/small.png')
-        self.statusIcon.set_tooltip("Anomos")
-        self.statusIcon.connect('activate', self.onStatusIconActivate)
+
 
         try:
             gtk.main() 
