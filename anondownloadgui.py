@@ -308,6 +308,23 @@ class OpenFileButton(gtk.Button):
     def open_file(self, widget):
         self.main.select_torrent_to_open(widget)
 
+class SettingsButton(gtk.Button):
+    open_tip = 'Change the settings'
+
+    def __init__(self, main):
+        gtk.Button.__init__(self)
+        self.main = main
+        self.connect('clicked', self.open_settings)
+        self.set_tooltip_text(self.open_tip)
+        self.set_relief(gtk.RELIEF_NONE)
+
+        self.settings_image = gtk.Image()
+        self.settings_image.set_from_stock(gtk.STOCK_PREFERENCES, gtk.ICON_SIZE_BUTTON)
+        self.settings_image.show()
+        self.add(self.settings_image)
+
+    def open_settings(self, widget):
+        self.main.open_window('settings')
 
 class StartButton(gtk.Button):
     start_tip = 'Begin downloading'
@@ -667,7 +684,6 @@ class LogBuffer(gtk.TextBuffer, logging.Handler):
     def clear_log(self):
         self.set_text('')
         log.info('log cleared')
-
 
 
 class SettingsWindow(object):
@@ -2296,6 +2312,7 @@ class DownloadInfoFrame(object):
         self.stopbutton = StopButton(self)
         self.ofbutton = OpenFileButton(self)
         self.ntbutton = NewTorrentButton(self)
+        self.osbutton = SettingsButton(self)
 
         self.dbutton = DownloadingButton(self, self.torrents)
         self.dbutton.set_label("Downloads (0)")
@@ -2356,6 +2373,9 @@ class DownloadInfoFrame(object):
         self.ntb = gtk.VBox()
         self.ntb.pack_end(self.ntbutton, expand=False, fill=True)
 
+        self.stb = gtk.VBox()
+        self.stb.pack_end(self.osbutton, expand=False, fill=True)
+
         self.sta = gtk.VBox()
         self.sta.pack_end(self.startbutton, expand=False, fill=True)
 
@@ -2379,6 +2399,7 @@ class DownloadInfoFrame(object):
         
         self.controlbox.pack_start(self.ofb, expand=False, fill=False, padding=3)
         self.controlbox.pack_start(self.ntb, expand=False, fill=False, padding=3)
+        self.controlbox.pack_start(self.stb, expand=False, fill=False, padding=3)
 
         self.separator2 = gtk.VSeparator()
         self.separator2.show()
