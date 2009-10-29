@@ -360,7 +360,7 @@ class StopButton(gtk.Button):
             self.main.dbutton.show_downloading()
 
 class NewTorrentButton(gtk.Button):
-    tip = "Create a new Torrent"
+    tip = "Create a new torrent"
 
     def __init__(self, main):
         gtk.Button.__init__(self)
