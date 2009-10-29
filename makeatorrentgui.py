@@ -49,6 +49,8 @@ class MainWindow(Window):
         self.set_title('%s metafile creator %s'%(app_name, version))
         self.set_border_width(SPACING)
 
+        self.set_position(gtk.WIN_POS_CENTER)
+
         self.config = config
 
         right_column_width=276
