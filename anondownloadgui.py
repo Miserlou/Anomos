@@ -3140,7 +3140,7 @@ class DownloadInfoFrame(object):
             print "Port closed"
             return
         self.controlbox.remove(self.warning)
-        self.controlbox.remove(self.seperator2)
+        self.controlbox.remove(self.separator2)
         
 #is this a privacy concern?
 def getExternalIP():
