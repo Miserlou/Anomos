@@ -64,7 +64,7 @@ factory = gtk.IconFactory()
 # ICON_SIZE_BUTTON        = 20x20
 # ICON_SIZE_LARGE_TOOLBAR = 24x24
 
-for n in 'broken finished info pause paused play queued running remove running-unsafe new'.split():
+for n in 'broken finished info pause paused play queued running remove running-unsafe'.split():
     fn = os.path.join(image_root, ("%s.png"%n))
 
     pixbuf = gtk.gdk.pixbuf_new_from_file(fn)
