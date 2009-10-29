@@ -553,6 +553,7 @@ class LogWindow(object):
         self.win.set_title('%s Activity Log'%app_name)
         self.win.set_default_size(600, 200)
         self.win.set_border_width(SPACING)
+        self.win.set_position(gtk.WIN_POS_CENTER)
             
         self.buffer = logbuffer
         self.text = gtk.TextView(self.buffer)
@@ -676,6 +677,7 @@ class SettingsWindow(object):
         self.setfunc = setfunc
         self.config = config
         self.win = Window()
+        self.win.set_position(gtk.WIN_POS_CENTER)
         self.win.connect("destroy", lambda w: main.window_closed('settings'))
         self.win.set_title('%s Settings'%app_name)
         self.win.set_border_width(SPACING)
@@ -1098,6 +1100,7 @@ class PeerListWindow(object):
 
     def __init__(self, torrent_name, closefunc):
         self.win = Window()
+        self.win.set_position(gtk.WIN_POS_CENTER)
         self.win.connect("destroy", closefunc)
         self.win.set_title( 'Peers for "%s"'%torrent_name)
         self.sw = gtk.ScrolledWindow()
@@ -1283,6 +1286,7 @@ class TorrentInfoWindow(object):
 
     def __init__(self, torrent_box, closefunc):
         self.win = Window()
+        self.win.set_position(gtk.WIN_POS_CENTER)
         self.torrent_box = torrent_box
         name = self.torrent_box.metainfo.name
         self.win.set_title('Info for "%s"'%name)
