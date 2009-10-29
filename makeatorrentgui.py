@@ -236,8 +236,9 @@ class MainWindow(Window):
             self.makebutton.set_sensitive(False)
 
     def quit(self, widget):
-        gtk.main_quit()
-
+        self.mainwindow.destroy()
+        if __name__ == "__main__":
+            gtk.main_quit()
 
 class ProgressDialog(gtk.Dialog):
 
@@ -307,18 +308,24 @@ class ProgressDialog(gtk.Dialog):
             self.set_title('Error!')
             self.label.set_text('Error building torrents: ' + str(e))
 
-
-if __name__ == '__main__':
-
+def main():
+    
     config, args = configfile.parse_configuration_and_args(defaults,
-                                    'makeatorrentgui', sys.argv[1:], 0, None)
+                                'makeatorrentgui', sys.argv[1:], 0, None)
     w = MainWindow(config)
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        # gtk.mainloop not running
-        # exit and don't save config options
-        sys.exit(1)
+
+    if __name__ == "__main__":
+        try:
+            gtk.main()
+        except KeyboardInterrupt:
+            # gtk.mainloop not running
+            # exit and don't save config options
+            sys.exit(1)
 
     save_options = ('torrent_dir','piece_size_pow2','tracker_name')
     configfile.save_ui_config(w.config, 'makeatorrentgui', save_options)
+
+
+if __name__ == '__main__':
+
+    main()

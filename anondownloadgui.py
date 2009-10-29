@@ -35,12 +35,14 @@ import webbrowser
 import logging
 from urllib import quote, url2pathname, urlopen
 import socket
+import thread
 
 from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
 from Anomos.controlsocket import ControlSocket
 from Anomos.defaultargs import get_defaults
 from Anomos.parseargs import parseargs, makeHelp
 from Anomos.GUI import * 
+import makeatorrentgui
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
 from Anomos import is_frozen_exe
@@ -378,12 +380,20 @@ class NewTorrentButton(gtk.Button):
         self.launch_maketorrent_gui()
     
     def launch_maketorrent_gui(self):
-        if (sys.platform == "win32" or sys.platform == "nt"):
-            ## XXX: How to run windows programs in the background?
-            os.system("makeatorrentgui.exe")
-        else:
-            os.system("python makeatorrentgui.py &")
-    
+        t = MakerThread()
+        t.start()
+
+class MakerThread(threading.Thread):
+     def __init__(self):
+         super(MakerThread, self).__init__()
+
+     def make(self):
+        makeatorrentgui.main()
+
+     def run(self):
+        gobject.idle_add(self.make)
+
+
 class SeedingButton(gtk.Button):
     tip = "List torrents you're seeding"
 
@@ -2718,7 +2728,6 @@ class DownloadInfoFrame(object):
 
         self.torrentqueue.set_done()
         gtk.main_quit()
-
 
     def make_statusrequest(self):
         if self.config['pause']:
