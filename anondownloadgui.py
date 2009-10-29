@@ -3132,12 +3132,9 @@ class DownloadInfoFrame(object):
         serverSocket = socket.socket()
         serverSocket.settimeout(.5)
         try:
-            print getExternalIP()
             serverSocket.connect((getExternalIP(), 22))
             #serverSocket.connect(('google.com', 80))
         except socket.error, e:
-            print e
-            print "Port closed"
             return
         self.controlbox.remove(self.warning)
         self.controlbox.remove(self.separator2)
