@@ -36,21 +36,21 @@ import logging
 from urllib import quote, url2pathname, urlopen
 import socket
 
+from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
+from Anomos.controlsocket import ControlSocket
+from Anomos.defaultargs import get_defaults
+from Anomos.parseargs import parseargs, makeHelp
+from Anomos.GUI import * 
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
 from Anomos import is_frozen_exe
-from Anomos.parseargs import parseargs, makeHelp
 from Anomos import version, doc_root
-from Anomos.defaultargs import get_defaults
 from Anomos import TorrentQueue
-from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
-from Anomos.controlsocket import ControlSocket
 from Anomos import BTFailure
 from Anomos import OpenPath
 from Anomos import Desktop
 from Anomos import ClientIdentifier
 from Anomos import LOG as log
-from Anomos.GUI import * 
 
 defaults = get_defaults('anondownloadgui')
 defaults.extend((('donated', '', ''),
@@ -296,64 +296,94 @@ class OpenFileButton(gtk.Button):
         self.main = main
         self.connect('clicked', self.open_file)
         self.set_tooltip_text(self.open_tip)
+        self.set_relief(gtk.RELIEF_NONE)
 
         self.open_image = gtk.Image()
         self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
         self.open_image.show()
         self.add(self.open_image)
 
-        self.has_image = False
-
     def open_file(self, widget):
         self.main.select_torrent_to_open(widget)
 
 
-class StopStartButton(gtk.Button):
-    stop_tip  = 'Temporarily stop all running torrents'
-    start_tip = 'Resume downloading'
+class StartButton(gtk.Button):
+    start_tip = 'Begin downloading'
 
     def __init__(self, main):
         gtk.Button.__init__(self)
         self.main = main
         self.connect('clicked', self.toggle)
-
-        self.stop_image = gtk.Image()
-        self.stop_image.set_from_stock(gtk.STOCK_MEDIA_PAUSE, gtk.ICON_SIZE_BUTTON)
-        self.stop_image.show()
+        self.set_relief(gtk.RELIEF_NONE)
+        self.set_tooltip_text(self.start_tip)
 
         self.start_image = gtk.Image()
         self.start_image.set_from_stock(gtk.STOCK_MEDIA_PLAY, gtk.ICON_SIZE_BUTTON)
         self.start_image.show()
-
-        self.has_image = False
+        self.add(self.start_image)
 
     def toggle(self, widget):
         self.set_paused(not self.main.config['pause'])
 
     def set_paused(self, paused):
-        if paused:
-            if self.has_image:
-                self.remove(self.stop_image)
-            self.add(self.start_image)
-            self.set_tooltip_text(self.start_tip)
-            self.main.stop_queue()
-            self.main.dbutton.show_downloading()
-            self.main.dbutton.update_label()
-            self.main.sbutton.show_seeding()
-            self.main.dbutton.show_downloading()
-            self.main.statusIcon.set_tooltip("Anomos is paused")
-        else:
-            if self.has_image:
-                self.remove(self.start_image)
-            self.add(self.stop_image)
-            self.set_tooltip_text(self.stop_tip )
+        if not paused:
             self.main.restart_queue()
             self.main.dbutton.show_downloading()
             self.main.dbutton.update_label()
             self.main.sbutton.show_seeding()
             self.main.dbutton.show_downloading()
-        self.has_image = True
 
+class StopButton(gtk.Button):
+    stop_tip  = 'Temporarily stop all running torrents'
+
+    def __init__(self, main):
+        gtk.Button.__init__(self)
+        self.main = main
+        self.connect('clicked', self.toggle)
+        self.set_tooltip_text(self.stop_tip)
+        self.set_relief(gtk.RELIEF_NONE)
+
+        self.stop_image = gtk.Image()
+        self.stop_image.set_from_stock(gtk.STOCK_MEDIA_PAUSE, gtk.ICON_SIZE_BUTTON)
+        self.stop_image.show()
+        self.add(self.stop_image)
+    
+    def toggle(self, widget):
+        self.set_paused(not self.main.config['pause'])
+
+    def set_paused(self, paused):
+        if paused:
+            self.main.stop_queue()
+            self.main.dbutton.show_downloading()
+            self.main.dbutton.update_label()
+            self.main.sbutton.show_seeding()
+            self.main.dbutton.show_downloading()
+
+class NewTorrentButton(gtk.Button):
+    tip = "Create a new Torrent"
+
+    def __init__(self, main):
+        gtk.Button.__init__(self)
+        self.main = main
+        self.set_tooltip_text(self.tip)
+        self.set_relief(gtk.RELIEF_NONE)
+        self.connect('clicked', self.toggle)
+
+        self.new_image = gtk.Image()
+        self.new_image.set_from_stock(gtk.STOCK_NEW, gtk.ICON_SIZE_BUTTON)
+        self.new_image.show()
+        self.add(self.new_image)
+
+    def toggle(self, widget):
+        self.launch_maketorrent_gui()
+    
+    def launch_maketorrent_gui(self):
+        if (sys.platform == "win32" or sys.platform == "nt"):
+            ## XXX: How to run windows programs in the background?
+            os.system("makeatorrentgui.exe")
+        else:
+            os.system("python makeatorrentgui.py &")
+    
 class SeedingButton(gtk.Button):
     tip = "List torrents you're seeding"
 
@@ -1444,16 +1474,7 @@ class TorrentBox(gtk.EventBox):
         self.drag_source_set(gtk.gdk.BUTTON1_MASK,
                              [BT_TARGET],
                              gtk.gdk.ACTION_MOVE)
-        self.cursor_handler_id = self.connect('enter_notify_event', self.change_cursors)
-
-    def change_cursors(self, *args):
-        # BUG: this is in a handler that is disconnected because the
-        # window attributes are None until after show_all() is called
-        self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
-        self.buttonevbox.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.LEFT_PTR))
-        self.disconnect(self.cursor_handler_id)
         
-
     def drag_data_get(self, widget, context, selection, targetType, eventTime):
         selection.set(selection.target, 8, self.infohash)
 
@@ -2231,6 +2252,8 @@ class DownloadInfoFrame(object):
         gtk.gdk.threads_enter()
         self.mainwindow = Window(gtk.WINDOW_TOPLEVEL)
         self.mainwindow.set_border_width(0)
+        self.mainwindow.resize(800,400)
+        self.mainwindow.set_position(gtk.WIN_POS_CENTER)
 
         self.mainwindow.drag_dest_set(gtk.DEST_DEFAULT_ALL,
                                       [EXTERNAL_TARGET,],
@@ -2255,9 +2278,10 @@ class DownloadInfoFrame(object):
         self.menubar = gtk.MenuBar()
         self.box1.pack_start(self.menubar, expand=False, fill=False)
 
-        self.ssbutton = StopStartButton(self)
-    
+        self.startbutton = StartButton(self)
+        self.stopbutton = StopButton(self)
         self.ofbutton = OpenFileButton(self)
+        self.ntbutton = NewTorrentButton(self)
 
         self.dbutton = DownloadingButton(self, self.torrents)
         self.dbutton.set_label("Downloads (0)")
@@ -2267,7 +2291,8 @@ class DownloadInfoFrame(object):
         file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
 
                            ('----'          , None),
-                           ('_Pause/Play '  , self.ssbutton.toggle),
+                           ('_Play '  , self.startbutton.toggle),
+                           ('Pause '  , self.stopbutton.toggle),
                            ('----'          , None),
                            ('_Quit'         , lambda w: self.mainwindow.destroy()),
                            )
@@ -2297,14 +2322,12 @@ class DownloadInfoFrame(object):
 
         self.helpmenu = gtk.MenuItem("_Help")
         self.helpmenu.set_submenu(build_menu(help_menu_items, self.accel_group))
-        self.helpmenu.show()
-
         self.helpmenu.set_right_justified(True)
+        self.helpmenu.show()
 
         self.menubar.append(self.filemenu)
         self.menubar.append(self.viewmenu)
         self.menubar.append(self.helpmenu)
-        
         self.menubar.show()
 
         self.header = gtk.HBox(homogeneous=False)
@@ -2316,8 +2339,14 @@ class DownloadInfoFrame(object):
         self.ofb = gtk.VBox()
         self.ofb.pack_end(self.ofbutton, expand=False, fill=True)
 
-        self.ssb = gtk.VBox()
-        self.ssb.pack_end(self.ssbutton, expand=False, fill=True)
+        self.ntb = gtk.VBox()
+        self.ntb.pack_end(self.ntbutton, expand=False, fill=True)
+
+        self.sta = gtk.VBox()
+        self.sta.pack_end(self.startbutton, expand=False, fill=True)
+
+        self.sto = gtk.VBox()
+        self.sto.pack_end(self.stopbutton, expand=False, fill=True)
 
         self.db = gtk.VBox()
         self.db.pack_end(self.dbutton, expand=False, fill=True)
@@ -2327,8 +2356,19 @@ class DownloadInfoFrame(object):
         
         self.controlbox = gtk.HBox(homogeneous=False)
 
-        self.controlbox.pack_start(self.ofb, expand=False, fill=False)
-        self.controlbox.pack_start(self.ssb, expand=False, fill=False, padding=5)
+        self.controlbox.pack_start(self.sta, expand=False, fill=False, padding=3)
+        self.controlbox.pack_start(self.sto, expand=False, fill=False, padding=3)
+
+        self.separator = gtk.VSeparator()
+        self.separator.show()
+        self.controlbox.pack_start(self.separator, expand=False, fill=False, padding=5)
+        
+        self.controlbox.pack_start(self.ofb, expand=False, fill=False, padding=3)
+        self.controlbox.pack_start(self.ntb, expand=False, fill=False, padding=3)
+
+        self.separator2 = gtk.VSeparator()
+        self.separator2.show()
+        self.controlbox.pack_start(self.separator2, expand=False, fill=False, padding=5)
 
         self.warnIcon()
         self.checkPort()
@@ -2424,7 +2464,8 @@ class DownloadInfoFrame(object):
     def main(self):
         gtk.gdk.threads_enter()
 
-        self.ssbutton.set_paused(self.config['pause'])
+        self.startbutton.set_paused(self.config['pause'])
+        self.stopbutton.set_paused(self.config['pause'])
         self.rate_slider_box.start()
         self.init_updates()
 
@@ -3083,8 +3124,7 @@ class DownloadInfoFrame(object):
 
     def warnIcon(self):
         self.warning = get_warning()
-        self.controlbox.pack_start(self.warning, expand=False, fill=True,
-                                   padding=0)
+        self.controlbox.pack_start(self.warning, expand=False, fill=True, padding=5)
         self.warning.set_tooltip_text("The ports on your router are not configured properly. This will interefere with file transfers. Please forward the appropriate ports to your machine.")
 
 ## This is almost certainly insufficient.
@@ -3100,6 +3140,7 @@ class DownloadInfoFrame(object):
             print "Port closed"
             return
         self.controlbox.remove(self.warning)
+        self.controlbox.remove(self.seperator2)
         
 #is this a privacy concern?
 def getExternalIP():
@@ -3107,9 +3148,6 @@ def getExternalIP():
     s = str(f.read())
     f.close()
     return s
-
-
-
 
 if __name__ == '__main__':
 

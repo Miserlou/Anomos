@@ -223,7 +223,6 @@ class Rerequester(object):
             if self.proxy_url:
                 import Anomos.httplib2 as httplib2
                 import Anomos.socksipy.socks as socks
-
                 httplib2.debuglevel=4
                 colon_loc = self.proxy_url.find(':')
                 if colon_loc != -1:
@@ -241,7 +240,6 @@ class Rerequester(object):
                 #                         username=self.proxy_username, \
                 #                         password=self.proxy_password, \
                 #                         ssl_context=ssl_contextual_healing)
-                
                 resp, content = h.request("https://"+self.url+":"+str(self.remote_port)+self.path+query)
                 print "pooper"
                 print content                

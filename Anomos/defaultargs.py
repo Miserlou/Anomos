@@ -158,9 +158,9 @@ def get_defaults(ui):
         r.extend([
             ('piece_size_pow2', 18,
              "which power of two to set the piece size to"),
-            ('tracker_name', 'https://my.tracker:6969/announce',
+            ('tracker_name', 'https://anomos.info:5555/announce',
              "default tracker name"),
-            ])
+            ])#should anomos.info be replaced with an IP?
 
     r.extend(rare_options)
     return r

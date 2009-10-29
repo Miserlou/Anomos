@@ -27,7 +27,7 @@ SPACING = 8
 WINDOW_TITLE_LENGTH = 128 # do we need this?
 WINDOW_WIDTH = 650
 MAX_WINDOW_HEIGHT = 600 # BUG: can we get this from the user's screen size?
-MAX_WINDOW_WIDTH  = 600 # BUG: can we get this from the user's screen size?
+MAX_WINDOW_WIDTH  = 800 # BUG: can we get this from the user's screen size?
 MIN_MULTI_PANE_HEIGHT = 160
 
 BT_TARGET_TYPE = 0
@@ -64,7 +64,7 @@ factory = gtk.IconFactory()
 # ICON_SIZE_BUTTON        = 20x20
 # ICON_SIZE_LARGE_TOOLBAR = 24x24
 
-for n in 'broken finished info pause paused play queued running remove running-unsafe'.split():
+for n in 'broken finished info pause paused play queued running remove running-unsafe new'.split():
     fn = os.path.join(image_root, ("%s.png"%n))
 
     pixbuf = gtk.gdk.pixbuf_new_from_file(fn)
@@ -82,9 +82,9 @@ def get_logo(size=32):
     return logo
 
 def get_warning():
-    logo = gtk.Image()
-    logo.set_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DND)
-    return logo
+    warn = gtk.Image()
+    warn.set_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DND)
+    return warn
 
 class Size(long):
     """displays size in human-readable format"""
@@ -123,7 +123,7 @@ class Rate(Size):
         return '%s/s'% Size.__str__(self, precision=None)
 
 
-class Duration(float):
+class Duration(float): 
     """displays duration in human-readable format"""
     def __str__(value):
         if value > 365 * 24 * 60 * 60:
