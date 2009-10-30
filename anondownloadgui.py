@@ -515,6 +515,7 @@ class AboutWindow(object):
 
     def __init__(self, main, donatefunc):
         self.win = Window()
+        self.win.set_position(gtk.WIN_POS_CENTER)
         self.win.set_title('About %s'%app_name)
         self.win.set_size_request(300,400)
         self.win.set_border_width(SPACING)
