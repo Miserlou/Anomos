@@ -2320,8 +2320,7 @@ class DownloadInfoFrame(object):
         self.sbutton = SeedingButton(self, self.torrents)
         self.sbutton.set_label("Seeds (0)")
 
-        file_menu_items = (('_Open an .atorrent file', self.select_torrent_to_open),
-
+        file_menu_items = (('_Open an .atorrent file', self.select_torrent_to_open),('_Anonymize and open a .torrent file', self.select_old_torrent_to_open),
                            ('----'          , None),
                            ('_Play '  , self.startbutton.toggle),
                            ('Pause '  , self.stopbutton.toggle),
@@ -2769,9 +2768,17 @@ class DownloadInfoFrame(object):
     def select_torrent_to_open(self, widget):
         path = smart_dir(self.config['save_in'])
         self.open_window('openfile',
-                         title="Open torrent:",
+                         title="Open .atorrent:",
                          fullname=path,
                          got_location_func=self.open_torrent,
+                         no_location_func=lambda: self.window_closed('openfile'))
+
+    def select_old_torrent_to_open(self, widget):
+        path = smart_dir(self.config['save_in'])
+        self.open_window('openfile',
+                         title="Open .torrent:",
+                         fullname=path,
+                         got_location_func=self.open_old_torrent,
                          no_location_func=lambda: self.window_closed('openfile'))
 
 
@@ -2785,8 +2792,28 @@ class DownloadInfoFrame(object):
             pass # the user has selected a directory or other non-file object
         else:
             if not '.atorrent' in name:
-                self.open_warning(data)
+                #self.open_warning(data)
+		data = anomosify(data)
+		self.torrentqueue.start_new_torrent(data)
             else:
+                self.torrentqueue.start_new_torrent(data)
+        if f is not None:
+            f.close()  # shouldn't fail with read-only file (well hopefully)
+
+    def open_old_torrent(self, name):
+        self.window_closed('openfile')
+        f = None
+        try:
+            f = file(name, 'rb')
+            data = f.read()
+        except IOError: 
+            pass # the user has selected a directory or other non-file object
+        else:
+            if not '.torrent' in name:
+                #self.open_warning(data)
+		self.torrentqueue.start_new_torrent(data)
+            else:
+		data = anomosify(data)
                 self.torrentqueue.start_new_torrent(data)
         if f is not None:
             f.close()  # shouldn't fail with read-only file (well hopefully)
@@ -3183,6 +3210,23 @@ def getExternalIP():
     f.close()
     return s
 
+def anomosify(data):
+
+	##XXX: This should be customizable
+	aurl = "https://anomos.info:5555/announce"
+
+	#XXX: This should be regex but it's 3AM and I'm naked
+	i = int(data.index("announce"))
+	li = data.index(":", i+8)
+	ll = int(data[i+8:li])
+	j = int(data.index("announce", i+8))
+
+	oldurl =  data[li+1:li+1+ll]
+	data = data.replace(oldurl,aurl)
+	##XXX: Hack, see above
+	data = data.replace(str(data[li-2:li]), str(len(aurl)), 1)	
+	return data
+	
 if __name__ == '__main__':
 
     try:
