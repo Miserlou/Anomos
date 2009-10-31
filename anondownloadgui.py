@@ -2492,6 +2492,7 @@ class DownloadInfoFrame(object):
         message = gtk.MessageDialog(self.mainwindow, gtk.DIALOG_MODAL, gtk.MESSAGE_QUESTION, gtk.BUTTONS_NONE, "Do you really want to quit?")
         message.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
         message.add_button(gtk.STOCK_QUIT, gtk.RESPONSE_CLOSE)
+	message.set_title("Really quit?")
         resp = message.run()
         message.destroy()
         if resp == gtk.RESPONSE_CLOSE:
