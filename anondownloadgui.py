@@ -2320,12 +2320,14 @@ class DownloadInfoFrame(object):
         self.sbutton = SeedingButton(self, self.torrents)
         self.sbutton.set_label("Seeds (0)")
 
-        file_menu_items = (('_Open torrent file', self.select_torrent_to_open),
+        file_menu_items = (('_Open an .atorrent file', self.select_torrent_to_open),
 
                            ('----'          , None),
                            ('_Play '  , self.startbutton.toggle),
                            ('Pause '  , self.stopbutton.toggle),
                            ('----'          , None),
+			   ('_Make a new .atorrent file', self.ntbutton.toggle),
+			   ('----'          , None),
                            ('_Quit'         , lambda w: self.mainwindow.destroy()),
                            )
         view_menu_items = (#('Show/Hide _finished torrents', self.toggle_known),
