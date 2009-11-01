@@ -75,8 +75,8 @@ advanced_ui = 0
 advanced_ui_options_index = 10
 
 
-main_torrent_dnd_tip = 'drag to reorder'
-torrent_menu_tip = 'right-click for menu'
+main_torrent_dnd_tip = 'Press the i for information'
+torrent_menu_tip = 'Press the X to remove this download'
 torrent_tip_format = '%s:\n %s\n %s'
 
 rate_label = ' rate: %s'
@@ -3249,6 +3249,7 @@ if __name__ == '__main__':
     if (sys.platform == "win32" or sys.platform == "nt"):
         sys.stdout = open("logfile.txt", "w")
         sys.stderr = open("logfile.txt", "w")
+    sys.argv[0] = 'anomos'
 
     advanced_ui = config['advanced']
     ##advanced UI always on!
