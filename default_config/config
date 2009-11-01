@@ -7,7 +7,7 @@ max_initiate = 200
 next_torrent_time = 99999
 next_torrent_ratio = 0
 dnd_behavior = add
-maxport = 6999
+maxport = 5069
 min_uploads = 2
 ip = 
 donated = 
@@ -20,7 +20,7 @@ display_interval = 0.5
 save_in = 
 auto_ip = 0
 ask_for_save = 1
-minport = 6881
+minport = 5061
 max_allow_in = 200
 max_uploads = -1
 
