@@ -294,14 +294,15 @@ class Rerequester(object):
             if self.neighbors.count() > 0:
                 log.error('rejected by tracker - ' + r['failure reason'])
             else:
-                # sched shouldn't be strictly necessary
-                def die():
-                    log.critical("Aborting the torrent as it was "
+                ## XXX: Need to discuss this behavior
+                ##def die():
+                log.critical("Aborting the torrent as it was "
                     "rejected by the tracker while not connected to any peers."
                     " Message from the tracker:     " + r['failure reason'])
-                    self.diefunc()
-                self.sched(die, 0)
+                 #self.diefunc()
+                 #self.sched(die, 0)
             self._fail()
+            return
         else:
             self.fail_wait = None
             if r.has_key('warning message'):
