@@ -70,7 +70,7 @@ ui_options = 'max_upload_rate minport maxport '\
              'ask_for_save save_in ip dnd_behavior '\
              'min_uploads max_uploads max_initiate '\
              'max_allow_in max_files_open display_interval '\
-             'donated pause auto_ip tracker_proxy'.split()
+             'donated pause auto_ip tracker_proxy anonymizer'.split()
 advanced_ui = 0
 advanced_ui_options_index = 10
 
@@ -788,6 +788,16 @@ class SettingsWindow(object):
         self.dl_box.pack_start(self.dl_ask_checkbutton, expand=False, fill=False)
 
         self.vbox.pack_start(self.dl_frame, expand=False, fill=False)
+
+        self.anon_frame = gtk.Frame('Torrent anonymizer tracker URL:')
+        self.anon_box = gtk.VBox()
+        self.anon_box.set_border_width(SPACING)
+        self.anon_field = URLValidator('anonymizer', self.config, self.setfunc)
+        self.anon_field.set_tooltip_text('The tracker to use instead of the old torrent tracker')
+        self.anon_box.pack_start(self.anon_field, expand=False, fill=False)
+        #self.ip_box.pack_start(lalign(gtk.Label('()')), expand=False, fill=False)
+        self.anon_frame.add(self.anon_box)
+        self.vbox.pack_start(self.anon_frame, expand=False, fill=False)
 
         self.proxy_frame = gtk.Frame('Proxy address to use:')
         self.proxy_box = gtk.VBox()
@@ -2795,7 +2805,7 @@ class DownloadInfoFrame(object):
         else:
             if not '.atorrent' in name:
                 #self.open_warning(data)
-		data = anomosify(data)
+		data = anomosify(data, self.config)
 		self.torrentqueue.start_new_torrent(data)
             else:
                 self.torrentqueue.start_new_torrent(data)
@@ -2815,7 +2825,7 @@ class DownloadInfoFrame(object):
                 #self.open_warning(data)
 		self.torrentqueue.start_new_torrent(data)
             else:
-		data = anomosify(data)
+		data = anomosify(data, self.config)
                 self.torrentqueue.start_new_torrent(data)
         if f is not None:
             f.close()  # shouldn't fail with read-only file (well hopefully)
@@ -3212,10 +3222,9 @@ def getExternalIP():
     f.close()
     return s
 
-def anomosify(data):
+def anomosify(data, config):
 
-	##XXX: This should be customizable
-	aurl = "https://anomos.info:5555/announce"
+	aurl = config['anonymizer']
 
 	#XXX: This should be regex but it's 3AM and I'm naked
 	i = int(data.index("announce"))
