@@ -174,7 +174,7 @@ class MainWindow(Window):
         else:
             fn = Desktop.desktop 
 
-        selector = OpenFileSelection(self, title="Open torrent:",
+        selector = OpenMultiFileSelection(self, title="Open torrent:",
                                 fullname=fn,
                                 got_multiple_location_func=self.add_files)
     

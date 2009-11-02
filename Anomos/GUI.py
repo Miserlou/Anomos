@@ -391,7 +391,6 @@ class FileSelection():
     def destroy(self, widget=None):
         return
     
-
 class OpenFileSelection():
         def __init__(self, main, title='', fullname='', got_location_func=None, no_location_func=None, got_multiple_location_func=None, show=True):
 
@@ -427,6 +426,74 @@ class OpenFileSelection():
                 if self.got_location_func is not None:
                     name = dialog.get_filename()
                     self.got_location_func(name)
+            elif response == gtk.RESPONSE_CANCEL:
+                if self.no_location_func is not None:
+                    self.no_location_func()
+            dialog.destroy()
+
+        def no_location(self, widget=None):
+            if self.no_location_func is not None:
+                self.no_location_func()
+
+        def done(self, widget=None):
+            if self.get_select_multiple():
+                self.got_multiple_location()
+            else:
+                self.got_location()
+            self.disconnect(self.d_handle)
+            self.destroy()
+
+        def got_location(self):
+            if self.got_location_func is not None:
+                name = self.get_filename()
+                self.got_location_func(name)
+
+        def got_multiple_location(self):
+            if self.got_multiple_location_func is not None:
+                names = self.get_selections()
+                self.got_multiple_location_func(names)
+
+        def close_child_windows(self):
+            self.no_location()
+
+        def close(self, widget=None):
+            self.destroy()
+
+        def destroy(self, widget=None):
+            return
+
+        def show(self, widget=None):
+            return
+
+class OpenMultiFileSelection():
+        def __init__(self, main, title='', fullname='', got_location_func=None, no_location_func=None, got_multiple_location_func=None, show=True):
+
+            dialog = gtk.FileChooserDialog(title,
+                                   None,
+                                   gtk.FILE_CHOOSER_ACTION_OPEN,
+                                   (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                    gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+            dialog.set_default_response(gtk.RESPONSE_OK)
+
+            self.main = main
+            if (got_location_func is None and
+                got_multiple_location_func is not None):
+                dialog.set_select_multiple(True)
+            self.got_location_func = got_location_func
+            self.no_location_func = no_location_func
+            self.got_multiple_location_func = got_multiple_location_func
+
+            filter = gtk.FileFilter()
+            filter.set_name("All files")
+            filter.add_pattern("*")
+            dialog.add_filter(filter)
+
+            response = dialog.run()
+
+            if response == gtk.RESPONSE_OK:
+                name = dialog.get_filenames()
+                if self.got_multiple_location_func is not None:
+                    self.got_multiple_location_func(name)
             elif response == gtk.RESPONSE_CANCEL:
                 if self.no_location_func is not None:
                     self.no_location_func()
