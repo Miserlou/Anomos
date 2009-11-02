@@ -533,6 +533,9 @@ class OpenMultiFileSelection():
         def show(self, widget=None):
             return
 
+        def hide(self, widget=None):
+            return
+
 class SaveFileSelection():
         def __init__(self, main, title='', fullname='', got_location_func=None, no_location_func=None, got_multiple_location_func=None, show=True):
 
@@ -594,6 +597,9 @@ class SaveFileSelection():
             return
 
         def show(self, widget=None):
+            return
+
+        def hide(self, widget=None):
             return
 
 class ChooseFolderSelection(FileSelection):
