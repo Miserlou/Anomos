@@ -297,7 +297,7 @@ class MessageDialog(gtk.MessageDialog):
         if default is not None:
             self.set_default_response(default)
 
-        self.label.set_line_wrap(True)
+        #self.label.set_line_wrap(True)
 
         self.connect('response', self.callback)
 
