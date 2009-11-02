@@ -174,7 +174,7 @@ class MainWindow(Window):
         else:
             fn = Desktop.desktop 
 
-        selector = OpenMultiFileSelection(self, title="Select file to put in .atorrent:",
+        selector = OpenMultiFileSelection(self, title="Select files to put in .atorrent:",
                                 fullname=fn,
                                 got_multiple_location_func=self.add_files)
     
