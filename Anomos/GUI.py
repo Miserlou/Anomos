@@ -410,9 +410,14 @@ class OpenFileSelection():
             dialog.set_default_response(gtk.RESPONSE_OK)
 
             filter = gtk.FileFilter()
-            filter.set_name("Torrents")
+            filter.set_name("All Torrents")
             filter.add_pattern("*.atorrent")
             filter.add_pattern("*.torrent")
+            dialog.add_filter(filter)
+
+            filter = gtk.FileFilter()
+            filter.set_name("Atorrents only")
+            filter.add_pattern("*.atorrent")
             dialog.add_filter(filter)
 
             filter = gtk.FileFilter()
