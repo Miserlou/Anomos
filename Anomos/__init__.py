@@ -111,6 +111,7 @@ def ensure_minimum_config():
 ensure_minimum_config()
 
 import logging.config
+##XXX: there is a bug here which happens the first time the program is run
 logging.config.fileConfig(os.path.join(get_config_dir(), 'logging.conf'))
 LOG = logging.getLogger()
 if sys.platform == 'win32':

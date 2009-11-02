@@ -2614,12 +2614,6 @@ class DownloadInfoFrame(object):
         self.split_pane()
 
     def open_window(self, window_name, *args, **kwargs):
-        if self.child_windows.has_key(window_name):
-            if window_name == 'savefile':
-                kwargs['show'] = False
-                self.postponed_save_windows.append(SaveFileSelection(self, **kwargs))
-            return
-
         if window_name == 'log'       :
             self.child_windows[window_name] = LogWindow(self, self.logbuffer, self.config)
         elif window_name == 'about'   :

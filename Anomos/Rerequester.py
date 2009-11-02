@@ -299,8 +299,8 @@ class Rerequester(object):
                 log.critical("Aborting the torrent as it was "
                     "rejected by the tracker while not connected to any peers."
                     " Message from the tracker:     " + r['failure reason'])
-                 #self.diefunc()
-                 #self.sched(die, 0)
+                #self.diefunc()
+                #self.sched(die, 0)
             self._fail()
             return
         else:
