@@ -229,7 +229,7 @@ class Rerequester(object):
                                          username=self.proxy_username, \
                                          password=self.proxy_password, \
                                          ssl_context=ssl_contextual_healing)
-                s = "https://"+self.url+":"+str(self.remote_port)+query
+                s = "https://"+self.url+":"+str(self.remote_port)+self.path+query
                 h.putrequest('GET', s)
                 
                 #This is the new, httplib2 based proxy stuff. It doesn't work.
