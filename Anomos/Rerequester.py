@@ -28,6 +28,7 @@ from urlparse import urlparse, urlunparse
 from M2Crypto.httpslib import HTTPSConnection
 from M2Crypto import version_info as m2version
 
+## When can we get rid of this
 if m2version < (0, 20, 0):
     from M2Crypto.httpslib import ProxyHTTPSConnection as BrokenHTTPSLib
     import urllib
@@ -37,6 +38,7 @@ if m2version < (0, 20, 0):
         def putrequest(self, method, url, skip_host=0, skip_accept_encoding=0):
             #putrequest is called before connect, so can interpret url and get
             #real host/port to be used to make CONNECT request to proxy
+            log.warning("Using ProxyHTTPSConnection")
             proto, rest = urllib.splittype(url)
             if proto is None:
                 raise ValueError, "unknown URL type: %s" % url
@@ -210,6 +212,7 @@ class Rerequester(object):
             Note: This runs in its own thread.
         """
         if not self.https:
+            log.warning("Warning: Will not connect to non HTTPS server")
             return
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
@@ -221,36 +224,40 @@ class Rerequester(object):
             ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
         try:
             if self.proxy_url:
-                import Anomos.httplib2 as httplib2
-                import Anomos.socksipy.socks as socks
-                httplib2.debuglevel=4
-                colon_loc = self.proxy_url.find(':')
-                if colon_loc != -1:
-                    self.proxy_port = self.proxy_url[colon_loc+1:]
-                    self.px_url = self.proxy_url[:colon_loc]
-                else:
-                    #TOR SOCKS port is 9050
-                    self.proxy_port = 1080
-
-                h = httplib2.Http(proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_SOCKS5, self.px_url, self.proxy_port))
-                h.add_certificate(self.certificate.ikeyfile, self.certificate.certfile, self.url)
-
-                # This is the old, HTTP Proxy stuff. May be worth implementing both but I'm not sure.
-                #h = ProxyHTTPSConnection(self.proxy_url, \
-                #                         username=self.proxy_username, \
-                #                         password=self.proxy_password, \
-                #                         ssl_context=ssl_contextual_healing)
-                resp, content = h.request("https://"+self.url+":"+str(self.remote_port)+self.path+query)
-                print "pooper"
-                print content                
-                print resp
-                print "poop"
+                #This is the old, HTTP Proxy stuff. May be worth implementing both but I'm not sure.
+                h = ProxyHTTPSConnection(self.proxy_url, \
+                                         username=self.proxy_username, \
+                                         password=self.proxy_password, \
+                                         ssl_context=ssl_contextual_healing)
+                s = "https://"+self.url+":"+str(self.remote_port)+query
+                h.putrequest('GET', s)
+                
+                #This is the new, httplib2 based proxy stuff. It doesn't work.
+                
+                # I suggest that for now, until there is a better solution in python, that connections with socks proxies be done with
+                #  socat TCP4-LISTEN:5555,fork SOCKS4A:s,socksport=9050 
+                
+                #import Anomos.httplib2 as httplib2
+                #import Anomos.socksipy.socks as socks
+                #httplib2.debuglevel=4
+                #colon_loc = self.proxy_url.find(':')
+                #if colon_loc != -1:
+                #    self.proxy_port = self.proxy_url[colon_loc+1:]
+                #    self.px_url = self.proxy_url[:colon_loc]
+                #else:
+                     #TOR SOCKS port is 9050
+                #    self.proxy_port = 1080
+                    
+                #h = httplib2.Http(proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_SOCKS5, self.px_url, self.proxy_port))
+                #h.add_certificate(self.certificate.keyfile, self.certificate.certfile, self.url)
+                #resp, content = h.request(s)
+                                    
             else:
                 #No proxy url, use normal connection
                 h = HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
                 h.putrequest('GET', self.path+query)
-                h.endheaders()
-                resp = h.getresponse()
+            h.endheaders()
+            resp = h.getresponse()
             data = resp.read()
             resp.close()
             h.close()
