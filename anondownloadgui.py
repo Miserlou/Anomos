@@ -42,6 +42,7 @@ from Anomos.controlsocket import ControlSocket
 from Anomos.defaultargs import get_defaults
 from Anomos.parseargs import parseargs, makeHelp
 from Anomos.GUI import * 
+from Anomos.bencode import bdecode, bencode
 import makeatorrentgui
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
@@ -3225,26 +3226,25 @@ class DownloadInfoFrame(object):
         
 #is this a privacy concern?
 def getExternalIP():
-    f = urlopen("http://anomos.info/getip/")
-    s = str(f.read())
-    f.close()
-    return s
+    try:
+        f = urlopen("https://anomos.info/getip/")
+        s = str(f.read())
+        f.close()
+        return s
+    except:
+        return ""
 
 def anomosify(data, config):
 
-	aurl = config['anonymizer']
+	r = bdecode(data)
+	for a,l in enumerate(r['announce-list']):
+	    if a == 0:
+	        r['announce-list'][a] = config['anonymizer']
+	    else: 
+	        del r['announce-list'][a:]
+	r['announce'] = config['anonymizer']
 
-	#XXX: This should be regex but it's 3AM and I'm naked
-	i = int(data.index("announce"))
-	li = data.index(":", i+8)
-	ll = int(data[i+8:li])
-	j = int(data.index("announce", i+8))
-
-	oldurl =  data[li+1:li+1+ll]
-	data = data.replace(oldurl,aurl)
-	##XXX: Hack, see above
-	data = data.replace(str(data[li-2:li]), str(len(aurl)), 1)	
-	return data
+	return bencode(r)
 	
 if __name__ == '__main__':
 
