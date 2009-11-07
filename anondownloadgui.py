@@ -2349,6 +2349,11 @@ class DownloadInfoFrame(object):
                            ('_Settings'     , lambda w: self.open_window('settings')),
                            #'Change download behavior and network settings',
                            )
+        
+        control_menu_items = (('_Go'          , self.startbutton.toggle),
+                           ('_Stop'          , self.stopbutton.toggle),
+                           )
+                           
         help_menu_items = (('_Help'         , self.open_help),
                            #('_Help Window'         , lambda w: self.open_window('help')),
                            ('_About'        , lambda w: self.open_window('about')),
@@ -2359,6 +2364,10 @@ class DownloadInfoFrame(object):
         self.filemenu = gtk.MenuItem("_File")
         self.filemenu.set_submenu(build_menu(file_menu_items, self.accel_group))
         self.filemenu.show()
+        
+        self.controlmenu = gtk.MenuItem("_Control")
+        self.controlmenu.set_submenu(build_menu(control_menu_items, self.accel_group))
+        self.controlmenu.show()
 
         self.viewmenu = gtk.MenuItem("_View")
         self.viewmenu.set_submenu(build_menu(view_menu_items, self.accel_group))
@@ -2370,6 +2379,7 @@ class DownloadInfoFrame(object):
         self.helpmenu.show()
 
         self.menubar.append(self.filemenu)
+        self.menubar.append(self.controlmenu)
         self.menubar.append(self.viewmenu)
         self.menubar.append(self.helpmenu)
         self.menubar.show()
