@@ -1811,10 +1811,7 @@ class RunningTorrentBox(DroppableTorrentBox):
         self.seed = False
         self.peerlistwindow = None
 
-        if self.anon:
-            self.icon.set_from_stock('anon-running', gtk.ICON_SIZE_LARGE_TOOLBAR)
-        else:
-            self.icon.set_from_stock('anon-running-unsafe', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        self.icon.set_from_stock('anon-running', gtk.ICON_SIZE_LARGE_TOOLBAR)
 
         self.rate_label_box = gtk.HBox(homogeneous=True)
 
