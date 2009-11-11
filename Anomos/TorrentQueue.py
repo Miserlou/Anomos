@@ -79,7 +79,7 @@ class TorrentQueue(Feedback):
         self.ui_options = ui_options
         self.controlsocket = controlsocket
         self.config['def_running_torrents'] = 1 # !@# XXX
-        self.config['max_running_torrents'] = 3 # !@# XXX
+        self.config['max_running_torrents'] = 99 # !@# XXX
         self.next_torrent_ratio = float(self.config['next_torrent_ratio'])
         self.last_torrent_ratio = float(self.config['last_torrent_ratio'])
         self.doneflag = threading.Event()
@@ -355,7 +355,10 @@ class TorrentQueue(Feedback):
         self.rawserver.add_task(self._queue_loop, 20)
         now = bttime()
         if self.queue and self.starting_torrent is None:
-            mintime = now - self.config['next_torrent_time'] * 60
+            if self.config['next_torrent_time'] == 0:
+                mintime = 0
+            else:
+                mintime = now - self.config['next_torrent_time'] * 60
             minratio = self.next_torrent_ratio / 100
         else:
             mintime = 0

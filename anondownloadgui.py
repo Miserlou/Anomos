@@ -223,7 +223,7 @@ class PercentValidator(Validator):
 
 class MinutesValidator(Validator):
     width = 48
-    minimum = 1
+    minimum = 0
 
 
 class RateSliderBox(gtk.VBox):
@@ -736,7 +736,7 @@ class SettingsWindow(object):
                                                         self.config, self.setfunc)
         self.next_torrent_time_box.pack_start(self.next_torrent_time_field,
                                               fill=False, expand=False)
-        self.next_torrent_time_box.pack_start(gtk.Label(' minutes, whichever comes first.'),
+        self.next_torrent_time_box.pack_start(gtk.Label(' minutes, whichever comes first. 0 is unlimited.'),
                                               fill=False, expand=False)
         self.next_torrent_box.pack_start(self.next_torrent_time_box)
 
@@ -838,11 +838,7 @@ class SettingsWindow(object):
         self.savebutton = gtk.Button(stock='gtk-close')
         self.savebutton.connect('clicked', self.close)
 
-        self.revertbutton = gtk.Button(stock='gtk-undo') 
-        self.revertbutton.connect('clicked', self.revert) 
-
-        self.buttonbox.pack_start(self.revertbutton, expand=False, fill=True)
-        self.buttonbox.pack_end(self.savebutton, expand=False, fill=True)
+        self.buttonbox.pack_end(self.savebutton, expand=False, fill=False)
         
         self.vbox.pack_end(self.buttonbox, expand=False, fill=False)
         
@@ -918,11 +914,8 @@ class SettingsWindow(object):
 
     def revert(self, widget):
         for foo in (self.next_torrent_time_field,
-                    self.next_torrent_ratio_field,
-                    self.last_torrent_ratio_field,
                     self.minport_field,
-                    self.ip_field,
-                    self.tracker_proxy):
+                    self.ip_field):
             foo.revert()
         self.dl_ask_checkbutton.set_active(self.dl_ask_checkbutton.original_value)
         self.set_save_in(self.dl_save_in.original_value)
@@ -3223,7 +3216,8 @@ class DownloadInfoFrame(object):
 #is this a privacy concern?
 def getExternalIP():
     try:
-        f = urlopen("https://anomos.info/getip/")
+        ## XXX: Broken with HTTPS
+        f = urlopen("http://anomos.info/getip/")
         s = str(f.read())
         f.close()
         return s
@@ -3233,11 +3227,12 @@ def getExternalIP():
 def anomosify(data, config):
 
 	r = bdecode(data)
-	for a,l in enumerate(r['announce-list']):
-	    if a == 0:
-	        r['announce-list'][a] = config['anonymizer']
-	    else: 
-	        del r['announce-list'][a:]
+	if 'announce-list' in r:
+	    for a,l in enumerate(r['announce-list']):
+	        if a == 0:
+	            r['announce-list'][a] = config['anonymizer']
+	        else: 
+	            del r['announce-list'][a:]
 	r['announce'] = config['anonymizer']
 
 	return bencode(r)

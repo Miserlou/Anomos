@@ -33,7 +33,7 @@ common_options = [
         'maximum number of connections to allow, after this new incoming connections will be immediately closed'),
     ('check_hashes', 1,
         'whether to check hashes on disk'),
-    ('max_upload_rate', 100,
+    ('max_upload_rate', 0,
         'maximum kB/s to upload at, 0 means no limit'),
     ('min_uploads', 2,
         "the number of uploads to fill out to with extra optimistic unchokes"),
@@ -74,7 +74,7 @@ rare_options = [
     ('retaliate_to_garbled_data', 1,
      'refuse further connections from addresses with broken or intentionally '
      'hostile peers that send incorrect data'),
-    ('one_connection_per_ip', 0,
+    ('one_connection_per_ip', 1,
      'do not connect to several peers that have the same IP address'),
     ('peer_socket_tos', 8,
      'if nonzero, set the TOS option for peer connections to this value'),
@@ -100,7 +100,7 @@ def get_defaults(ui):
              'file name (for single-file torrents) or directory name (for batch torrents) to save the torrent as, overriding the default name in the torrent. See also --save_in, if neither is specified the user will be asked for save location'),
             ('advanced', 0,
              "display advanced user interface"),
-            ('next_torrent_time', 99999,
+            ('next_torrent_time', 0,
              'the maximum number of minutes to seed a completed torrent before stopping seeding'),
             ('next_torrent_ratio', 0,
              'the minimum upload/download ratio, in percent, to achieve before stopping seeding. 0 means no limit.'),
@@ -119,7 +119,7 @@ def get_defaults(ui):
 
     if ui.startswith('anondownload'):
         r.extend([
-            ('max_uploads', -1,
+            ('max_uploads', 99,
              "the maximum number of uploads to allow at once. -1 means a (hopefully) reasonable number based on --max_upload_rate. The automatic values are only sensible when running one torrent at once."),
             ('save_in', '',
              'local directory where the torrent contents will be saved. The file (single-file torrents) or directory (batch torrents) will be created under this directory using the default name specified in the .atorrent file. See also --save_as.'),

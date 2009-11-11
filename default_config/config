@@ -4,7 +4,7 @@
 ## GUI interface options
 [anondownloadgui]
 max_initiate = 200
-next_torrent_time = 99999
+next_torrent_time = 0
 next_torrent_ratio = 0
 dnd_behavior = add
 maxport = 5069
@@ -15,7 +15,7 @@ last_torrent_ratio = 0
 max_files_open = 50
 tracker_proxy = 
 pause = 0
-max_upload_rate = 100
+max_upload_rate = 0
 display_interval = 0.5
 save_in = 
 auto_ip = 0
