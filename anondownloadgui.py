@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -800,7 +799,7 @@ class SettingsWindow(object):
         self.anon_frame.add(self.anon_box)
         self.vbox.pack_start(self.anon_frame, expand=False, fill=False)
 
-        self.proxy_frame = gtk.Frame('Proxy address to use:')
+        self.proxy_frame = gtk.Frame('Proxy address to use (Tor+Privoxy is 127.0.0.1:8118):')
         self.proxy_box = gtk.VBox()
         self.proxy_box.set_border_width(SPACING)
         self.proxy_field = URLValidator('tracker_proxy', self.config, self.setfunc)

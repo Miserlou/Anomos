@@ -232,25 +232,11 @@ class Rerequester(object):
                 s = "https://"+self.url+":"+str(self.remote_port)+self.path+query
                 h.putrequest('GET', s)
                 
-                #This is the new, httplib2 based proxy stuff. It doesn't work.
-                
-                # I suggest that for now, until there is a better solution in python, that connections with socks proxies be done with
+                # I suggest that for now, until there is a better solution in python, 
+                # that connections with socks proxies be done with:
                 #  socat TCP4-LISTEN:5555,fork SOCKS4A:s,socksport=9050 
-                
-                #import Anomos.httplib2 as httplib2
-                #import Anomos.socksipy.socks as socks
-                #httplib2.debuglevel=4
-                #colon_loc = self.proxy_url.find(':')
-                #if colon_loc != -1:
-                #    self.proxy_port = self.proxy_url[colon_loc+1:]
-                #    self.px_url = self.proxy_url[:colon_loc]
-                #else:
-                     #TOR SOCKS port is 9050
-                #    self.proxy_port = 1080
-                    
-                #h = httplib2.Http(proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_SOCKS5, self.px_url, self.proxy_port))
-                #h.add_certificate(self.certificate.keyfile, self.certificate.certfile, self.url)
-                #resp, content = h.request(s)
+                #  or use Privoxy:
+                #  127.0.0.1:8118
                                     
             else:
                 #No proxy url, use normal connection
