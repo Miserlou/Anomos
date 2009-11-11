@@ -231,6 +231,11 @@ class _SingleTorrent(object):
         contfunc()
 
     def _start_download(self, metainfo, feedback, save_path):
+    
+        # GTK Crash Hack
+        import time
+        time.sleep(.2)
+        
         self.feedback = feedback
         self._set_auto_uploads()
 
@@ -448,6 +453,11 @@ class _SingleTorrent(object):
         if self.closed:
             return
         self.closed = True
+        
+        # GTK Crash Hack
+        import time
+        time.sleep(.2)
+
         self._rawserver.remove_context(self)
         self._doneflag.set()
         log.info("Closing connections, please wait...")
