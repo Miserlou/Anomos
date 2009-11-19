@@ -13,8 +13,6 @@
 
 # Written by Petru Paler
 
-from Anomos.obsoletepythonsupport import *
-
 from Anomos import BTFailure
 
 def decode_int(x, f):

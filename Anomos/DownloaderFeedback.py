@@ -13,25 +13,20 @@
 
 # Written by Bram Cohen
 
-from __future__ import division
-
-from time import time
-
-
 class DownloaderFeedback(object):
 
-    def __init__(self, choker, upfunc, upfunc2, downfunc, uptotal, downtotal,
-                 remainingfunc, leftfunc, file_length, finflag, downloader,
-                 files):
+    def __init__(self, choker, upfunc, downfunc, uptotal, downtotal,
+                 relaystats, remainingfunc, leftfunc, file_length,
+                 finflag, downloader, files):
         self.downloader = downloader
         self.picker = downloader.picker
         self.storage = downloader.storage
         self.choker = choker
         self.upfunc = upfunc
-        self.upfunc2 = upfunc2
         self.downfunc = downfunc
         self.uptotal = uptotal
         self.downtotal = downtotal
+        self.relaystats = relaystats
         self.remainingfunc = remainingfunc
         self.leftfunc = leftfunc
         self.file_length = file_length
@@ -67,7 +62,7 @@ class DownloaderFeedback(object):
             d = c.download
             rec["download"] = (d.measure.get_total(),int(d.measure.get_rate()),
                                d.interested, d.choked, d.is_snubbed())
-            rec['completed'] = 1 - d.have.numfalse / len(d.have)
+            rec['completed'] = 1 - float(d.have.numfalse) / len(d.have)
             rec['speed'] = d.connection.download.peermeasure.get_rate()
             l.append(rec)
         return l
@@ -84,8 +79,8 @@ class DownloaderFeedback(object):
         status['numSeeds'] = numSeeds
         status['numPeers'] = numPeers
         status['upRate'] = self.upfunc()
-        status['upRate2'] = self.upfunc2()
         status['upTotal'] = self.uptotal()
+        status.update(self.relaystats()) # relayRate, relayCount, relaySent
         missingPieces = 0
         numCopyList = []
         numCopies = 0
@@ -94,7 +89,7 @@ class DownloaderFeedback(object):
             if missingPieces == 0:
                 numCopies += 1
             else:
-                fraction = 1 - missingPieces / self.picker.numpieces
+                fraction = 1 - float(missingPieces) / self.picker.numpieces
                 numCopyList.append(fraction)
                 if fraction == 0 or len(numCopyList) >= 3:
                     break
@@ -128,7 +123,7 @@ class DownloaderFeedback(object):
         status['timeEst'] = timeEst
 
         if self.file_length > 0:
-            fractionDone = 1 - self.leftfunc() / self.file_length
+            fractionDone = 1 - float(self.leftfunc()) / self.file_length
         else:
             fractionDone = 1
         status.update({

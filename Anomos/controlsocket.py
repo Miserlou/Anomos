@@ -123,19 +123,6 @@ class ControlSocket(object):
            raise BTFailure("Could not create control socket: "+str(e))
        self.controlsocket = controlsocket
 
-    def send_command_inet(self, rawserver, action, data = ''):
-        r = MessageReceiver(lambda action, data: None)
-        try:
-            ##WTF is this?
-            ##SSL?!
-            conn = rawserver.start_ssl_connection(('127.0.0.1', 56881), r)
-        except socket.error, e:
-            raise BTFailure('Could not send command: ' + str(e))
-        conn.write(tobinary(len(action)))
-        conn.write(action)
-        conn.write(tobinary(len(data)))
-        conn.write(data)
-
     #blocking version without rawserver
     def send_command_inet(self, action, data=''):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -173,20 +160,6 @@ class ControlSocket(object):
         except socket.error, e:
             raise BTFailure("Could not create control socket: "+str(e))
         self.controlsocket = controlsocket
-
-    def send_command_unix(self, rawserver, action, data = ''):
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        filename = self.socket_filename
-        try:
-            s.connect(filename)
-        except socket.error, e:
-            raise BTFailure('Could not send command: ' + str(e))
-        r = MessageReceiver(lambda action, data: None)
-        conn = rawserver.wrap_socket(s, r, ip = s.getpeername())
-        conn.write(tobinary(len(action)))
-        conn.write(action)
-        conn.write(tobinary(len(data)))
-        conn.write(data)
 
     # blocking version without rawserver
     def send_command_unix(self, action, data=''):

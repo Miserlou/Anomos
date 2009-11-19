@@ -28,8 +28,7 @@ import hashlib
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading, util
 from M2Crypto.m2 import X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT as ERR_SELF_SIGNED
-from Anomos import BTFailure
-from Anomos.platform import bttime
+from Anomos import bttime, tobinary, BTFailure
 
 CTX_VERIFY_FLAGS = SSL.verify_peer | SSL.verify_fail_if_no_peer_cert
 
@@ -77,35 +76,31 @@ def initCrypto(data_dir):
         return rb
     getRand = randfunc
     copyDefCerts()
-    
+
 def copyDefCerts():
     ##If we haven't done it yet, move the default certificates to the user's data folder
-    
+
     global global_certpath, global_dd
     global_certpath = os.path.join(global_cryptodir, 'default_certificates')
-    
+
     if not os.path.exists(global_certpath):
         app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
         shutil.copytree(os.path.join(app_root, 'default_certificates'), global_certpath)
-    
+
 def getDefaultCerts():
     global global_certpath, global_dd
     global_certpath = os.path.join(global_cryptodir, 'default_certificates')
     return os.listdir(global_certpath)
-    
+
 def getCertPath():
     global global_certpath
     return global_certpath
-    
+
 def compareCerts(c1, c2):
     if (c1.get_fingerprint('sha256') == c2.get_fingerprint('sha256')):
         return True
     else:
         return False
-    
-
-def tobinary(i):
-    return (chr(i >> 24) + chr((i >> 16) & 0xFF) + chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class Certificate:
     def __init__(self, loc=None, secure=False, tracker=False):
@@ -135,6 +130,8 @@ class Certificate:
         if self.secure:
             self.rsakey = RSA.load_key(self.keyfile)
         else:
+            #TODO: Allow users to specify a password to unlock their
+            # certificates.
             self.rsakey = RSA.load_key(self.keyfile, util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
@@ -148,8 +145,6 @@ class Certificate:
             self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
         else:
             # Save the key unencrypted.
-            # TODO: Find workaround, M2Crypto doesn't include the function to load
-            # a cert from memory, storing them unencrypted on disk isn't safe.
             self.rsakey.save_key(self.keyfile, None, callback=util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None, callback=util.no_passphrase_callback)
         # Make the public key
@@ -158,7 +153,7 @@ class Certificate:
         # Generate the certificate
         self.cert = X509.X509()
         self.cert.set_serial_number(long(bttime()))
-        self.cert.set_version(2)
+        self.cert.set_version(0x2)
         self.cert.set_pubkey(pkey)
         # Set the name on the certificate
         name = X509.X509_Name()
@@ -178,7 +173,7 @@ class Certificate:
     def getContext(self):
         #XXX: This is almost definitely not secure.
         #for instance, ctx.set_verify needs a proper callback.
-        ctx = SSL.Context("sslv23") # Defaults to SSLv23
+        ctx = SSL.Context("tlsv1")
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
         ctx.set_verify(CTX_VERIFY_FLAGS, 0, lambda x,y: True)
         ctx.set_allow_unknown_ca(1)
@@ -195,7 +190,7 @@ class Certificate:
     def getVerifiedContext(self, pem):
         global global_cryptodir
         cloc = os.path.join(global_cryptodir, pem)
-        ctx = SSL.Context("sslv23") # Defaults to SSLv23
+        ctx = SSL.Context("tlsv1") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
         ctx.load_verify_locations(cafile=cloc)
         ctx.set_allow_unknown_ca(1)

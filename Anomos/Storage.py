@@ -17,8 +17,6 @@ import os
 from bisect import bisect_right
 from array import array
 
-from Anomos.obsoletepythonsupport import *
-
 from Anomos import BTFailure
 
 

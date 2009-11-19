@@ -13,13 +13,13 @@
 
 # Written by Uoti Urpala
 
-from Anomos.platform import bttime
+from Anomos import bttime
 
 class RateLimiter(object):
 
     def __init__(self, sched):
         self.sched = sched
-        self.last = None
+        self.tail = None
         self.upload_rate = 1e10
         self.unitsize = 1e10
         self.offset_amount = 0
@@ -41,14 +41,17 @@ class RateLimiter(object):
 
     def queue(self, conn):
         assert conn.next_upload is None
-        if self.last is None:
-            self.last = conn
+        if self.tail is None:
+            # Queue is empty, add the connection and give it a chance
+            # to send its messages.
+            self.tail = conn
             conn.next_upload = conn
             self.try_send(True)
         else:
-            conn.next_upload = self.last.next_upload
-            self.last.next_upload = conn
-            self.last = conn
+            # Queue is non-empty, add the connection to the tail of it
+            conn.next_upload = self.tail.next_upload
+            self.tail.next_upload = conn
+            self.tail = conn
 
     def try_send(self, check_time=False):
         t = bttime()
@@ -56,34 +59,39 @@ class RateLimiter(object):
         self.lasttime = t
         if check_time:
             self.offset_amount = max(self.offset_amount, 0)
-        cur = self.last.next_upload
+        cur = self.tail.next_upload
         while self.offset_amount <= 0:
             try:
                 bytes = cur.send_partial(self.unitsize)
             except KeyboardInterrupt:
                 raise
             except Exception, e:
-                cur.owner.context.got_exception(e)
+                cur.got_exception(e)
+                cur = self.tail.next_upload
                 bytes = 0
 
             self.offset_amount += bytes
-            if bytes == 0 or not cur.connection.is_flushed():
-                if self.last is cur:
-                    self.last = None
+            if bytes == 0 or not cur.is_flushed():
+                # Nothing was sent during the last send_partial
+                if self.tail is cur:
+                    # Cur was the only connection in the queue, so stop
+                    # trying to send messages.
+                    self.tail = None
                     cur.next_upload = None
                     break
                 else:
-                    self.last.next_upload = cur.next_upload
+                    # Dequeue cur
+                    self.tail.next_upload = cur.next_upload
                     cur.next_upload = None
-                    cur = self.last.next_upload
+                    cur = self.tail.next_upload
             else:
-                self.last = cur
+                self.tail = cur
                 cur = cur.next_upload
         else:
             self.sched(self.try_send, self.offset_amount / self.upload_rate)
 
     def clean_closed(self):
-        if self.last is None:
+        if self.tail is None:
             return
         class Dummy(object):
             def __init__(self, next):
@@ -91,13 +99,13 @@ class RateLimiter(object):
             def send_partial(self, size):
                 return 0
             closed = False
-        orig = self.last
-        if self.last.closed:
-            self.last = Dummy(self.last.next_upload)
-        c = self.last
+        orig = self.tail
+        if self.tail.closed:
+            self.tail = Dummy(self.tail.next_upload)
+        c = self.tail
         while True:
             if c.next_upload is orig:
-                c.next_upload = self.last
+                c.next_upload = self.tail
                 break
             if c.next_upload.closed:
                 c.next_upload = Dummy(c.next_upload.next_upload)

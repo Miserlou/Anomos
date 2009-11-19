@@ -15,17 +15,15 @@
 
 import os
 import sys
-from bisect import insort
 import socket
+from bisect import insort
 from cStringIO import StringIO
 from traceback import print_exc
-from errno import EWOULDBLOCK, ENOBUFS
-from Anomos.platform import bttime
-from Anomos import INFO, CRITICAL, WARNING, FAQ_URL
-from Anomos import crypto
+from errno import ENOBUFS
+from Anomos import FAQ_URL, bttime, LOG as log
+from Anomos.SingleSocket import SingleSocket
 from M2Crypto import SSL
 from threading import Thread
-import random
 
 try:
     from select import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
@@ -34,106 +32,8 @@ except ImportError:
     from Anomos.selectpoll import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1
 
-class SingleSocket(object):
-
-    def __init__(self, rawserver, sock, handler, context, ip=None):
-        self.rawserver = rawserver
-        self.socket = sock
-        self.handler = handler
-        self.context = context
-        self.buffer = []
-        self.last_hit = bttime()
-        self.fileno = sock.fileno()
-        self.connected = False
-        self.peer_cert = sock.get_peer_cert()
-        if ip is not None:
-            self.ip = ip
-        else: # Try to get the IP from the socket
-            try:
-                peername = self.socket.getpeername()
-            except SSL.SSLError:
-                self.ip = 'unknown'
-            else:
-                try:
-                    self.ip = peername[0]
-                except:
-                    assert isinstance(peername, basestring)
-                    self.ip = peername # UNIX socket, not really ip
-
-    def recv(self, bufsize=65536):
-        if self.socket is not None:
-            return self.socket.recv(bufsize)
-        #XXX: This should never happen. Instead, this SingleSocket should be destroyed after the transfer was finished.
-        else:
-            self.rawserver.errorfunc(WARNING, "recv with no socket")
-            return None
-
-    def has_socket(self):
-        return self.socket is not None
-
-
-    def _set_shutdown(self, opt=SSL.SSL_RECEIVED_SHUTDOWN|SSL.SSL_SENT_SHUTDOWN):
-        self.socket.set_shutdown(opt)
-
-    def _clear_state(self):
-        self.socket = None
-        self.buffer = []
-        self.handler = None
-        self.buffer = None
-        self.connected = False
-
-    def close(self):
-        self._set_shutdown()
-        self.socket.close()
-        self._clear_state()
-        del self.rawserver.single_sockets[self.fileno]
-        self.rawserver.poll.unregister(self.fileno)
-
-#    def clear(self):
-#        self._set_shutdown()
-#        self.socket.clear()
-#        self._clear_state()
-
-    def is_flushed(self):
-        return len(self.buffer) == 0
-
-    def write(self, s):
-        if self.socket is not None:
-            self.buffer.append(s)
-            if len(self.buffer) == 1:
-                self.try_write()
-        else:
-            self.rawserver.dead_from_write.append(self)
-
-    def try_write(self):
-        if self.connected:
-            try:
-                while self.buffer:
-                    amount = self.socket.send(self.buffer[0])
-                    if amount != len(self.buffer[0]):
-                        if amount != 0:
-                            self.buffer[0] = self.buffer[0][amount:]
-                        break
-                    del self.buffer[0]
-            except SSL.SSLError, e:
-                code, msg = e
-                if code != EWOULDBLOCK:
-                    #self.rawserver.add_task(self.rawserver._safe_shutdown, self)
-                    self.rawserver.dead_from_write.append(self)
-                    return
-        if self.buffer == []:
-            self.rawserver.poll.register(self.socket, POLLIN)
-        else:
-            self.rawserver.poll.register(self.socket, POLLIN | POLLOUT)
-
-def default_error_handler(x, y):
-    print x, y
-
-
 class RawServer(object):
-
-    def __init__(self, doneflag, config, certificate, noisy=True,
-            errorfunc=default_error_handler, bindaddr='', tos=0):
+    def __init__(self, doneflag, config, certificate, noisy=True, bindaddr='', tos=0):
         self.config = config
         self.bindaddr = bindaddr
         self.certificate = certificate
@@ -143,7 +43,6 @@ class RawServer(object):
         self.dead_from_write = []
         self.doneflag = doneflag
         self.noisy = noisy
-        self.errorfunc = errorfunc
         self.funcs = []
         self.externally_added_tasks = []
         self.listening_handlers = {}
@@ -215,20 +114,22 @@ class RawServer(object):
 
     def _start_ssl_connection(self, dns, handler=None, context=None,
             session=None, do_bind=True, timeout=15): #TODO: Is timeout long enough?
-        self.errorfunc(INFO, "Starting SSL Connection to %s" % str(dns))
+
+        def threadsafe_log():
+            log.info("Starting SSL Connection to %s" % str(dns))
+        self.external_add_task(threadsafe_log, 0)
 
         sock = SSL.Connection(self.certificate.getContext())
         if session:
             sock.set_session(session)
         sock.set_socket_read_timeout(SSL.timeout(timeout))
         sock.set_socket_write_timeout(SSL.timeout(timeout))
-        #TODO: Better post connection check, this just ensures that the peer
-        #      returned a cert
+        #XXX: Write a better post connection check. This one only
+        #     ensures that the peer returned a cert
         sock.set_post_connection_check_callback(lambda x,y: x != None)
         try:
             sock.connect(dns)
         except Exception, e:
-            #TODO: verify this is the correct behavior
             sock.close()
             if handler:
                 def fail():
@@ -241,19 +142,11 @@ class RawServer(object):
 
     def register_sock(self, sock, dns, handler=None, context=None):
         self.poll.register(sock, POLLIN)
-        s = SingleSocket(self, sock, handler, context, dns[0])
+        s = SingleSocket(self, sock, handler, context, peer_ip=dns[0])
         self.single_sockets[sock.fileno()] = s
         if handler:
             handler.sock_success(s, dns)
         return s
-
-
-#    def wrap_socket(self, sock, handler, context=None, ip=None):
-#        sock.setblocking(0)
-#        self.poll.register(sock, POLLIN)
-#        s = SingleSocket(self, sock, handler, context, ip)
-#        self.single_sockets[sock.fileno()] = s
-#        return s
 
     def _handle_events(self, events):
         for sock, event in events:
@@ -262,7 +155,7 @@ class RawServer(object):
                 if event & (POLLHUP | POLLERR):
                     s.close()
                     self.stop_listening(s)
-                    self.errorfunc(CRITICAL, 'lost server socket')
+                    log.critical('lost server socket')
                 else:
                     self._handle_connection_attempt(sock)
             else:
@@ -287,7 +180,8 @@ class RawServer(object):
                             self._make_wrapped_call(s.handler.data_came_in, \
                                                     (s, data), s)
                     except SSL.SSLError, errstr:
-                        #TODO: Log error message
+                        if "unexpected eof" not in errstr:
+                            log.warning("SSLError: " + str(errstr))
                         self._safe_shutdown(s)
                 # data_came_in could have closed the socket (s.socket = None)
                 if event & POLLOUT and s.socket is not None:
@@ -304,14 +198,12 @@ class RawServer(object):
         try:
             newsock, addr = s.accept()
             conn = SSL.Connection(self.certificate.getContext(), newsock)
-            #TODO: Add post connection check
-            #conn.set_post_connection_check_callback(...)
             conn.setup_addr(addr)
             conn.set_accept_state()
             conn.setup_ssl()
             conn.accept_ssl()
         except SSL.SSLError, e:
-            self.errorfunc(WARNING, "Error handling accepted "\
+            log.warning("Error handling accepted "\
                            "connection: " + str(e))
         else:
             nss = SingleSocket(self, conn, handler, context)
@@ -357,7 +249,7 @@ class RawServer(object):
                 else:
                     code = e
                 if code == ENOBUFS:
-                    self.errorfunc(CRITICAL, "Have to exit due to the TCP " \
+                    log.critical("Have to exit due to the TCP " \
                                    "stack flaking out. " \
                                    "Please see the FAQ at %s"%FAQ_URL)
                     break
@@ -367,7 +259,7 @@ class RawServer(object):
             except:
                 data = StringIO()
                 print_exc(file=data)
-                self.errorfunc(CRITICAL, data.getvalue())
+                log.critical(data.getvalue())
                 break
 
     def _make_wrapped_call(self, function, args, socket=None, context=None):
@@ -385,7 +277,7 @@ class RawServer(object):
             if self.noisy and context is None:
                 data = StringIO()
                 print_exc(file=data)
-                self.errorfunc(CRITICAL, data.getvalue())
+                log.critical(data.getvalue())
             if context is not None:
                 context.got_exception(e)
 
@@ -398,22 +290,11 @@ class RawServer(object):
     def _safe_shutdown(self, s):
         if s.socket is not None:
              self._close_socket(s)
-#            if not s.socket.get_shutdown():
-#                self._clear_socket(s)
-#            else:
-#                self._close_socket(s)
 
     def _close_socket(self, s):
         sock = s.socket.fileno()
         self._make_wrapped_call(s.handler.connection_lost, (s,), s)
         s.close()
-
-#    def _clear_socket(self, s):
-#        sock = s.socket.fileno()
-#        self._make_wrapped_call(s.handler.connection_lost, (s,), s)
-#        self.poll.unregister(sock)
-#        del self.single_sockets[sock]
-#        s.clear()
 
     def numsockets(self):
         return len(self.single_sockets)

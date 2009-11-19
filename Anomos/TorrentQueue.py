@@ -13,56 +13,41 @@
 
 # Written by Uoti Urpala
 
-from __future__ import division
-
 import os
 import sys
 import threading
 
-from Anomos.platform import bttime
+from Anomos import bttime
 from Anomos.download import Feedback, Multitorrent
 from Anomos.controlsocket import ControlSocket
 from Anomos.bencode import bdecode
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
-from Anomos import BTFailure, BTShutdown, INFO, WARNING, ERROR, CRITICAL
+from Anomos import BTFailure, BTShutdown
 from Anomos import configfile
+from Anomos import LOG as log
+from Anomos.Torrent import Torrent
 import Anomos
 
 # check if dns library from http://www.dnspython.org/ is either installed
 # or the dns subdirectory has been copied to BitTorrent/dns
-HAVE_DNS = False
-try:
-    from Anomos import dns
-    sys.modules['dns'] = dns
-    import dns.resolver
-    HAVE_DNS = True
-except:
-    try:
-        import dns.resolver
-        HAVE_DNS = True
-    except:
-        pass
+#HAVE_DNS = False
+#try:
+#    from Anomos import dns
+#    sys.modules['dns'] = dns
+#    import dns.resolver
+#    HAVE_DNS = True
+#except:
+#    try:
+#        import dns.resolver
+#        HAVE_DNS = True
+#    except:
+#        pass
 
 RUNNING = 0
 RUN_QUEUED = 1
 QUEUED = 2
 KNOWN = 3
 ASKING_LOCATION = 4
-
-
-class TorrentInfo(object):
-
-    def __init__(self):
-        self.metainfo = None
-        self.dlpath = None
-        self.dl = None
-        self.state = None
-        self.completion = None
-        self.finishtime = None
-        self.uptotal = 0
-        self.uptotal_old = 0
-        self.downtotal = 0
-        self.downtotal_old = 0
 
 
 def decode_position(l, pred, succ, default=None):
@@ -95,6 +80,8 @@ class TorrentQueue(Feedback):
         self.controlsocket = controlsocket
         self.config['def_running_torrents'] = 1 # !@# XXX
         self.config['max_running_torrents'] = 3 # !@# XXX
+        self.next_torrent_ratio = float(self.config['next_torrent_ratio'])
+        self.last_torrent_ratio = float(self.config['last_torrent_ratio'])
         self.doneflag = threading.Event()
         self.torrents = {}
         self.starting_torrent = None
@@ -104,17 +91,10 @@ class TorrentQueue(Feedback):
         self.last_save_time = 0
         self.last_version_check = 0
 
-    def get_relay_stats(self):
-        rate = self.multitorrent.get_relay_rate()
-        size = self.multitorrent.get_relay_size()
-        sent = self.multitorrent.get_relay_sent()
-        return {'rate' : rate, 'size' : size, 'sent' : sent}
-
     def run(self, ui, ui_wrap, startflag):
         self.ui = ui
         self.run_ui_task = ui_wrap
-        self.multitorrent = Multitorrent(self.config, self.doneflag,
-                                        self.global_error, listen_fail_ok=True)
+        self.multitorrent = Multitorrent(self.config, self.doneflag, listen_fail_ok=True)
         self.rawserver = self.multitorrent.rawserver
         self.controlsocket.set_rawserver(self.rawserver)
         self.controlsocket.start_listening(self.external_command)
@@ -124,7 +104,7 @@ class TorrentQueue(Feedback):
             self.queue = []
             self.other_torrents = []
             self.torrents = {}
-            self.global_error(ERROR, "Could not load saved state: "+str(e))
+            self.global_error("ERROR", "Could not load saved state: "+str(e))
         else:
             for infohash in self.running_torrents + self.queue + \
                     self.other_torrents:
@@ -141,7 +121,7 @@ class TorrentQueue(Feedback):
         self._check_queue()
         startflag.set()
         self._queue_loop()
-        self._check_version()
+        #self._check_version()
         self.multitorrent.rawserver.listen_forever()
         self.multitorrent.close_listening_socket()
         self.controlsocket.close_socket()
@@ -156,66 +136,64 @@ class TorrentQueue(Feedback):
                 t.downtotal = t.downtotal_old + totals[1]
         self._dump_state()
 
-    def _check_version(self):
-        now = bttime()
-        if self.last_version_check > now - 24*3600:
-            return
-        self.last_version_check = now
-        if not HAVE_DNS:
-            self.global_error(WARNING, "Version check failed: no DNS library")
-            return
-        threading.Thread(target=self._version_thread).start()
+    #TODO: Would be a neat feature, let's add version checking back in at some
+    #      point
+    #def _check_version(self):
+    #    now = bttime()
+    #    if self.last_version_check > now - 24*3600:
+    #        return
+    #    self.last_version_check = now
+    #    if not HAVE_DNS:
+    #        log.warning("Version check failed: no DNS library")
+    #        return
+    #    threading.Thread(target=self._version_thread).start()
 
-    def getnumsocks(self):
-        return self.rawserver.numsockets()
-
-    def _version_thread(self):
-        def error(level, text):
-            def f():
-                self.global_error(level, text)
-            self.rawserver.external_add_task(f, 0)
-        def splitversion(text):
-            return [int(t) for t in text.split('.')]
-        try:
-            try:
-                a = dns.resolver.query('version.bittorrent.com', 'TXT')
-            except:
-                # the exceptions from the library have empty str(),
-                # just different classes...
-                raise BTFailure('DNS query failed')
-            if len(a) != 1:
-                raise BTFailure('number of received TXT fields is not 1')
-            value = iter(a).next() # the object doesn't support a[0]
-            if len(value.strings) != 1:
-                raise BTFailure('number of strings in reply is not 1?')
-            s = value.strings[0].split(None, 2)
-            myversion = splitversion(Anomos.version)
-            if myversion[1] % 2 and len(s) > 1:
-                s = s[1]
-            else:
-                s = s[0]
-            try:
-                latest = splitversion(s)
-            except ValueError:
-                raise BTFailure("Could not parse new version string")
-            for my, new in zip(myversion, latest):
-                if my > new:
-                    break
-                if my < new:
-                    download_url = 'http://www.anomos.info'
-                    if hasattr(self.ui, 'new_version'):
-                        self.run_ui_task(self.ui.new_version, s,
-                                         download_url)
-                    else:
-                        error(ERROR, "A newer version of Anomos is "
-                              "available.\nYou can always get the latest "
-                              "version from\n%s." % download_url)
-        except Exception, e:
-            error(WARNING, "Version check failed: " + str(e))
+    #def _version_thread(self):
+    #    def error(level, text):
+    #        def f():
+    #            log.level(text)
+    #        self.rawserver.external_add_task(f, 0)
+    #    def splitversion(text):
+    #        return [int(t) for t in text.split('.')]
+    #    try:
+    #        try:
+    #            a = dns.resolver.query('version.bittorrent.com', 'TXT')
+    #        except:
+    #            # the exceptions from the library have empty str(),
+    #            # just different classes...
+    #            raise BTFailure('DNS query failed')
+    #        if len(a) != 1:
+    #            raise BTFailure('number of received TXT fields is not 1')
+    #        value = iter(a).next() # the object doesn't support a[0]
+    #        if len(value.strings) != 1:
+    #            raise BTFailure('number of strings in reply is not 1?')
+    #        s = value.strings[0].split(None, 2)
+    #        myversion = splitversion(Anomos.version)
+    #        if myversion[1] % 2 and len(s) > 1:
+    #            s = s[1]
+    #        else:
+    #            s = s[0]
+    #        try:
+    #            latest = splitversion(s)
+    #        except ValueError:
+    #            raise BTFailure("Could not parse new version string")
+    #        for my, new in zip(myversion, latest):
+    #            if my > new:
+    #                break
+    #            if my < new:
+    #                download_url = 'http://www.anomos.info'
+    #                if hasattr(self.ui, 'new_version'):
+    #                    self.run_ui_task(self.ui.new_version, s,
+    #                                     download_url)
+    #                else:
+    #                    error(ERROR, "A newer version of Anomos is "
+    #                          "available.\nYou can always get the latest "
+    #                          "version from\n%s." % download_url)
+    #    except Exception, e:
+    #        error(WARNING, "Version check failed: " + str(e))
 
     def _dump_config(self):
-        configfile.save_ui_config(self.config, 'btdownloadgui',
-                               self.ui_options, self.global_error)
+        configfile.save_ui_config(self.config, 'anondownloadgui', self.ui_options)
 
     def _dump_state(self):
         self.last_save_time = bttime()
@@ -244,7 +222,7 @@ class TorrentQueue(Feedback):
             f.write(''.join(r))
             f.close()
         except Exception, e:
-            self.global_error(ERROR, 'Could not save UI state: ' + str(e))
+            self.global_error("ERROR", 'Could not save UI state: ' + str(e))
             if f is not None:
                 f.close()
 
@@ -268,22 +246,22 @@ class TorrentQueue(Feedback):
                     f.close()
                 except:
                     pass
-                self.global_error(ERROR,"Error reading file "+path+" ("+str(e)+
-                                  "), cannot restore state completely")
+                self.global_error("ERROR", "Error reading file %s (%s), \
+                            cannot restore state completely" % (path, str(e)))
                 return None
             if infohash in self.torrents:
                 raise BTFailure("Invalid state file (duplicate entry)")
-            t = TorrentInfo()
+            t = Torrent(infohash)
             self.torrents[infohash] = t
             try:
                 t.metainfo = ConvertedMetainfo(bdecode(data))
             except Exception, e:
-                self.global_error(ERROR, "Corrupt data in "+path+
+                self.global_error("ERROR", "Corrupt data in "+path+
                                   " , cannot restore torrent ("+str(e)+")")
                 return None
             t.metainfo.reported_errors = True # suppress redisplay on restart
             if infohash != t.metainfo.infohash:
-                self.global_error(ERROR, "Corrupt data in "+path+
+                self.global_error("ERROR", "Corrupt data in "+path+
                                   " , cannot restore torrent ("+str(e)+")")
                 return None
             if len(line) == 41:
@@ -378,10 +356,10 @@ class TorrentQueue(Feedback):
         now = bttime()
         if self.queue and self.starting_torrent is None:
             mintime = now - self.config['next_torrent_time'] * 60
-            minratio = self.config['next_torrent_ratio'] / 100
+            minratio = self.next_torrent_ratio / 100
         else:
             mintime = 0
-            minratio = self.config['last_torrent_ratio'] / 100
+            minratio = self.last_torrent_ratio / 100
             if not minratio:
                 return
         for infohash in self.running_torrents:
@@ -472,7 +450,7 @@ class TorrentQueue(Feedback):
         if action == 'start_torrent':
             self.start_new_torrent(data)
         elif action == 'show_error':
-            self.global_error(ERROR, data)
+            self.global_error("ERROR", data)
         elif action == 'no-op':
             pass
 
@@ -494,8 +472,8 @@ class TorrentQueue(Feedback):
         try:
             os.remove(filename)
         except Exception, e:
-            self.global_error(WARNING, 'Could not delete cached metainfo file:'
-                              + str(e))
+            self.global_error("WARNING", 'Could not delete cached metainfo file:'
+                                          + str(e))
         self._dump_state()
 
     def set_save_location(self, infohash, dlpath):
@@ -513,16 +491,17 @@ class TorrentQueue(Feedback):
             self._dump_state()
 
     def start_new_torrent(self, data):
-        t = TorrentInfo()
+        t = Torrent()
         try:
             t.metainfo = ConvertedMetainfo(bdecode(data))
         except Exception, e:
-            self.global_error(ERROR, "This is not a valid torrent file. (%s)"
+            self.global_error("ERROR", "This is not a valid torrent file. (%s)"
                               % str(e))
             return
         infohash = t.metainfo.infohash
+        t.infohash = t.metainfo.infohash
         if infohash in self.torrents:
-            self.global_error(ERROR, "Cannot start another torrent with the "
+            self.global_error("ERROR", "Cannot start another torrent with the "
                               "same contents (infohash) as an existing one")
             return
         path = os.path.join(self.config['data_dir'], 'metainfo',
@@ -536,7 +515,7 @@ class TorrentQueue(Feedback):
                 f.close()
             except:
                 pass
-            self.global_error(ERROR, 'Could not write file '+path+' ('+str(e)+
+            self.global_error("ERROR", 'Could not write file '+path+' ('+str(e)+
                               '), torrent will not be restarted correctly on '
                               'client restart')
         self.torrents[infohash] = t
@@ -578,11 +557,11 @@ class TorrentQueue(Feedback):
             now = bttime()
             uptotal = status['upTotal'] + torrent.uptotal_old
             downtotal = status['downTotal'] + torrent.downtotal_old
-            ulspeed = status['upRate2']
+            ulspeed = status['upRate']
             if self.queue:
-                ratio = self.config['next_torrent_ratio'] / 100
+                ratio = self.next_torrent_ratio / 100
             else:
-                ratio = self.config['last_torrent_ratio'] / 100
+                ratio = self.last_torrent_ratio / 100
             if ratio <= 0 or ulspeed <= 0:
                 rem = 1e99
             else:
@@ -609,7 +588,7 @@ class TorrentQueue(Feedback):
 
     def change_torrent_state(self, infohash, oldstate, newstate=None,
                      pred=None, succ=None, replaced=None, force_running=False):
-        self._check_version()
+        #self._check_version()
         t = self.torrents.get(infohash)
         if t is None or (t.state != oldstate and not (t.state == RUN_QUEUED and
                                                       oldstate == RUNNING)):
@@ -730,9 +709,9 @@ class TorrentQueue(Feedback):
         if infohash == self.starting_torrent:
             t = self.torrents[infohash]
             if self.queue:
-                ratio = self.config['next_torrent_ratio'] / 100
+                ratio = self.next_torrent_ratio / 100
             else:
-                ratio = self.config['last_torrent_ratio'] / 100
+                ratio = self.last_torrent_ratio / 100
             if ratio and t.uptotal >= t.downtotal * ratio:
                 raise BTShutdown("Not starting torrent as it already meets "
                                "the current settings for when to stop seeding")

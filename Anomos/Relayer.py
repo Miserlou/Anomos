@@ -15,121 +15,121 @@
 
 # Written by Rich Jones, John Schanck
 
-from Anomos.Connecter import AnomosFwdLink
-from Anomos.CurrentRateMeasure import Measure
-from Anomos import INFO, CRITICAL, WARNING
-from threading import Thread
+from Anomos.Protocol.AnomosRelayerProtocol import AnomosRelayerProtocol
+from Anomos.Measure import Measure
+from Anomos import LOG as log
 
-class Relayer(object):
+class Relayer(AnomosRelayerProtocol):
     """ As a tracking code is being sent, each peer it reaches (other than the
         uploader and downloader) creates a Relayer object to maintain the
         association between the incoming socket and the outgoing socket (so
         that the TC only needs to be sent once).
     """
-    def __init__(self, rawserver, neighbors, incoming, outnid, config, max_rate_period=20.0):
+    def __init__(self, stream_id, neighbor, outnid, data=None, orelay=None):
                     #storage, uprate, downrate, choker, key):
-        self.rawserver = rawserver
-        self.neighbors = neighbors
-        self.errorfunc = rawserver.errorfunc
-        self.incoming = incoming
-        self.outgoing = None
-        self.connections = {self.incoming:None}
-        self.config = config
+        AnomosRelayerProtocol.__init__(self)
+        self.stream_id = stream_id
+        self.neighbor = neighbor
+        self.manager = neighbor.manager
+        self.ratelimiter = neighbor.ratelimiter
+        self.measurer = self.manager.relay_measure
         self.choked = True
-        self.unchoke_time = None
-        self.uprate = Measure(max_rate_period)
-        self.downrate = Measure(max_rate_period)
-        self.sent = 0
-        self.buffer = []
+        self.pre_complete_buffer = []
         self.complete = False
+        self.closed = False
+        self.next_upload = None
+        self.decremented_count = False # Hack to prevent double decrementing of relay count
+        self.locked = False
+        self.orelay = orelay
+        # Make the other relayer which we'll send data through
+        if orelay is None:
+            self.manager.make_relay(outnid, data, self)
+        elif data is not None:
+            self.send_tracking_code(data)
 
-        self.tmpnid = outnid
-        self.start_connection(outnid)
-        self.rawserver.add_task(self.check_if_established, 1)
+    def set_other_relay(self, r):
+        self.orelay = r
 
-    def check_if_established(self):
-        if self.outgoing:
-            for msg in self.buffer:
-                self.relay_message(self.incoming, msg)
-            self.buffer = []
+    def set_measurer(self, measurer):
+        self.measurer = measurer
+
+    def _complete_relay_message(self, msg):
+        if not self.orelay.closed:
+            self.orelay.send_relay_message(msg)
+
+    def relay_message(self, msg):
+        if self.complete:
+            self.relay_message = self._complete_relay_message
+            self.relay_message(msg)
         else:
-            self.rawserver.add_task(self.check_if_established, 1)
+            self.pre_complete_buffer.append(msg)
 
-    def start_connection(self, nid):
-        loc = self.neighbors.get_location(nid)
-        ssls = self.neighbors.get_ssl_session(nid)
-        self.rawserver.start_ssl_connection(loc, handler=self, session=ssls)
+    def send_partial(self, bytes):
+        if self.closed:
+            return 0
+        b = self.neighbor.send_partial(self.stream_id, bytes)
+        self.measurer.update_rate(b)
+        return b
 
-    def sock_success(self, sock, loc):
-        if self.connections.has_key(sock):
+    def connection_completed(self):
+        log.info("Relay connection [%02x:%d] established" %
+                            (int(ord(self.neighbor.id)),self.stream_id))
+        self.complete = True
+        self.flush_pre_buffer()
+        self.orelay.complete = True
+        self.orelay.flush_pre_buffer()
+
+    def connection_flushed(self):
+        if self.should_queue():
+            self.ratelimiter.queue(self)
+
+    def should_queue(self):
+        return self.next_upload is None and self.neighbor.in_queue(self.stream_id)
+
+    def close(self):
+        # Connection was closed locally (as opposed to
+        # being closed by receiving a BREAK message)
+        if self.closed:
+            log.warning("Double close")
             return
-        con = AnomosFwdLink(self, sock, self.tmpnid, established=True)
-        sock.handler = con
-        self.errorfunc(INFO, "Relay connection started")
-        self.outgoing = con
-        self.connections = {self.incoming:self.outgoing, self.outgoing:self.incoming}
+        log.info("Closing %s"%self.uniq_id())
+        self.send_break()
+        self.shutdown()
 
-    def sock_fail(self, loc, err=None):
-        if err:
-            self.errorfunc(WARNING, err)
-        #TODO: Do something with error message
+    def shutdown(self):
+        if self.closed:
+            log.warning("Double close")
+            return
+        self.closed = True
+        if not self.complete:
+            return
+        if not (self.decremented_count or self.orelay.decremented_count):
+            self.manager.dec_relay_count()
+            self.decremented_count = True
+        # Tell our orelay to close.
+        if not self.orelay.closed:
+            self.orelay.ore_closed()
 
-    def relay_message(self, con, msg):
-        if self.connections.has_key(con) and self.connections[con] is not None:
-            self.uprate.update_rate(len(msg))
-            self.sent += len(msg)
-            self.connections[con].send_relay_message(msg)
-        elif not self.complete: # 'con' is incomming connection, and the
-                                # connection isn't complete, which means the relay
-                                # connection hasn't been established yet. Buffer
-                                # messages until it has been.
-            #TODO: buffer size control, message rejection after a certain point.
-            self.buffer.append(msg)
+    def ore_closed(self):
+        ''' Closes the connection when a Break has been received by our
+            other relay (ore). Called by this object's ore during
+            shutdown '''
+        if self.closed:
+            log.warning("Double close")
+            return
+        self.send_break()
 
-    def connection_closed(self, sock):
-        if sock == self.incoming.connection:
-            self.outgoing.close()
-        elif sock == self.outgoing.connection:
-            self.incoming.close()
+    def flush_pre_buffer(self):
+        for msg in self.pre_complete_buffer:
+            self.relay_message(msg)
+        self.pre_complete_buffer = []
 
-    def connection_completed(self, con):
-        self.errorfunc(INFO, "Relay connection established")
-        con.is_relay = True
+    def is_flushed(self):
+        return self.neighbor.socket.is_flushed()
 
-    def get_rate(self):
-        return self.uprate.get_rate()
+    def got_exception(self, e):
+        if self.manager.deep_exception:
+            self.manager.deep_exception(e)
 
-    def get_sent(self):
-        return self.sent
-
-    def choke(self):
-        if not self.choked:
-            self.choked = True
-            self.outgoing.send_choke()
-
-    def unchoke(self, time):
-        if self.choked:
-            self.choked = False
-            self.unchoke_time = time
-            self.outgoing.send_unchoke()
-
-    def got_choke(self):
-        self.choke(self)
-        self.incoming.send_choke()
-
-    def got_unchoke(self, time):
-        self.unchoke(time)
-        self.incoming.send_unchoke()
-
-    #def sent_choke(self):
-    #    assert self.choked
-    #    del self.buffer[:]
-
-    def has_queries(self):
-        return len(self.buffer) > 0
-
-    def set_owner(self, obj):
-        self.owner = obj
-
-    def get_owner(self):
-        return self.owner
+    def uniq_id(self):
+        return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)

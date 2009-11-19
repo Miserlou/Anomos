@@ -1,0 +1,32 @@
+## Configuration options common to all interfaces
+[common]
+
+## GUI interface options
+[anondownloadgui]
+max_initiate = 200
+next_torrent_time = 99999
+next_torrent_ratio = 0
+dnd_behavior = add
+maxport = 5069
+min_uploads = 2
+ip = 
+donated = 
+last_torrent_ratio = 0
+max_files_open = 50
+tracker_proxy = 
+pause = 0
+max_upload_rate = 100
+display_interval = 0.5
+save_in = 
+auto_ip = 0
+ask_for_save = 1
+minport = 5061
+max_allow_in = 200
+max_uploads = -1
+
+## Curses interface options
+[anondownloadcurses]
+
+## Headless interface options
+[anondownloadheadless]
+

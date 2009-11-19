@@ -49,7 +49,7 @@ except:
        'Windows port of Python. It is however available for the Cygwin ' \
        'port of Python, running on all Win32 systems (www.cygwin.com).'
     print
-    print 'You may still use "btdownloadheadless.py" to download.'
+    print 'You may still use "anondownloadheadless.py" to download.'
     sys.exit(1)
 
 def fmttime(n):
@@ -98,6 +98,8 @@ class CursesDisplayer(object):
         self.progress = ''
         self.downRate = '---'
         self.upRate = '---'
+        self.relayRate = '---'
+        self.relayCount = 0
         self.shareRating = ''
         self.seedStatus = ''
         self.peerStatus = ''
@@ -153,11 +155,12 @@ class CursesDisplayer(object):
         self.labelwin.addstr(2, 0, 'dest:')
         self.labelwin.addstr(3, 0, 'progress:')
         self.labelwin.addstr(4, 0, 'status:')
-        self.labelwin.addstr(5, 0, 'dl speed:')
-        self.labelwin.addstr(6, 0, 'ul speed:')
-        self.labelwin.addstr(7, 0, 'sharing:')
-        self.labelwin.addstr(8, 0, 'seeds:')
-        self.labelwin.addstr(9, 0, 'peers:')
+        self.labelwin.addstr(5, 0, 'dl rate:')
+        self.labelwin.addstr(6, 0, 'ul rate:')
+        self.labelwin.addstr(7, 0, 're rate:')
+        self.labelwin.addstr(8, 0, 'sharing:')
+        self.labelwin.addstr(9, 0, 'seeds:')
+        self.labelwin.addstr(10, 0, 'peers:')
         curses.panel.update_panels()
         curses.doupdate()
         self.changeflag.clear()
@@ -180,6 +183,8 @@ class CursesDisplayer(object):
         timeEst = statistics.get('timeEst')
         downRate = statistics.get('downRate')
         upRate = statistics.get('upRate')
+        relayRate = statistics.get('relayRate')
+        relayCount = statistics.get('relayCount')
         spew = statistics.get('spew')
 
         inchar = self.fieldwin.getch()
@@ -206,6 +211,10 @@ class CursesDisplayer(object):
             self.downRate = '%.1f KB/s' % (downRate / (1 << 10))
         if upRate is not None:
             self.upRate = '%.1f KB/s' % (upRate / (1 << 10))
+        if relayCount is not None:
+            self.relayCount = relayCount
+        if relayRate is not None:
+            self.relayRate = '%.1f KB/s (%d)' % (relayRate / (1 << 10), self.relayCount)
         downTotal = statistics.get('downTotal')
         if downTotal is not None:
             upTotal = statistics['upTotal']
@@ -236,9 +245,10 @@ class CursesDisplayer(object):
         self.fieldwin.addnstr(4, 0, self.status, self.fieldw)
         self.fieldwin.addnstr(5, 0, self.downRate, self.fieldw)
         self.fieldwin.addnstr(6, 0, self.upRate, self.fieldw)
-        self.fieldwin.addnstr(7, 0, self.shareRating, self.fieldw)
-        self.fieldwin.addnstr(8, 0, self.seedStatus, self.fieldw)
-        self.fieldwin.addnstr(9, 0, self.peerStatus, self.fieldw)
+        self.fieldwin.addnstr(7, 0, self.relayRate, self.fieldw)
+        self.fieldwin.addnstr(8, 0, self.shareRating, self.fieldw)
+        self.fieldwin.addnstr(9, 0, self.seedStatus, self.fieldw)
+        self.fieldwin.addnstr(10, 0, self.peerStatus, self.fieldw)
 
         self.spewwin.erase()
 
@@ -325,8 +335,7 @@ class DL(Feedback):
             self.multitorrent.rawserver.external_add_task(self.reread_config,0)
         self.d = CursesDisplayer(scrwin, self.errlist, self.doneflag, reread)
         try:
-            self.multitorrent = Multitorrent(self.config, self.doneflag,
-                                             self.global_error)
+            self.multitorrent = Multitorrent(self.config, self.doneflag)
             # raises BTFailure if bad
             metainfo = ConvertedMetainfo(bdecode(self.metainfo))
             torrent_name = metainfo.name_fs
@@ -341,7 +350,7 @@ class DL(Feedback):
                 saveas = torrent_name
 
             self.d.set_torrent_values(metainfo.name, os.path.abspath(saveas),
-                                metainfo.total_bytes, len(metainfo.hashes))
+                                metainfo.file_size, len(metainfo.hashes))
             self.torrent = self.multitorrent.start_torrent(metainfo,
                                 self.config, self, saveas)
         except BTFailure, e:
@@ -354,7 +363,7 @@ class DL(Feedback):
 
     def reread_config(self):
         try:
-            newvalues = configfile.get_config(self.config, 'btdownloadcurses')
+            newvalues = configfile.get_config(self.config, 'anondownloadcurses')
         except Exception, e:
             self.d.error('Error reading config: ' + str(e))
             return
@@ -374,11 +383,11 @@ class DL(Feedback):
         status = self.torrent.get_status(self.config['spew'])
         self.d.display(status)
 
-    def global_error(self, level, text):
-        self.d.error(text)
+    #def global_error(self, level, text):
+    #    self.d.error(text)
 
-    def error(self, torrent, level, text):
-        self.d.error(text)
+    #def error(self, torrent, level, text):
+    #    self.d.error(text)
 
     def failed(self, torrent, is_external):
         self.doneflag.set()
@@ -388,7 +397,7 @@ class DL(Feedback):
 
 
 if __name__ == '__main__':
-    uiname = 'btdownloadcurses'
+    uiname = 'anondownloadcurses'
     defaults = get_defaults(uiname)
 
     if len(sys.argv) <= 1:

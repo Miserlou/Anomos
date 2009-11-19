@@ -20,12 +20,10 @@ import os
 from cStringIO import StringIO
 from traceback import print_exc
 
-from Anomos import configfile
 from Anomos.parsedir import parsedir
 from Anomos.download import Multitorrent, Feedback
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
-from Anomos import BTFailure
-from Anomos.platform import bttime
+from Anomos import bttime, configfile, BTFailure
 
 from threading import Event
 
@@ -51,8 +49,7 @@ class LaunchMany(Feedback):
             self.hashcheck_store = {}
             self.hashcheck_current = None
 
-            self.multitorrent = Multitorrent(config, self.doneflag,
-                                             self.global_error)
+            self.multitorrent = Multitorrent(config, self.doneflag)
             self.rawserver = self.multitorrent.rawserver
 
             self.rawserver.add_task(self.scan, 0)
@@ -147,8 +144,8 @@ class LaunchMany(Feedback):
                     uprate = stats['upRate']
                     upamt = s['upTotal']
                     dnamt = s['downTotal']
-                if d.errors and (d.closed or d.errors[-1][0] + 300 > bttime()):
-                    msg = d.errors[-1][2]
+                if d.messages and (d.closed or d.messages[-1][0] + 300 > bttime()):
+                    msg = d.messages[-1][2]
 
             data.append(( name, status, progress, peers, seeds, seedsmsg, dist,
                           uprate, dnrate, upamt, dnamt, size, t, msg ))
@@ -215,9 +212,6 @@ class LaunchMany(Feedback):
         if self.hashcheck_current == infohash:
             self.hashcheck_current = None
         self.check_hashcheck_queue()
-
-    def global_error(self, level, text):
-        self.output.message(text)
 
     def exchandler(self, s):
         self.output.exception(s)

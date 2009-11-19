@@ -12,18 +12,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 app_name = "Anomos"
-version = '0.0.0'
+version = '0.5.1'
 
 protocol_name = "Anomos"
 
 URL = 'http://www.anomos.info/'
-DONATE_URL = 'http://sourceforge.net/donate/index.php?group_id=203746'# + 'donate.html'
+DONATE_URL = URL+'donate'
 FAQ_URL = URL# + 'FAQ.html'
 HELP_URL = URL# + 'documentation.html'
 
 import sys
-assert sys.version_info >= (2, 2, 1), "Python 2.2.1 or newer required"
+#TODO: Check actual earliest supported version
+assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
 import os
+
+if sys.platform == 'win32':
+    from time import clock as bttime
+else:
+    from time import time as bttime
 
 def calc_unix_dirs():
     appdir = '%s-%s'%(app_name, version)
@@ -43,7 +49,7 @@ if app_root.startswith(os.path.join(sys.prefix,'bin')):
 # a cross-platform way to get user's home directory
 def get_config_dir():
     shellvars = ['${APPDATA}', '${HOME}', '${USERPROFILE}']
-    return get_dir_root(shellvars)
+    return os.path.join(get_dir_root(shellvars),'.anomos')
 
 def get_home_dir():
     shellvars = ['${HOME}', '${USERPROFILE}']
@@ -67,7 +73,6 @@ def get_dir_root(shellvars):
             dir_root = None
     return dir_root
 
-
 is_frozen_exe = (os.name == 'nt') and hasattr(sys, 'frozen') and (sys.frozen == 'windows_exe')
 
 if is_frozen_exe:
@@ -85,15 +90,60 @@ if is_frozen_exe:
             baseclass.write(self, text, fname=fname)
     sys.stderr = Stderr()
 
-del sys
+def ensure_minimum_config():
+    import shutil
+    app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
+    configdir = get_config_dir()
+    if not os.path.isdir(configdir):
+        try:
+            os.mkdir(configdir, 0700)
+            self.copy_config_skel(configdir)
+            shutil.copytree(os.path.join(app_root, 'default_config'), configdir)
+        except:
+            pass
+    else:
+        default_configs = os.path.join(app_root, 'default_config')
+        if not os.path.exists(os.path.join(configdir, 'config')):
+            shutil.copy(os.path.join(default_configs, 'config'), configdir)
+        if not os.path.exists(os.path.join(configdir, 'logging.conf')):
+            shutil.copy(os.path.join(default_configs, 'logging.conf'), configdir)
 
-INFO = 0
-WARNING = 1
-ERROR = 2
-CRITICAL = 3
+ensure_minimum_config()
+
+import logging.config
+##XXX: there is a bug here which happens the first time the program is run
+logging.config.fileConfig(os.path.join(get_config_dir(), 'logging.conf'))
+LOG = logging.getLogger()
+if sys.platform == 'win32':
+    map(LOG.removeHandler,\
+        [x for x in LOG.handlers if isinstance(x, logging.StreamHandler)])
+
+del sys
 
 class BTFailure(Exception):
     pass
 
 class BTShutdown(BTFailure):
     pass
+
+def trace_on_call(fn):
+    '''Starts PDB when the decorated method is called'''
+    import pdb
+    def ret_fn(self, *args, **kwargs):
+        pdb.set_trace()
+        return fn(self, *args, **kwargs)
+    return ret_fn
+
+def log_on_call(fn):
+    '''Logs a message when the decorated method is called'''
+    def ret_fn(self, *args, **kwargs):
+        LOG.info(self.uniq_id() + " calling %s" % fn.__name__)
+        return fn(self, *args, **kwargs)
+    return ret_fn
+
+def toint(s):
+    return int(b2a_hex(s), 16)
+
+def tobinary(i):
+    return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
+        chr((i >> 8) & 0xFF) + chr(i & 0xFF))

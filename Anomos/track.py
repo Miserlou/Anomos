@@ -18,24 +18,23 @@ import re
 import signal
 import sys
 
-from binascii import b2a_hex
-from cStringIO import StringIO
-from random import sample
+#from binascii import b2a_hex
+#from cStringIO import StringIO
 from threading import Event
 from time import gmtime, strftime
-from traceback import print_exc
+#from traceback import print_exc
 from urlparse import urlparse
 
-from Anomos import version
+#from Anomos import version
 from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.btformats import statefiletemplate
-from Anomos.crypto import Certificate, AESKey, initCrypto, CryptoError
+from Anomos.crypto import Certificate, initCrypto
 from Anomos.HTTPHandler import HTTPHandler
 from Anomos.NatCheck import NatCheck
 from Anomos.NetworkModel import NetworkModel
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
-from Anomos.platform import bttime
+from Anomos import bttime
 from Anomos.RawServer import RawServer
 from Anomos.zurllib import quote, unquote_plus as unquote
 
@@ -73,6 +72,7 @@ defaults = [
     ('scrape_allowed', 'full', 'scrape access allowed (can be none, specific or full)'),
     ('max_give', 200, 'maximum number of peers to give with any one request'),
     ('data_dir', '', 'Directory in which to store cryptographic keys'),
+    ('max_path_len', 6, 'Maximum number of hops in a circuit')
     ]
 
 alas = 'your file may exist elsewhere in the universe\nbut alas, not here\n'
@@ -177,14 +177,14 @@ class Tracker(object):
                 print 'Exception: ' + str(e)
 
         self.rawserver = rawserver
-        self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
-        self.cached_t = {}  # format: infohash: [time, cache]
-        self.times = {}
+        #self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
+        #self.cached_t = {}  # format: infohash: [time, cache]
+        #self.times = {}
         self.state = {}
-        self.seedcount = {}
+        #self.seedcount = {}
 
         self.certificate = certificate
-        self.networkmodel = NetworkModel()
+        self.networkmodel = NetworkModel(config)
     
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
@@ -203,35 +203,35 @@ class Tracker(object):
             except Exception, e:
                 print '**warning** statefile '+self.dfile+' corrupt; resetting'
                 print 'Exception: ' + str(e)
-        self.downloads    = self.state.setdefault('peers', {})
-        self.completed    = self.state.setdefault('completed', {})
+       #self.downloads    = self.state.setdefault('peers', {})
+       #self.completed    = self.state.setdefault('completed', {})
 
-        self.becache = {}   # format: {infohash: [[l1, s1], [l2, s2], [l3, s3]]}
+       #self.becache = {}   # format: {infohash: [[l1, s1], [l2, s2], [l3, s3]]}
                             # becache[infohash][0]=> Normal => [downloads,seeds]
                             # becache[infohash][1]=> No Peer ID => "" ""
                             # becache[infohash][2]=> Compact => "" ""
-        for infohash, ds in self.downloads.items():
-            self.seedcount[infohash] = 0
-            for peerid,info in ds.items():
-                if not info.get('nat',-1):
-                    ip = info.get('given_ip')
-                    if not (ip and self.allow_local_override(info['ip'], ip)):
-                        ip = info['ip']
-                                   #infohash, peerid, ip, port, not_seed):
-                    self.natcheckOK(infohash,peerid,ip,info['port'],info['left'])
-                if not info['left']:
-                    self.seedcount[infohash] += 1
+        #for infohash, ds in self.downloads.items():
+        #    self.seedcount[infohash] = 0
+        #    for peerid,info in ds.items():
+        #        if not info.get('nat',-1):
+        #            ip = info.get('given_ip')
+        #            if not (ip and self.allow_local_override(info['ip'], ip)):
+        #                ip = info['ip']
+        #                           #infohash, peerid, ip, port, not_seed):
+        #            self.natcheckOK(infohash,peerid,ip,info['port'],info['left'])
+        #        if not info['left']:
+        #            self.seedcount[infohash] += 1
 
-        for infohash in self.downloads:
-            self.times[infohash] = {}
-            for peerid in self.downloads[infohash]:
-                self.times[infohash][peerid] = 0
+        #for infohash in self.downloads:
+        #    self.times[infohash] = {}
+        #    for peerid in self.downloads[infohash]:
+        #        self.times[infohash][peerid] = 0
 
         self.reannounce_interval = config['reannounce_interval']
         self.save_dfile_interval = config['save_dfile_interval']
-        self.show_names = config['show_names']
+        #self.show_names = config['show_names']
         rawserver.add_task(self.save_dfile, self.save_dfile_interval)
-        self.prevtime = bttime()
+        #self.prevtime = bttime()
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
         rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
         self.logfile = None
@@ -287,136 +287,136 @@ class Tracker(object):
         return is_valid_ipv4(given_ip) and (
             not self.only_local_override_ip or is_local_ip(ip) )
 
-    def get_infopage(self):
-        try:
-            if not self.config['show_infopage']:
-                return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
-            red = self.config['infopage_redirect']
-            if red != '':
-                return (302, 'Found', {'Content-Type': 'text/html', 'Location': red},
-                        '<A HREF="'+red+'">Click Here</A>')
+    #def get_infopage(self):
+    #    try:
+    #        if not self.config['show_infopage']:
+    #            return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
+    #        red = self.config['infopage_redirect']
+    #        if red != '':
+    #            return (302, 'Found', {'Content-Type': 'text/html', 'Location': red},
+    #                    '<A HREF="'+red+'">Click Here</A>')
 
-            s = StringIO()
-            s.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n' \
-                '<html><head><title>Anomos download info</title>\n')
-            if self.favicon is not None:
-                s.write('<link rel="shortcut icon" href="/favicon.ico">\n')
-            s.write('</head>\n<body>\n' \
-                '<h3>Anomos download info</h3>\n'\
-                '<ul>\n'
-                '<li><strong>tracker version:</strong> %s</li>\n' \
-                '<li><strong>server time:</strong> %s</li>\n' \
-                '</ul>\n' % (version, isotime()))
-            if self.allowed is not None:
-                if self.show_names:
-                    names = [ (value['name'], infohash)
-                              for infohash, value in self.allowed.iteritems()]
-                else:
-                    names = [(None, infohash) for infohash in self.allowed]
-            else:
-                names = [ (None, infohash) for infohash in self.downloads]
-            if not names:
-                s.write(str(self.allowed))
-                s.write(str(self.downloads))
-                s.write('<p>not tracking any files yet...</p>\n')
-            else:
-                names.sort()
-                tn = 0
-                tc = 0
-                td = 0
-                tt = 0  # Total transferred
-                ts = 0  # Total size
-                nf = 0  # Number of files displayed
-                if self.allowed is not None and self.show_names:
-                    s.write('<table summary="files" border="1">\n' \
-                        '<tr><th>info hash</th><th>torrent name</th><th align="right">size</th><th align="right">complete</th><th align="right">downloading</th><th align="right">downloaded</th><th align="right">transferred</th></tr>\n')
-                else:
-                    s.write('<table summary="files">\n' \
-                        '<tr><th>info hash</th><th align="right">complete</th><th align="right">downloading</th><th align="right">downloaded</th></tr>\n')
-                for name, infohash in names:
-                    l = self.downloads[infohash]
-                    n = self.completed.get(infohash, 0)
-                    tn += n
-                    c = self.seedcount[infohash]
-                    tc += c
-                    d = len(l) - c
-                    td += d
-                    if self.allowed is not None and self.show_names:
-                        if self.allowed.has_key(infohash):
-                            nf += 1
-                            sz = self.allowed[infohash]['length']  # size
-                            ts += sz
-                            szt = sz * n   # Transferred for this torrent
-                            tt += szt
-                            if self.allow_get == 1:
-                                linkname = '<a href="/file?info_hash=' + quote(infohash) + '">' + name + '</a>'
-                            else:
-                                linkname = name
-                            s.write('<tr><td><code>%s</code></td><td>%s</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i</td><td align="right">%s</td></tr>\n' \
-                                % (b2a_hex(infohash), linkname, size_format(sz), c, d, n, size_format(szt)))
-                    else:
-                        s.write('<tr><td><code>%s</code></td><td align="right"><code>%i</code></td><td align="right"><code>%i</code></td><td align="right"><code>%i</code></td></tr>\n' \
-                            % (b2a_hex(infohash), c, d, n))
-                ttn = 0
-                for i in self.completed.values():
-                    ttn += i
-                if self.allowed is not None and self.show_names:
-                    s.write('<tr><td align="right" colspan="2">%i files</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i/%i</td><td align="right">%s</td></tr>\n'
-                            % (nf, size_format(ts), tc, td, tn, ttn, size_format(tt)))
-                else:
-                    s.write('<tr><td align="right">%i files</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i/%i</td></tr>\n'
-                            % (nf, tc, td, tn, ttn))
-                s.write('</table>\n' \
-                    '<ul>\n' \
-                    '<li><em>info hash:</em> SHA1 hash of the "info" section of the metainfo (*.atorrent)</li>\n' \
-                    '<li><em>complete:</em> number of connected clients with the complete file</li>\n' \
-                    '<li><em>downloading:</em> number of connected clients still downloading</li>\n' \
-                    '<li><em>downloaded:</em> reported complete downloads (total: current/all)</li>\n' \
-                    '<li><em>transferred:</em> torrent size * total downloaded (does not include partial transfers)</li>\n' \
-                    '</ul>\n')
+    #        s = StringIO()
+    #        s.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n' \
+    #            '<html><head><title>Anomos download info</title>\n')
+    #        if self.favicon is not None:
+    #            s.write('<link rel="shortcut icon" href="/favicon.ico">\n')
+    #        s.write('</head>\n<body>\n' \
+    #            '<h3>Anomos download info</h3>\n'\
+    #            '<ul>\n'
+    #            '<li><strong>tracker version:</strong> %s</li>\n' \
+    #            '<li><strong>server time:</strong> %s</li>\n' \
+    #            '</ul>\n' % (version, isotime()))
+    #        if self.allowed is not None:
+    #            if self.show_names:
+    #                names = [ (value['name'], infohash)
+    #                          for infohash, value in self.allowed.iteritems()]
+    #            else:
+    #                names = [(None, infohash) for infohash in self.allowed]
+    #        else:
+    #            names = [ (None, infohash) for infohash in self.downloads]
+    #        if not names:
+    #            s.write(str(self.allowed))
+    #            s.write(str(self.downloads))
+    #            s.write('<p>not tracking any files yet...</p>\n')
+    #        else:
+    #            names.sort()
+    #            tn = 0
+    #            tc = 0
+    #            td = 0
+    #            tt = 0  # Total transferred
+    #            ts = 0  # Total size
+    #            nf = 0  # Number of files displayed
+    #            if self.allowed is not None and self.show_names:
+    #                s.write('<table summary="files" border="1">\n' \
+    #                    '<tr><th>info hash</th><th>torrent name</th><th align="right">size</th><th align="right">complete</th><th align="right">downloading</th><th align="right">downloaded</th><th align="right">transferred</th></tr>\n')
+    #            else:
+    #                s.write('<table summary="files">\n' \
+    #                    '<tr><th>info hash</th><th align="right">complete</th><th align="right">downloading</th><th align="right">downloaded</th></tr>\n')
+    #            for name, infohash in names:
+    #                l = self.downloads[infohash]
+    #                n = self.completed.get(infohash, 0)
+    #                tn += n
+    #                c = self.seedcount[infohash]
+    #                tc += c
+    #                d = len(l) - c
+    #                td += d
+    #                if self.allowed is not None and self.show_names:
+    #                    if self.allowed.has_key(infohash):
+    #                        nf += 1
+    #                        sz = self.allowed[infohash]['length']  # size
+    #                        ts += sz
+    #                        szt = sz * n   # Transferred for this torrent
+    #                        tt += szt
+    #                        if self.allow_get == 1:
+    #                            linkname = '<a href="/file?info_hash=' + quote(infohash) + '">' + name + '</a>'
+    #                        else:
+    #                            linkname = name
+    #                        s.write('<tr><td><code>%s</code></td><td>%s</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i</td><td align="right">%s</td></tr>\n' \
+    #                            % (b2a_hex(infohash), linkname, size_format(sz), c, d, n, size_format(szt)))
+    #                else:
+    #                    s.write('<tr><td><code>%s</code></td><td align="right"><code>%i</code></td><td align="right"><code>%i</code></td><td align="right"><code>%i</code></td></tr>\n' \
+    #                        % (b2a_hex(infohash), c, d, n))
+    #            ttn = 0
+    #            for i in self.completed.values():
+    #                ttn += i
+    #            if self.allowed is not None and self.show_names:
+    #                s.write('<tr><td align="right" colspan="2">%i files</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i/%i</td><td align="right">%s</td></tr>\n'
+    #                        % (nf, size_format(ts), tc, td, tn, ttn, size_format(tt)))
+    #            else:
+    #                s.write('<tr><td align="right">%i files</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i/%i</td></tr>\n'
+    #                        % (nf, tc, td, tn, ttn))
+    #            s.write('</table>\n' \
+    #                '<ul>\n' \
+    #                '<li><em>info hash:</em> SHA1 hash of the "info" section of the metainfo (*.atorrent)</li>\n' \
+    #                '<li><em>complete:</em> number of connected clients with the complete file</li>\n' \
+    #                '<li><em>downloading:</em> number of connected clients still downloading</li>\n' \
+    #                '<li><em>downloaded:</em> reported complete downloads (total: current/all)</li>\n' \
+    #                '<li><em>transferred:</em> torrent size * total downloaded (does not include partial transfers)</li>\n' \
+    #                '</ul>\n')
 
-            s.write('</body>\n' \
-                '</html>\n')
-            return (200, 'OK', {'Content-Type': 'text/html; charset=iso-8859-1'}, s.getvalue())
-        except:
-            print_exc()
-            return (500, 'Internal Server Error', {'Content-Type': 'text/html; charset=iso-8859-1'}, 'Server Error')
+    #        s.write('</body>\n' \
+    #            '</html>\n')
+    #        return (200, 'OK', {'Content-Type': 'text/html; charset=iso-8859-1'}, s.getvalue())
+    #    except:
+    #        print_exc()
+    #        return (500, 'Internal Server Error', {'Content-Type': 'text/html; charset=iso-8859-1'}, 'Server Error')
 
-    def scrapedata(self, infohash, return_name = True):
-        l = self.downloads[infohash]
-        n = self.completed.get(infohash, 0)
-        c = self.seedcount[infohash]
-        d = len(l) - c
-        f = {'complete': c, 'incomplete': d, 'downloaded': n}
-        if return_name and self.show_names and self.allowed is not None:
-            f['name'] = self.allowed[infohash]['name']
-        return f
+    #def scrapedata(self, infohash, return_name = True):
+    #    l = self.downloads[infohash]
+    #    n = self.completed.get(infohash, 0)
+    #    c = self.seedcount[infohash]
+    #    d = len(l) - c
+    #    f = {'complete': c, 'incomplete': d, 'downloaded': n}
+    #    if return_name and self.show_names and self.allowed is not None:
+    #        f['name'] = self.allowed[infohash]['name']
+    #    return f
 
-    def get_scrape(self, paramslist):
-        params = params_factory(paramslist)
-        fs = {}
-        if params('info_hash'):
-            if self.config['scrape_allowed'] not in ['specific', 'full']:
-                return (400, 'Not Authorized', \
-                    {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
-                    bencode({'failure reason': 'specific scrape function is not available with this tracker.'}))
-            for infohash in params('info_hash'):
-                if self.allowed is not None and infohash not in self.allowed:
-                    continue
-                if infohash in self.downloads:
-                    fs[infohash] = self.scrapedata(infohash)
-        else:
-            if self.config['scrape_allowed'] != 'full':
-                return (400, 'Not Authorized', \
-                    {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
-                    bencode({'failure reason': 'full scrape function is not available with this tracker.'}))
-            if self.allowed is not None:
-                hashes = self.allowed
-            else:
-                hashes = self.downloads
-            for infohash in hashes:
-                fs[infohash] = self.scrapedata(infohash)
-        return (200, 'OK', {'Content-Type': 'text/plain'}, bencode({'files': fs}))
+    #def get_scrape(self, paramslist):
+    #    params = params_factory(paramslist)
+    #    fs = {}
+    #    if params('info_hash'):
+    #        if self.config['scrape_allowed'] not in ['specific', 'full']:
+    #            return (400, 'Not Authorized', \
+    #                {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
+    #                bencode({'failure reason': 'specific scrape function is not available with this tracker.'}))
+    #        for infohash in params('info_hash'):
+    #            if self.allowed is not None and infohash not in self.allowed:
+    #                continue
+    #            if infohash in self.downloads:
+    #                fs[infohash] = self.scrapedata(infohash)
+    #    else:
+    #        if self.config['scrape_allowed'] != 'full':
+    #            return (400, 'Not Authorized', \
+    #                {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
+    #                bencode({'failure reason': 'full scrape function is not available with this tracker.'}))
+    #        if self.allowed is not None:
+    #            hashes = self.allowed
+    #        else:
+    #            hashes = self.downloads
+    #        for infohash in hashes:
+    #            fs[infohash] = self.scrapedata(infohash)
+    #    return (200, 'OK', {'Content-Type': 'text/plain'}, bencode({'files': fs}))
 
     def get_file(self, infohash):
          if not self.allow_get:
@@ -460,21 +460,33 @@ class Tracker(object):
         @type peercert: M2Crypto.X509.X509
         """
         params = params_factory(paramslist)
-        peerid = params('peer_id')
+        peerid = peercert.get_fingerprint('sha256')[-20:]
         simpeer = self.networkmodel.get(peerid)
         #XXX: quasi-dangerous hack, allows anyone on localhost to specify
         #     any IP address they want.
         if params('ip') != ip and ip == '127.0.0.1':
-            ip = params('ip')
+            ip = params('ip', '127.0.0.1')
+        port = int(params('port'))
+        if simpeer and params('event') == 'started':
+            # Peer most likely disconnected without reannouncing.
+            # TODO: limit the number of times we allow this to happen
+            self.networkmodel.disconnect(simpeer.name)
+            simpeer = None
         if not simpeer: # Tracker hasn't seen this peer before
-            loc = (ip, int(params('port')))
             skey = params('sessionid')
-            if not skey:
-                return None
-            simpeer = self.networkmodel.initPeer(peerid, peercert, loc, skey)
-        #Check that peer certificate matches.
-        #TODO: What do we do when check fails?
-        #if peercert.as_pem() != simpeer.pubkey.certificate.as_pem():
+            if not skey:    # When this method returns None a 400: Bad Request
+                return None # is sent to the requester
+            simpeer = self.networkmodel.initPeer(peerid, peercert, ip, port, skey)
+        elif not simpeer.cmpCertificate(peercert):
+            # Certificate mismatch
+            return None
+        if ip != simpeer.ip or port != simpeer.port:
+            # IP or port changed so we should natcheck again
+            simpeer.num_natcheck = 0
+            simpeer.nat = True
+        if simpeer.nat and simpeer.num_natcheck < self.natcheck:
+            NatCheck(self.connectback_result,peerid,ip,port,self.rawserver)
+        # Check that peer certificate matches
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
             # Peer stopped their only/last torrent
@@ -611,11 +623,11 @@ class Tracker(object):
         sim = self.networkmodel.get(peerid)
         if not sim:
             return []
-        return [{'ip':vals['loc'][0],   \
-                 'port':vals['loc'][1], \
-                 'peer id':vals['nid']} for vals in sim.neighbors.values()]
+        return [{'ip':vals['ip'],   \
+                 'port':vals['port'], \
+                 'nid':vals['nid']} for vals in sim.neighbors.values()]
 
-    def getTCs(self, peerid, infohash, is_seed, count):
+    def getTCs(self, peerid, infohash, count=3):
         """
         Gets a set of tracking codes from the specified peer to 'count' random
         peers with 'infohash'.
@@ -628,29 +640,8 @@ class Tracker(object):
         @type count: int
         @type is_seed: bool
         """
-        #TODO: Update the cache system, and only get peers in infohash's swarm
-        #cache = self.cached.setdefault(infohash,[None,None,None])[return_type]
-
-        # If is_seed then get the swarm without seeders
-        #if is_seed:
-        #    swarm = self.networkmodel.getDownloadingPeers(infohash)
-        #else:
-        #    #swarm = self.networkmodel.getSwarm(infohash)
-        paths = self.networkmodel.getTrackingCodes(peerid, infohash)
+        paths = self.networkmodel.getTrackingCodes(peerid, infohash, count)
         return paths
-        #for id in sample(swarm, min(len(swarm), count)):
-        #    if id == peerid:
-        #        continue
-        #    print id, "To", peerid
-        #    #Geneterate the AESKey to use, default algorith is aes_256_cfb
-        #    aes = AESKey()
-        #    #TODO: Peers should only depend on the Tracker to distribute the
-        #    #      AES key, IV could be generated separately so that bad
-        #    #      tracker's can't recover the full stream.
-        #    t = self.networkmodel.getTrackingCodes(peerid, id, infohash + aes.key + aes.iv)
-        #    if t:
-        #        tcs.append([aes.key + aes.iv, t])
-
 
 #    def peerlist(self, peerid, infohash, stopped, is_seed, return_type, rsize):
 #        """ Return a set of Tracking Codes
@@ -733,8 +724,6 @@ class Tracker(object):
         infohash = params('info_hash')
         if infohash and len(infohash) != 20:
             raise ValueError('infohash not of length 20')
-        if len(params('peer_id', '')) != 20:
-            raise ValueError('id not of length 20')
         if params('event') not in ['started', 'completed', 'stopped', None]:
             raise ValueError('invalid event')
         port = int(params('port',-1))
@@ -793,32 +782,14 @@ class Tracker(object):
             return notallowed
         event = params('event')
 
-        #rsize = self.add_data(infohash, event, ip, paramslist)
-
-        #TODO: deprecate return type
-        if params('compact'):
-            return_type = 2
-        elif params('no_peer_id'):
-            return_type = 1
-        else:
-            return_type = 0
-
         data = {}
         if event != 'stopped':
-            data['peers'] = self.neighborlist(params('peer_id'))
-            #TODO: Replace "3" with actual number of TCs to get
-            data['tracking codes'] = self.getTCs(params('peer_id'), infohash,
-                                                 not int(params('left')),
+            data['peers'] = self.neighborlist(simpeer.name)
+            data['tracking codes'] = self.getTCs(simpeer.name, infohash,
                                                  self.config['response_size'])
-#            if params('left') and int(params('left')):
-#                data['tracking codes'] = self.getTCs(params('peer_id'),
-#                        infohash, True, 3)
-#            else:
-#                data['tracking codes'] = []
-
-        if paramslist.has_key('scrape'):
-            data['scrape'] = self.scrapedata(infohash, False)
-
+            data['interval'] = self.reannounce_interval
+        #if paramslist.has_key('scrape'):
+        #    data['scrape'] = self.scrapedata(infohash, False)
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma':\
                             'no-cache'}, bencode(data))
 
@@ -849,40 +820,32 @@ class Tracker(object):
             params[key] = val
         return params
 
-    def natcheckOK(self, infohash, peerid, ip, port, not_seed):
-        bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
-        bc[0][not not_seed][peerid] = Bencached(bencode({'ip': ip, 'port': port,
-                                              'peer id': peerid}))
-        bc[1][not not_seed][peerid] = Bencached(bencode({'ip': ip, 'port': port}))
-        bc[2][not not_seed][peerid] = compact_peer_info(ip, port)
+    #def natcheckOK(self, infohash, peerid, ip, port, not_seed):
+    #    bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
+    #    bc[0][not not_seed][peerid] = Bencached(bencode({'ip': ip, 'port': port,
+    #                                          'peer id': peerid}))
+    #    bc[1][not not_seed][peerid] = Bencached(bencode({'ip': ip, 'port': port}))
+    #    bc[2][not not_seed][peerid] = compact_peer_info(ip, port)
 
-    def natchecklog(self, peerid, ip, port, result):
+    #def natchecklog(self, peerid, ip, port, result):
+    #    print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
+    #        ip, quote(peerid), strftime("[%d/%b/%Y:%H:%M:%S]"), ip, port, result)
 
-        print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
-            ip, quote(peerid), strftime("[%d/%b/%Y:%H:%M:%S]"), ip, port, result)
-
-    def connectback_result(self, result, downloadid, peerid, ip, port):
-        record = self.downloads.get(downloadid, {}).get(peerid)
-        if ( record is None
-                 or (record['ip'] != ip and record.get('given ip') != ip)
-                 or record['port'] != port ):
-            if self.config['log_nat_checks']:
-                self.natchecklog(peerid, ip, port, 404)
-            return
-        if self.config['log_nat_checks']:
-            if result:
-                self.natchecklog(peerid, ip, port, 200)
-            else:
-                self.natchecklog(peerid, ip, port, 503)
-        if not record.has_key('nat'):
-            record['nat'] = int(not result)
-            if result:
-                self.natcheckOK(downloadid,peerid,ip,port,record['left'])
-        elif result and record['nat']:
-            record['nat'] = 0
-            self.natcheckOK(downloadid,peerid,ip,port,record['left'])
-        elif not result:
-            record['nat'] += 1
+    def connectback_result(self, peerid, result):
+        record = self.networkmodel.get(peerid)
+        if record is not None:
+            record.nat = not result
+            record.num_natcheck += 1
+        #if self.config['log_nat_checks']:
+        #    if ( record is None
+        #             or (record['ip'] != ip and record.get('given ip') != ip)
+        #             or record['port'] != port ):
+        #        self.natchecklog(peerid, ip, port, 404)
+        #        return
+        #    if result:
+        #        self.natchecklog(peerid, ip, port, 200)
+        #    else:
+        #        self.natchecklog(peerid, ip, port, 503)
 
     def save_dfile(self):
         self.rawserver.add_task(self.save_dfile, self.save_dfile_interval)
@@ -902,10 +865,10 @@ class Tracker(object):
         ( self.allowed, self.allowed_dir_files, self.allowed_dir_blocked,
           added, garbage2 ) = r
 
-        for infohash in added:
-            self.downloads.setdefault(infohash, {})
-            self.completed.setdefault(infohash, 0)
-            self.seedcount.setdefault(infohash, 0)
+        #for infohash in added:
+        #    self.downloads.setdefault(infohash, {})
+        #    self.completed.setdefault(infohash, 0)
+        #    self.seedcount.setdefault(infohash, 0)
 
         self.state['allowed'] = self.allowed
         self.state['allowed_dir_files'] = self.allowed_dir_files
@@ -920,37 +883,37 @@ class Tracker(object):
             self.blockedhashes = []
 
     def delete_peer(self, infohash, peerid):
-        dls = self.downloads[infohash]
-        peer = dls[peerid]
-        if not peer['left']:
-            self.seedcount[infohash] -= 1
-        if not peer.get('nat',-1):
-            l = self.becache[infohash]
-            y = not peer['left']
-            for x in l:
-                del x[y][peerid]
-        del self.times[infohash][peerid]
-        del dls[peerid]
+        #dls = self.downloads[infohash]
+        #peer = dls[peerid]
+        #if not peer['left']:
+        #    self.seedcount[infohash] -= 1
+        #if not peer.get('nat',-1):
+        #    l = self.becache[infohash]
+        #    y = not peer['left']
+        #    for x in l:
+        #        del x[y][peerid]
+        #del self.times[infohash][peerid]
+        #del dls[peerid]
 
-        for torrent in self.downloads:
-            if torrent[peerid] is not None:
-                return
+        #for torrent in self.downloads:
+        #    if torrent[peerid] is not None:
+        #        return
 
         self.networkmodel.disconnect(peerid)
 
     def expire_downloaders(self):
-        for infohash, peertimes in self.times.items():
-            for myid, t in peertimes.items():
-                if t < self.prevtime:
-                    self.delete_peer(infohash, myid)
-        self.prevtime = bttime()
-        if (self.keep_dead != 1):
-            for key, peers in self.downloads.items():
-                if len(peers) == 0 and (self.allowed is None or
-                                        key not in self.allowed):
-                    del self.times[key]
-                    del self.downloads[key]
-                    del self.seedcount[key]
+        #for infohash, peertimes in self.times.items():
+        #    for myid, t in peertimes.items():
+        #        if t < self.prevtime:
+        #            self.delete_peer(infohash, myid)
+        #self.prevtime = bttime()
+        #if (self.keep_dead != 1):
+        #    for key, peers in self.downloads.items():
+        #        if len(peers) == 0 and (self.allowed is None or
+        #                                key not in self.allowed):
+        #            del self.times[key]
+        #            #del self.downloads[key]
+        #            #del self.seedcount[key]
         self.rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
 
 def track(args):

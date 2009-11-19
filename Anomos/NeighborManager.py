@@ -15,149 +15,237 @@
 
 # Written by John Schanck and Rich Jones
 
-from Anomos.Connecter import AnomosFwdLink
-from Anomos import BTFailure, INFO, WARNING, ERROR, CRITICAL
+from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
+from Anomos.NeighborLink import NeighborLink
+from Anomos.Protocol.TCReader import TCReader
+from Anomos.Protocol import NAT_CHECK_ID
+from Anomos.Measure import Measure
+from Anomos.crypto import CryptoError
+from Anomos import BTFailure, LOG as log
 
-class Neighbor:
-    def __init__(self, id, loc, ssls):
-        self.id = id
-        self.loc = loc
-        self.ssl_session = ssls
-        self.connection = None
-    def set_connection(self, con):
-        self.connection = con
-
-class NeighborManager:
+class NeighborManager(object):
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate, logfunc):
+    def __init__(self, rawserver, config, certificate, sessionid, ratelimiter):
         self.rawserver = rawserver
         self.config = config
-        self.cert = certificate
-        self.logfunc = logfunc
+        self.certificate = certificate
+        self.sessionid = sessionid
+        self.ratelimiter = ratelimiter
         self.neighbors = {}
-        self.connections = {}
+        self.relay_measure = Measure(self.config['max_rate_period'])
+        self.relay_count = 0
         self.incomplete = {}
+        self.torrents = {}
+        self.deep_exception = None
 
-        self.port = None
         self.waiting_tcs = {}
 
         self.failedPeers = []
 
-    def failed_connections(self):
-        return self.failedPeers
-
-    def get_location(self, nid):
-        nbr = self.neighbors.get(nid, None)
-        if nbr:
-            return nbr.loc
-        return None
-
-    def get_ssl_session(self, nid):
-        nbr = self.neighbors.get(nid, None)
-        if nbr:
-            return nbr.ssl_session
-        return None
-
-    def add_neighbor(self, id, location, ssls):
-        self.logfunc(INFO, "Adding Neighbor: (\\x%02x, %s)"
-                                % (ord(id), location))
-        self.neighbors[id] = Neighbor(id, location, ssls)
-
-    def rm_neighbor(self, nid):
-        if nid in self.failedPeers:
-            self.failedPeers.remove(nid)
-        elif self.incomplete.has_key(nid):
-            self.incomplete.pop(nid)
-        if self.has_neighbor(nid):
-            con = self.neighbors[nid].connection
-            if con and self.connections.has_key(con):
-                del self.connections[con]
-            self.neighbors.pop(nid)
-
-    def has_neighbor(self, nid):
-        #TODO: Make this tracker specific.
-        return self.neighbors.has_key(nid)
-
-    def has_loc(self, loc):
-        return loc in [n.loc for n in self.neighbors.values()]
-
-    def is_incomplete(self, nid):
-        #TODO: Make this tracker specific.
-        return self.incomplete.has_key(nid)
-
-    def count(self, tracker=None):
-        #TODO: Make this tracker specific.
-        return len(self.neighbors)
-
-    def connection_completed(self, con):
-        #TODO: Make this tracker specific.
-        if not self.incomplete.has_key(con.id):
-            # Completing a complete or non-existant connection...
-            return
-        del self.incomplete[con.id]
-        self.neighbors[con.id].set_connection(con)
-        for task in self.waiting_tcs.get(con.id, []):
-            self.rawserver.add_task(task, 0) #TODO: add a min-wait time
-
-    def connection_closed(self, con):
-        self.rm_neighbor(con.id)
-
-    def schedule_tc(self, sendfunc, id, tc, aeskey):
-        '''Sometimes a tracking code is received before a neighbor is fully
-        initialized. In those cases we schedule the TC to be sent once we get
-        a "connection_completed" from the neighbor.'''
-        def sendtc():
-            sendfunc(id, tc, aeskey)
-        self.waiting_tcs.setdefault(id,[])
-        self.waiting_tcs[id].append(sendtc)
-
-    def start_connection(self, loc, id):
-        """
-        @param loc: (IP, Port)
-        @param id: The neighbor ID to assign to this connection
-        @type loc: tuple
-        @type id: int
-        """
-        if self.has_neighbor(id) or \
-                self.incomplete.has_key(id) or \
-                self.has_loc(loc):
-            #Already had neighbor by that id or at that location
-            #TODO: Resolve conflict
-            return
-
-        self.incomplete[id] = loc
-        self.rawserver.start_ssl_connection(loc, handler=self)
-
-    def sock_success(self, sock, loc):
-        """
-        @param sock: SingleSocket object for the newly created socket
-        """
-        for id,v in self.incomplete.iteritems():
-            if v == loc:
-                break
-        else: return #loc wasn't found
-        # Exchange the header and hold the connection open
-        con = AnomosFwdLink(self, sock, id, established=False)
-        self.connections[sock] = con
-        self.add_neighbor(id, loc, sock.socket.get_session())
-
-    def sock_fail(self, loc, err=None):
-        #Remove nid,loc pair from incomplete
-        for k,v in self.incomplete.items():
-            if v == loc:
-                self.failedPeers.append(k)
-                del self.incomplete[k]
-        #TODO: Do something with the error msg.
-
+    ## Got new neighbor list from the tracker ##
     def update_neighbor_list(self, list):
-        freshids = dict([(i[2],(i[0],i[1])) for i in list])
+        freshids = dict([(i[2],(i[0],i[1])) for i in list]) #{nid : (ip, port)}
         # Remove neighbors not found in freshids
         for id in self.neighbors.keys():
             if not freshids.has_key(id):
                 self.rm_neighbor(id)
         # Start connections with the new neighbors
-        for id,loc in freshids.iteritems():
-            if not self.neighbors.has_key(id):
-                self.start_connection(loc, id)
+        for id, loc in freshids.iteritems():
+            if not self.neighbors.has_key(id) and id not in self.failedPeers:
+                self.start_connection(id, loc)
+        # Remove the failedPeers that didn't come back as fresh IDs (presumably
+        # the tracker has removed them from our potential neighbor list)
+        self.failedPeers = [id for id in freshids if id in self.failedPeers]
+
+    ## Start a new neighbor connection ##
+    def start_connection(self, id, loc):
+        ''' Start a new SSL connection to the peer at loc and 
+            assign them the NeighborID id
+            @param loc: (IP, Port)
+            @param id: The neighbor ID to assign to this connection
+            @type loc: tuple
+            @type id: int '''
+        if self.has_neighbor(id) or self.incomplete.has_key(id):
+            # Already had neighbor by that id or at that location
+            log.warning('NID collision')
+            # To be safe, kill connection with the neighbor we already
+            # had with the requested ID and add ID to the failed list
+            self.rm_neighbor(id)
+            self.failedPeers.append(id)
+            return
+        if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
+            log.warning('Got duplicate IP address in neighbor list. \
+                        Multiple connections to the same IP are disabled \
+                        in your config.')
+            return
+        self.incomplete[id] = loc
+        self.rawserver.start_ssl_connection(loc, handler=self)
+
+    ## Socket failed to open ##
+    def sock_fail(self, loc, err=None):
+        #Remove nid,loc pair from incomplete
+        for k,v in self.incomplete.items():
+            if v == loc:
+                self.rm_neighbor(k)
+        log.info("Failed to open connection to %s\n\
+                 Reason: %s" % (str(loc), str(err)))
+
+    def failed_connections(self):
+        return self.failedPeers
+
+    ## Socket opened successfully ##
+    def sock_success(self, sock, loc):
+        ''' @param sock: SingleSocket object for the newly created socket '''
+        for id,v in self.incomplete.iteritems():
+            if v == loc:
+                break
+        else:
+            return #loc wasn't found
+        AnomosNeighborInitializer(self, sock, id)
+
+    ## AnomosNeighborInitializer got a full handshake ##
+    def add_neighbor(self, socket, id):
+        log.info("Adding Neighbor: \\x%02x" % ord(id))
+        self.neighbors[id] = NeighborLink(self, socket, id, \
+                self.config, self.ratelimiter)
+
+    def rm_neighbor(self, nid):
+        if self.incomplete.has_key(nid):
+            self.incomplete.pop(nid)
+        if self.has_neighbor(nid):
+            self.neighbors.pop(nid)
+        if nid is not None:
+            self.failedPeers.append(nid)
+
+    #TODO: implement banning
+    def ban(self, ip):
+        pass
+
+    def has_neighbor(self, nid):
+        return self.neighbors.has_key(nid)
+
+    def check_session_id(self, sid):
+        return sid == self.sessionid
+
+    def has_ip(self, ip):
+        return ip in [n.socket.peer_ip for n in self.neighbors.values()] \
+                or ip in [x for x,y in self.incomplete.values()]
+
+    def is_incomplete(self, nid):
+        return self.incomplete.has_key(nid)
+
+    def count(self, tracker=None):
+        return len(self.neighbors)
+
+    def connection_completed(self, socket, id):
+        '''Called by AnomosNeighborInitializer'''
+        if self.incomplete.has_key(id):
+            assert socket.peer_ip == self.incomplete[id][0]
+            del self.incomplete[id]
+        if id == NAT_CHECK_ID:
+            log.info("Nat check ok.")
+            return
+        self.add_neighbor(socket, id)
+        tasks = self.waiting_tcs.get(id)
+        if tasks is None:
+            return
+        for task in tasks:
+            #TODO: Would a minimum wait between these tasks aid anonymity?
+            self.rawserver.add_task(task, 0)
+        del self.waiting_tcs[id]
+
+    def lost_neighbor(self, id):
+        self.rm_neighbor(id)
+
+    def initializer_failed(self, id):
+        '''Connection closed before finishing initialization'''
+        self.rm_neighbor(id)
+
+    def start_circuit(self, tc, infohash, aeskey):
+        '''Called from Rerequester to initialize new circuits we've
+        just gotten TCs for from the Tracker'''
+        if self.count_streams() >= self.config['max_initiate']:
+            log.warning("Not starting circuit -- Stream count exceeds maximum")
+            return
+
+        tcreader = TCReader(self.certificate)
+        try:
+            tcdata = tcreader.parseTC(tc)
+        except CryptoError, e:
+            log.error("Decryption Error: %s" % str(e))
+            return
+        nid = tcdata.neighborID
+        sid = tcdata.sessionID
+        torrent = self.get_torrent(infohash)
+        nextTC = tcdata.nextLayer
+        if sid != self.sessionid:
+            log.error("Not starting circuit -- SessionID mismatch!")
+        elif torrent is None:
+            log.error("Not starting circuit -- Unknown torrent")
+        elif nid in self.incomplete:
+            log.info("Postponing circuit until neighbor \\x%02x completes " % ord(nid))
+            self.schedule_tc(nid, infohash, aeskey, nextTC)
+        elif nid not in self.neighbors:
+            log.error("Not starting circuit -- NID \\x%02x is not assigned" % ord(nid))
+        else:
+            self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
+
+    def schedule_tc(self, nid, infohash, aeskey, nextTC):
+        '''Sometimes a tracking code is received before a neighbor is fully
+        initialized. In those cases we schedule the TC to be sent once we get
+        a "connection_completed" from the neighbor.'''
+        def sendtc():
+            if self.neighbors.has_key(nid): # Could have been deleted during wait
+                torrent = self.get_torrent(infohash)
+                self.neighbors[nid].start_endpoint_stream(torrent, aeskey, nextTC)
+        self.waiting_tcs.setdefault(nid,[])
+        self.waiting_tcs[nid].append(sendtc)
+
+    ## Torrent Management ##
+    def add_torrent(self, infohash, torrent):
+        if infohash in self.torrents:
+            raise BTFailure("Can't start two separate instances of the same "
+                            "torrent")
+        self.torrents[infohash] = torrent
+
+    def remove_torrent(self, infohash):
+        self.torrents[infohash].close_all_streams()
+        del self.torrents[infohash]
+        if len(self.torrents) == 0:
+            # Close all streams when the last torrent is removed
+            for n in self.neighbors.values():
+                n.close()
+
+    def get_torrent(self, infohash):
+        return self.torrents.get(infohash, None)
+
+    def count_streams(self):
+        return sum(len(x.streams) for x in self.neighbors.itervalues())
+
+    ## Relay Management ##
+    def make_relay(self, nid, data, orelay):
+        if self.neighbors.has_key(nid):
+            self.relay_count += 1
+            r = self.neighbors[nid].start_relay_stream(nid, data, orelay)
+            orelay.set_other_relay(r)
+        elif self.incomplete.has_key(nid):
+            def relay_tc():
+                self.relay_count += 1
+                r = self.neighbors[nid].start_relay_stream(nid,data,orelay)
+                orelay.set_other_relay(r)
+            self.waiting_tcs.set_default(nid, [])
+            self.waiting_tcs[nid].append(relay_tc)
+
+    def dec_relay_count(self):
+        self.relay_count -= 1
+
+    def get_relay_count(self):
+        return self.relay_count
+
+    def get_relay_stats(self):
+        rate = self.relay_measure.get_rate()
+        count = self.relay_count
+        sent = self.relay_measure.get_total()
+        return {'relayRate' : rate, 'relayCount' : count, 'relaySent' : sent}

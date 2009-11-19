@@ -17,8 +17,8 @@ common_options = [
     ('forwarded_port', 0,
         "world-visible port number if it's different from the one the client "
         "listens on locally"),
-    ('minport', 6881, 'minimum port to listen on, counts up if unavailable'),
-    ('maxport', 6999, 'maximum port to listen on'),
+    ('minport', 5061, 'minimum port to listen on, counts up if unavailable'),
+    ('maxport', 5069, 'maximum port to listen on'),
     ('bind', '',
         'ip to bind to locally'),
     ('display_interval', .5,
@@ -74,7 +74,7 @@ rare_options = [
     ('retaliate_to_garbled_data', 1,
      'refuse further connections from addresses with broken or intentionally '
      'hostile peers that send incorrect data'),
-    ('one_connection_per_ip', 1,
+    ('one_connection_per_ip', 0,
      'do not connect to several peers that have the same IP address'),
     ('peer_socket_tos', 8,
      'if nonzero, set the TOS option for peer connections to this value'),
@@ -84,15 +84,17 @@ rare_options = [
      'enable workaround for a bug in BSD libc that makes file reads very slow.'),
     ('tracker_proxy', '',
         'address of HTTP proxy to use for tracker connections. Format: [username:password@]host:port'),
+    ('anonymizer', 'https://anomos.info:5555/announce',
+        'address of an open Anomos tracker to replace the trackers found inside un-anonymized .torrents'),
     ]
 
 def get_defaults(ui):
-    assert ui in "btdownloadheadless btdownloadcurses btdownloadgui " \
-           "btlaunchmany btlaunchmanycurses btmaketorrentgui".split()
+    assert ui in "anondownloadheadless anondownloadcurses anondownloadgui " \
+           "anonlaunchmany anonlaunchmanycurses makeatorrentgui".split()
 
     r = list(common_options)
 
-    if ui == 'btdownloadgui':
+    if ui == 'anondownloadgui':
         r.extend([
             ('save_as', '',
              'file name (for single-file torrents) or directory name (for batch torrents) to save the torrent as, overriding the default name in the torrent. See also --save_in, if neither is specified the user will be asked for save location'),
@@ -110,12 +112,12 @@ def get_defaults(ui):
              ''),
             ])
 
-    if ui in ('btdownloadcurses', 'btdownloadheadless'):
+    if ui in ('anondownloadcurses', 'anondownloadheadless'):
         r.append(
             ('save_as', '',
              'file name (for single-file torrents) or directory name (for batch torrents) to save the torrent as, overriding the default name in the torrent. See also --save_in'))
 
-    if ui.startswith('btdownload'):
+    if ui.startswith('anondownload'):
         r.extend([
             ('max_uploads', -1,
              "the maximum number of uploads to allow at once. -1 means a (hopefully) reasonable number based on --max_upload_rate. The automatic values are only sensible when running one torrent at once."),
@@ -125,11 +127,11 @@ def get_defaults(ui):
              'file the server response was stored in, alternative to url'),
             ('url', '',
              'url to get file from, alternative to responsefile'),
-            ('ask_for_save', 0,
+            ('ask_for_save', 1,
              'whether or not to ask for a location to save downloaded files in'),
             ])
 
-    if ui.startswith('btlaunchmany'):
+    if ui.startswith('anonlaunchmany'):
         r.extend([
             ('max_uploads', 6,
              "the maximum number of uploads to allow at once. -1 means a (hopefully) reasonable number based on --max_upload_rate. The automatic values are only sensible when running one torrent at once."),
@@ -140,27 +142,27 @@ def get_defaults(ui):
             ('saveas_style', 1,
               "How to name torrent downloads (1 = rename to torrent name, " +
               "2 = save under name in torrent, 3 = save in directory under torrent name)" ),
-            ('display_path', ui == 'btlaunchmany' and 1 or 0,
+            ('display_path', ui == 'anonlaunchmany' and 1 or 0,
               "whether to display the full path or the torrent contents for each torrent" ),
             ])
 
-    if ui.startswith('btlaunchmany') or ui == 'btmaketorrentgui':
+    if ui.startswith('anonlaunchmany') or ui == 'makeatorrentgui':
         r.append(
             ('torrent_dir', '',
              'directory to look for .atorrent files (semi-recursive)'),)
 
-    if ui in ('btdownloadcurses', 'btdownloadheadless'):
+    if ui in ('anondownloadcurses', 'anondownloadheadless'):
         r.append(
             ('spew', 0,
              "whether to display diagnostic info to stdout"))
 
-    if ui == 'btmaketorrentgui':
+    if ui == 'makeatorrentgui':
         r.extend([
             ('piece_size_pow2', 18,
              "which power of two to set the piece size to"),
-            ('tracker_name', 'http://my.tracker:6969/announce',
+            ('tracker_name', 'https://anomos.info:5555/announce',
              "default tracker name"),
-            ])
+            ])#should anomos.info be replaced with an IP?
 
     r.extend(rare_options)
     return r

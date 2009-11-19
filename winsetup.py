@@ -40,13 +40,13 @@ opts = {
     }
 }
 
-setup(windows=[{'script': 'btdownloadgui.py',
-                "icon_resources": [(1, "images\\bittorrent.ico")]},
-               {'script': 'btmaketorrentgui.py',
-                "icon_resources": [(1, "images\\bittorrent.ico")]}],
+setup(windows=[{'script': 'anondownloadgui.py',
+                "icon_resources": [(1, "images\\anomos.ico")]},
+               {'script': 'anonmaketorrentgui.py',
+                "icon_resources": [(1, "images\\anomos.ico")]}],
       options=opts,
       data_files=[('',["credits.txt", "LICENSE.txt",
                        "README.txt", "redirdonate.html"]),
-                  ("images", glob.glob("images\\*png")+["images\\bittorrent.ico"]),
+                  ("images", glob.glob("images\\*png")+["images\\anomos.ico"]),
                   ("images\\logo", glob.glob("images\\logo\\*png")) ],
                 )

@@ -25,16 +25,15 @@ import glob
 if (os.name == 'nt')
     import py2exe
 
-scripts = ["btdownloadgui.py", "btdownloadcurses.py", "btdownloadheadless.py", 
-           "btmaketorrentgui.py", "btmaketorrent.py",
-           "btlaunchmany.py", "btlaunchmanycurses.py", 
-           "bttrack.py", "btreannounce.py", "btrename.py", "btshowmetainfo.py",
-           "bttest.py"]
+scripts = ["anondownloadgui.py", "anondownloadcurses.py", "anondownloadheadless.py", 
+           "makeatorrentgui.py", "makeatorrent.py",
+           "anonlaunchmany.py", "anonlaunchmanycurses.py", 
+           "anontrack.py", "anonreannounce.py", "anonrename.py", "anonshowmetainfo.py"]
 
 img_root, doc_root = Anomos.calc_unix_dirs()
 
-data_files = [ (img_root        , glob.glob('images/*png')+['images/bittorrent.ico',]),
-               (img_root+'/logo', glob.glob('images/logo/bittorrent_[0-9]*.png')     ),
+data_files = [ (img_root        , glob.glob('images/*png')+['images/anomos.ico',]),
+               (img_root+'/logo', glob.glob('images/logo/anomos_[0-9]*.png')     ),
                (doc_root        , ['credits.txt', 'LICENSE.txt',
                                    'README.txt', 'redirdonate.html']       ),
                ]

@@ -32,6 +32,7 @@ from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import configfile
 from Anomos import BTFailure
 from Anomos import version
+from Anomos import LOG as log
 
 
 def fmttime(n):
@@ -76,13 +77,12 @@ class HeadlessDisplayer(object):
         self.shareRating = ''
         self.seedStatus = ''
         self.peerStatus = ''
-        self.errors = []
         self.file = ''
         self.downloadTo = ''
         self.fileSize = ''
         self.numpieces = 0
-        self.rsent = 0
-        self.rrate = 0
+        self.relayRate = '---'
+        self.numRelays = 0
 
     def set_torrent_values(self, name, path, size, numpieces):
         self.file = name
@@ -95,20 +95,16 @@ class HeadlessDisplayer(object):
         self.downRate = '---'
         self.display({'activity':'download succeeded', 'fractionDone':1})
 
-    def error(self, errormsg):
-        newerrmsg = strftime('[%H:%M:%S] ') + str(errormsg)
-        self.errors.append(newerrmsg)
-        self.display({})
-
     def display(self, statistics):
         fractionDone = statistics.get('fractionDone')
         activity = statistics.get('activity')
         timeEst = statistics.get('timeEst')
         downRate = statistics.get('downRate')
         upRate = statistics.get('upRate')
+        relayRate = statistics.get('relayRate')
+        numRelays = statistics.get('relayCount')
         spew = statistics.get('spew')
 
-        #print '\n\n\n\n'
         if spew is not None:
             self.print_spew(spew)
 
@@ -123,6 +119,10 @@ class HeadlessDisplayer(object):
             self.downRate = '%.1f KB/s' % (downRate / (1 << 10))
         if upRate is not None:
             self.upRate = '%.1f KB/s' % (upRate / (1 << 10))
+        if relayRate is not None:
+            self.relayRate = '%.1f KB/s' % (relayRate / (1 << 10))
+        if numRelays is not None:
+            self.numRelays = numRelays
         downTotal = statistics.get('downTotal')
         if downTotal is not None:
             upTotal = statistics['upTotal']
@@ -154,9 +154,8 @@ class HeadlessDisplayer(object):
         #print 'seed status:   ', self.seedStatus
         #print 'peer status:   ', self.peerStatus
         #print '|-'
-        for i in range(len(self.errors)):
-            print 'Log:\n' + self.errors.pop() + '\n'
-
+        print '| relay rate:     %s (%s)' % (self.relayRate, self.numRelays)
+        print '|-'
 
     def print_spew(self, spew):
         s = StringIO()
@@ -201,16 +200,6 @@ class HeadlessDisplayer(object):
             s.write('\n')
         print s.getvalue()
 
-    def display_relay(self, rate, size, snt):
-        r = "%.1f" % (float(rate)/1024.0)
-        if snt != self.rsent:
-            print "| relay rate:     " + str(r) + " KB/s (" + str(size) + ")"
-            self.rsent = snt
-            print '|-'
-        else:
-            print "| relay rate:     0.0 KB/s (" + str(size) + ")"
-            print '|-'
-
 class DL(Feedback):
 
     def __init__(self, metainfo, config):
@@ -221,8 +210,7 @@ class DL(Feedback):
     def run(self):
         self.d = HeadlessDisplayer(self.doneflag)
         try:
-            self.multitorrent = Multitorrent(self.config, self.doneflag,
-                                             self.global_error)
+            self.multitorrent = Multitorrent(self.config, self.doneflag)
             # raises BTFailure if bad
             metainfo = ConvertedMetainfo(bdecode(self.metainfo))
             torrent_name = metainfo.name_fs
@@ -237,26 +225,22 @@ class DL(Feedback):
                 saveas = torrent_name
 
             self.d.set_torrent_values(metainfo.name, os.path.abspath(saveas),
-                                metainfo.total_bytes, len(metainfo.hashes))
+                                metainfo.file_size, len(metainfo.hashes))
             self.torrent = self.multitorrent.start_torrent(metainfo,
                                 self.config, self, saveas)
         except BTFailure, e:
             print str(e)
             return
         self.get_status()
-        rate = self.multitorrent.get_relay_rate()
-        size = self.multitorrent.get_relay_size()
-        sent = self.multitorrent.get_relay_sent()
         self.multitorrent.rawserver.listen_forever()
         self.d.display({'activity':'shutting down', 'fractionDone':0})
-        #self.d.display_relay(rate, size, sent)
         self.torrent.shutdown()
 
     def reread_config(self):
         try:
-            newvalues = configfile.get_config(self.config, 'btdownloadcurses')
+            newvalues = configfile.get_config(self.config, 'anondownloadcurses')
         except Exception, e:
-            self.d.error('Error reading config: ' + str(e))
+            log.error('Error reading config: ' + str(e))
             return
         self.config.update(newvalues)
         # The set_option call can potentially trigger something that kills
@@ -272,17 +256,7 @@ class DL(Feedback):
         self.multitorrent.rawserver.add_task(self.get_status,
                                              self.config['display_interval'])
         status = self.torrent.get_status(self.config['spew'])
-        rate = self.multitorrent.get_relay_rate()
-        size = self.multitorrent.get_relay_size()
-        sent = self.multitorrent.get_relay_sent()
         self.d.display(status)
-        self.d.display_relay(rate, size, sent)
-
-    def global_error(self, level, text):
-        self.d.error(text)
-
-    def error(self, torrent, level, text):
-        self.d.error(text)
 
     def failed(self, torrent, is_external):
         self.doneflag.set()
@@ -292,7 +266,7 @@ class DL(Feedback):
 
 
 if __name__ == '__main__':
-    uiname = 'btdownloadheadless'
+    uiname = 'anondownloadheadless'
     defaults = get_defaults(uiname)
 
     if len(sys.argv) <= 1:

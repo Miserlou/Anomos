@@ -49,7 +49,7 @@ class HeadlessDisplayer:
 
 
 if __name__ == '__main__':
-    uiname = 'btlaunchmany'
+    uiname = 'anonlaunchmany'
     defaults = get_defaults(uiname)
     try:
         if len(sys.argv) < 2:
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         print 'error: ' + str(e) + '\nrun with no args for parameter explanations'
         sys.exit(1)
 
-    LaunchMany(config, HeadlessDisplayer(), 'btlaunchmany')
+    LaunchMany(config, HeadlessDisplayer(), 'anonlaunchmany')
     if exceptions:
         print '\nEXCEPTION:'
         print exceptions[0]

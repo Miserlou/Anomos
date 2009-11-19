@@ -35,7 +35,7 @@ from Anomos.defaultargs import get_defaults
 from Anomos.makemetafile import make_meta_files
 from Anomos.parseargs import makeHelp
 
-defaults = get_defaults('btmaketorrentgui')
+defaults = get_defaults('makeatorrentgui')
 defconfig = dict([(name, value) for (name, value, doc) in defaults])
 del name, value, doc
 
@@ -48,6 +48,8 @@ class MainWindow(Window):
         self.connect('destroy', self.quit)
         self.set_title('%s metafile creator %s'%(app_name, version))
         self.set_border_width(SPACING)
+
+        self.set_position(gtk.WIN_POS_CENTER)
 
         self.config = config
 
@@ -172,7 +174,7 @@ class MainWindow(Window):
         else:
             fn = Desktop.desktop 
 
-        selector = OpenFileSelection(self, title="Open torrent:",
+        selector = OpenMultiFileSelection(self, title="Select file to put in .atorrent:",
                                 fullname=fn,
                                 got_multiple_location_func=self.add_files)
     
@@ -224,7 +226,7 @@ class MainWindow(Window):
                 self.remove_button.set_sensitive(True)
             else:
                 self.remove_button.set_sensitive(False)
-            if len(announce_url) >= len('http://x.cc'):
+            if len(announce_url) >= len('https://x.cc') and ('https:' in announce_url):
                 self.makebutton.set_sensitive(True)
             else:
                 self.makebutton.set_sensitive(False)
@@ -234,8 +236,9 @@ class MainWindow(Window):
             self.makebutton.set_sensitive(False)
 
     def quit(self, widget):
-        gtk.main_quit()
-
+        self.mainwindow.destroy()
+        if __name__ == "__main__":
+            gtk.main_quit()
 
 class ProgressDialog(gtk.Dialog):
 
@@ -305,19 +308,24 @@ class ProgressDialog(gtk.Dialog):
             self.set_title('Error!')
             self.label.set_text('Error building torrents: ' + str(e))
 
+def main():
+    
+    config, args = configfile.parse_configuration_and_args(defaults,
+                                'makeatorrentgui', sys.argv[1:], 0, None)
+    w = MainWindow(config)
+
+    if __name__ == "__main__":
+        try:
+            gtk.main()
+        except KeyboardInterrupt:
+            # gtk.mainloop not running
+            # exit and don't save config options
+            sys.exit(1)
+
+    save_options = ('torrent_dir','piece_size_pow2','tracker_name')
+    configfile.save_ui_config(w.config, 'makeatorrentgui', save_options)
+
 
 if __name__ == '__main__':
 
-    config, args = configfile.parse_configuration_and_args(defaults,
-                                    'btmaketorrentgui', sys.argv[1:], 0, None)
-    w = MainWindow(config)
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        # gtk.mainloop not running
-        # exit and don't save config options
-        sys.exit(1)
-
-    save_options = ('torrent_dir','piece_size_pow2','tracker_name')
-    def error_callback(error, string): print string
-    configfile.save_ui_config(w.config, 'btmaketorrentgui', save_options, error_callback)
+    main()

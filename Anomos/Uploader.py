@@ -13,17 +13,16 @@
 
 # Written by Bram Cohen
 
-from Anomos.CurrentRateMeasure import Measure
+from Anomos.Measure import Measure
 
 
 class Upload(object):
 
-    def __init__(self, connection, ratelimiter, totalup, totalup2, choker,
+    def __init__(self, stream, ratelimiter, totalup, choker,
                  storage, max_slice_length, max_rate_period):
-        self.connection = connection
+        self.stream = stream
         self.ratelimiter = ratelimiter
         self.totalup = totalup
-        self.totalup2 = totalup2
         self.choker = choker
         self.storage = storage
         self.max_slice_length = max_slice_length
@@ -34,18 +33,18 @@ class Upload(object):
         self.buffer = []
         self.measure = Measure(max_rate_period)
         if storage.do_I_have_anything():
-            connection.send_bitfield(storage.get_have_list())
+            stream.send_bitfield(storage.get_have_list())
 
     def got_not_interested(self):
         if self.interested:
             self.interested = False
             del self.buffer[:]
-            self.choker.not_interested(self.connection)
+            self.choker.not_interested(self.stream)
 
     def got_interested(self):
         if not self.interested:
             self.interested = True
-            self.choker.interested(self.connection)
+            self.choker.interested(self.stream)
 
     def get_upload_chunk(self):
         if not self.buffer:
@@ -53,22 +52,21 @@ class Upload(object):
         index, begin, length = self.buffer.pop(0)
         piece = self.storage.get_piece(index, begin, length)
         if piece is None:
-            self.connection.close()
+            self.stream.close()
             return None
         self.measure.update_rate(len(piece))
         self.totalup.update_rate(len(piece))
-        self.totalup2.update_rate(len(piece))
         return (index, begin, piece)
 
     def got_request(self, index, begin, length):
         if not self.interested or length > self.max_slice_length:
-            self.connection.close()
+            self.stream.close()
             return
-        if not self.connection.choke_sent:
+        if not self.stream.choke_sent:
             self.buffer.append((index, begin, length))
-            if self.connection.next_upload is None and \
-                   self.connection.connection.is_flushed():
-                self.ratelimiter.queue(self.connection)
+            if self.stream.next_upload is None and \
+                   self.stream.is_flushed():
+                self.ratelimiter.queue(self.stream)
 
     def got_cancel(self, index, begin, length):
         try:
@@ -79,7 +77,7 @@ class Upload(object):
     def choke(self):
         if not self.choked:
             self.choked = True
-            self.connection.send_choke()
+            self.stream.send_choke()
 
     def sent_choke(self):
         assert self.choked
@@ -89,7 +87,7 @@ class Upload(object):
         if self.choked:
             self.choked = False
             self.unchoke_time = time
-            self.connection.send_unchoke()
+            self.stream.send_unchoke()
 
     def has_queries(self):
         return len(self.buffer) > 0

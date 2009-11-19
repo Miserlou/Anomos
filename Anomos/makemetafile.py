@@ -15,8 +15,6 @@
 
 # Written by Bram Cohen, modified by the Anomos Riot Induction Brigade
 
-from __future__ import division
-
 import os
 import sys
 import httplib
@@ -27,9 +25,7 @@ from threading import Event
 from Anomos.bencode import bencode
 from Anomos.btformats import check_info
 from Anomos.parseargs import parseargs, printHelp
-from Anomos.platform import bttime
-from Anomos.obsoletepythonsupport import *
-from Anomos import BTFailure
+from Anomos import bttime, BTFailure
 
 ignore = ['core', 'CVS', 'Thumbs.db']
 
@@ -108,7 +104,7 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
         return
     check_info(info)
     h = file(f, 'wb')
-    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime()), 'anon': 'True'}
+    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime()), 'anon': '1'}
     if comment:
         data['comment'] = comment
     h.write(bencode(data))

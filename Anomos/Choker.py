@@ -84,7 +84,7 @@ class Choker(object):
             u = c.upload
             if not u.choked and u.interested:
                 if u.unchoke_time > new_limit or (
-                        u.buffer and c.connection.is_flushed()):
+                        u.buffer and c.is_flushed()):
                     preferred.append((-u.unchoke_time, -u.get_rate(), i))
                 else:
                     preferred.append((1, -u.get_rate(), i))
@@ -108,7 +108,7 @@ class Choker(object):
                 if not u.interested:
                     u.choke()
                 elif u.choked:
-                    if num_nonpref > 0 and c.connection.is_flushed():
+                    if num_nonpref > 0 and c.is_flushed():
                         u.unchoke(self.count)
                         num_nonpref -= 1
                         if num_nonpref == 0:
@@ -125,6 +125,8 @@ class Choker(object):
                                self.connections[:last_unchoked + 1]
 
     def connection_made(self, connection):
+        if connection in self.connections:
+            return
         p = randrange(len(self.connections) + 1)
         self.connections.insert(p, connection)
 
