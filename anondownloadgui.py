@@ -407,6 +407,8 @@ class MakerThread(threading.Thread):
      def make(self):
         makeatorrentgui.main()
 
+     #XXX: Making .atorrents of large files through this causes a hang,
+     #XXX: but not if done through the stand-alone process
      def run(self):
         gobject.idle_add(self.make)
 
