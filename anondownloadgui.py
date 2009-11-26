@@ -2438,7 +2438,7 @@ class DownloadInfoFrame(object):
 
         self.knownscroll = ScrolledWindow()
         self.knownscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.knownscroll.set_shadow_type(gtk.SHADOW_NONE)
+        self.knownscroll.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.knownscroll.set_size_request(-1, SPACING)
         self.knownscroll.set_border_width(SPACING)
 
@@ -2450,9 +2450,15 @@ class DownloadInfoFrame(object):
         
         self.mainscroll = AutoScrollingWindow()
         self.mainscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.mainscroll.set_shadow_type(gtk.SHADOW_NONE)
+        #self.mainscroll.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.mainscroll.set_size_request(-1, SPACING)
         self.mainscroll.set_border_width(SPACING)
+
+        self.event_box = gtk.EventBox()
+        self.mainscroll.add_with_viewport(self.event_box)
+        self.event_box.show()        
+        self.event_box.modify_bg(gtk.STATE_NORMAL,
+                            self.event_box.get_colormap().alloc_color("white"))
 
         self.scrollbox = RunningAndQueueBox(self, homogeneous=False)
         self.scrollbox.set_border_width(SPACING)
@@ -2467,7 +2473,7 @@ class DownloadInfoFrame(object):
 
         self.scrollbox.pack_start(SpacerBox(self), expand=True, fill=True) 
 
-        self.mainscroll.add_with_viewport(self.scrollbox)
+        self.event_box.add(self.scrollbox)
 
         self.paned.pack2(self.mainscroll, resize=True, shrink=False)
 
