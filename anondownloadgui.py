@@ -2489,9 +2489,17 @@ class DownloadInfoFrame(object):
         self.iconified = False
 
         self.statusIcon = gtk.StatusIcon()
+
+        self.menu = gtk.Menu()
+        self.menuItem = gtk.ImageMenuItem(gtk.STOCK_QUIT) 
+        self.menuItem.connect('activate', self.ask_quit, self.statusIcon) 
+        self.menu.append(self.menuItem) 
+
         self.statusIcon.set_from_file('./images/small.png')
         self.statusIcon.set_tooltip("Anomos")
         self.statusIcon.connect('activate', self.onStatusIconActivate)
+        self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu) 
+	
 
     def onStatusIconActivate(self, widget):
         if self.iconified:
@@ -2502,6 +2510,12 @@ class DownloadInfoFrame(object):
             self.mainwindow.iconify()
             self.mainwindow.hide()
             self.iconified = True
+
+    def popup_menu_cb(self, widget, button, time, data = None): 
+	    if button == 3: 
+	        if data: 
+	            data.show_all() 
+	            data.popup(None, None, None, 3, time) 
 
     def quitDialog(self, yes_text="Yes", no_text="No", cancel_text="Cancel"):
         message = gtk.MessageDialog(self.mainwindow, gtk.DIALOG_MODAL, gtk.MESSAGE_QUESTION, gtk.BUTTONS_NONE, "Do you really want to quit?")
