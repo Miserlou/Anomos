@@ -2437,9 +2437,10 @@ class DownloadInfoFrame(object):
         self.paned = gtk.VPaned()
 
         self.knownscroll = ScrolledWindow()
-        self.knownscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.knownscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.knownscroll.set_shadow_type(gtk.SHADOW_NONE)
         self.knownscroll.set_size_request(-1, SPACING)
+        self.knownscroll.set_border_width(SPACING)
 
         self.knownbox = KnownBox(self)
         self.knownbox.set_border_width(SPACING)
@@ -2448,9 +2449,10 @@ class DownloadInfoFrame(object):
         #self.paned.pack1(self.knownscroll, resize=False, shrink=True)
         
         self.mainscroll = AutoScrollingWindow()
-        self.mainscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.mainscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.mainscroll.set_shadow_type(gtk.SHADOW_NONE)
         self.mainscroll.set_size_request(-1, SPACING)
+        self.mainscroll.set_border_width(SPACING)
 
         self.scrollbox = RunningAndQueueBox(self, homogeneous=False)
         self.scrollbox.set_border_width(SPACING)
@@ -2491,6 +2493,15 @@ class DownloadInfoFrame(object):
         self.statusIcon = gtk.StatusIcon()
 
         self.menu = gtk.Menu()
+
+        self.pauseItem = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PAUSE) 
+        self.pauseItem.connect('activate', self.stopbutton.toggle, self.statusIcon) 
+        self.menu.append(self.pauseItem) 
+
+        self.playItem = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PLAY) 
+        self.playItem.connect('activate', self.startbutton.toggle, self.statusIcon) 
+        self.menu.append(self.playItem)
+
         self.menuItem = gtk.ImageMenuItem(gtk.STOCK_QUIT) 
         self.menuItem.connect('activate', self.ask_quit, self.statusIcon) 
         self.menu.append(self.menuItem) 
