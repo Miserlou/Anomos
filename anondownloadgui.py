@@ -1405,6 +1405,10 @@ class TorrentBox(gtk.EventBox):
     
     def __init__(self, infohash, metainfo, dlpath, completion, main):
         gtk.EventBox.__init__(self)
+
+        self.modify_bg(gtk.STATE_NORMAL,
+                            self.get_colormap().alloc_color("white"))
+
         self.infohash = infohash
         self.metainfo = metainfo
         self.dlpath = dlpath
@@ -1425,6 +1429,10 @@ class TorrentBox(gtk.EventBox):
         self.menu_handler = None
 
         self.vbox = gtk.VBox(homogeneous=False, spacing=SPACING)
+
+        self.vbox.modify_bg(gtk.STATE_NORMAL,
+                            self.vbox.get_colormap().alloc_color("white"))
+
         self.label = gtk.Label()
         self.set_name()
         
@@ -1432,12 +1440,19 @@ class TorrentBox(gtk.EventBox):
 
         self.hbox = gtk.HBox(homogeneous=False, spacing=SPACING)
 
+        self.hbox.modify_bg(gtk.STATE_NORMAL,
+                            self.hbox.get_colormap().alloc_color("white"))
+
         self.icon = gtk.Image()
         self.icon.set_size_request(-1, 29)
 
         self.iconbox = gtk.VBox()
         self.iconevbox = gtk.EventBox()        
         self.iconevbox.add(self.icon)
+
+        self.iconevbox.modify_bg(gtk.STATE_NORMAL,
+                            self.iconevbox.get_colormap().alloc_color("white"))
+
         self.iconbox.pack_start(self.iconevbox, expand=False, fill=False)
         self.hbox.pack_start(self.iconbox, expand=False, fill=False)
         
@@ -1471,6 +1486,9 @@ class TorrentBox(gtk.EventBox):
 
         self.buttonevbox = gtk.EventBox()
         self.buttonbox = gtk.HBox(homogeneous=True, spacing=SPACING)
+
+        self.buttonevbox.modify_bg(gtk.STATE_NORMAL,
+                            self.buttonevbox.get_colormap().alloc_color("white"))
 
         self.infobutton = gtk.Button()
         self.infoimage = gtk.Image()
@@ -2727,7 +2745,6 @@ class DownloadInfoFrame(object):
     def help_closed(self, widget=None):
         self.helpwindow = None
 
-    ###this might be important richard
     def set_config(self, option, value):
         self.config[option] = value
         if option == 'display_interval':
