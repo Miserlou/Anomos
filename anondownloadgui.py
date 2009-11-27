@@ -2288,6 +2288,7 @@ class Struct(object):
 
 class DownloadInfoFrame(object):
 
+    #TODO: It doesn't scroll properly if there are >screen size torrents. I have no idea how to fix.
     def __init__(self, config, torrentqueue):
         self.config = config
         if self.config['save_in'] == '':
