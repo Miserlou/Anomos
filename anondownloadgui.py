@@ -300,10 +300,19 @@ class OpenFileButton(gtk.Button):
         self.set_tooltip_text(self.open_tip)
         self.set_relief(gtk.RELIEF_NONE)
 
+        self.hb = gtk.HBox()
+
+        self.label = gtk.Label(' Open')
+        
+        self.hb.pack_end(self.label)
+
         self.open_image = gtk.Image()
         self.open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
         self.open_image.show()
-        self.add(self.open_image)
+    
+        self.hb.pack_start(self.open_image)    
+
+        self.add(self.hb)
 
     def open_file(self, widget):
         self.main.select_torrent_to_open(widget)
@@ -318,10 +327,16 @@ class SettingsButton(gtk.Button):
         self.set_tooltip_text(self.open_tip)
         self.set_relief(gtk.RELIEF_NONE)
 
+        self.hb = gtk.HBox()
+        self.lab = gtk.Label(' Settings')
+        self.hb.pack_end(self.lab)
+
         self.settings_image = gtk.Image()
         self.settings_image.set_from_stock(gtk.STOCK_PREFERENCES, gtk.ICON_SIZE_BUTTON)
         self.settings_image.show()
-        self.add(self.settings_image)
+        self.hb.pack_start(self.settings_image)
+
+        self.add(self.hb)
 
     def open_settings(self, widget):
         self.main.open_window('settings')
@@ -336,10 +351,17 @@ class StartButton(gtk.Button):
         self.set_relief(gtk.RELIEF_NONE)
         self.set_tooltip_text(self.start_tip)
 
+        self.bb = gtk.HBox()
         self.start_image = gtk.Image()
         self.start_image.set_from_stock(gtk.STOCK_MEDIA_PLAY, gtk.ICON_SIZE_BUTTON)
         self.start_image.show()
-        self.add(self.start_image)
+        self.bb.pack_start(self.start_image)
+
+        self.label = gtk.Label(' Go')
+        self.bb.pack_end(self.label)
+
+        self.add(self.bb)
+
 
     def toggle(self, widget):
         self.set_paused(not self.main.config['pause'])
@@ -362,10 +384,16 @@ class StopButton(gtk.Button):
         self.set_tooltip_text(self.stop_tip)
         self.set_relief(gtk.RELIEF_NONE)
 
+        self.hb = gtk.HBox()
         self.stop_image = gtk.Image()
         self.stop_image.set_from_stock(gtk.STOCK_MEDIA_PAUSE, gtk.ICON_SIZE_BUTTON)
         self.stop_image.show()
-        self.add(self.stop_image)
+        self.hb.pack_start(self.stop_image)
+
+        self.lab = gtk.Label(' Stop')
+        self.hb.pack_end(self.lab)    
+        
+        self.add(self.hb)
     
     def toggle(self, widget):
         self.set_paused(not self.main.config['pause'])
@@ -388,10 +416,16 @@ class NewTorrentButton(gtk.Button):
         self.set_relief(gtk.RELIEF_NONE)
         self.connect('clicked', self.toggle)
 
+        self.hb = gtk.HBox()
+
+        self.lab = gtk.Label(' New')
+        self.hb.pack_end(self.lab)    
+
         self.new_image = gtk.Image()
         self.new_image.set_from_stock(gtk.STOCK_NEW, gtk.ICON_SIZE_BUTTON)
         self.new_image.show()
-        self.add(self.new_image)
+        self.hb.pack_start(self.new_image)
+        self.add(self.hb)
 
     def toggle(self, widget):
         self.launch_maketorrent_gui()
