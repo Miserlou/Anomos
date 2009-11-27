@@ -2303,7 +2303,7 @@ class DownloadInfoFrame(object):
         gtk.gdk.threads_enter()
         self.mainwindow = Window(gtk.WINDOW_TOPLEVEL)
         self.mainwindow.set_border_width(0)
-        self.mainwindow.resize(800,400)
+        self.mainwindow.set_size_request(800,400)
         self.mainwindow.set_position(gtk.WIN_POS_CENTER)
 
         self.mainwindow.drag_dest_set(gtk.DEST_DEFAULT_ALL,
@@ -2313,6 +2313,7 @@ class DownloadInfoFrame(object):
         self.mainwindow.connect('destroy', self.cancel)
         self.mainwindow.connect('delete-event', self.ask_quit)
         self.mainwindow.connect('window-state-event', self.on_window_event)
+        self.mainwindow.set_resizable(True)
 
         self.accel_group = gtk.AccelGroup()
 
@@ -2458,7 +2459,7 @@ class DownloadInfoFrame(object):
 
         self.knownscroll = ScrolledWindow()
         self.knownscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.knownscroll.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        self.knownscroll.set_shadow_type(gtk.SHADOW_IN)
         self.knownscroll.set_size_request(-1, SPACING)
         self.knownscroll.set_border_width(SPACING)
 
@@ -2470,7 +2471,7 @@ class DownloadInfoFrame(object):
         
         self.mainscroll = AutoScrollingWindow()
         self.mainscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        #self.mainscroll.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        self.mainscroll.set_shadow_type(gtk.SHADOW_IN)
         self.mainscroll.set_size_request(-1, SPACING)
         self.mainscroll.set_border_width(SPACING)
 
