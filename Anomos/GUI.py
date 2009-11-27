@@ -331,8 +331,9 @@ class FileSelection():
         self.no_location_func = no_location_func
         self.got_multiple_location_func = got_multiple_location_func
 
+        # TODO: Any way to change the icon of this? I can't find it.
         dialog = gtk.FileChooserDialog(title,
-                               None,
+                               self.main,
                                gtk.FILE_CHOOSER_ACTION_OPEN,
                                (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                 gtk.STOCK_OPEN, gtk.RESPONSE_OK))
