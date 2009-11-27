@@ -2339,6 +2339,7 @@ class DownloadInfoFrame(object):
         self.mainwindow = Window(gtk.WINDOW_TOPLEVEL)
         self.mainwindow.set_border_width(0)
         self.mainwindow.set_size_request(800,400)
+        self.mainwindow.resize(800,400)
         self.mainwindow.set_position(gtk.WIN_POS_CENTER)
 
         self.mainwindow.drag_dest_set(gtk.DEST_DEFAULT_ALL,
@@ -2557,11 +2558,11 @@ class DownloadInfoFrame(object):
         self.menu = gtk.Menu()
 
         self.pauseItem = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PAUSE) 
-        self.pauseItem.connect('activate', self.stopbutton.toggle, self.statusIcon) 
+        self.pauseItem.connect('activate', self.stopbutton.toggle) 
         self.menu.append(self.pauseItem) 
 
         self.playItem = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PLAY) 
-        self.playItem.connect('activate', self.startbutton.toggle, self.statusIcon) 
+        self.playItem.connect('activate', self.startbutton.toggle)
         self.menu.append(self.playItem)
 
         self.menuItem = gtk.ImageMenuItem(gtk.STOCK_QUIT) 
