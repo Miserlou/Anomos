@@ -74,7 +74,7 @@ rare_options = [
     ('retaliate_to_garbled_data', 1,
      'refuse further connections from addresses with broken or intentionally '
      'hostile peers that send incorrect data'),
-    ('one_connection_per_ip', 1,
+    ('one_connection_per_ip', 0,
      'do not connect to several peers that have the same IP address'),
     ('peer_socket_tos', 8,
      'if nonzero, set the TOS option for peer connections to this value'),
@@ -158,7 +158,7 @@ def get_defaults(ui):
 
     if ui == 'makeatorrentgui':
         r.extend([
-            ('piece_size_pow2', 18,
+            ('piece_size_pow2', 19,
              "which power of two to set the piece size to"),
             ('tracker_name', 'https://anomos.info:5555/announce',
              "default tracker name"),
