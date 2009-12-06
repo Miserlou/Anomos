@@ -189,14 +189,16 @@ class Certificate:
             return True
         return bool(preverify_ok)
 
+
     def getVerifiedContext(self, pem):
         global global_cryptodir
         cloc = os.path.join(global_cryptodir, pem)
         ctx = SSL.Context("tlsv1") # Defaults to SSLv23
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
+        #this is bullshit
         ctx.load_verify_locations(cafile=cloc)
-        ctx.set_allow_unknown_ca(1)
-        ctx.set_verify(CTX_VERIFY_FLAGS,0,self._verifyCallback)
+        ctx.set_allow_unknown_ca(0)
+        ctx.set_verify(CTX_VERIFY_FLAGS,1,self._verifyCallback)
         #TODO: Update info callback when we switch to using Python's logging module
         #ctx.set_info_callback(lambda *x:None)
         return ctx
