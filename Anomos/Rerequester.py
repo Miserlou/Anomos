@@ -122,7 +122,6 @@ class Rerequester(object):
                 self.proxy_username, self.proxy_password = auth.split(':',1)
 
     def _makequery(self):
-        log.info("Connecting!")
         return ('?info_hash=%s&port=%s'%
                 (quote(self.infohash), str(self.local_port)))
 
@@ -211,17 +210,18 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.
         """
+        log.info("Making announce to " + self.url)
         if not self.https:
             log.warning("Warning: Will not connect to non HTTPS server")
             return
         dcerts = crypto.getDefaultCerts()
         pcertname = str(self.url) + '.pem'
-        if pcertname not in dcerts and not self.warned:
-            log.error("WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
-            self.warned = True
-            ssl_contextual_healing=self.certificate.getContext()
-        else:
-            ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
+        #if pcertname not in dcerts and not self.warned:
+        #    log.error("WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
+        #    self.warned = True
+        #    ssl_contextual_healing=self.certificate.getContext()
+        #else:
+        ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
         try:
             if self.proxy_url:
                 #This is the old, HTTP Proxy stuff. May be worth implementing both but I'm not sure.
@@ -252,7 +252,7 @@ class Rerequester(object):
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib
         except Exception, g:
-            def f(r='Problem connecting to tracker - ' + str(g)):
+            def f(r='Problem connecting to ' + self.url + ':  ' + str(g)):
                 self._postrequest(errormsg=r)
         else:
             def f():

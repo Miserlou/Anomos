@@ -28,7 +28,7 @@ import hashlib
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading, util
 from M2Crypto.m2 import X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT as ERR_SELF_SIGNED
-from Anomos import bttime, tobinary, BTFailure
+from Anomos import bttime, tobinary, BTFailure, LOG as log
 
 CTX_VERIFY_FLAGS = SSL.verify_peer | SSL.verify_fail_if_no_peer_cert
 
@@ -185,22 +185,20 @@ class Certificate:
 
     def _verifyCallback(self, preverify_ok, code):
         # Allow self-signed certs
-        if code.get_error() == ERR_SELF_SIGNED:
-            return True
+        #if code.get_error() == ERR_SELF_SIGNED:
+        #    return True
         return bool(preverify_ok)
-
 
     def getVerifiedContext(self, pem):
         global global_cryptodir
-        cloc = os.path.join(global_cryptodir, pem)
+        cloc = os.path.join(global_certpath, 'cacert.root.pem')        
         ctx = SSL.Context("tlsv1") # Defaults to SSLv23
+        if ctx.load_verify_locations(cafile=cloc) != 1:
+            log.error("Problem loading CA certificates")
+            raise Exception('CA certificates not loaded')
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
-        #this is bullshit
-        ctx.load_verify_locations(cafile=cloc)
         ctx.set_allow_unknown_ca(0)
-        ctx.set_verify(CTX_VERIFY_FLAGS,1,self._verifyCallback)
-        #TODO: Update info callback when we switch to using Python's logging module
-        #ctx.set_info_callback(lambda *x:None)
+        ctx.set_verify(CTX_VERIFY_FLAGS,9,self._verifyCallback)
         return ctx
 
     def getPub(self):
