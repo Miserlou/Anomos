@@ -164,7 +164,7 @@ class Certificate:
         notBefore = m2.x509_get_not_before(self.cert.x509)
         notAfter = m2.x509_get_not_after(self.cert.x509)
         m2.x509_gmtime_adj(notBefore, 0)
-        m2.x509_gmtime_adj(notAfter, 60*60*24*365) #TODO: How long should certs be valid?
+        m2.x509_gmtime_adj(notAfter, 60*60*24*365*5)
         # Sign the certificate
         self.cert.sign(pkey, 'ripemd160')
         # Save it
