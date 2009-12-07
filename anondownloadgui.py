@@ -1870,6 +1870,7 @@ class RunningTorrentBox(DroppableTorrentBox):
 
             self.infobox.pack_end(self.extrabox, expand=False, fill=False)
 
+        self.infobox.pack_start(DroppableHSeparator(self))
 
         self.make_menu()
         self.show_all()
@@ -2130,8 +2131,9 @@ AFTER  =  1
 class ReorderableBox(DroppableBox):
 
     def new_separator(self):
-        return DroppableHSeparator(self)
-
+        self.dhs = DroppableHSeparator(self)
+        return self.dhs
+    
     def __init__(self, main):
         DroppableBox.__init__(self, main)
         self.main = main
@@ -2246,7 +2248,6 @@ class ReorderableBox(DroppableBox):
 class RunningBox(ReorderableBox):
 
     def put_infohash_at_index(self, infohash, target_index):
-        #print 'RunningBox.put_infohash_at_index', infohash.encode('hex')[:8], target_index
 
         l = self.get_queue()
         replaced = None
@@ -2266,7 +2267,6 @@ class RunningBox(ReorderableBox):
 class QueuedBox(ReorderableBox):
 
     def put_infohash_at_index(self, infohash, target_index):
-        #print 'want to put', infohash.encode('hex'), 'at', target_index
         self.main.change_torrent_state(infohash, QUEUED, target_index)
 
     def highlight_at_top(self):
@@ -2288,7 +2288,6 @@ class Struct(object):
 
 class DownloadInfoFrame(object):
 
-    #TODO: It doesn't scroll properly if there are >screen size torrents. I have no idea how to fix.
     def __init__(self, config, torrentqueue):
         self.config = config
         if self.config['save_in'] == '':
@@ -2488,8 +2487,6 @@ class DownloadInfoFrame(object):
         
         self.runbox = RunningBox(self)
         self.scrollbox.pack_start(self.runbox, expand=False, fill=False)
-
-        self.scrollbox.pack_start(DroppableHSeparator(self.scrollbox), expand=False, fill=False)
 
         self.queuebox = QueuedBox(self)
         self.scrollbox.pack_start(self.queuebox, expand=False, fill=False)
@@ -2993,10 +2990,9 @@ class DownloadInfoFrame(object):
             self.queuebox.remove(t.widget)
         elif t.state == KNOWN:
             self.knownbox.remove(t.widget)
-            
+          
         t.widget.destroy()
 
-        #self.set_size()
 
     def create_torrent_widget(self, infohash, queuepos=None):
         t = self.torrents[infohash]
@@ -3028,8 +3024,6 @@ class DownloadInfoFrame(object):
         box.pack_start(t.widget, expand=False, fill=False)
         if queuepos is not None:
             box.reorder_child(t.widget, queuepos)
-
-        #self.set_size()
 
     #TODO: Make this better fit the current logging model.
     def error(self, infohash, severity, text):

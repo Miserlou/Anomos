@@ -723,17 +723,9 @@ class HSeparatedBox(gtk.VBox):
             self._reorder_child(sep, newindex+1)
 
     def pack_start(self, widget, *args, **kwargs):
-        if len(self._get_children()):
-            s = self.new_separator()
-            gtk.VBox.pack_start(self, s, *args, **kwargs)
-            s.show()
         gtk.VBox.pack_start(self, widget, *args, **kwargs)
 
-    def pack_end(self, widget, *args, **kwargs):
-        if len(self._get_children()):
-            s = self.new_separator()
-            gtk.VBox.pack_start(self, s, *args, **kwargs)
-            s.show()
+    def pack_end(self, widget, *args, **kwargs):       
         gtk.VBox.pack_end(self, widget, *args, **kwargs)
 
     def remove(self, widget):
