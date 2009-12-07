@@ -2996,7 +2996,7 @@ class DownloadInfoFrame(object):
             
         t.widget.destroy()
 
-        self.set_size()
+        #self.set_size()
 
     def create_torrent_widget(self, infohash, queuepos=None):
         t = self.torrents[infohash]
@@ -3029,7 +3029,7 @@ class DownloadInfoFrame(object):
         if queuepos is not None:
             box.reorder_child(t.widget, queuepos)
 
-        self.set_size()
+        #self.set_size()
 
     #TODO: Make this better fit the current logging model.
     def error(self, infohash, severity, text):
