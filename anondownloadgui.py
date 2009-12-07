@@ -2456,7 +2456,7 @@ class DownloadInfoFrame(object):
 
         self.box2.pack_start(self.controlbox, expand=False, fill=False, padding=0)
 
-        #This is thecheckPo splitter thingy.
+        #This is the splitter thingy.
         self.paned = gtk.VPaned()
 
         self.knownscroll = ScrolledWindow()
