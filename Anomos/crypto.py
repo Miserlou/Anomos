@@ -184,13 +184,14 @@ class Certificate:
         return ctx
 
     def _verifyCallback(self, preverify_ok, code):
-        # Allow self-signed certs
-        #if code.get_error() == ERR_SELF_SIGNED:
-        #    return True
+        # Allow self-signed certs ONLY FOR localhost (for testing purposes)
+        if code.get_error() == ERR_SELF_SIGNED and self.url == 'localhost':
+            return True
         return bool(preverify_ok)
 
     def getVerifiedContext(self, pem):
         global global_cryptodir
+        self.url = pem[:len(pem)-4]
         cloc = os.path.join(global_certpath, 'cacert.root.pem')        
         ctx = SSL.Context("tlsv1") # Defaults to SSLv23
         if ctx.load_verify_locations(cafile=cloc) != 1:
