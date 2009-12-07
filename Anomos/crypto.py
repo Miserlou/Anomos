@@ -171,16 +171,10 @@ class Certificate:
         self.cert.save_pem(self.certfile)
 
     def getContext(self):
-        #XXX: This is almost definitely not secure.
-        #for instance, ctx.set_verify needs a proper callback.
         ctx = SSL.Context("tlsv1")
-        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
-        ##XXX:    ctx.set_verify(CTX_VERIFY_FLAGS, 1, lambda x,y: True)
-        ##XXX:    Need to get my OSSL book out, but let's put the depth up and have an Anomos CA     
+        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)  
         ctx.set_verify(CTX_VERIFY_FLAGS, 0, lambda x,y: True)
         ctx.set_allow_unknown_ca(1)
-        #TODO: Update info callback when we switch to using Python's logging module
-        #ctx.set_info_callback(lambda *x:None)
         return ctx
 
     def _verifyCallback(self, preverify_ok, code):
