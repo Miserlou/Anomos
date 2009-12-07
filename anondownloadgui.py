@@ -1870,7 +1870,7 @@ class RunningTorrentBox(DroppableTorrentBox):
 
             self.infobox.pack_end(self.extrabox, expand=False, fill=False)
 
-        self.infobox.pack_start(DroppableHSeparator(self))
+        self.vbox.pack_start(DroppableHSeparator(self))
 
         self.make_menu()
         self.show_all()
