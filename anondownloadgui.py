@@ -1460,9 +1460,9 @@ class TorrentBox(gtk.EventBox):
         
         self.vbox.pack_start(self.hbox)
         
-        self.infobox = gtk.VBox(homogeneous=False)
+        self.infobox = gtk.VBox(homogeneous=False, spacing=5)
 
-        self.progressbarbox = gtk.HBox(homogeneous=False, spacing=SPACING)
+        self.progressbarbox = gtk.HBox(homogeneous=False, spacing=10)
         self.progressbar = gtk.ProgressBar()
 
         if is_frozen_exe:
