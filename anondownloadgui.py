@@ -1528,6 +1528,8 @@ class TorrentBox(gtk.EventBox):
         self.drag_source_set(gtk.gdk.BUTTON1_MASK,
                              [BT_TARGET],
                              gtk.gdk.ACTION_MOVE)
+
+        self.vbox.pack_start(DroppableHSeparator(self))
         
     def drag_data_get(self, widget, context, selection, targetType, eventTime):
         selection.set(selection.target, 8, self.infohash)
@@ -1870,8 +1872,6 @@ class RunningTorrentBox(DroppableTorrentBox):
 
             self.infobox.pack_end(self.extrabox, expand=False, fill=False)
 
-        self.vbox.pack_start(DroppableHSeparator(self))
-
         self.make_menu()
         self.show_all()
 
@@ -2025,7 +2025,7 @@ class RunningTorrentBox(DroppableTorrentBox):
 
 class DroppableHSeparator(PaddedHSeparator):
 
-    def __init__(self, main, spacing=SPACING):
+    def __init__(self, main, spacing=6):
         PaddedHSeparator.__init__(self, spacing)
         self.main = main
         self.drag_dest_set(#gtk.DEST_DEFAULT_MOTION| # uncommenting this breaks downward scrolling
