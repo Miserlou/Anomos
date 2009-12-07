@@ -1832,7 +1832,7 @@ class RunningTorrentBox(DroppableTorrentBox):
         self.relay_rate = gtk.Label()
         self.rate_label_box.pack_start(lalign(self.up_rate  ),
                                        expand=True, fill=True)
-        self.rate_label_box.pack_start(lalign(self.down_rate),
+        self.rate_label_box.pack_start(self.down_rate,
                                        expand=True, fill=True)
         self.rate_label_box.pack_start(ralign(self.relay_rate),
                                        expand=True, fill=True)
