@@ -42,6 +42,7 @@ from Anomos.defaultargs import get_defaults
 from Anomos.parseargs import parseargs, makeHelp
 from Anomos.GUI import * 
 from Anomos.bencode import bdecode, bencode
+from Anomos.magnet import parse_magnet
 import makeatorrentgui
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
@@ -2344,11 +2345,12 @@ class DownloadInfoFrame(object):
 
         file_menu_items = (('_Open an .atorrent file', self.select_torrent_to_open),
 			               ('_Anonymize and open a .torrent file', self.select_old_torrent_to_open),
+                           ('Open a _magnet URL', self.magnet_chooser),
                            ('----'          , None),
                            ('_Play '  , self.startbutton.toggle),
                            ('Pause '  , self.stopbutton.toggle),
                            ('----'          , None),
-			               ('_Make a new .atorrent file', self.ntbutton.toggle),
+			               ('Make a _new .atorrent file', self.ntbutton.toggle),
 			               ('----'          , None),
 			               ('_Settings'     , lambda w: self.open_window('settings')),
 			               ('----'          , None),
@@ -2842,7 +2844,11 @@ class DownloadInfoFrame(object):
                          got_location_func=self.open_old_torrent,
                          no_location_func=lambda: self.window_closed('openfile'))
 
-
+    def magnet_chooser(self, widget):
+        magnettorrent = open_magnet_uri(getText(), self.config)
+        print magnettorrent
+        self.torrentqueue.start_new_torrent(magnettorrent)
+        
     def open_torrent(self, name):
         self.window_closed('openfile')
         f = None
@@ -3283,6 +3289,11 @@ def anomosify(data, config):
 	r['announce'] = config['anonymizer']
 
 	return bencode(r)
+
+def open_magnet_uri(uristring, config):
+    args = parse_magnet(uristring)
+    args['announce'] = config['anonymizer']
+    return bencode(args)
 	
 if __name__ == '__main__':
 
