@@ -120,13 +120,15 @@ class AnomosEndPointProtocol(AnomosProtocol):
         if i >= self.torrent.numpieces:
             self.fatal_error("Piece index out of range")
             return
-        self.upload.got_request(i, toint(message[5:9]), toint(message[9:]))
+        if self.upload:
+            self.upload.got_request(i, toint(message[5:9]), toint(message[9:]))
     def got_cancel(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
             self.fatal_error("Piece index out of range")
             return
-        self.upload.got_cancel(i, toint(message[5:9]), toint(message[9:]))
+        if self.upload:
+            self.upload.got_cancel(i, toint(message[5:9]), toint(message[9:]))
     def got_piece(self, message):
         i = toint(message[1:5])
         if i >= self.torrent.numpieces:
@@ -138,7 +140,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
     ## Send messages ##
     def send_break(self):
         self.network_ctl_msg(BREAK)
-        self.locked = True
         self.sent_break = True
     def send_ack_break(self):
         self.network_ctl_msg(ACKBREAK)
@@ -151,7 +152,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_choke(self):
         self.transfer_ctl_msg(CHOKE)
         self.choke_sent = True
-        self.upload.sent_choke()
+        if self.upload:
+            self.upload.sent_choke()
     def send_unchoke(self):
         self.transfer_ctl_msg(UNCHOKE)
         self.choke_sent = False
@@ -166,11 +168,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_have(self, index):
         self.transfer_ctl_msg(HAVE, tobinary(index))
     def send_tracking_code(self, trackcode):
-        #XXX: Just a test, Throw tcodes into the PMQ instead of sending them
-        # immediately
-        #self.network_ctl_msg(TCODE, trackcode)
         self.neighbor.queue_message(self.stream_id, TCODE+trackcode)
-        if self.next_upload is None:
+        if self.should_queue():
             self.ratelimiter.queue(self)
     def send_piece(self, index, begin, piece):
         msg = "".join([tobinary(index), tobinary(begin), piece])
