@@ -179,6 +179,9 @@ class Certificate:
 
     def _verifyCallback(self, preverify_ok, code):
         # Allow self-signed certs ONLY FOR localhost (for testing purposes)
+        # This is where the non-signed cert excemption WOULD go, but I'm really
+        # not convinced that it's necessary - any decent tracker will be signed,
+        # and there's no reason we can't sign our test certificates.
         if code.get_error() == ERR_SELF_SIGNED and self.url == 'localhost':
             return True
         return bool(preverify_ok)
