@@ -39,7 +39,6 @@ class Relayer(AnomosRelayerProtocol):
         self.closed = False
         self.next_upload = None
         self.decremented_count = False # Hack to prevent double decrementing of relay count
-        self.locked = False
         self.orelay = orelay
         # Make the other relayer which we'll send data through
         if orelay is None:

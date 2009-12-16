@@ -36,9 +36,8 @@ class AnomosRelayerProtocol(AnomosProtocol):
     ## Disable direct message reading. ##
     @log_on_call
     def send_break(self):
-        self.sent_break = True
         self.neighbor.queue_message(self.stream_id, BREAK)
-        self.locked = True
+        self.sent_break = True
         if self.should_queue():
             self.ratelimiter.queue(self)
     def send_tracking_code(self, trackcode):

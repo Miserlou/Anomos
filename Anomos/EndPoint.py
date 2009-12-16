@@ -31,7 +31,6 @@ class EndPoint(AnomosEndPointProtocol):
         self.choke_sent = False
         self.upload = None
         self.next_upload = None
-        self.locked = False
         if data is not None:
             self.send_tracking_code(data)
         else:
@@ -67,6 +66,7 @@ class EndPoint(AnomosEndPointProtocol):
             self.choker.connection_lost(self)# Must come before changes to
                                              # upload and download
             self.download.disconnected()
+            self.choker = None
             self.upload = None
         self.closed = True
 
