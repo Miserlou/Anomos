@@ -29,7 +29,6 @@ class EndPoint(AnomosEndPointProtocol):
         self.closed = False
         self.choker = None
         self.choke_sent = False
-        self.upload = None
         self.next_upload = None
         self.locked = False
         if data is not None:
@@ -59,7 +58,7 @@ class EndPoint(AnomosEndPointProtocol):
 
     def should_queue(self):
         return self.next_upload is None and \
-                (self.neighbor.in_queue(self.stream_id) or getattr(self.upload, 'buffer', None))
+                (self.neighbor.in_queue(self.stream_id) or self.upload.buffer)
 
     def shutdown(self):
         if self.complete and not self.closed:
