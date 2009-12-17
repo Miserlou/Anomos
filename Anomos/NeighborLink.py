@@ -116,7 +116,7 @@ class NeighborLink(AnomosNeighborProtocol):
 
     def queue_message(self, streamid, message):
         t = self.streams.has_key(streamid)
-        if not t or (t and not self.streams[streamid].sent_break):
+        if not t or (t and not self.streams[streamid].locked):
             self.pmq.queue_message(streamid, message)
 
     def in_queue(self, id):
