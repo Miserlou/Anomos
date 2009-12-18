@@ -128,10 +128,16 @@ class Certificate:
             self._create(hostname=hostname)
             return
         if self.secure:
-            self.rsakey = RSA.load_key(self.keyfile)
+            i = 0
+            while i < 3:
+                try:
+                    self.rsakey = RSA.load_key(self.keyfile)
+                    break
+                except RSA.RSAError:
+                    i += 1
+            else:
+                sys.exit()
         else:
-            #TODO: Allow users to specify a password to unlock their
-            # certificates.
             self.rsakey = RSA.load_key(self.keyfile, util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
