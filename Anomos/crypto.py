@@ -136,6 +136,7 @@ class Certificate:
                 except RSA.RSAError:
                     i += 1
             else:
+                log.warning("Invalid password entered, exiting.")
                 sys.exit()
         else:
             self.rsakey = RSA.load_key(self.keyfile, util.no_passphrase_callback)
