@@ -107,4 +107,4 @@ class EndPoint(AnomosEndPointProtocol):
                 return 0
             self.send_piece(*s) # s = (index, begin, piece)
         # Give neighbor permission to send "amount" bytes
-        return self.neighbor.send_partial(self.stream_id, amount)
+        return self.neighbor.send_partial(amount)

@@ -31,57 +31,69 @@ class PartialMessageQueue(object):
     #TODO: Give this a maximum length.
     def __init__(self):
         self._deeplen = 0
-        self.msgs = {}
-    def queue_message(self, sid, message):
+        self.msgs = []
+        self.sid_map = []
+    def queue_message(self, streamid, message):
         ''' Add a message to the message queue 
             @param streamid: Stream ID of message sender
             @param message: Message to be sent
             @type streamid: int
             @type message: string'''
         self._deeplen += len(message)
-        self.msgs.setdefault(sid, []).append(message)
+        self.msgs.append(message)
+        self.sid_map.append(streamid)
     def is_partial(self, message):
         return message[0] == PARTIAL
     def mk_partial(self, message):
         fmt = PARTIAL + tobinary(len(message))
         self._deeplen += PARTIAL_FMT_LEN
         return fmt + message
-    def dequeue_partial(self, sid, numbytes):
+    def dequeue_partial(self, numbytes):
         ''' Dequeue numbytes from the message queue. Return
             the stream IDs associated with the messages which
             were dequeued in full and the message to be sent.
             @param numbytes: Number of bytes to be sent
             @type numbytes: int
             @return: ([Stream IDs...], "Message")'''
-        if self._deeplen == 0 or not self.msgs.has_key(sid):
-            return ''
-        i, r = self._pindex(sid, numbytes)
-        deq = self.msgs[sid][:i]
+        if self._deeplen == 0:
+            return ([], '')
+        i, r = self._pindex(numbytes)
+        deq = self.msgs[:i]
+        streams = self.sid_map[:i]
         # If numbytes fell within a message, not on a message
         # boundary, then add the remaining bytes (r) to the
         # dequeued portion.
         if r > PARTIAL_FMT_LEN and i < len(self.msgs):
             if not self.is_partial(self.msgs[i]):
-                self.msgs[sid][i] = self.mk_partial(self.msgs[sid][i])
-            deq.append(self.msgs[sid][i][:r])
-            self.msgs[sid][i] = self.mk_partial(self.msgs[sid][i][r:])
+                self.msgs[i] = self.mk_partial(self.msgs[i])
+            deq.append(self.msgs[i][:r])
+            streams.append(self.sid_map[i])
+            self.msgs[i] = self.mk_partial(self.msgs[i][r:])
         # Delete the sent messages/informed stream ids
-        del self.msgs[sid][:i]
+        del self.msgs[:i]
+        del self.sid_map[:i]
         self._deeplen -= sum([len(i) for i in deq])
-        return deq
+        return (streams, deq)
     def remove_by_sid(self, sid):
         ''' Removes all messages queued by the stream given by sid '''
-        if not self.msgs.has_key(sid):
+        if sid not in self.sid_map:
             return
-        del self.msgs[sid]
-    def _pindex(self, sid, p):
+        tmpm = []
+        tmps = []
+        for i in range(len(self.msgs)):
+            if self.sid_map[i] != sid:
+                tmpm.append(self.msgs[i])
+                tmps.append(self.sid_map[i])
+        self.msgs = tmpm
+        self.sid_map = tmps
+    def _pindex(self, p):
         # Returns index of p'th byte in message queue
         # (Treating the queue as an irregular 2d array)
-        if len(self.msgs[sid]) <= p:
-            return (len(self.msgs[sid]), 0)
+        if self._deeplen <= p:
+            return (len(self.msgs), 0)
         i = t = 0
-        while i < len(self.msgs[sid]) and t + len(self.msgs[sid][i]) <= p:
-            t += len(self.msgs[sid][i])
+        while i < len(self.msgs) and t + len(self.msgs[i]) <= p:
+            t += len(self.msgs[i])
             i += 1
         return (i, p-t)
     def __len__(self):
