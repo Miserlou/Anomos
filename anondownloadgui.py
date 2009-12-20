@@ -397,21 +397,7 @@ class NewTorrentButton(gtk.Button):
         self.launch_maketorrent_gui()
     
     def launch_maketorrent_gui(self):
-        t = MakerThread()
-        t.start()
-
-class MakerThread(threading.Thread):
-     def __init__(self):
-         super(MakerThread, self).__init__()
-
-     def make(self):
-        makeatorrentgui.main()
-
-     #XXX: Making .atorrents of large files through this causes a hang,
-     #XXX: but not if done through the stand-alone process
-     def run(self):
-        gobject.idle_add(self.make)
-
+        makeatorrentgui.main(parent=self)
 
 class SeedingButton(gtk.Button):
     tip = "List torrents you're seeding"
@@ -2574,15 +2560,14 @@ class DownloadInfoFrame(object):
         self.rate_slider_box.start()
         self.init_updates()
 
-
-
         try:
             gtk.main() 
         except KeyboardInterrupt:
             gtk.gdk.threads_leave()
             self.torrentqueue.set_done()
             raise
-        gtk.gdk.threads_leave()
+        else:
+            gtk.gdk.threads_leave()
 
 
     def drag_leave(self, *args):
