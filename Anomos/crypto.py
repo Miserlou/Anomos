@@ -64,9 +64,9 @@ def initCrypto(data_dir):
     global_dd = data_dir
     global_cryptodir = os.path.join(data_dir, 'crypto')
     if not os.path.exists(data_dir):
-        os.mkdir(data_dir, 0600)
+        os.mkdir(data_dir, 0700)
     if not os.path.exists(global_cryptodir):
-        os.mkdir(global_cryptodir, 0600)
+        os.mkdir(global_cryptodir, 0700)
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
     if Rand.save_file(global_randfile) == 0:
         raise CryptoError('Rand file not writable')
@@ -128,6 +128,7 @@ class Certificate:
             self._create(hostname=hostname)
             return
         if self.secure:
+            # Allow 3 attempts before quitting
             i = 0
             while i < 3:
                 try:
