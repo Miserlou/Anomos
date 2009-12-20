@@ -235,7 +235,7 @@ class NeighborManager(object):
                 self.relay_count += 1
                 r = self.neighbors[nid].start_relay_stream(nid,data,orelay)
                 orelay.set_other_relay(r)
-            self.waiting_tcs.set_default(nid, [])
+            self.waiting_tcs.setdefault(nid, [])
             self.waiting_tcs[nid].append(relay_tc)
 
     def dec_relay_count(self):
