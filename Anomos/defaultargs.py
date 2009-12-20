@@ -84,7 +84,7 @@ rare_options = [
      'enable workaround for a bug in BSD libc that makes file reads very slow.'),
     ('tracker_proxy', '',
         'address of HTTP proxy to use for tracker connections. Format: [username:password@]host:port'),
-    ('anonymizer', 'https://anomos.info:5555/announce',
+    ('anonymizer', 'https://tracker.anomos.info:5555/announce',
         'address of an open Anomos tracker to replace the trackers found inside un-anonymized .torrents'),
     ]
 
@@ -160,7 +160,7 @@ def get_defaults(ui):
         r.extend([
             ('piece_size_pow2', 19,
              "which power of two to set the piece size to"),
-            ('tracker_name', 'https://anomos.info:5555/announce',
+            ('tracker_name', 'https://tracker.anomos.info:5555/announce',
              "default tracker name"),
             ])#should anomos.info be replaced with an IP?
 

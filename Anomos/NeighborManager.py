@@ -197,9 +197,8 @@ class NeighborManager(object):
         initialized. In those cases we schedule the TC to be sent once we get
         a "connection_completed" from the neighbor.'''
         def sendtc():
-            if self.neighbors.has_key(nid): # Could have been deleted during wait
-                torrent = self.get_torrent(infohash)
-                self.neighbors[nid].start_endpoint_stream(torrent, aeskey, nextTC)
+            torrent = self.get_torrent(infohash)
+            self.neighbors[nid].start_endpoint_stream(torrent, aeskey, nextTC)
         self.waiting_tcs.setdefault(nid,[])
         self.waiting_tcs[nid].append(sendtc)
 
@@ -235,7 +234,7 @@ class NeighborManager(object):
                 self.relay_count += 1
                 r = self.neighbors[nid].start_relay_stream(nid,data,orelay)
                 orelay.set_other_relay(r)
-            self.waiting_tcs.set_default(nid, [])
+            self.waiting_tcs.setdefault(nid, [])
             self.waiting_tcs[nid].append(relay_tc)
 
     def dec_relay_count(self):

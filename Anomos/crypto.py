@@ -64,9 +64,9 @@ def initCrypto(data_dir):
     global_dd = data_dir
     global_cryptodir = os.path.join(data_dir, 'crypto')
     if not os.path.exists(data_dir):
-        os.mkdir(data_dir, 0600)
+        os.mkdir(data_dir, 0700)
     if not os.path.exists(global_cryptodir):
-        os.mkdir(global_cryptodir, 0600)
+        os.mkdir(global_cryptodir, 0700)
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
     if Rand.save_file(global_randfile) == 0:
         raise CryptoError('Rand file not writable')
@@ -128,10 +128,18 @@ class Certificate:
             self._create(hostname=hostname)
             return
         if self.secure:
-            self.rsakey = RSA.load_key(self.keyfile)
+            # Allow 3 attempts before quitting
+            i = 0
+            while i < 3:
+                try:
+                    self.rsakey = RSA.load_key(self.keyfile)
+                    break
+                except RSA.RSAError:
+                    i += 1
+            else:
+                log.warning("Invalid password entered, exiting.")
+                sys.exit()
         else:
-            #TODO: Allow users to specify a password to unlock their
-            # certificates.
             self.rsakey = RSA.load_key(self.keyfile, util.no_passphrase_callback)
         self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)

@@ -42,9 +42,12 @@ del name, value, doc
 
 class MainWindow(Window):
 
-    def __init__(self, config):
+    def __init__(self, config, parent=None):
         Window.__init__(self)
-        self.mainwindow = self # temp hack to make modal win32 file choosers work
+        if parent is None:
+            self.mainwindow = self # temp hack to make modal win32 file choosers work
+        else:
+            self.mainwindow = parent # temp hack to make modal win32 file choosers work
         self.connect('destroy', self.quit)
         self.set_title('%s metafile creator %s'%(app_name, version))
         self.set_border_width(SPACING)
@@ -236,7 +239,7 @@ class MainWindow(Window):
             self.makebutton.set_sensitive(False)
 
     def quit(self, widget):
-        self.mainwindow.destroy()
+        self.destroy()
         if __name__ == "__main__":
             gtk.main_quit()
 
@@ -286,8 +289,8 @@ class ProgressDialog(gtk.Dialog):
         self._update_gui()
 
     def _update_gui(self):
-        while gtk.events_pending():
-            gtk.main_iteration(block=False)
+        #while gtk.events_pending():
+        gtk.main_iteration(block=False)
 
     def complete(self):
         try:
@@ -308,24 +311,19 @@ class ProgressDialog(gtk.Dialog):
             self.set_title('Error!')
             self.label.set_text('Error building torrents: ' + str(e))
 
-def main():
-    
+def main(parent=None):
     config, args = configfile.parse_configuration_and_args(defaults,
                                 'makeatorrentgui', sys.argv[1:], 0, None)
-    w = MainWindow(config)
-
-    if __name__ == "__main__":
-        try:
-            gtk.main()
-        except KeyboardInterrupt:
-            # gtk.mainloop not running
-            # exit and don't save config options
-            sys.exit(1)
-
+    w = MainWindow(config, parent)
     save_options = ('torrent_dir','piece_size_pow2','tracker_name')
     configfile.save_ui_config(w.config, 'makeatorrentgui', save_options)
 
-
 if __name__ == '__main__':
-
     main()
+    try:
+        gtk.main()
+    except KeyboardInterrupt:
+        # gtk.mainloop not running
+        # exit and don't save config options
+        sys.exit(1)
+
