@@ -289,8 +289,8 @@ class ProgressDialog(gtk.Dialog):
         self._update_gui()
 
     def _update_gui(self):
-        while gtk.events_pending():
-            gtk.main_iteration(block=False)
+        #while gtk.events_pending():
+        gtk.main_iteration(block=False)
 
     def complete(self):
         try:
@@ -312,7 +312,6 @@ class ProgressDialog(gtk.Dialog):
             self.label.set_text('Error building torrents: ' + str(e))
 
 def main(parent=None):
-    
     config, args = configfile.parse_configuration_and_args(defaults,
                                 'makeatorrentgui', sys.argv[1:], 0, None)
     w = MainWindow(config, parent)
