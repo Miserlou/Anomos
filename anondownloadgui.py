@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -3084,7 +3085,7 @@ class DownloadInfoFrame(object):
             return
         self.running_torrents[torrent].widget.update_status(statistics)
         try:
-            self.statusIcon.set_tooltip('Complete:   ' + (str(statistics['fractionDone']*100)[:3] + '%\nDown:\t' + str(statistics['downRate']) + 'KB/s\nUp:\t\t' + str(statistics['upRate']) + 'KB/s'))
+            self.statusIcon.set_tooltip('Complete:   ' + (str(statistics['fractionDone']*100)[:2] + '%\nDown:\t' + str(statistics['downRate']/1000)[:4] + 'KB/s\nUp:\t\t' + str(statistics['upRate']) + 'KB/s'))
         except KeyError:
             ##Stupid race
             self.statusIcon.set_tooltip('Anomos')
