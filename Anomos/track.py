@@ -847,6 +847,7 @@ class Tracker(object):
         #    else:
         #        self.natchecklog(peerid, ip, port, 503)
 
+    #XXX: lord have mercy does this need encryption
     def save_dfile(self):
         self.rawserver.add_task(self.save_dfile, self.save_dfile_interval)
         h = open(self.dfile, 'wb')
