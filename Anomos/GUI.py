@@ -18,10 +18,11 @@ from __future__ import division
 import gtk
 import pango
 import gobject
+import glib
 import os.path
 import threading
 
-from __init__ import image_root, app_name, FAQ_URL
+from __init__ import image_root, app_name, FAQ_URL, LOG as log
 
 SPACING = 8
 WINDOW_TITLE_LENGTH = 128 # do we need this?
@@ -65,13 +66,13 @@ factory = gtk.IconFactory()
 # ICON_SIZE_LARGE_TOOLBAR = 24x24
 
 for n in 'broken finished info pause paused play queued running remove running-unsafe'.split():
-    fn = os.path.join(image_root, ("%s.png"%n))
-
-    pixbuf = gtk.gdk.pixbuf_new_from_file(fn)
-
-    set = gtk.IconSet(pixbuf)
-
-    factory.add('anon-%s'%n, set)
+    try:
+        fn = os.path.join(image_root, ("%s.png"%n))
+        pixbuf = gtk.gdk.pixbuf_new_from_file(fn)
+        set = gtk.IconSet(pixbuf)
+        factory.add('anon-%s'%n, set)
+    except glib.GError, e:
+        log.warning(e)
 
 factory.add_default()
 
@@ -165,7 +166,10 @@ class IconButton(gtk.Button):
 class Window(gtk.Window):
     def __init__(self, *args):
         apply(gtk.Window.__init__, (self,)+args)
-        self.set_icon_from_file(os.path.join(image_root,'anomos.ico'))
+        try:
+            self.set_icon_from_file(os.path.join(image_root,'anomos.ico'))
+        except glib.GError, e:
+            log.warning(e)
 
 
 class HelpWindow(Window):
