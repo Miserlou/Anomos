@@ -18,8 +18,8 @@ protocol_name = "Anomos"
 
 URL = 'http://www.anomos.info/'
 DONATE_URL = URL+'donate'
-FAQ_URL = URL# + 'FAQ.html'
-HELP_URL = URL# + 'documentation.html'
+FAQ_URL = URL+'trac/wiki/FrequentlyAskedQuestions'
+HELP_URL = URL+'trac/wiki/KnowledgeBase'
 
 import sys
 #TODO: Check actual earliest supported version
