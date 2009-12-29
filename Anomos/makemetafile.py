@@ -169,7 +169,7 @@ def makemultinfo(files, piece_length, flag, progress, encoding):
     for p, f in enumerate(subs):
         pos = 0
         size = os.path.getsize(f)
-        #Todo: dehackify
+        #TODO: dehackify
         #p2 = [to_utf8(name) for name in p]
         fs.append({'length': size, 'path': [to_utf8(os.path.split(f)[1])]})
         h = file(f, 'rb')
@@ -190,9 +190,11 @@ def makemultinfo(files, piece_length, flag, progress, encoding):
         h.close()
     if done > 0:
         pieces.append(sh.digest())
+
+    #TODO: Make sure this splitter is Windows compatible
     return {'pieces': ''.join(pieces),
         'piece length': piece_length, 'files': fs,
-        'name': to_utf8(os.path.split(files[0])[1])}
+        'name': to_utf8(os.path.split(files[0])[0].split('/')[-1])}
 
 def makeinfo(path, piece_length, flag, progress, encoding):
     def to_utf8(name):
