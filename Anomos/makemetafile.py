@@ -43,9 +43,6 @@ def dummy(v):
 def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
                     filefunc=dummy, piece_len_pow2=None, target=None,
                     comment=None, filesystem_encoding=None):
-    if len(files) > 1 and target:
-        raise BTFailure("You can't specify the name of the .atorrent file when "
-                        "generating multiple torrents at once")
 
     if not filesystem_encoding:
         try:
@@ -77,14 +74,19 @@ def make_meta_files(url, files, flag=Event(), progressfunc=dummy,
     def callback(x):
         subtotal[0] += x
         progressfunc(subtotal[0] / total)
-    for f in togen:
+    if len(files) == 1:
+        f = files[0]
         if flag.isSet():
-            break
+            return
         t = os.path.split(f)
         if t[1] == '':
             f = t[0]
         filefunc(f)
         make_meta_file(f, url, flag=flag, progress=callback,
+                       piece_len_exp=piece_len_pow2, target=target,
+                       comment=comment, encoding=filesystem_encoding)
+    else:
+        make_meta_multifile(files, url, flag=flag, progress=callback,
                        piece_len_exp=piece_len_pow2, target=target,
                        comment=comment, encoding=filesystem_encoding)
 
@@ -108,6 +110,29 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
     if comment:
         data['comment'] = comment
     h.write(bencode(data))
+    h.close
+
+def make_meta_multifile(files, url, piece_len_exp, flag=Event(), progress=dummy,
+                   comment=None, target=None, encoding='ascii'):
+    piece_length = 2 ** piece_len_exp
+    a, b = os.path.split(files[0])
+    if not target:
+        if b == '':
+            f = a + '.atorrent'
+        else:
+            f = os.path.join(a, b + '.atorrent')
+    else:
+        f = target
+    info = makemultinfo(files, piece_length, flag, progress, encoding)
+    if flag.isSet():
+        return
+    #TODO: this
+    #check_info(info)
+    h = file(f, 'wb')
+    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime()), 'anon': '1'}
+    if comment:
+        data['comment'] = comment
+    h.write(bencode(data))
     h.close()
 
 def calcsize(path):
@@ -115,6 +140,59 @@ def calcsize(path):
     for s in subfiles(os.path.abspath(path)):
         total += os.path.getsize(s[1])
     return total
+
+def makemultinfo(files, piece_length, flag, progress, encoding):
+    def to_utf8(name):
+        try:
+            u = name.decode(encoding)
+        except Exception, e:
+            raise BTFailure('Could not convert file/directory name "'+name+
+                            '" to utf-8 ('+str(e)+'). Either the assumed '
+                            'filesystem encoding "'+encoding+'" is wrong or '
+                            'the filename contains illegal bytes.')
+        if u.translate(noncharacter_translate) != u:
+            raise BTFailure('File/directory name "'+name+'" contains reserved '
+                            'unicode values that do not correspond to '
+                            'characters.')
+        return u.encode('utf-8')
+
+    subs = files
+    pieces = []
+    sh = hashlib.sha1()
+    done = 0
+    fs = []
+    totalsize = 0.0
+    totalhashed = 0
+    for p, f in enumerate(subs):
+        totalsize += os.path.getsize(f)
+
+    for p, f in enumerate(subs):
+        pos = 0
+        size = os.path.getsize(f)
+        #Todo: dehackify
+        #p2 = [to_utf8(name) for name in p]
+        fs.append({'length': size, 'path': [to_utf8(os.path.split(f)[1])]})
+        h = file(f, 'rb')
+        while pos < size:
+            a = min(size - pos, piece_length - done)
+            sh.update(h.read(a))
+            if flag.isSet():
+                return
+            done += a
+            pos += a
+            totalhashed += a
+
+            if done == piece_length:
+                pieces.append(sh.digest())
+                done = 0
+                sh = hashlib.sha1()
+            progress(a)
+        h.close()
+    if done > 0:
+        pieces.append(sh.digest())
+    return {'pieces': ''.join(pieces),
+        'piece length': piece_length, 'files': fs,
+        'name': to_utf8(os.path.split(files[0])[1])}
 
 def makeinfo(path, piece_length, flag, progress, encoding):
     def to_utf8(name):
