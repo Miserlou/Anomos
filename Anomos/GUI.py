@@ -18,7 +18,6 @@ from __future__ import division
 import gtk
 import pango
 import gobject
-import glib
 import os.path
 import threading
 
@@ -71,7 +70,7 @@ for n in 'broken finished info pause paused play queued running remove running-u
         pixbuf = gtk.gdk.pixbuf_new_from_file(fn)
         set = gtk.IconSet(pixbuf)
         factory.add('anon-%s'%n, set)
-    except glib.GError, e:
+    except Exception, e:
         log.warning(e)
 
 factory.add_default()
@@ -168,7 +167,7 @@ class Window(gtk.Window):
         apply(gtk.Window.__init__, (self,)+args)
         try:
             self.set_icon_from_file(os.path.join(image_root,'anomos.ico'))
-        except glib.GError, e:
+        except Exception, e:
             log.warning(e)
 
 
