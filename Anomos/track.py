@@ -175,12 +175,6 @@ class Tracker(object):
                 print 'Exception: ' + str(e)
 
         self.rawserver = rawserver
-        #self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
-        #self.cached_t = {}  # format: infohash: [time, cache]
-        #self.times = {}
-        self.state = {}
-        #self.seedcount = {}
-
         self.certificate = certificate
         self.networkmodel = NetworkModel(config)
     
@@ -189,8 +183,6 @@ class Tracker(object):
             self.only_local_override_ip = not config['nat_check']
 
         self.reannounce_interval = config['reannounce_interval']
-        #self.show_names = config['show_names']
-        #self.prevtime = bttime()
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
         rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
         self.logfile = None
