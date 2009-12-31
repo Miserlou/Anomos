@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Written by Matt Chisholm
+# Written by Matt Chisholm, Modified by Anomos Liberty Enhancements
 
 from __future__ import division
 

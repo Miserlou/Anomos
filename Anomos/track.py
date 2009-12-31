@@ -12,6 +12,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Written by Bram Cohen and John Hoffman
+# Modified by Anomos Liberty Enhancements
 
 import os
 import re
