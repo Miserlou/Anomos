@@ -242,11 +242,7 @@ class AutoScrollingWindow(ScrolledWindow):
                            [( "application/x-bittorrent",  gtk.TARGET_SAME_APP, BT_TARGET_TYPE )],
                            gtk.gdk.ACTION_MOVE)
         self.connect('drag_motion'       , self.drag_motion       )
-#        self.connect('drag_data_received', self.drag_data_received)
         self.vscrolltimeout = None
-
-#    def drag_data_received(self, widget, context, x, y, selection, targetType, time):
-#        print 'AutoScrollingWindow.drag_data_received(', widget
 
     def drag_motion(self, widget, context, x, y, time):
         v = self.get_vadjustment()
@@ -268,7 +264,6 @@ class AutoScrollingWindow(ScrolledWindow):
         if self.vscrolltimeout is not None:
             gobject.source_remove(self.vscrolltimeout)
         self.vscrolltimeout = gobject.timeout_add(100, self.scroll_and_wait, amount, False)
-        #print "adding timeout", self.vscrolltimeout, amount
 
     def start_scrolling(self, amount):
         if self.vscrolltimeout is not None:
@@ -277,7 +272,6 @@ class AutoScrollingWindow(ScrolledWindow):
 
     def stop_scrolling(self):
         if self.vscrolltimeout is not None:
-            #print "removing timeout", self.vscrolltimeout
             gobject.source_remove(self.vscrolltimeout)
             self.vscrolltimeout = None
 
@@ -299,8 +293,6 @@ class MessageDialog(gtk.MessageDialog):
         self.set_title(title)
         if default is not None:
             self.set_default_response(default)
-
-        #self.label.set_line_wrap(True)
 
         self.connect('response', self.callback)
 
@@ -627,6 +619,7 @@ class SaveFileSelection():
             self.no_location_func = no_location_func
             self.got_multiple_location_func = got_multiple_location_func
 
+            #Unfortunately, there is no FILE_CHOOSE_ACTION_SAVE_FOLDER
             dialog = gtk.FileChooserDialog(title,
                                    None,
                                    gtk.FILE_CHOOSER_ACTION_SAVE,
