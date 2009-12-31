@@ -40,10 +40,8 @@ from Anomos.zurllib import quote, unquote_plus as unquote
 
 defaults = [
     ('port', 80, "Port to listen on."),
-    ('dfile', None, 'file to store recent downloader info in'),
     ('bind', '', 'ip to bind to locally'),
     ('socket_timeout', 15, 'timeout for closing connections'),
-    ('save_dfile_interval', 5 * 60, 'seconds between saving dfile'),
     ('timeout_downloaders_interval', 45 * 60, 'seconds between expiring downloaders'),
     ('reannounce_interval', 30 * 60, 'seconds downloaders should wait between reannouncements'),
     ('response_size', 10, 'default number of peers to send in an info message if the client does not specify a number'),
@@ -161,7 +159,6 @@ class Tracker(object):
         self.config = config
         self.response_size = config['response_size']
         self.max_give = config['max_give']
-        self.dfile = config['dfile']
         self.natcheck = config['nat_check']
 
         # Set the favicon
@@ -190,47 +187,8 @@ class Tracker(object):
         if self.only_local_override_ip == 2:
             self.only_local_override_ip = not config['nat_check']
 
-        if os.path.exists(self.dfile):
-            try:
-                h = open(self.dfile, 'rb')
-                ds = h.read()
-                h.close()
-                tempstate = bdecode(ds)
-                if not tempstate.has_key('peers'):
-                    tempstate = {'peers': tempstate}
-                statefiletemplate(tempstate)
-                self.state = tempstate
-            except Exception, e:
-                print '**warning** statefile '+self.dfile+' corrupt; resetting'
-                print 'Exception: ' + str(e)
-       #self.downloads    = self.state.setdefault('peers', {})
-       #self.completed    = self.state.setdefault('completed', {})
-
-       #self.becache = {}   # format: {infohash: [[l1, s1], [l2, s2], [l3, s3]]}
-                            # becache[infohash][0]=> Normal => [downloads,seeds]
-                            # becache[infohash][1]=> No Peer ID => "" ""
-                            # becache[infohash][2]=> Compact => "" ""
-        #for infohash, ds in self.downloads.items():
-        #    self.seedcount[infohash] = 0
-        #    for peerid,info in ds.items():
-        #        if not info.get('nat',-1):
-        #            ip = info.get('given_ip')
-        #            if not (ip and self.allow_local_override(info['ip'], ip)):
-        #                ip = info['ip']
-        #                           #infohash, peerid, ip, port, not_seed):
-        #            self.natcheckOK(infohash,peerid,ip,info['port'],info['left'])
-        #        if not info['left']:
-        #            self.seedcount[infohash] += 1
-
-        #for infohash in self.downloads:
-        #    self.times[infohash] = {}
-        #    for peerid in self.downloads[infohash]:
-        #        self.times[infohash][peerid] = 0
-
         self.reannounce_interval = config['reannounce_interval']
-        self.save_dfile_interval = config['save_dfile_interval']
         #self.show_names = config['show_names']
-        rawserver.add_task(self.save_dfile, self.save_dfile_interval)
         #self.prevtime = bttime()
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
         rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
@@ -847,13 +805,6 @@ class Tracker(object):
         #    else:
         #        self.natchecklog(peerid, ip, port, 503)
 
-    #XXX: lord have mercy does this need encryption
-    def save_dfile(self):
-        self.rawserver.add_task(self.save_dfile, self.save_dfile_interval)
-        h = open(self.dfile, 'wb')
-        h.write(bencode(self.state))
-        h.close()
-
     def parse_allowed(self):
         self.rawserver.add_task(self.parse_allowed, self.parse_dir_interval)
 
@@ -935,7 +886,6 @@ def track(args):
     s = r.create_ssl_serversocket(config['port'], config['bind'], True)
     r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))
     r.listen_forever()
-    t.save_dfile()
     print '# Shutting down: ' + isotime()
 
 def size_format(s):
