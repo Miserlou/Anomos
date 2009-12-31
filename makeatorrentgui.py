@@ -92,9 +92,12 @@ class MainWindow(Window):
         y+=1
 
         self.file_list_button_box = gtk.HBox(homogeneous=True,spacing=SPACING)
-        self.add_button = gtk.Button(stock=gtk.STOCK_ADD)
+        self.add_button = gtk.Button("Add Files")
         self.add_button.connect('clicked', self.choose_files)
         self.file_list_button_box.pack_start(self.add_button)
+        self.add_folder_button = gtk.Button("Add Folders")
+        self.add_folder_button.connect('clicked', self.choose_folders)
+        self.file_list_button_box.pack_start(self.add_folder_button)
         self.remove_button = gtk.Button(stock=gtk.STOCK_REMOVE)
         self.remove_button.connect('clicked', self.remove_selection)
         self.remove_button.set_sensitive(False)
@@ -178,6 +181,17 @@ class MainWindow(Window):
             fn = Desktop.desktop 
 
         selector = OpenMultiFileSelection(self, title="Select files to put in .atorrent:",
+                                fullname=fn,
+                                got_multiple_location_func=self.add_files)
+
+    def choose_folders(self,widget):
+        fn = None
+        if self.config['torrent_dir']:
+            fn = self.config['torrent_dir']
+        else:
+            fn = Desktop.desktop 
+
+        selector = OpenMultiFolderSelection(self, title="Select folders to put in .atorrent:",
                                 fullname=fn,
                                 got_multiple_location_func=self.add_files)
     
