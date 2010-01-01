@@ -2333,11 +2333,11 @@ class DownloadInfoFrame(object):
 			               ('_Anonymize and open a .torrent file', self.select_old_torrent_to_open),
                            ('----'          , None),
                            ('_Play '  , self.startbutton.toggle),
-                           ('Pause '  , self.stopbutton.toggle),
+                           ('Pa_use '  , self.stopbutton.toggle),
                            ('----'          , None),
-			               ('_Make a new .atorrent file', self.ntbutton.toggle),
+			               ('Make a _new .atorrent file', self.ntbutton.toggle),
 			               ('----'          , None),
-			               ('_Settings'     , lambda w: self.open_window('settings')),
+			               ('S_ettings'     , lambda w: self.open_window('settings')),
 			               ('----'          , None),
                            ('_Quit'         , lambda w: self.mainwindow.destroy()),
                            )
@@ -2350,18 +2350,18 @@ class DownloadInfoFrame(object):
                            ('_Log'          , lambda w: self.open_window('log')),
                            # 'View log of all download activity',
                            #('----'          , None),
-                           ('_Settings'     , lambda w: self.open_window('settings')),
+                           ('Settings'     , lambda w: self.open_window('settings')),
                            #'Change download behavior and network settings',
                            )
         
         control_menu_items = (('_Go'          , self.startbutton.toggle),
-                           ('_Stop'          , self.stopbutton.toggle),
+                           ('S_top'          , self.stopbutton.toggle),
                            )
                            
         help_menu_items = (('_Help'         , self.open_help),
                            #('_Help Window'         , lambda w: self.open_window('help')),
-                           ('_About'        , lambda w: self.open_window('about')),
-                           ('_Donate'       , lambda w: self.donate()),
+                           ('A_bout'        , lambda w: self.open_window('about')),
+                           ('Donate'       , lambda w: self.donate()),
                            #('_Raise'        , lambda w: self.raiseerror()), 
                            )
         
