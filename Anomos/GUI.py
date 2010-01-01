@@ -626,7 +626,7 @@ class SaveFileSelection():
                                    (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                     gtk.STOCK_OPEN, gtk.RESPONSE_OK))
             dialog.set_default_response(gtk.RESPONSE_OK)
-            dialog.set_current_name(fullname)
+            dialog.set_current_name(os.path.split(fullname)[1])
             response = dialog.run()
 
             if response == gtk.RESPONSE_OK:
