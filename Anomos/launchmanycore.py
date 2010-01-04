@@ -24,6 +24,7 @@ from Anomos.parsedir import parsedir
 from Anomos.download import Multitorrent, Feedback
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import bttime, configfile, BTFailure
+from Anomos import ADD_TASK
 
 from threading import Event
 
@@ -52,13 +53,13 @@ class LaunchMany(Feedback):
             self.multitorrent = Multitorrent(config, self.doneflag)
             self.rawserver = self.multitorrent.rawserver
 
-            self.rawserver.add_task(self.scan, 0)
-            self.rawserver.add_task(self.stats, 0)
+            ADD_TASK(0, self.scan)
+            ADD_TASK(0, self.stats)
 
             try:
                 import signal
                 def handler(signum, frame):
-                    self.rawserver.external_add_task(self.read_config, 0)
+                    ADD_TASK(0, self.read_config)
                 signal.signal(signal.SIGHUP, handler)
             except Exception, e:
                 self.output.message('Could not set signal handler: ' + str(e))
@@ -77,7 +78,7 @@ class LaunchMany(Feedback):
             output.exception(data.getvalue())
 
     def scan(self):
-        self.rawserver.add_task(self.scan, self.config['parse_dir_interval'])
+        ADD_TASK(self.config['parse_dir_interval'], self.scan)
 
         r = parsedir(self.torrent_dir, self.torrent_cache,
                      self.file_cache, self.blocked_files,
@@ -94,7 +95,7 @@ class LaunchMany(Feedback):
             self.add(infohash, data)
 
     def stats(self):
-        self.rawserver.add_task(self.stats, self.config['display_interval'])
+        ADD_TASK(self.config['display_interval'], self.stats)
         data = []
         for infohash in self.torrent_list:
             cache = self.torrent_cache[infohash]

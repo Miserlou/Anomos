@@ -37,6 +37,7 @@ from Anomos.parsedir import parsedir
 from Anomos import bttime
 from Anomos.RawServer import RawServer
 from Anomos.zurllib import quote, unquote_plus as unquote
+from Anomos import ADD_TASK
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -230,10 +231,10 @@ class Tracker(object):
         self.reannounce_interval = config['reannounce_interval']
         self.save_dfile_interval = config['save_dfile_interval']
         #self.show_names = config['show_names']
-        rawserver.add_task(self.save_dfile, self.save_dfile_interval)
+        ADD_TASK(self.save_dfile_interval, self.save_dfile)
         #self.prevtime = bttime()
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
-        rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
+        ADD_TASK(self.timeout_downloaders_interval, self.expire_downloaders)
         self.logfile = None
         self.log = None
         if (config['logfile'] != '') and (config['logfile'] != '-'):
@@ -849,13 +850,13 @@ class Tracker(object):
 
     #XXX: lord have mercy does this need encryption
     def save_dfile(self):
-        self.rawserver.add_task(self.save_dfile, self.save_dfile_interval)
+        ADD_TASK(self.save_dfile_interval, self.save_dfile)
         h = open(self.dfile, 'wb')
         h.write(bencode(self.state))
         h.close()
 
     def parse_allowed(self):
-        self.rawserver.add_task(self.parse_allowed, self.parse_dir_interval)
+        ADD_TASK(self.parse_dir_interval, self.parse_allowed)
 
         # logging broken .atorrent files would be useful but could confuse
         # programs parsing log files, so errors are just ignored for now
@@ -875,7 +876,7 @@ class Tracker(object):
         self.state['allowed_dir_files'] = self.allowed_dir_files
 
     def parse_blocked(self):
-        self.rawserver.add_task(self.parse_blocked, self.parse_dir_interval)
+        ADD_TASK(self.parse_dir_interval, self.parse_blocked)
 
         self.blocklist = os.path.join(self.config['data_dir'], "blockedhashes")
         if os.path.exists(self.blocklist):
@@ -915,7 +916,7 @@ class Tracker(object):
         #            del self.times[key]
         #            #del self.downloads[key]
         #            #del self.seedcount[key]
-        self.rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
+        ADD_TASK(self.timeout_downloaders_interval, self.expire_downloaders)
 
 def track(args):
     if len(args) == 0:

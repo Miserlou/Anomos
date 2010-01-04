@@ -25,8 +25,8 @@ from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import BTFailure, BTShutdown
 from Anomos import configfile
 from Anomos import LOG as log
+from Anomos import ADD_TASK
 from Anomos.Torrent import Torrent
-import Anomos
 
 # check if dns library from http://www.dnspython.org/ is either installed
 # or the dns subdirectory has been copied to BitTorrent/dns
@@ -352,7 +352,7 @@ class TorrentQueue(Feedback):
     def _queue_loop(self):
         if self.doneflag.isSet():
             return
-        self.rawserver.add_task(self._queue_loop, 20)
+        ADD_TASK(20, self._queue_loop)
         now = bttime()
         if self.queue and self.starting_torrent is None:
             if self.config['next_torrent_time'] == 0:
@@ -737,16 +737,13 @@ class ThreadWrappedQueue(object):
 
     def set_done(self):
         self.wrapped.doneflag.set()
-        # add a dummy task to make sure the thread wakes up and notices flag
-        def dummy():
-            pass
-        self.wrapped.rawserver.external_add_task(dummy, 0)
 
 def _makemethod(methodname):
     def wrapper(self, *args, **kws):
         def f():
             getattr(self.wrapped, methodname)(*args, **kws)
-        self.wrapped.rawserver.external_add_task(f, 0)
+        ADD_TASK(0, f)
+        #self.wrapped.rawserver.external_add_task(f, 0)
     return wrapper
 
 for methodname in "request_status set_config start_new_torrent remove_torrent set_save_location change_torrent_state check_completion".split():

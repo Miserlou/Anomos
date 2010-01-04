@@ -21,7 +21,8 @@ from Anomos.Protocol.TCReader import TCReader
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos.Measure import Measure
 from Anomos.crypto import CryptoError
-from Anomos import BTFailure, LOG as log, add_task
+from Anomos import BTFailure, LOG as log
+from Anomos import ADD_TASK
 
 class NeighborManager(object):
     '''NeighborManager keeps track of the neighbors a peer is connected to
@@ -153,7 +154,7 @@ class NeighborManager(object):
             return
         for task in tasks:
             #TODO: Would a minimum wait between these tasks aid anonymity?
-            add_task(0, task)
+            ADD_TASK(0, task)
         del self.waiting_tcs[id]
 
     def lost_neighbor(self, id):

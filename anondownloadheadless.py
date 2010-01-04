@@ -33,6 +33,7 @@ from Anomos import configfile
 from Anomos import BTFailure
 from Anomos import version
 from Anomos import LOG as log
+from Anomos import ADD_TASK
 
 
 def fmttime(n):
@@ -253,8 +254,7 @@ class DL(Feedback):
             self.torrent.set_option(option, value)
 
     def get_status(self):
-        self.multitorrent.rawserver.add_task(self.get_status,
-                                             self.config['display_interval'])
+        ADD_TASK(self.config['display_interval'], self.get_status)
         status = self.torrent.get_status(self.config['spew'])
         self.d.display(status)
 

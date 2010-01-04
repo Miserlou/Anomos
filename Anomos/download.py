@@ -47,6 +47,7 @@ from Anomos import add_task
 
 from Anomos.crypto import Certificate, initCrypto
 import Anomos.crypto as crypto
+from Anomos import ADD_TASK
 
 class Feedback(object):
 
@@ -75,7 +76,7 @@ class Multitorrent(object):
         self.certificate = Certificate(self.config['identity'])
         self.rawserver = RawServer(doneflag, config, self.certificate, bindaddr=config['bind'])
 
-        self.ratelimiter = RateLimiter(self.rawserver.add_task)
+        self.ratelimiter = RateLimiter()
         self.ratelimiter.set_parameters(config['max_upload_rate'],
                                         config['upload_unit_size'])
 
@@ -120,7 +121,9 @@ class Multitorrent(object):
         self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
-        self.rawserver.add_task(start, 0, torrent)
+        ADD_TASK(0, start)
+        #XXX: CONTEXT used here:
+        #self.rawserver.add_task(start, 0, torrent)
         return torrent
 
     def set_option(self, option, value):
@@ -227,7 +230,9 @@ class _SingleTorrent(object):
             except StopIteration:
                 self._contfunc = None
         def contfunc():
-            self._rawserver.external_add_task(cont, 0, self)
+            ADD_TASK(0, cont)
+            #XXX: CONTEXT usage
+            #self._rawserver.external_add_task(cont, 0, self)
         self._contfunc = contfunc
         contfunc()
 
@@ -246,11 +251,14 @@ class _SingleTorrent(object):
             metainfo.show_encoding_errors(log.error)
 
         def schedfunc(func, delay):
+            ADD_TASK(delay, func)
+            #XXX:
             #self._rawserver.add_task(func, delay, self)
             add_task(delay, func)
         def externalsched(func, delay):
+            ADD_TASK(delay, func)
+            #XXX:
             #self._rawserver.external_add_task(func, delay, self)
-            add_task(delay, func)
         if metainfo.is_batch:
             myfiles = [os.path.join(save_path, f) for f in metainfo.files_fs]
         else:
@@ -478,7 +486,7 @@ class _SingleTorrent(object):
         if self._storage is not None:
             self._storage.close()
         self._ratelimiter.clean_closed()
-        self._rawserver.add_task(gc.collect, 0, None)
+        ADD_TASK(0, gc.collect)
 
     def get_status(self, spew = False, fileinfo=False):
         if self.started and not self.closed:

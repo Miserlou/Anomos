@@ -25,6 +25,7 @@ import sys
 #TODO: Check actual earliest supported version
 assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
 import os
+from threading import Timer
 
 if sys.platform == 'win32':
     from time import clock as bttime
@@ -129,6 +130,13 @@ class BTFailure(Exception):
 
 class BTShutdown(BTFailure):
     pass
+
+def ADD_TASK(t, func, args=[], daemon=True):
+    ''' Execute a function after t seconds '''
+    t = Timer(t, func, args)
+    t.setDaemon(daemon)
+    t.start()
+
 
 def trace_on_call(fn):
     '''Starts PDB when the decorated method is called'''
