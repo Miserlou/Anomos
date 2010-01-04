@@ -120,6 +120,10 @@ if sys.platform == 'win32':
 
 del sys
 
+def add_task(t, func, args=[]):
+    ''' Execute a function after t seconds '''
+    Timer(t, func, args).start()
+
 class BTFailure(Exception):
     pass
 

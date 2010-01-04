@@ -17,63 +17,116 @@
 # This heavily modified version by John M. Schanck
 
 import array
+import asyncore
 
-class Connection(object):
-    def __init__(self, socket):
-        self.socket = socket
-        self.socket.handler = self
-        self.started_locally = self.socket.local
+class Connection(asyncore.dispatcher):
+    def __init__(self, socket=None, local=True):
+        asyncore.dispatcher.__init__(self, socket)
+
+        self.started_locally = local
         self.closed = False
-        self._buffer = array.array('c',"")
-    def data_came_in(self, conn, s):
+
+        self.in_buffer = array.array('c',"")
+        self.out_buffer = array.array('c',"")
+
+        if self.started_locally:
+            self._ssl_accepting = 0
+        else:
+            self._ssl_accepting = 1
+
+        self.manager = manager
+        self.ip, self.port = sock.getsockname()
+        self.peer_cert = self.get_peer_cert()
+
+    def handle_write(self):
+        if self._ssl_accepting:
+            if self.socket.accept_ssl():
+                self._ssl_accepting = 0
+        else:
+            try:
+                n = self.send(self.out_buffer.tostring())
+                if n == -1:
+                    pass
+                elif n == 0:
+                    self.handle_close()
+                else:
+                    self.out_buffer = self.out_buffer[n:]
+            except SSL.SSLError, err:
+                if str(err) == 'unexpected eof':
+                    self.handle_close()
+                    return
+                else:
+                    raise
+
+    def handle_read(self):
+        if self._ssl_accepting:
+            s = self.socket.accept_ssl()
+            if s:
+                self._ssl_accepting = 0
+        else:
+            try:
+                data = self.recv(4096)
+                if data is None:
+                    pass
+                elif data == '':
+                    self.handle_close()
+                else:
+                    self.data_came_in(data)
+            except SSL.SSLError, err:
+                if str(err) == 'unexpected eof':
+                    self.handle_close()
+                    return
+                else:
+                    raise
+
+    def data_came_in(self, s):
         """Interface between Protocol and raw data stream.
            A protocol "_read_*" method yields a message length
            and this method chops that many bytes off the
            front of the stream and stores it in self._message.
 
-           @param conn: SingleSocket object (not used here)
            @param s: Recv'd data """
         s = array.array('c', s)
         while True:
             if self.closed: # May have been closed by call to _reader.next
                 return
-            i = self._next_len - len(self._buffer)
+            i = self._next_len - len(self.in_buffer)
             # Case 1: Length of s is less than the amount needed
             if i > len(s):
-                self._buffer += s
+                self.in_buffer += s
                 return
             # Case 2: Length of s is more than the buffer can hold
             # Load as much of s as we can into the buffer
-            self._buffer += s[:i]
+            self.in_buffer += s[:i]
             # Delete loaded portion of s
             del s[:i]
-            # Move _buffer to _message and delete the contents of _buffer
-            self._message = self._buffer.tostring()
-            del self._buffer[:]
+            # Move in_buffer to _message and delete the contents of in_buffer
+            self._message = self.in_buffer.tostring()
+            del self.in_buffer[:]
             try:
                 # Hand control over to Protocol until they yield another data length
                 self._next_len = self._reader.next()
             except StopIteration, e:
                 self.close("Closing. " + str(e))
                 return
+
     def close(self, e=None):
-        if self.socket.handler != self:
-            # Don't close sockets we don't own anymore.
-            # This is sort of a hack, but it prevents uglier
-            # hacks elsewhere.
-            return
-        if not self.closed:
-            self.socket.close()
-            self._sever()
-    def _sever(self):
         self.closed = True
         self._reader = None
+        self.del_channel()
+        self.socket.close()
         self.connection_closed()
+
+    #        self._sever()
+    #def _sever(self):
+    #    self.closed = True
+    #    self._reader = None
+    #    self.connection_closed()
     def connection_flushed(self, socket): pass
     def connection_closed(self): pass # Used by subclasses.
-    def connection_lost(self, conn):
-        assert conn is self.socket
-        self._sever()
+    #def connection_lost(self, conn):
+    #    assert conn is self.socket
+    #    self._sever()
 
 
 ##################################################

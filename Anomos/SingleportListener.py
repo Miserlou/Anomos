@@ -43,8 +43,11 @@ class SingleportListener(object):
         if port in self.ports:
             self.port = port
             return
+        # This #
         serversocket = self.rawserver.create_ssl_serversocket(port, config['bind'], True, config['peer_socket_tos'])
         self.rawserver.start_listening(serversocket, self)
+        # Is to be replaced by
+        # P2PServer(addr, port, context, self)
         oldport = self.port
         self.port = port
         self.ports[port] = [serversocket, 0]
@@ -65,11 +68,14 @@ class SingleportListener(object):
             self.rawserver.stop_listening(serversocket)
             serversocket.close()
 
-    def external_connection_made(self, socket):
-        """
-        Connection came in.
-        """
-        AnomosNeighborInitializer(self.managers[socket.port], socket)
+    def get_neighbor_manager(self, socket):
+        return self.managers[socket.port]
+
+    #def external_connection_made(self, socket):
+    #    """
+    #    Connection came in.
+    #    """
+    #    AnomosNeighborInitializer(self.managers[socket.port], socket)
 
     def replace_connection(self):
         pass

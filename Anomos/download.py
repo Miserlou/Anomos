@@ -43,6 +43,7 @@ from Anomos.Torrent import Torrent
 from Anomos.Uploader import Upload
 from Anomos import bttime, version, LOG as log
 from Anomos import BTFailure, BTShutdown
+from Anomos import add_task
 
 from Anomos.crypto import Certificate, initCrypto
 import Anomos.crypto as crypto
@@ -245,9 +246,11 @@ class _SingleTorrent(object):
             metainfo.show_encoding_errors(log.error)
 
         def schedfunc(func, delay):
-            self._rawserver.add_task(func, delay, self)
+            #self._rawserver.add_task(func, delay, self)
+            add_task(delay, func)
         def externalsched(func, delay):
-            self._rawserver.external_add_task(func, delay, self)
+            #self._rawserver.external_add_task(func, delay, self)
+            add_task(delay, func)
         if metainfo.is_batch:
             myfiles = [os.path.join(save_path, f) for f in metainfo.files_fs]
         else:

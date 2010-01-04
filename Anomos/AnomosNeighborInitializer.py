@@ -51,6 +51,10 @@ class AnomosNeighborInitializer(Connection):
         # Reply with a header if we didn't start the connection
         if not self.started_locally:
             self.write_header()
+        # Unlink this object from asyncore, the socket will be passed
+        # to the NeighborLink object which self.manager.connection_completed
+        # will create.
+        self.delchannel()
         # Tell the neighbor manager we've got a completed connection
         # so that it can create a NeighborLink
         self.manager.connection_completed(self.socket, self.id)
