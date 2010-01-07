@@ -2800,6 +2800,10 @@ class DownloadInfoFrame(object):
             if t.widget is not None:
                 t.widget.close_child_windows()
 
+        if self.statusIcon is not None:
+            self.statusIcon.set_visible(False)
+            self.statusIcon = None
+
         self.torrentqueue.set_done()
         gtk.main_quit()
 
