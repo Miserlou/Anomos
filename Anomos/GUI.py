@@ -18,7 +18,7 @@ from __future__ import division
 import gtk
 import pango
 import gobject
-import os.path
+import os
 import threading
 
 from __init__ import image_root, app_name, FAQ_URL, LOG as log
@@ -166,7 +166,9 @@ class Window(gtk.Window):
     def __init__(self, *args):
         apply(gtk.Window.__init__, (self,)+args)
         try:
-            self.set_icon_from_file(os.path.join(image_root,'anomos.ico'))
+            #TODO: Icon doesn't work on XP build, don't know why
+            if (os.name != 'nt'):
+                self.set_icon_from_file(os.path.join(image_root,'anomos.ico'))
         except Exception, e:
             log.warning(e)
 
