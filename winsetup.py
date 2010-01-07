@@ -42,7 +42,7 @@ opts = {
 
 setup(windows=[{'script': 'anondownloadgui.py',
                 "icon_resources": [(1, "images\\anomos.ico")]},
-               {'script': 'anonmaketorrentgui.py',
+               {'script': 'makeatorrentgui.py',
                 "icon_resources": [(1, "images\\anomos.ico")]}],
       options=opts,
       data_files=[('',["credits.txt", "LICENSE.txt",
