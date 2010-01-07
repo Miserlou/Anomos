@@ -22,13 +22,13 @@ import Anomos
 
 import glob
 
-if (os.name == 'nt')
+if (os.name == 'nt'):
     import py2exe
 
 scripts = ["anondownloadgui.py", "anondownloadcurses.py", "anondownloadheadless.py", 
            "makeatorrentgui.py", "makeatorrent.py",
            "anonlaunchmany.py", "anonlaunchmanycurses.py", 
-           "anontrack.py", "anonreannounce.py", "anonrename.py", "anonshowmetainfo.py"]
+           "anontrack.py", "anonreannounce.py", "anonrename.py", "showmetainfo.py"]
 
 img_root, doc_root = Anomos.calc_unix_dirs()
 
