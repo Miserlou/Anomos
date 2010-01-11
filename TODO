@@ -3,6 +3,8 @@ TODO for .9:
     2) Throw TCode generation into its own thread, or have a unique thread
         for each request (Much harder!)
     3) Solid round of bugtesting
+    4) Check all uses of sys.platform. Might explain cygwin problems
+            http://docs.python.org/library/sys.html#sys.platform
 
     Also:
         Have some seeds on something we share! Dedicated seedbox!
@@ -10,14 +12,3 @@ TODO for .9:
         General: Update installation instructions, things like BUILD.windows.txt
         Client: Finish BitTorrent support -- is this still worth doing?
         Windows, Debian package (Niko?), OSX Build (Joao)
-
-
-Switching to asyncore based SSL server:
-    Replace all rawserver.listen_forever with asyncore.loop
-    Replace all rawserver.create_ssl_serversocket with P2PServer(...)
-    Delete all rawserver.start_listening
-    Replace all rawserver.start_ssl_connection with P2PChannel(...)
-    Kill the rawserver!
-        Come up with solution for external_add_task/add_task
-            This includes add/remove context
-    Connection flushed?
