@@ -157,7 +157,6 @@ class HeadlessDisplayer(object):
         #print '|-'
         print '| relay rate:     %s (%s)' % (self.relayRate, self.numRelays)
         print '|-'
-        print '| Active threads ', threading.activeCount()
 
     def print_spew(self, spew):
         s = StringIO()
