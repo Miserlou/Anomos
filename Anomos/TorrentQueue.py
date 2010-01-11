@@ -26,7 +26,6 @@ from Anomos import BTFailure, BTShutdown
 from Anomos import configfile
 from Anomos import LOG as log
 from Anomos.Torrent import Torrent
-import Anomos
 
 # check if dns library from http://www.dnspython.org/ is either installed
 # or the dns subdirectory has been copied to BitTorrent/dns
@@ -95,9 +94,8 @@ class TorrentQueue(Feedback):
         self.ui = ui
         self.run_ui_task = ui_wrap
         self.multitorrent = Multitorrent(self.config, self.doneflag, listen_fail_ok=True)
-        self.rawserver = self.multitorrent.rawserver
-        self.controlsocket.set_rawserver(self.rawserver)
-        self.controlsocket.start_listening(self.external_command)
+        self.schedule = self.multitorrent.event_handler.schedule
+        self.controlsocket.set_callback(self.external_command)
         try:
             self._restore_state()
         except BTFailure, e:
@@ -122,9 +120,10 @@ class TorrentQueue(Feedback):
         startflag.set()
         self._queue_loop()
         #self._check_version()
-        self.multitorrent.rawserver.listen_forever()
+        self.multitorrent.event_handler.loop()
+
         self.multitorrent.close_listening_socket()
-        self.controlsocket.close_socket()
+        self.controlsocket.close()
         for infohash in list(self.running_torrents):
             t = self.torrents[infohash]
             if t.state == RUN_QUEUED:
@@ -352,7 +351,7 @@ class TorrentQueue(Feedback):
     def _queue_loop(self):
         if self.doneflag.isSet():
             return
-        self.rawserver.add_task(self._queue_loop, 20)
+        self.multitorrent.schedule(20, self._queue_loop)
         now = bttime()
         if self.queue and self.starting_torrent is None:
             if self.config['next_torrent_time'] == 0:
@@ -737,16 +736,15 @@ class ThreadWrappedQueue(object):
 
     def set_done(self):
         self.wrapped.doneflag.set()
-        # add a dummy task to make sure the thread wakes up and notices flag
-        def dummy():
-            pass
-        self.wrapped.rawserver.external_add_task(dummy, 0)
+        # Wake up the event handler in case it's sleeping in select
+        self.wrapped.schedule(0, lambda: True)
 
 def _makemethod(methodname):
     def wrapper(self, *args, **kws):
         def f():
             getattr(self.wrapped, methodname)(*args, **kws)
-        self.wrapped.rawserver.external_add_task(f, 0)
+        self.wrapped.schedule(0, f)
+        #self.wrapped.rawserver.external_add_task(f, 0)
     return wrapper
 
 for methodname in "request_status set_config start_new_torrent remove_torrent set_save_location change_torrent_state check_completion".split():

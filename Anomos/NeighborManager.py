@@ -17,6 +17,7 @@
 
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
+from Anomos.P2PConnection import P2PConnection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos.Measure import Measure
@@ -27,11 +28,12 @@ class NeighborManager(object):
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, rawserver, config, certificate, sessionid, ratelimiter):
-        self.rawserver = rawserver
+    def __init__(self, config, certificate, sessionid, schedule, ratelimiter):
         self.config = config
         self.certificate = certificate
+        self.ssl_ctx = self.certificate.getContext()
         self.sessionid = sessionid
+        self.schedule = schedule
         self.ratelimiter = ratelimiter
         self.neighbors = {}
         self.relay_measure = Measure(self.config['max_rate_period'])
@@ -76,12 +78,13 @@ class NeighborManager(object):
             self.failedPeers.append(id)
             return
         if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
-            log.warning('Got duplicate IP address in neighbor list. \
-                        Multiple connections to the same IP are disabled \
-                        in your config.')
+            log.warning('Got duplicate IP address in neighbor list. ' + \
+                        'Multiple connections to the same IP are disabled' + \
+                        'in your config.')
             return
         self.incomplete[id] = loc
-        self.rawserver.start_ssl_connection(loc, handler=self)
+        conn = P2PConnection(addr=loc, ssl_ctx=self.ssl_ctx)
+        self.sock_success(conn, loc)
 
     ## Socket failed to open ##
     def sock_fail(self, loc, err=None):
@@ -130,7 +133,7 @@ class NeighborManager(object):
         return sid == self.sessionid
 
     def has_ip(self, ip):
-        return ip in [n.socket.peer_ip for n in self.neighbors.values()] \
+        return ip in [n.socket.addr[0] for n in self.neighbors.values()] \
                 or ip in [x for x,y in self.incomplete.values()]
 
     def is_incomplete(self, nid):
@@ -142,10 +145,10 @@ class NeighborManager(object):
     def connection_completed(self, socket, id):
         '''Called by AnomosNeighborInitializer'''
         if self.incomplete.has_key(id):
-            assert socket.peer_ip == self.incomplete[id][0]
+            assert socket.addr[0] == self.incomplete[id][0]
             del self.incomplete[id]
         if id == NAT_CHECK_ID:
-            log.info("Nat check ok.")
+            log.info("NAT check ok.")
             return
         self.add_neighbor(socket, id)
         tasks = self.waiting_tcs.get(id)
@@ -153,7 +156,7 @@ class NeighborManager(object):
             return
         for task in tasks:
             #TODO: Would a minimum wait between these tasks aid anonymity?
-            self.rawserver.add_task(task, 0)
+            self.schedule(0, task)
         del self.waiting_tcs[id]
 
     def lost_neighbor(self, id):
@@ -216,7 +219,7 @@ class NeighborManager(object):
         if len(self.torrents) == 0:
             # Close all streams when the last torrent is removed
             for n in self.neighbors.values():
-                n.close()
+                n.socket.close()
 
     def get_torrent(self, infohash):
         return self.torrents.get(infohash, None)

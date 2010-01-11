@@ -16,52 +16,30 @@
 import os
 import socket
 import sys
+import asyncore
+import traceback
 
-from binascii import b2a_hex
+from Anomos import BTFailure, LOG as log
 
-from Anomos.RawServer import RawServer
-from Anomos import BTFailure
+from Anomos.Protocol import toint, tobinary
 
-def toint(s):
-    return int(b2a_hex(s), 16)
+class MessageReceiver(asyncore.dispatcher):
 
-def tobinary(i):
-    return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
-        chr((i >> 8) & 0xFF) + chr(i & 0xFF))
-
-
-class ControlsocketListener(object):
-
-    def __init__(self, callback):
-        self.callback = callback
-
-    def external_connection_made(self, connection):
-        connection.handler = MessageReceiver(self.callback)
-
-
-class MessageReceiver(object):
-
-    def __init__(self, callback):
+    def __init__(self, sock, callback):
+        asyncore.dispatcher.__init__(self, sock)
         self.callback = callback
         self._buffer = []
         self._buffer_len = 0
         self._reader = self._read_messages()
         self._next_len = self._reader.next()
 
-    def _read_messages(self):
-        while True:
-            yield 4
-            l = toint(self._message)
-            yield l
-            action = self._message
-            yield 4
-            l = toint(self._message)
-            yield l
-            data = self._message
-            self.callback(action, data)
+    def writable(self):
+        return False
+    def readable(self):
+        return True
 
-    # copied from Connecter.py
-    def data_came_in(self, conn, s):
+    def handle_read(self):
+        s = self.socket.recv(4096)
         while True:
             i = self._next_len - self._buffer_len
             if i > len(s):
@@ -80,68 +58,63 @@ class MessageReceiver(object):
                 self._next_len = self._reader.next()
             except StopIteration:
                 self._reader = None
-                conn.close()
+                self.close()
                 return
 
-    def connection_lost(self, conn):
-        self._reader = None
-        pass
+    def _read_messages(self):
+        yield 4
+        l = toint(self._message)
+        yield l
+        action = self._message
+        yield 4
+        l = toint(self._message)
+        yield l
+        data = self._message
+        self.callback(action, data)
 
-    def connection_flushed(self, conn):
-        pass
 
-
-class ControlSocket(object):
-
+class _ControlSocket(asyncore.dispatcher):
+    """ ControlSocket interface which is implemented by UnixControlSocket
+        and InetControlSocket """
     def __init__(self, config):
+        asyncore.dispatcher.__init__(self)
         self.socket_filename = os.path.join(config['data_dir'], 'ui_socket')
-
-    def set_rawserver(self, rawserver):
-        self.rawserver = rawserver
-
-    def start_listening(self, callback):
-        self.rawserver.start_listening(self.controlsocket,
-                                  ControlsocketListener(callback))
-
-    def create_socket_inet(self):
-       try:
-           reuse = True
-           tos = 0
-           server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-           if reuse and os.name != 'nt':
-               server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-           server.setblocking(0)
-           if tos != 0:
-              try:
-                  server.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, tos)
-              except:
-                  pass
-           server.bind(('127.0.0.1', 56881))
-           server.listen(5)
-           controlsocket = server
-       except socket.error, e:
-           raise BTFailure("Could not create control socket: "+str(e))
-       self.controlsocket = controlsocket
-
-    #blocking version without rawserver
-    def send_command_inet(self, action, data=''):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.callback = None
+    def set_callback(self, callback):
+        self.callback = callback
+    def writable(self):
+        return False
+    def readable(self):
+        return True
+    def handle_connect(self):
+        pass
+    def handle_accept(self):
+        assert self.callback is not None
         try:
-            s.connect(('127.0.0.1', 56881))
-            s.send(tobinary(len(action)))
-            s.send(action)
-            s.send(tobinary(len(data)))
-            s.send(data)
-            s.close()
+            sock, addr = self.socket.accept()
         except socket.error, e:
-            s.close()
-            raise BTFailure('Could not send command: ' + str(e))
+            raise BTFailure("Could not create control socket: "+str(e))
+        else:
+            MessageReceiver(sock, self.callback)
+    def handle_error(self):
+        log.critical('\n'+traceback.format_exc())
+        self.close()
+    def create_socket(self):
+        raise NotImplementedError
+    def send_command(self):
+        raise NotImplementedError
 
-    def create_socket_unix(self):
+# Version of _ControlSocket which uses Unix sockets
+class UnixControlSocket(_ControlSocket):
+    def create_socket(self):
         filename = self.socket_filename
         if os.path.exists(filename):
+            # If the file already exists, then either the last shutdown was
+            # not clean, or there is another Anomos client running.
             try:
-                self.send_command_unix('no-op')
+                # Check if another client is listening on the socket by
+                # trying to send it a command.
+                self.send_command('no-op')
             except BTFailure:
                 pass
             else:
@@ -153,16 +126,16 @@ class ControlSocket(object):
                 raise BTFailure("Could not remove old control socket filename:"
                                 + str(e))
         try:
-            controlsocket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            controlsocket.setblocking(0)
-            controlsocket.bind(filename)
-            controlsocket.listen(5)
+            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.socket.setblocking(0)
+            self.bind(filename)
         except socket.error, e:
             raise BTFailure("Could not create control socket: "+str(e))
-        self.controlsocket = controlsocket
+        self.listen(5)
+        self._fileno = self.socket.fileno()
+        self.add_channel()
 
-    # blocking version without rawserver
-    def send_command_unix(self, action, data=''):
+    def send_command(self, action, data=''):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         filename = self.socket_filename
         try:
@@ -176,13 +149,55 @@ class ControlSocket(object):
             s.close()
             raise BTFailure('Could not send command: ' + str(e))
 
-    def close_socket(self):
-        self.rawserver.stop_listening(self.controlsocket)
-        self.controlsocket.close()
+    def close(self):
+        self.del_channel()
+        self.socket.close()
+        # Try to remove the ui_socket file
+        try:
+            os.unlink(self.socket_filename)
+        except OSError:
+            pass
 
-    if sys.platform != 'win32':
-        send_command = send_command_unix
-        create_socket = create_socket_unix
-    else:
-        send_command = send_command_inet
-        create_socket = create_socket_inet
+
+# Version of _ControlSocket which uses INET sockets
+class InetControlSocket(_ControlSocket):
+    def create_socket(self):
+       try:
+           reuse = True
+           tos = 0
+           self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+           if reuse and os.name != 'nt':
+               self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+           self.socket.setblocking(0)
+           if tos != 0:
+              try:
+                  self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, tos)
+              except:
+                  pass
+           self.bind(('127.0.0.1', 56881))
+           self.listen(5)
+       except socket.error, e:
+           raise BTFailure("Could not create control socket: "+str(e))
+       self._fileno = self.socket.fileno()
+       self.add_channel()
+
+    def send_command(self, action, data=''):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect(('127.0.0.1', 56881))
+            s.send(tobinary(len(action)))
+            s.send(action)
+            s.send(tobinary(len(data)))
+            s.send(data)
+            s.close()
+        except socket.error, e:
+            s.close()
+            raise BTFailure('Could not send command: ' + str(e))
+
+# Set the proper ControlSocket type for the platform we're running on
+if sys.platform != 'win32':
+    ControlSocket = UnixControlSocket
+else:
+    ControlSocket = InetControlSocket
+
+

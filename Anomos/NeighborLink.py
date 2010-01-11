@@ -21,6 +21,8 @@ from Anomos.Protocol.AnomosNeighborProtocol import AnomosNeighborProtocol
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos import LOG as log
 
+from Anomos.Protocol import toint
+
 class NeighborLink(AnomosNeighborProtocol):
     ''' NeighborLink handles the socket between two neighbors and keeps
         track of the objects used to manage the active streams between
@@ -30,7 +32,7 @@ class NeighborLink(AnomosNeighborProtocol):
         self.id = id
         self.manager = manager
         self.streams = {} # {StreamID : EndPoint or Relayer object}
-        if self.started_locally:
+        if self.socket.started_locally:
             self.next_stream_id = 0
         else:
             self.next_stream_id = 1
@@ -38,9 +40,37 @@ class NeighborLink(AnomosNeighborProtocol):
         self.config = config
         self.ratelimiter = ratelimiter
 
+        self.socket.set_collector(self)
         #Prepare to read messages
         self._reader = self._read_messages()
-        self._next_len = self._reader.next()
+        self._message = ''
+
+    def get_reader(self):
+        return self._reader
+
+    def collect_incoming_data(self, data):
+        self._message += data
+
+    def _read_messages(self):
+        ''' Read messages off the line and relay or process them
+            depending on connection type '''
+        while True:
+            yield 2 # Stream ID
+            stream = toint(self._message)
+            handler = self.get_stream_handler(stream)
+            self._message = ''
+            yield 4   # Message Length
+            l = toint(self._message)
+            if l > self.config['max_message_length']:
+                log.warning("Received message longer than max length")
+            #    return
+            self._message = ''
+            yield l # Payload
+            if handler == self:
+                # Grab the stream ID to initialize the received stream
+                self.incoming_stream_id = stream
+            handler.got_message(self._message)
+            self._message = ''
 
     ## Stream Management ##
     def start_endpoint_stream(self, torrent, aeskey, data=None):
@@ -56,7 +86,7 @@ class NeighborLink(AnomosNeighborProtocol):
             nxtid = self.incoming_stream_id
         else: # Localy initialized stream
             nxtid = self.next_stream_id
-            self.next_stream_id += 1
+            self.next_stream_id += 2
         self.streams[nxtid] = \
                     EndPoint(nxtid, self, torrent, aeskey, data)
         log.info("Starting endpoint")
@@ -112,7 +142,7 @@ class NeighborLink(AnomosNeighborProtocol):
             stream.connection_flushed()
 
     def send_immediately(self, message):
-        self.socket.write(message)
+        self.socket.push(message)
 
     def queue_message(self, streamid, message):
         t = self.streams.has_key(streamid)
@@ -134,7 +164,7 @@ class NeighborLink(AnomosNeighborProtocol):
         snt = 0
         for i in range(len(msgs)):
             f = self.format_message(sid, msgs[i])
-            self.socket.write(f)
+            self.socket.push(f)
             snt += len(f)
         return snt
 

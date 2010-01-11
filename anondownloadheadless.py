@@ -19,6 +19,7 @@ from __future__ import division
 import sys
 import os
 import threading
+
 from time import time, strftime
 from signal import signal, SIGWINCH
 from cStringIO import StringIO
@@ -156,6 +157,7 @@ class HeadlessDisplayer(object):
         #print '|-'
         print '| relay rate:     %s (%s)' % (self.relayRate, self.numRelays)
         print '|-'
+        print '| Active threads ', threading.activeCount()
 
     def print_spew(self, spew):
         s = StringIO()
@@ -232,7 +234,7 @@ class DL(Feedback):
             print str(e)
             return
         self.get_status()
-        self.multitorrent.rawserver.listen_forever()
+        self.multitorrent.event_handler.loop()
         self.d.display({'activity':'shutting down', 'fractionDone':0})
         self.torrent.shutdown()
 
@@ -253,8 +255,7 @@ class DL(Feedback):
             self.torrent.set_option(option, value)
 
     def get_status(self):
-        self.multitorrent.rawserver.add_task(self.get_status,
-                                             self.config['display_interval'])
+        self.multitorrent.schedule(self.config['display_interval'], self.get_status)
         status = self.torrent.get_status(self.config['spew'])
         self.d.display(status)
 

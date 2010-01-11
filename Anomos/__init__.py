@@ -25,6 +25,7 @@ import sys
 #TODO: Check actual earliest supported version
 assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
 import os
+from threading import Timer
 
 if sys.platform == 'win32':
     from time import clock as bttime
@@ -120,10 +121,17 @@ if sys.platform == 'win32':
 
 del sys
 
+def add_task(t, func, args=[]):
+    ''' Execute a function after t seconds '''
+    Timer(t, func, args).start()
+
 class BTFailure(Exception):
     pass
 
 class BTShutdown(BTFailure):
+    pass
+
+class HandshakeError(Exception):
     pass
 
 def trace_on_call(fn):

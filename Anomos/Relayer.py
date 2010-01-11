@@ -124,7 +124,7 @@ class Relayer(AnomosRelayerProtocol):
         self.pre_complete_buffer = []
 
     def is_flushed(self):
-        return self.neighbor.socket.is_flushed()
+        return self.neighbor.socket.writable()
 
     def got_exception(self, e):
         if self.manager.deep_exception:

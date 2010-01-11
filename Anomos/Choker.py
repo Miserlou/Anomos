@@ -24,10 +24,10 @@ class Choker(object):
         self.count = 0
         self.done = done
         self.unchokes_since_last = 0
-        schedule(self._round_robin, 10)
+        schedule(10, self._round_robin)
 
     def _round_robin(self):
-        self.schedule(self._round_robin, 10)
+        self.schedule(10, self._round_robin)
         self.count += 1
         if self.done():
             self._rechoke_seed(True)

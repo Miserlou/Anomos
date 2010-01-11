@@ -14,34 +14,29 @@
 # Written by John Schanck
 
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
+from Anomos.P2PConnection import P2PConnection
+
+from Anomos import LOG as log
+
 class NatCheck(object):
 
-    def __init__(self, resultfunc, peerid, ip, port, rawserver):
+    def __init__(self, ssl_ctx, resultfunc, peerid, ip, port):
         self.resultfunc = resultfunc
         self.peerid = peerid
         self.ip = ip
         self.port = port
         self.id = chr(255)
 
-        rawserver.start_ssl_connection((ip,port), handler=self)
+        self.socket = P2PConnection(addr=(ip,port), ssl_ctx=ssl_ctx)
+        self.socket.set_post_connection_check_callback(lambda x,y: x != None)
 
-    def sock_success(self, sock, *args):
-        self.socket = sock
-        AnomosNeighborInitializer(self, sock, self.id)
-
-    def sock_fail(self, *args):
-        self.answer(False)
+        AnomosNeighborInitializer(self, self.socket, self.id)
 
     def initializer_failed(self, *args):
         self.answer(False)
 
-    def answer(self, result):
-        self.closed = True
-        try:
-            self.socket.close()
-        except AttributeError:
-            pass
-        self.resultfunc(self.peerid, result)
-
     def connection_completed(self, *args):
         self.answer(True)
+
+    def answer(self, result):
+        self.resultfunc(self.peerid, result)
