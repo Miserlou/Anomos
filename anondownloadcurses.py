@@ -34,8 +34,6 @@ from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import configfile
 from Anomos import BTFailure
 from Anomos import version
-from Anomos import ADD_TASK
-
 
 try:
     import curses
@@ -333,7 +331,7 @@ class DL(Feedback):
 
     def run(self, scrwin):
         def reread():
-            ADD_TASK(0, self.reread_config)
+            self.multitorrent.schedule(0, self.reread_config)
         self.d = CursesDisplayer(scrwin, self.errlist, self.doneflag, reread)
         try:
             self.multitorrent = Multitorrent(self.config, self.doneflag)
@@ -358,7 +356,8 @@ class DL(Feedback):
             errlist.append(str(e))
             return
         self.get_status()
-        self.multitorrent.rawserver.listen_forever()
+        self.multitorrent.event_handler.loop()
+
         self.d.display({'activity':'shutting down', 'fractionDone':0})
         self.torrent.shutdown()
 
@@ -379,7 +378,7 @@ class DL(Feedback):
             self.torrent.set_option(option, value)
 
     def get_status(self):
-        ADD_TASK(self.config['display_interval'], self.get_status)
+        self.multitorrent.schedule(self.config['display_interval'], self.get_status)
         status = self.torrent.get_status(self.config['spew'])
         self.d.display(status)
 

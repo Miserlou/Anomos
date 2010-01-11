@@ -8,36 +8,12 @@ import traceback
 
 from Anomos import bttime, LOG as log
 
-if os.name == 'posix':
-    class WakeupFD(asyncore.file_dispatcher):
-        def __init__(self, fd):
-            asyncore.file_dispatcher.__init__(self, fd)
-        def now(self):
-            self.write("!")
-        def handle_read(self):
-            self.read(1)
-        def handle_close(self):
-            self.close()
-        def handle_error(self):
-            pass
-        def writable(self):
-            return False
-
-    class WakeupPipe(object):
-        def __init__(self):
-            r,w = os.pipe()
-            self.r = WakeupFD(r)
-            self.w = WakeupFD(w)
-        def now(self):
-            self.w.now()
-
 class EventHandler(object):
     def __init__(self, doneflag=None, map=None):
         if doneflag is not None:
             self.doneflag = doneflag
         else:
-            from threading import Event
-            self.doneflag = Event()
+            self.doneflag = threading.Event()
 
         self.map = map
         if self.map is None:
@@ -48,7 +24,7 @@ class EventHandler(object):
         self.thread = threading.currentThread()
 
         if os.name == 'posix':
-            self.wakeup = WakeupPipe()
+            self.wakeup = WakeupPipe(*os.pipe())
         else:
             # Make this thread wake every second for systems that do
             # not support pipes with select.
@@ -57,8 +33,8 @@ class EventHandler(object):
                 self.schedule(1, wakeup)
             wakeup()
 
-    def _external_schedule(self, delay, func, args=[]):
-        self.externally_added.append([delay, func, args])
+    def _external_schedule(self, delay, func, context=None):
+        self.externally_added.append([delay, func, context])
         if self.wakeup is not None:
             self.wakeup.now()
 
@@ -66,12 +42,23 @@ class EventHandler(object):
         while self.externally_added:
             self.schedule(*self.externally_added.pop(0))
 
-    def schedule(self, delay, func, args=[]):
+    def schedule(self, delay, func, context=None):
         """ Insert a task into the queue in a threadsafe manner """
         if threading.currentThread() == self.thread:
-            bisect.insort(self.tasks, (bttime() + delay, func, args))
+            bisect.insort(self.tasks, (bttime() + delay, func, context))
         else:
-            self._external_schedule(delay, func, args)
+            self._external_schedule(delay, func, context)
+
+    def do_tasks(self):
+        """ Do all tasks with timestamps <= than current time """
+        context = None
+        try:
+            while len(self.tasks) > 0 and self.tasks[0][0] <= bttime():
+                _, f, context = self.tasks.pop(0)
+                apply(f)
+        except Exception, e:
+            if context is not None:
+                context.got_exception(e)
 
     def loop(self):
         while not self.doneflag.isSet():
@@ -82,12 +69,25 @@ class EventHandler(object):
                     # Poll until the next task is set to execute
                     period = max(0, self.tasks[0][0] - bttime())
                 asyncore.poll(period)
-                # Do all tasks with timestamps <= than current time
-                while len(self.tasks) > 0 and self.tasks[0][0] <= bttime():
-                    _, f, args = self.tasks.pop(0)
-                    apply(f, args)
+                self.do_tasks()
             except KeyboardInterrupt:
                 break
             except:
                 log.critical('\n'+traceback.format_exc())
                 break
+
+if os.name == 'posix':
+    class WakeupFD(asyncore.file_dispatcher):
+        def handle_read(self):
+            self.read(1)
+        def handle_close(self):
+            self.close()
+        def writable(self):
+            return False
+
+    class WakeupPipe(object):
+        def __init__(self, r, w):
+            self.r = WakeupFD(r)
+            self.w = w
+        def now(self):
+            os.write(self.w, '!')

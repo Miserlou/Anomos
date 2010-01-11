@@ -131,12 +131,8 @@ class BTFailure(Exception):
 class BTShutdown(BTFailure):
     pass
 
-def ADD_TASK(t, func, args=[], daemon=True):
-    ''' Execute a function after t seconds '''
-    t = Timer(t, func, args)
-    t.setDaemon(daemon)
-    t.start()
-
+class HandshakeError(Exception):
+    pass
 
 def trace_on_call(fn):
     '''Starts PDB when the decorated method is called'''

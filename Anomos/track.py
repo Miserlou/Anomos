@@ -20,24 +20,24 @@ import sys
 
 #from binascii import b2a_hex
 #from cStringIO import StringIO
-from threading import Event
 from time import gmtime, strftime
 #from traceback import print_exc
 from urlparse import urlparse
 
 #from Anomos import version
+from Anomos.EventHandler import EventHandler
+from Anomos.HTTPS import HTTPSServer
+from Anomos.NatCheck import NatCheck
+from Anomos.NetworkModel import NetworkModel
+
 from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.btformats import statefiletemplate
 from Anomos.crypto import Certificate, initCrypto
-from Anomos.HTTPHandler import HTTPHandler
-from Anomos.NatCheck import NatCheck
-from Anomos.NetworkModel import NetworkModel
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
-from Anomos import bttime
-from Anomos.RawServer import RawServer
 from Anomos.zurllib import quote, unquote_plus as unquote
-from Anomos import ADD_TASK
+
+from Anomos import bttime, LOG as log
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -158,7 +158,7 @@ def params_factory(dictionary, default=None):
 
 class Tracker(object):
 
-    def __init__(self, config, certificate, rawserver):
+    def __init__(self, config, certificate, event_handler):
         self.config = config
         self.response_size = config['response_size']
         self.max_give = config['max_give']
@@ -174,10 +174,10 @@ class Tracker(object):
                 self.favicon = h.read()
                 h.close()
             except Exception, e:
-                print "**warning** specified favicon file -- %s -- does not exist." % favicon
-                print 'Exception: ' + str(e)
+                log.warning("**warning** specified favicon file -- %s -- does not exist." % favicon)
+                log.warning('Exception: %s' % str(e))
 
-        self.rawserver = rawserver
+        self.event_handler = event_handler
         #self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
         #self.cached_t = {}  # format: infohash: [time, cache]
         #self.times = {}
@@ -202,8 +202,8 @@ class Tracker(object):
                 statefiletemplate(tempstate)
                 self.state = tempstate
             except Exception, e:
-                print '**warning** statefile '+self.dfile+' corrupt; resetting'
-                print 'Exception: ' + str(e)
+                log.warning('**warning** statefile %s corrupt; resetting' % self.dfile)
+                log.warning('Exception: %s' % str(e))
        #self.downloads    = self.state.setdefault('peers', {})
        #self.completed    = self.state.setdefault('completed', {})
 
@@ -231,12 +231,13 @@ class Tracker(object):
         self.reannounce_interval = config['reannounce_interval']
         self.save_dfile_interval = config['save_dfile_interval']
         #self.show_names = config['show_names']
-        ADD_TASK(self.save_dfile_interval, self.save_dfile)
+        self.event_handler.schedule(self.save_dfile_interval, self.save_dfile)
         #self.prevtime = bttime()
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
-        ADD_TASK(self.timeout_downloaders_interval, self.expire_downloaders)
+        self.event_handler.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
         self.logfile = None
         self.log = None
+        #TODO: Switch to logging module
         if (config['logfile'] != '') and (config['logfile'] != '-'):
             try:
                 self.logfile = config['logfile']
@@ -486,7 +487,7 @@ class Tracker(object):
             simpeer.num_natcheck = 0
             simpeer.nat = True
         if simpeer.nat and simpeer.num_natcheck < self.natcheck:
-            NatCheck(self.connectback_result,peerid,ip,port,self.rawserver)
+            NatCheck(self.certificate.getContext(), self.connectback_result, peerid, ip, port)
         # Check that peer certificate matches
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
@@ -751,7 +752,7 @@ class Tracker(object):
         path = unquote(path).lstrip("/")
         paramslist.update(self.parseQuery(query))
 
-        ip = handler.get_ip()
+        ip = handler.addr[0]
         nip = get_forwarded_ip(headers)
         if nip and not self.only_local_override_ip:
             ip = nip
@@ -770,7 +771,7 @@ class Tracker(object):
                 'you sent me garbage - ' + str(e))
 
         # Update Tracker's information about the peer
-        simpeer = self.update_simpeer(paramslist, ip, handler.connection.peer_cert)
+        simpeer = self.update_simpeer(paramslist, ip, handler.get_peer_cert())
         if simpeer is None:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                 'Peer authentication failed')
@@ -850,13 +851,13 @@ class Tracker(object):
 
     #XXX: lord have mercy does this need encryption
     def save_dfile(self):
-        ADD_TASK(self.save_dfile_interval, self.save_dfile)
+        self.event_handler.schedule(self.save_dfile_interval, self.save_dfile)
         h = open(self.dfile, 'wb')
         h.write(bencode(self.state))
         h.close()
 
     def parse_allowed(self):
-        ADD_TASK(self.parse_dir_interval, self.parse_allowed)
+        self.event_handler.schedule(self.parse_dir_interval, self.parse_allowed)
 
         # logging broken .atorrent files would be useful but could confuse
         # programs parsing log files, so errors are just ignored for now
@@ -876,7 +877,7 @@ class Tracker(object):
         self.state['allowed_dir_files'] = self.allowed_dir_files
 
     def parse_blocked(self):
-        ADD_TASK(self.parse_dir_interval, self.parse_blocked)
+        self.event_handler.schedule(self.parse_dir_interval, self.parse_blocked)
 
         self.blocklist = os.path.join(self.config['data_dir'], "blockedhashes")
         if os.path.exists(self.blocklist):
@@ -916,7 +917,7 @@ class Tracker(object):
         #            del self.times[key]
         #            #del self.downloads[key]
         #            #del self.seedcount[key]
-        ADD_TASK(self.timeout_downloaders_interval, self.expire_downloaders)
+        self.event_handler.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
 
 def track(args):
     if len(args) == 0:
@@ -931,13 +932,16 @@ def track(args):
 
     initCrypto(config['data_dir'])
     servercert = Certificate("server", True, True)
-    r = RawServer(Event(), config, servercert, bindaddr = config['bind'])
-    t = Tracker(config, servercert, r)
-    s = r.create_ssl_serversocket(config['port'], config['bind'], True)
-    r.start_listening(s, HTTPHandler(t.get, config['min_time_between_log_flushes']))
-    r.listen_forever()
-    t.save_dfile()
-    print '# Shutting down: ' + isotime()
+    e = EventHandler()
+    t = Tracker(config, servercert, e)
+    try:
+        s = HTTPSServer(config['bind'], config['port'], servercert.getContext(), t.get)
+    except Exception, e:
+        log.critical("Cannot start tracker. %s" % e)
+    else:
+        e.loop()
+        t.save_dfile()
+        print '# Shutting down: ' + isotime()
 
 def size_format(s):
     if (s < 1024):
@@ -952,4 +956,3 @@ def size_format(s):
         r = "%.2f TiB" % (s/1099511627776.0)
     return r
 
-    

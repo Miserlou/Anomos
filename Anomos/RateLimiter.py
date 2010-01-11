@@ -14,11 +14,11 @@
 # Written by Uoti Urpala
 
 from Anomos import bttime
-from Anomos import ADD_TASK
 
 class RateLimiter(object):
 
-    def __init__(self):
+    def __init__(self, schedule):
+        self.schedule = schedule
         self.tail = None
         self.upload_rate = 1e10
         self.unitsize = 1e10
@@ -88,8 +88,7 @@ class RateLimiter(object):
                 self.tail = cur
                 cur = cur.next_upload
         else:
-            ADD_TASK(self.offset_amount / self.upload_rate, self.try_send)
-            #self.sched(self.try_send, self.offset_amount / self.upload_rate)
+            self.schedule(self.offset_amount / self.upload_rate, self.try_send)
 
     def clean_closed(self):
         if self.tail is None:

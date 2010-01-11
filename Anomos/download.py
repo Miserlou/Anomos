@@ -17,12 +17,9 @@ import os
 import sys
 import threading
 import gc
-from socket import error as socketerror
 from cStringIO import StringIO
 from traceback import print_exc
 from math import sqrt
-
-import random
 
 from Anomos.Choker import Choker
 from Anomos.ConvertedMetainfo import set_filesystem_encoding
@@ -34,7 +31,6 @@ from Anomos.NeighborManager import NeighborManager
 from Anomos.PiecePicker import PiecePicker
 from Anomos.RateLimiter import RateLimiter
 from Anomos.RateMeasure import RateMeasure
-from Anomos.RawServer import RawServer
 from Anomos.Rerequester import Rerequester
 from Anomos.SingleportListener import SingleportListener
 from Anomos.Storage import Storage, FilePool
@@ -43,11 +39,13 @@ from Anomos.Torrent import Torrent
 from Anomos.Uploader import Upload
 from Anomos import bttime, version, LOG as log
 from Anomos import BTFailure, BTShutdown
-from Anomos import add_task
 
 from Anomos.crypto import Certificate, initCrypto
 import Anomos.crypto as crypto
-from Anomos import ADD_TASK
+
+from Anomos.EventHandler import EventHandler
+
+from M2Crypto.SSL import SSLError
 
 class Feedback(object):
 
@@ -74,34 +72,20 @@ class Multitorrent(object):
         initCrypto(self.config['data_dir'])
         self.sessionid = crypto.getRand(8)
         self.certificate = Certificate(self.config['identity'])
-        self.rawserver = RawServer(doneflag, config, self.certificate, bindaddr=config['bind'])
+        self.ssl_ctx = self.certificate.getContext()
+        self.event_handler = EventHandler(doneflag)
+        self.schedule = self.event_handler.schedule
 
-        self.ratelimiter = RateLimiter()
+        self.ratelimiter = RateLimiter(self.schedule)
         self.ratelimiter.set_parameters(config['max_upload_rate'],
                                         config['upload_unit_size'])
 
         self.nbr_mngrs = {}
 
-        self.singleport_listener = SingleportListener(self.rawserver,\
-                                                        self.config)
-        self._find_port(listen_fail_ok)
+        self.singleport_listener = SingleportListener(self.config, self.ssl_ctx)
+        self.singleport_listener.find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
         set_filesystem_encoding(config['filesystem_encoding'], log)
-
-    def _find_port(self, listen_fail_ok=True):
-        e = 'maxport less than minport - no ports to check'
-        self.config['minport'] = max(1, self.config['minport'])
-        for port in xrange(self.config['minport'], self.config['maxport'] + 1):
-            try:
-                self.singleport_listener.open_port(port, self.config)
-                break
-            except socketerror, e:
-                pass
-        else:
-            if not listen_fail_ok:
-                raise BTFailure, "Couldn't open a listening port: " + str(e)
-            log.critical("Could not open a listening port: " +
-                           str(e) + ". Check your port range settings.")
 
     def close_listening_socket(self):
         self.singleport_listener.close_sockets()
@@ -111,19 +95,18 @@ class Multitorrent(object):
         if not self.nbr_mngrs.has_key(metainfo.announce):
             ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
             self.nbr_mngrs[metainfo.announce] = \
-                    NeighborManager(self.rawserver, config,self.certificate, \
-                                    self.sessionid, self.ratelimiter)
+                    NeighborManager(config, self.certificate, \
+                                    self.sessionid, self.schedule, \
+                                    self.ratelimiter)
 
-        torrent = _SingleTorrent(self.rawserver, self.singleport_listener,\
+        torrent = _SingleTorrent(self.schedule, \
+                                 self.singleport_listener,\
                                  self.ratelimiter, self.filepool, config,\
                                  self.nbr_mngrs[metainfo.announce],\
                                  self.certificate, self.sessionid)
-        self.rawserver.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
-        ADD_TASK(0, start)
-        #XXX: CONTEXT used here:
-        #self.rawserver.add_task(start, 0, torrent)
+        self.schedule(0, start, context=torrent)
         return torrent
 
     def set_option(self, option, value):
@@ -144,7 +127,7 @@ class Multitorrent(object):
         elif option == 'maxport':
             if not self.config['minport'] <= self.singleport_listener.port <= \
                    self.config['maxport']:
-                self._find_port()
+                self.singleport_listener.find_port()
 
     def get_completion(self, config, metainfo, save_path, filelist=False):
         if not config['data_dir']:
@@ -185,9 +168,9 @@ class Multitorrent(object):
 
 class _SingleTorrent(object):
 
-    def __init__(self, rawserver, singleport_listener, ratelimiter, filepool,
+    def __init__(self, schedule, singleport_listener, ratelimiter, filepool,
                  config, neighbors, certificate, sessionid):
-        self._rawserver = rawserver
+        self.schedule = lambda delay, func: schedule(delay, func, context=self)
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
         self._filepool = filepool
@@ -230,9 +213,7 @@ class _SingleTorrent(object):
             except StopIteration:
                 self._contfunc = None
         def contfunc():
-            ADD_TASK(0, cont)
-            #XXX: CONTEXT usage
-            #self._rawserver.external_add_task(cont, 0, self)
+            self.schedule(0, cont)
         self._contfunc = contfunc
         contfunc()
 
@@ -250,15 +231,6 @@ class _SingleTorrent(object):
         if not metainfo.reported_errors:
             metainfo.show_encoding_errors(log.error)
 
-        def schedfunc(func, delay):
-            ADD_TASK(delay, func)
-            #XXX:
-            #self._rawserver.add_task(func, delay, self)
-            add_task(delay, func)
-        def externalsched(func, delay):
-            ADD_TASK(delay, func)
-            #XXX:
-            #self._rawserver.external_add_task(func, delay, self)
         if metainfo.is_batch:
             myfiles = [os.path.join(save_path, f) for f in metainfo.files_fs]
         else:
@@ -315,7 +287,7 @@ class _SingleTorrent(object):
 
         if self._storagewrapper.amount_left == 0:
             self._finished()
-        choker = Choker(self.config, schedfunc, self.finflag.isSet)
+        choker = Choker(self.config, self.schedule, self.finflag.isSet)
         upmeasure = Measure(self.config['max_rate_period'])
         downmeasure = Measure(self.config['max_rate_period'])
         self._upmeasure = upmeasure
@@ -331,7 +303,7 @@ class _SingleTorrent(object):
         def kickpeer(connection):
             def kick():
                 connection.close()
-            schedfunc(kick, 0)
+            self.schedule(0, kick)
         downloader = Downloader(self.config, self._storagewrapper, picker,
                                 len(metainfo.hashes), downmeasure,
                                 self._ratemeasure.data_came_in, kickpeer)
@@ -348,11 +320,10 @@ class _SingleTorrent(object):
         self.neighbors.add_torrent(self.infohash, self._torrent)
         self._listening = True
         self._rerequest = Rerequester(metainfo.announce, self.config,
-            schedfunc, self.neighbors, externalsched,
-            self._storagewrapper.get_amount_left, upmeasure.get_total,
-            downmeasure.get_total, self.reported_port, self.infohash,
-            self.finflag, self.internal_shutdown, self._announce_done,
-            self.certificate, self.sessionid)
+            self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
+            upmeasure.get_total, downmeasure.get_total, self.reported_port,
+            self.infohash, self.finflag, self.internal_shutdown,
+            self._announce_done, self.certificate, self.sessionid)
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             downmeasure.get_rate, upmeasure.get_total, downmeasure.get_total,
             self.neighbors.get_relay_stats, self._ratemeasure.get_time_left,
@@ -469,7 +440,6 @@ class _SingleTorrent(object):
         import time
         time.sleep(.2)
 
-        self._rawserver.remove_context(self)
         self._doneflag.set()
         log.info("Closing connections, please wait...")
         if self._announced:
@@ -486,7 +456,7 @@ class _SingleTorrent(object):
         if self._storage is not None:
             self._storage.close()
         self._ratelimiter.clean_closed()
-        ADD_TASK(0, gc.collect)
+        self.schedule(0, gc.collect)
 
     def get_status(self, spew = False, fileinfo=False):
         if self.started and not self.closed:

@@ -65,14 +65,13 @@ STOPPED=2
 
 class Rerequester(object):
 
-    def __init__(self, url, config, sched, neighbors, externalsched,
-            amount_left, up, down, local_port, infohash, doneflag,
+    def __init__(self, url, config, schedule, neighbors, amount_left,
+            up, down, local_port, infohash, doneflag,
             diefunc, sfunc, certificate, sessionid):
         ##########################
         self.config = config
-        self.sched = sched
+        self.schedule = schedule
         self.neighbors = neighbors
-        self.externalsched = externalsched
         self.amount_left = amount_left
         self.up = up
         self.down = down
@@ -131,7 +130,7 @@ class Rerequester(object):
         self._check()
 
     def begin(self):
-        self.sched(self.begin, 60)
+        self.schedule(60, self.begin)
         self._check()
 
     def announce_finish(self):
@@ -196,10 +195,8 @@ class Rerequester(object):
 
     # Must destroy all references that could cause reference circles
     def cleanup(self):
-        self.sched = None
         self.neighbors = None
         self.connect = None
-        self.externalsched = lambda *args: None
         self.amount_left = None
         self.up = None
         self.down = None
@@ -257,7 +254,7 @@ class Rerequester(object):
         else:
             def f():
                 self._postrequest(data)
-        self.externalsched(f, 0)
+        self.schedule(0, f)
 
     def _fail(self):
         if self.fail_wait is None:
@@ -290,6 +287,11 @@ class Rerequester(object):
                 log.critical("Aborting the torrent as it was "
                     "rejected by the tracker while not connected to any peers."
                     " Message from the tracker:     " + r['failure reason'])
+            self._fail()
+            return
+        elif self.neighbors is None:
+            # Torrent may have been closed before receiving a response
+            # from the tracker.
             self._fail()
             return
         else:
