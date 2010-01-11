@@ -15,49 +15,60 @@
 
 # Written by John M. Schanck
 
-from Anomos.Protocol.Connection import Connection
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos import protocol_name as anomos_protocol_name
+from Anomos import HandshakeError
+from Anomos import LOG as log
 
-class AnomosNeighborInitializer(Connection):
+class AnomosNeighborInitializer(object):
     ''' Temporary connection handler created to instantiate
         or receive connections '''
     def __init__(self, manager, socket, id=None):
-        Connection.__init__(self, socket)
         self.manager = manager
+        self.socket = socket
+        self.socket.set_collector(self)
         self.id = id
         self._reader = self._read_header() # Starts the generator
-        self._next_len = self._reader.next() # Gets the first yield
-        if self.started_locally:
+        self._message = ''
+        self.socket.set_terminator(self._reader.next())
+        self.complete = False
+        if self.socket.started_locally:
             self.write_header()
+    def collect_incoming_data(self, data):
+        self._message += data
+    def get_reader(self):
+        return self._reader
     def _read_header(self):
         '''Each yield puts N bytes from Connection.data_came_in into
            self._message. self._message is then checked for compliance
            to the Anomos protocol'''
         yield 1
         if ord(self._message) != len(anomos_protocol_name):
-            raise StopIteration("Protocol name mismatch")
+            raise HandshakeError("Protocol name mismatch")
+        self._message = ''
         yield len(anomos_protocol_name) # protocol name -- 'Anomos'
         if self._message != anomos_protocol_name:
-            raise StopIteration("Protocol name mismatch")
+            raise HandshakeError("Protocol name mismatch")
+        self._message = ''
         yield 1  # NID
         if self.id is None:
             self.id = self._message
         elif self.id != self._message:
-            raise StopIteration("Neighbor ID mismatch")
+            raise HandshakeError("Neighbor ID mismatch")
+        self._message = ''
         yield 7  # reserved bytes (ignore these for now)
         self._got_full_header()
+        self._message = ''
     def _got_full_header(self):
         # Reply with a header if we didn't start the connection
-        if not self.started_locally:
+        if not self.socket.started_locally:
             self.write_header()
-        # Unlink this object from asyncore, the socket will be passed
-        # to the NeighborLink object which self.manager.connection_completed
-        # will create.
-        self.delchannel()
         # Tell the neighbor manager we've got a completed connection
         # so that it can create a NeighborLink
+        self.complete = True
         self.manager.connection_completed(self.socket, self.id)
+        if self.id == NAT_CHECK_ID:
+            self.socket.close()
     def protocol_extensions(self):
         """Anomos puts [1:nid][7:null char] into the
            BitTorrent reserved header bytes"""
@@ -69,11 +80,9 @@ class AnomosNeighborInitializer(Connection):
         """
         hdr = chr(len(anomos_protocol_name)) + anomos_protocol_name + \
                        self.protocol_extensions()
-        self.socket.write(hdr)
-    def connection_lost(self, conn):
-        assert conn is self.socket
-        self._sever()
-        self.connection_closed()
+        self.socket.push(hdr)
     def connection_closed(self):
-        self.manager.initializer_failed(self.id)
-
+        if self.id != NAT_CHECK_ID:
+            log.info("Failed to initialize connection to %s" % str(self.id))
+        if not self.complete:
+            self.manager.initializer_failed(self.id)

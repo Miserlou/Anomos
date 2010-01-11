@@ -15,39 +15,51 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos import BTFailure
+from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
+from Anomos.P2PServer import P2PServer
+
+from socket import error as socketerror
 
 class SingleportListener(object):
     '''SingleportListener gets events from the server sockets (of which there
         is one per **tracker**), initializes connection objects, and determines
         what to do with the connection once some data has been read.
     '''
-    def __init__(self, rawserver, config):
-        self.rawserver = rawserver
+    def __init__(self, config, ssl_ctx):
         self.config = config
         self.port = 0
         self.ports = {}
         self.managers = {}
-        self.download_id = None
+        self.ssl_ctx = ssl_ctx
 
     def _check_close(self, port):
         if not port or self.port == port or self.ports[port][1] > 0:
             return
         serversocket = self.ports[port][0]
-        self.rawserver.stop_listening(serversocket)
         serversocket.close()
         del self.ports[port]
 
-    def open_port(self, port, config):
+    def find_port(self, listen_fail_ok=True):
+        e = 'maxport less than minport - no ports to check'
+        self.config['minport'] = max(1, self.config['minport'])
+        for port in xrange(self.config['minport'], self.config['maxport'] + 1):
+            try:
+                self.open_port(port)
+                break
+            except socketerror, e:
+                pass
+        else:
+            if not listen_fail_ok:
+                raise BTFailure, "Couldn't open a listening port: " + str(e)
+            log.critical("Could not open a listening port: " +
+                           str(e) + ". Check your port range settings.")
+
+    def open_port(self, port):
         if port in self.ports:
             self.port = port
             return
-        # This #
-        serversocket = self.rawserver.create_ssl_serversocket(port, config['bind'], True, config['peer_socket_tos'])
-        self.rawserver.start_listening(serversocket, self)
-        # Is to be replaced by
-        # P2PServer(addr, port, context, self)
+        serversocket = P2PServer(self.config['bind'], port, self.ssl_ctx)
         oldport = self.port
         self.port = port
         self.ports[port] = [serversocket, 0]
@@ -55,6 +67,7 @@ class SingleportListener(object):
 
     def get_port(self, nbrmgr):
         if self.port:
+            self.ports[self.port][0].set_neighbor_manager(nbrmgr)
             self.ports[self.port][1] += 1
         self.managers[self.port] = nbrmgr
         return self.port
@@ -65,17 +78,4 @@ class SingleportListener(object):
 
     def close_sockets(self):
         for serversocket, _ in self.ports.itervalues():
-            self.rawserver.stop_listening(serversocket)
             serversocket.close()
-
-    def get_neighbor_manager(self, socket):
-        return self.managers[socket.port]
-
-    #def external_connection_made(self, socket):
-    #    """
-    #    Connection came in.
-    #    """
-    #    AnomosNeighborInitializer(self.managers[socket.port], socket)
-
-    def replace_connection(self):
-        pass

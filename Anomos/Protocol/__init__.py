@@ -81,7 +81,7 @@ class AnomosProtocol(object):
             self.invalid_message(t)
             return
     def invalid_message(self, t):
-        pass
+        raise NotImplementedError("Must be implemented in a subclass")
     def _valid_msg_len(self, m):
         ''' Check length of received message m against dictionary
             of valid message lengths '''

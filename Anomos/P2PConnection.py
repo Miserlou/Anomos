@@ -47,9 +47,6 @@ class P2PConnection(asynchat.async_chat):
         if addr is not None:
             self.connect(addr)
 
-        self.peer_cert = self.get_peer_cert()
-        self.peer_ip = self.socket.addr[0]
-
     def set_collector(self, collector):
         self.collector = collector
         self.new_collector = True
