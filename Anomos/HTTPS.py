@@ -144,8 +144,8 @@ class HTTPSConnection(asynchat.async_chat):
             asynchat.async_chat.handle_read(self)
         except SSL.SSLError, err:
             log.error(err)
-            if "unexpected eof" not in errstr:
-                #log.warning("SSLError: " + str(errstr))
+            if "unexpected eof" not in err:
+                #log.warning("SSLError: " + str(err))
                 self.handle_error()
 
     def handle_expt(self):
