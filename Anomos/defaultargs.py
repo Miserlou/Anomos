@@ -76,8 +76,6 @@ rare_options = [
      'hostile peers that send incorrect data'),
     ('one_connection_per_ip', 0,
      'do not connect to several peers that have the same IP address'),
-    ('peer_socket_tos', 8,
-     'if nonzero, set the TOS option for peer connections to this value'),
     ('filesystem_encoding', '',
      "character encoding used on the local filesystem. If left empty, autodetected. Autodetection doesn't work under python versions older than 2.3"),
     ('enable_bad_libc_workaround', 0,
