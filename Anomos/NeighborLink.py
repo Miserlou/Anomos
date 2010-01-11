@@ -86,7 +86,7 @@ class NeighborLink(AnomosNeighborProtocol):
             nxtid = self.incoming_stream_id
         else: # Localy initialized stream
             nxtid = self.next_stream_id
-            self.next_stream_id += 1
+            self.next_stream_id += 2
         self.streams[nxtid] = \
                     EndPoint(nxtid, self, torrent, aeskey, data)
         log.info("Starting endpoint")
