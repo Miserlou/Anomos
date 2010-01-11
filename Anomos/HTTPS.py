@@ -162,13 +162,19 @@ class HTTPSServer(SSL.ssl_dispatcher):
     def __init__(self, addr, port, ssl_context, getfunc):
         SSL.ssl_dispatcher.__init__(self)
         self.create_socket(ssl_context)
-        self.socket.setblocking(0)
-        self.set_reuse_addr()
         self.bind((addr, port))
         self.listen(10) # TODO: Make this queue length a configuration option
                         # or determine a best value for it
         self.socket.set_post_connection_check_callback(lambda x,y: x != None)
         self.getfunc = getfunc
+
+    def create_socket(self, ssl_context):
+        self.ssl_ctx=ssl_context
+        conn=SSL.Connection(self.ssl_ctx)
+        self.set_socket(conn)
+        self.socket.setblocking(0)
+        self.set_reuse_addr()
+        self.add_channel()
 
     def handle_accept(self):
         try:
