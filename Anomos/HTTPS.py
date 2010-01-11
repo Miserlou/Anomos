@@ -177,6 +177,9 @@ class HTTPSServer(SSL.ssl_dispatcher):
             if "unexpected eof" not in err:
                 self.handle_error()
             return
+        except SSL.Checker.SSLVerificationError, err:
+            log.info(err)
+            return
         #if (self.ssl_ctx.get_verify_mode() is SSL.verify_none) or sock.verify_ok():
         conn = HTTPSConnection(sock, self.getfunc)
         #else:
