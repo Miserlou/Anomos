@@ -22,10 +22,6 @@ class P2PServer(SSL.ssl_dispatcher):
     def __init__(self, addr, port, ssl_context):
         SSL.ssl_dispatcher.__init__(self)
         self.create_socket(ssl_context)
-        self.socket.setblocking(0)
-        self.set_reuse_addr()
-        #TODO: move port testing (_find_port) from download.py
-        # to here.
         self.bound = False     # The bound variable is to prevent handle_error
         self.bind((addr, port))# from logging errors caused by the following
         self.bound = True      # call to bind. Errors from bind are caught by
@@ -41,6 +37,14 @@ class P2PServer(SSL.ssl_dispatcher):
         self.neighbor_manager = mgr
 
     ## asyncore.dispatcher methods ##
+
+    def create_socket(self, ssl_context):
+        self.ssl_ctx=ssl_context
+        conn=SSL.Connection(self.ssl_ctx)
+        self.set_socket(conn)
+        self.socket.setblocking(0)
+        self.set_reuse_addr()
+        self.add_channel()
 
     def writable(self):
         return False
@@ -69,6 +73,9 @@ class P2PServer(SSL.ssl_dispatcher):
         # to a port which was already in use.
         self.close()
 
+    def handle_read(self):
+        pass
+
     def handle_error(self):
         #if self.bound:
         log.critical('\n'+traceback.format_exc())
@@ -77,4 +84,3 @@ class P2PServer(SSL.ssl_dispatcher):
     def handle_expt(self):
         log.critical('\n'+traceback.format_exc())
         self.close()
-
