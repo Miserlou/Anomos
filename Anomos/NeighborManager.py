@@ -145,7 +145,6 @@ class NeighborManager(object):
     def connection_completed(self, socket, id):
         '''Called by AnomosNeighborInitializer'''
         if self.incomplete.has_key(id):
-            assert socket.addr[0] == self.incomplete[id][0]
             del self.incomplete[id]
         if id == NAT_CHECK_ID:
             log.info("NAT check ok.")
