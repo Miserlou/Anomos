@@ -161,39 +161,29 @@ class HTTPSConnection(asynchat.async_chat):
 class HTTPSServer(SSL.ssl_dispatcher):
     def __init__(self, addr, port, ssl_context, getfunc):
         SSL.ssl_dispatcher.__init__(self)
-        self.create_socket(ssl_context)
+        self.ssl_ctx=ssl_context
+        self.create_socket()
         self.bind((addr, port))
         self.listen(10) # TODO: Make this queue length a configuration option
                         # or determine a best value for it
-        self.socket.set_post_connection_check_callback(lambda x,y: x != None)
         self.getfunc = getfunc
 
-    def create_socket(self, ssl_context):
-        self.ssl_ctx=ssl_context
+    def create_socket(self):
         conn=SSL.Connection(self.ssl_ctx)
         self.set_socket(conn)
         self.socket.setblocking(0)
+        self.socket.set_accept_state()
         self.set_reuse_addr()
         self.add_channel()
 
     def handle_accept(self):
         try:
             sock, addr = self.socket.accept()
-        except SSL.SSLError, err:
-            if "unexpected eof" not in err:
-                self.handle_error()
+        except Exception, e:
+            log.warning(e)
             return
-        except SSL.Checker.SSLVerificationError, err:
-            log.info(err)
-            return
-        #if (self.ssl_ctx.get_verify_mode() is SSL.verify_none) or sock.verify_ok():
-        conn = HTTPSConnection(sock, self.getfunc)
-        #else:
-        #    print 'client verification failed'
-        #    sock.close()
 
-    #def handle_connect(self):
-    #    pass
+        conn = HTTPSConnection(sock, self.getfunc)
 
     def handle_error(self):
         log.critical('\n'+traceback.format_exc())
@@ -205,5 +195,4 @@ class HTTPSServer(SSL.ssl_dispatcher):
 
     def writable(self):
         return 0
-
 

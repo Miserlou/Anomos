@@ -50,23 +50,16 @@ class P2PServer(SSL.ssl_dispatcher):
         return False
 
     def handle_accept(self):
-        if self.neighbor_manager is None:
-            #XXX: What's the proper behavior here?
-            return
+        assert self.neighbor_manager is not None
+
         try:
             sock, addr = self.socket.accept()
-        except SSL.SSLError, err:
-            if "unexpected eof" not in err:
-                self.handle_error()
-            return
+        except Exception, e: # A variety of exceptions might be thrown here
+            log.warning(err) # if anyone wants to figure out exactly which
+            return           # ones, that'd be great.
 
-        self.log(str(self))
-        #if (self.ssl_ctx.get_verify_mode() is SSL.verify_none) or sock.verify_ok():
         conn = P2PConnection(socket=sock)
         AnomosNeighborInitializer(self.neighbor_manager, conn)
-        #else:
-        #    print 'peer verification failed'
-        #    sock.close()
 
     def handle_connect(self):
         # Connect for this socket implies it tried to bind

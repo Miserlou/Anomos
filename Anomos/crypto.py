@@ -181,30 +181,32 @@ class Certificate:
     def getContext(self):
         ctx = SSL.Context("tlsv1")
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)  
-        ctx.set_verify(CTX_VERIFY_FLAGS, 0, lambda x,y: True)
+        cb = mk_verify_cb(allow_unknown_ca=True)
+        ctx.set_verify(CTX_V_FLAGS,3,cb)
         ctx.set_allow_unknown_ca(1)
         return ctx
 
-    def _verifyCallback(self, preverify_ok, code):
-        # Allow self-signed certs ONLY FOR localhost (for testing purposes)
-        # This is where the non-signed cert excemption WOULD go, but I'm really
-        # not convinced that it's necessary - any decent tracker will be signed,
-        # and there's no reason we can't sign our test certificates.
-        if code.get_error() == ERR_SELF_SIGNED and self.url == 'localhost':
-            return True
-        return bool(preverify_ok)
-
     def getVerifiedContext(self, pem):
         global global_cryptodir
-        self.url = pem[:len(pem)-4]
-        cloc = os.path.join(global_certpath, 'cacert.root.pem')        
+        cloc = os.path.join(global_certpath, 'cacert.root.pem')
         ctx = SSL.Context("tlsv1") # Defaults to SSLv23
         if ctx.load_verify_locations(cafile=cloc) != 1:
             log.error("Problem loading CA certificates")
             raise Exception('CA certificates not loaded')
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
-        ctx.set_allow_unknown_ca(0)
-        ctx.set_verify(CTX_VERIFY_FLAGS,9,self._verifyCallback)
+        cb = mk_verify_cb(allow_unknown_ca=False)
+        ctx.set_verify(CTX_V_FLAGS,3,cb)
+        return ctx
+
+    def httpsContext(self):
+        ctx=SSL.Context('tlsv1')
+        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
+        cafile = os.path.join(global_certpath, 'cacert.root.pem')
+        ctx.load_client_ca(cafile)
+        if ctx.load_verify_locations(cafile=cafile) != 1:
+            raise Exception('CA certificates not loaded')
+        cb = mk_verify_cb(allow_unknown_ca=True)
+        ctx.set_verify(CTX_V_FLAGS,3,cb)
         return ctx
 
     def getPub(self):
@@ -253,6 +255,40 @@ class Certificate:
             return (message, content[pos:])
         else:
             return message
+
+
+SELF_SIGNED_ERR = [
+    m2.X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT,
+    m2.X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN
+    ]
+
+UNKNOWN_ISSUER_ERR = [
+    m2.X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT,
+    m2.X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY,
+    m2.X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE,
+    m2.X509_V_ERR_CERT_UNTRUSTED,
+    ]
+
+def _verify_callback(ok, store, **kwargs):
+    errnum = store.get_error()
+    errdepth = store.get_error_depth()
+    cert = store.get_current_cert()
+    # [DEBUGGING] Localhost exemption for self-signed certificates
+    if errnum in SELF_SIGNED_ERR:
+        if cert.get_subject().CN == 'localhost':
+            ok = 1
+    # Allow unknown CA if a context requests it
+    if errnum in UNKNOWN_ISSUER_ERR:
+        if kwargs.get('allow_unknown_ca', False):
+            ok = 1
+    # TODO: Certificate Revokation Lists?
+    return ok
+
+def mk_verify_cb(**kwargs):
+    def vcb(ok, store):
+        return _verify_callback(ok, store, **kwargs)
+    return vcb 
+
 
 class PeerCert:
     def __init__(self, certObj):
