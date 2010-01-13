@@ -885,7 +885,7 @@ def track(args):
     e = EventHandler()
     t = Tracker(config, servercert, e)
     try:
-        s = HTTPSServer(config['bind'], config['port'], servercert.httpsContext(), t.get)
+        s = HTTPSServer(config['bind'], config['port'], servercert.getContext(allow_unknown_ca=True), t.get)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:

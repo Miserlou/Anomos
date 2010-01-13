@@ -211,14 +211,14 @@ class Rerequester(object):
         if not self.https:
             log.warning("Warning: Will not connect to non HTTPS server")
             return
-        dcerts = crypto.getDefaultCerts()
-        pcertname = str(self.url) + '.pem'
+        #dcerts = crypto.getDefaultCerts()
+        #pcertname = str(self.url) + '.pem'
         #if pcertname not in dcerts and not self.warned:
         #    log.error("WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
         #    self.warned = True
         #    ssl_contextual_healing=self.certificate.getContext()
         #else:
-        ssl_contextual_healing=self.certificate.getVerifiedContext(pcertname)
+        ssl_contextual_healing=self.certificate.getContext()
         try:
             if self.proxy_url:
                 #This is the old, HTTP Proxy stuff. May be worth implementing both but I'm not sure.

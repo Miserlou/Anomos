@@ -31,7 +31,7 @@ class NeighborManager(object):
     def __init__(self, config, certificate, sessionid, schedule, ratelimiter):
         self.config = config
         self.certificate = certificate
-        self.ssl_ctx = self.certificate.getContext()
+        self.ssl_ctx = self.certificate.getContext(allow_unknown_ca=True)
         self.sessionid = sessionid
         self.schedule = schedule
         self.ratelimiter = ratelimiter

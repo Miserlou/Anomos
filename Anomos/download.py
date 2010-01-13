@@ -72,7 +72,7 @@ class Multitorrent(object):
         initCrypto(self.config['data_dir'])
         self.sessionid = crypto.getRand(8)
         self.certificate = Certificate(self.config['identity'])
-        self.ssl_ctx = self.certificate.getContext()
+        self.ssl_ctx = self.certificate.getContext(allow_unknown_ca=True)
         self.event_handler = EventHandler(doneflag)
         self.schedule = self.event_handler.schedule
 

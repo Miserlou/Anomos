@@ -27,10 +27,9 @@ import cStringIO
 import hashlib
 from binascii import b2a_hex, a2b_hex
 from M2Crypto import m2, Rand, RSA, EVP, X509, SSL, threading, util
-from M2Crypto.m2 import X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT as ERR_SELF_SIGNED
 from Anomos import bttime, tobinary, BTFailure, LOG as log
 
-CTX_VERIFY_FLAGS = SSL.verify_peer | SSL.verify_fail_if_no_peer_cert
+CTX_V_FLAGS = SSL.verify_peer | SSL.verify_fail_if_no_peer_cert
 
 def getRand(*args):
     raise CryptoError("RNG not initialized")
@@ -178,34 +177,14 @@ class Certificate:
         # Save it
         self.cert.save_pem(self.certfile)
 
-    def getContext(self):
-        ctx = SSL.Context("tlsv1")
-        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)  
-        cb = mk_verify_cb(allow_unknown_ca=True)
-        ctx.set_verify(CTX_V_FLAGS,3,cb)
-        ctx.set_allow_unknown_ca(1)
-        return ctx
-
-    def getVerifiedContext(self, pem):
-        global global_cryptodir
+    def getContext(self, allow_unknown_ca=False):
         cloc = os.path.join(global_certpath, 'cacert.root.pem')
         ctx = SSL.Context("tlsv1") # Defaults to SSLv23
         if ctx.load_verify_locations(cafile=cloc) != 1:
             log.error("Problem loading CA certificates")
             raise Exception('CA certificates not loaded')
         ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
-        cb = mk_verify_cb(allow_unknown_ca=False)
-        ctx.set_verify(CTX_V_FLAGS,3,cb)
-        return ctx
-
-    def httpsContext(self):
-        ctx=SSL.Context('tlsv1')
-        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
-        cafile = os.path.join(global_certpath, 'cacert.root.pem')
-        ctx.load_client_ca(cafile)
-        if ctx.load_verify_locations(cafile=cafile) != 1:
-            raise Exception('CA certificates not loaded')
-        cb = mk_verify_cb(allow_unknown_ca=True)
+        cb = mk_verify_cb(allow_unknown_ca=allow_unknown_ca)
         ctx.set_verify(CTX_V_FLAGS,3,cb)
         return ctx
 
