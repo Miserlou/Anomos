@@ -54,7 +54,7 @@ class P2PServer(SSL.ssl_dispatcher):
 
         try:
             sock, addr = self.socket.accept()
-        except Exception, e: # A variety of exceptions might be thrown here
+        except Exception, err: # A variety of exceptions might be thrown here
             log.warning(err) # if anyone wants to figure out exactly which
             return           # ones, that'd be great.
 
