@@ -31,13 +31,19 @@ from Anomos import bttime, tobinary, BTFailure, LOG as log
 
 CTX_V_FLAGS = SSL.verify_peer | SSL.verify_fail_if_no_peer_cert
 
+try:
+    global_cryptodir
+    global_randfile
+    global_dd
+    global_certpath
+except NameError:
+    global_cryptodir = None
+    global_randfile = None
+    global_dd = None
+    global_certpath = None
+
 def getRand(*args):
     raise CryptoError("RNG not initialized")
-
-global_cryptodir = None
-global_randfile = None
-global_dd = None
-global_certpath = None
 
 def usesRandFile(function):
     """Decorator to ease use of randfile which must
@@ -55,17 +61,31 @@ def initCrypto(data_dir):
     @param data_dir: path to directory
     @type data_dir: string
     '''
+    # I suppose initializing threading can't hurt, but all of our
+    # crypto operations are made from the same thread. So do we need this?
     threading.init()
-    global getRand, global_cryptodir, global_randfile, global_dd
+
+    global getRand
+    global global_cryptodir, global_randfile, global_dd, global_certpath
 
     if None not in (global_cryptodir, global_randfile):
-        return #TODO: Already initialized, log a warning here.
+        log.warning("Crypto already initialized with root directory: %s. Not using %s." % (global_dd, data_dir))
+        return
+    # Initialize directory structure #
     global_dd = data_dir
     global_cryptodir = os.path.join(data_dir, 'crypto')
     if not os.path.exists(data_dir):
         os.mkdir(data_dir, 0700)
     if not os.path.exists(global_cryptodir):
         os.mkdir(global_cryptodir, 0700)
+    # Copy the default certificates into the user's crypto dir #
+    global_certpath = os.path.join(global_cryptodir, 'default_certificates')
+    if not os.path.exists(global_certpath):
+        # TODO: make sure this method of getting app_root works on all
+        # platforms and configurations
+        app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
+        shutil.copytree(os.path.join(app_root, 'default_certificates'), global_certpath)
+    # Initialize randfile #
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
     if Rand.save_file(global_randfile) == 0:
         raise CryptoError('Rand file not writable')
@@ -74,32 +94,15 @@ def initCrypto(data_dir):
         rb = Rand.rand_bytes(numBytes);
         return rb
     getRand = randfunc
-    copyDefCerts()
-
-def copyDefCerts():
-    ##If we haven't done it yet, move the default certificates to the user's data folder
-
-    global global_certpath, global_dd
-    global_certpath = os.path.join(global_cryptodir, 'default_certificates')
-
-    if not os.path.exists(global_certpath):
-        app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
-        shutil.copytree(os.path.join(app_root, 'default_certificates'), global_certpath)
 
 def getDefaultCerts():
     global global_certpath, global_dd
     global_certpath = os.path.join(global_cryptodir, 'default_certificates')
     return os.listdir(global_certpath)
 
-def getCertPath():
-    global global_certpath
-    return global_certpath
-
 def compareCerts(c1, c2):
-    if (c1.get_fingerprint('sha256') == c2.get_fingerprint('sha256')):
-        return True
-    else:
-        return False
+    return (c1.get_fingerprint('sha256') == c2.get_fingerprint('sha256'))
+
 
 class Certificate:
     def __init__(self, loc=None, secure=False, tracker=False):
@@ -272,12 +275,15 @@ def mk_verify_cb(**kwargs):
 class PeerCert:
     def __init__(self, certObj):
         self.certificate = certObj
+        self.hash_alg = 'sha256'
+        self.fingerprint = self.certificate.get_fingerprint(self.hash_alg)
         tmp = X509.load_cert_string(certObj.as_pem()).get_pubkey().get_rsa()
         self.pubkey = RSA.new_pub_key((tmp.e, tmp.n))
         self.randfile = global_randfile
-    def verify():
-        # Verify the certificate
-        pass
+
+    def cmp(self, certObj):
+        return self.fingerprint == certObj.get_fingerprint(self.hash_alg)
+
     def encrypt(self, data, rmsglen=None):
         """
         @type data: string
@@ -298,6 +304,7 @@ class PeerCert:
         padding = getRand(padlen)
         ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext
+
 
 class AESKey:
     def __init__(self, key=None, iv=None, algorithm='aes_256_cfb'):
