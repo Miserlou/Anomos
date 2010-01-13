@@ -28,7 +28,6 @@ class P2PServer(SSL.ssl_dispatcher):
                                # _find_port in Multitorrent.
         self.listen(10) # TODO: Make this queue length a configuration option
                         # or determine a best value for it
-        self.socket.set_post_connection_check_callback(lambda x,y: x != None)
 
         # Neighbor Manager is set after the torrent is started
         self.neighbor_manager = None
