@@ -14,6 +14,8 @@
 from binascii import b2a_hex
 from Anomos import LOG as log
 
+NAME = "Anomos"
+
 NAT_CHECK_ID = chr(255)
 
 #--Message Control Characters--#
@@ -52,7 +54,6 @@ def tobinary(i):
 
 class AnomosProtocol(object):
     ## Common features of all AnomosProtocols (Neighbor, Relayer, EndPoint) ##
-    from Anomos import protocol_name
     def __init__(self):
         #msglens => Provides easy lookup for validation of fixed length messages
         self.msglens = { CHOKE: 1, UNCHOKE: 1, INTERESTED: 1, \

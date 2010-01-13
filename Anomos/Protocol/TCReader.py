@@ -16,8 +16,7 @@
 # Written by John Schanck and Rich Jones
 
 import operator
-
-import Anomos.crypto as crypto
+import Anomos.Crypto
 
 class TCReader(object):
     def __init__(self, cert):
@@ -28,7 +27,7 @@ class TCReader(object):
         payload, nextLayer = self.cert.decrypt(tc, True)
         return TCodeData(payload, self.repad(nextLayer, len(tc)))
     def repad(self, layer, size):
-        return layer + crypto.getRand(size-len(layer))
+        return layer + Anomos.Crypto.get_rand(size-len(layer))
 
 class TCodeData(object):
     # Ranges defined here for easy modification

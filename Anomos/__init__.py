@@ -11,21 +11,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+#TODO: Check actual earliest supported version
+assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
+
 app_name = "Anomos"
 version = '0.8.5'
-
-protocol_name = "Anomos"
 
 URL = 'http://www.anomos.info/'
 DONATE_URL = URL+'donate'
 FAQ_URL = URL+'trac/wiki/FrequentlyAskedQuestions'
 HELP_URL = URL+'trac/wiki/KnowledgeBase'
 
-import sys
-#TODO: Check actual earliest supported version
-assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
 import os
-from threading import Timer
+from binascii import b2a_hex
 
 if sys.platform == 'win32':
     from time import clock as bttime
@@ -120,10 +119,6 @@ if sys.platform == 'win32':
         [x for x in LOG.handlers if isinstance(x, logging.StreamHandler)])
 
 del sys
-
-def add_task(t, func, args=[]):
-    ''' Execute a function after t seconds '''
-    Timer(t, func, args).start()
 
 class BTFailure(Exception):
     pass

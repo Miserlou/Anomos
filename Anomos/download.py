@@ -40,8 +40,7 @@ from Anomos.Uploader import Upload
 from Anomos import bttime, version, LOG as log
 from Anomos import BTFailure, BTShutdown
 
-from Anomos.crypto import Certificate, initCrypto
-import Anomos.crypto as crypto
+import Anomos.Crypto
 
 from Anomos.EventHandler import EventHandler
 
@@ -69,10 +68,10 @@ class Multitorrent(object):
 
     def __init__(self, config, doneflag, listen_fail_ok=False):
         self.config = dict(config)
-        initCrypto(self.config['data_dir'])
-        self.sessionid = crypto.getRand(8)
-        self.certificate = Certificate(self.config['identity'])
-        self.ssl_ctx = self.certificate.getContext(allow_unknown_ca=True)
+        Anomos.Crypto.init(self.config['data_dir'])
+        self.sessionid = Anomos.Crypto.get_rand(8)
+        self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
+        self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=True)
         self.event_handler = EventHandler(doneflag)
         self.schedule = self.event_handler.schedule
 

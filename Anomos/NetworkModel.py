@@ -17,7 +17,7 @@
 
 import random
 from sys import maxint as INFINITY
-import Anomos.crypto as crypto
+import Anomos.Crypto
 
 from Anomos import bttime
 
@@ -38,12 +38,12 @@ class SimPeer:
         @param name: Peer ID to be assigned to this SimPeer
         @type name: string
         @param pubkey: RSA Public Key to use when encrypting to this peer
-        @type pubkey: Anomos.crypto.RSAPubKey
+        @type pubkey: Anomos.Crypto.RSAPubKey
         """
         self.name = name
         self.ip = ip
         self.port = port
-        self.pubkey = crypto.PeerCert(pubkey)
+        self.pubkey = Anomos.Crypto.PeerCert(pubkey)
         self.neighbors = {} # {PeerID: {nid:#, ip:"", port:#}}
         self.id_map = {}    # {NeighborID : PeerID}
         self.infohashes = {} # {infohash: (downloaded, left)}
@@ -171,7 +171,7 @@ class NetworkModel:
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
-        @type pubkey: Anomos.crypto.RSAPubKey
+        @type pubkey: Anomos.Crypto.RSAPubKey
         @returns: a reference to the created peer
         @rtype: SimPeer
         """
@@ -312,7 +312,7 @@ class NetworkModel:
         if len(paths) > count:
             random.shuffle(paths)
         for p in paths[:min(count, len(paths))]:
-            aes = crypto.AESKey()
+            aes = Anomos.Crypto.AESKey()
             kiv = ''.join((aes.key, aes.iv))
             m = self.encryptTC(p, \
                             plaintext=''.join((infohash,kiv)))
@@ -352,7 +352,7 @@ class NetworkModel:
             return self.encryptTC(pathByNames, prevNbr, message, msglen)
         elif len(message) < msglen:
             # Pad to msglen
-            return message + crypto.getRand(msglen-len(message))
+            return message + Anomos.Crypto.get_rand(msglen-len(message))
         else:
             # XXX: Disallow messages longer than msglen?
             return message
@@ -364,10 +364,10 @@ def tcTest(numnodes=1000, numedges=10000):
     import math
     import time
     from binascii import b2a_hex
-    crypto.initCrypto('./')
+    Anomos.Crypto.init('./')
     G_ips = ['.'.join([str(i)]*4) for i in range(numnodes)]
     graph = NetworkModel()
-    pk = crypto.RSAKeyPair('WampWamp') # All use same RSA key for testing.
+    pk = Anomos.Crypto.RSAKeyPair('WampWamp') # All use same RSA key for testing.
     for peerid in G_ips:
         graph.initPeer(peerid, pk.pub_bin(), (peerid, 8080), int(math.log(1000)//math.log(4)))
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
@@ -378,12 +378,12 @@ def tcTest(numnodes=1000, numedges=10000):
         tc = []
         m, p = pk.decrypt(x, True)
         repadlen = len(x) - len(p)
-        p += crypto.getRand(repadlen)
+        p += Anomos.Crypto.get_rand(repadlen)
         tc.append(m)
         while m != '#':
             plen = len(p)
             m, p = pk.decrypt(p, True)
-            p += crypto.getRand(plen-len(p))
+            p += Anomos.Crypto.get_rand(plen-len(p))
             tc.append(m)
         #print "Decrypted Tracking Code  ", ":".join(tc)
     print time.time() - t

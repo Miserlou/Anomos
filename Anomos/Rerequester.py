@@ -13,20 +13,20 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from threading import Thread
-from socket import gethostbyname
 from random import random
+from socket import gethostbyname
+from threading import Thread
 
-from Anomos import bttime
-from Anomos import LOG as log
-from Anomos.zurllib import quote
-from Anomos.btformats import check_peers
+from Anomos import bttime, BTFailure, LOG as log
+import Anomos.Crypto
+
 from Anomos.bencode import bdecode
-from Anomos import BTFailure
-import Anomos.crypto as crypto
-from urlparse import urlparse, urlunparse
-from M2Crypto.httpslib import HTTPSConnection
+from Anomos.btformats import check_peers
+from Anomos.zurllib import quote
+
 from M2Crypto import version_info as m2version
+from M2Crypto.httpslib import HTTPSConnection
+from urlparse import urlparse, urlunparse
 
 ## When can we get rid of this
 if m2version < (0, 20, 0):
@@ -81,6 +81,7 @@ class Rerequester(object):
         self.diefunc = diefunc
         self.successfunc = sfunc
         self.certificate = certificate
+        self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=False)
         self.sessionid = sessionid
         ### Tracker URL ###
         self.https = True
@@ -211,21 +212,13 @@ class Rerequester(object):
         if not self.https:
             log.warning("Warning: Will not connect to non HTTPS server")
             return
-        #dcerts = crypto.getDefaultCerts()
-        #pcertname = str(self.url) + '.pem'
-        #if pcertname not in dcerts and not self.warned:
-        #    log.error("WARNING!:\n\nThere is no certificate on file for this tracker. That means we cannot verify the identify the tracker. Continuing anyway.")
-        #    self.warned = True
-        #    ssl_contextual_healing=self.certificate.getContext()
-        #else:
-        ssl_contextual_healing=self.certificate.getContext()
         try:
             if self.proxy_url:
                 #This is the old, HTTP Proxy stuff. May be worth implementing both but I'm not sure.
                 h = ProxyHTTPSConnection(self.proxy_url, \
                                          username=self.proxy_username, \
                                          password=self.proxy_password, \
-                                         ssl_context=ssl_contextual_healing)
+                                         ssl_context=self.ssl_ctx)
                 s = "https://"+self.url+":"+str(self.remote_port)+self.path+query
                 h.putrequest('GET', s)
                 
@@ -237,7 +230,7 @@ class Rerequester(object):
                                     
             else:
                 #No proxy url, use normal connection
-                h = HTTPSConnection(self.url, self.remote_port, ssl_context=ssl_contextual_healing)
+                h = HTTPSConnection(self.url, self.remote_port, ssl_context=self.ssl_ctx)
                 h.putrequest('GET', self.path+query)
             h.endheaders()
             resp = h.getresponse()
@@ -309,7 +302,7 @@ class Rerequester(object):
             # Start downloads
             for aes, tc in r.get('tracking codes', []):
                 #TODO: add error callback
-                self.neighbors.start_circuit(tc, self.infohash, crypto.AESKey(aes[:32], aes[32:]))
+                self.neighbors.start_circuit(tc, self.infohash, Anomos.Crypto.AESKey(aes[:32], aes[32:]))
             if self.basequery is not None: # We've recently made a successful
                 self.successfunc()     # request of type STARTED or COMPLETED
             self._check()

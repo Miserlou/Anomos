@@ -15,9 +15,10 @@
 
 # Written by John Schanck
 
+import Anomos.Crypto
+
 from Anomos.Protocol import PARTIAL, TCODE, tobinary, toint, AnomosProtocol
 from Anomos.Protocol.TCReader import TCReader
-from Anomos.crypto import AESKey, CryptoError
 from Anomos import LOG as log
 
 class AnomosNeighborProtocol(AnomosProtocol):
@@ -53,7 +54,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
         tcreader = TCReader(self.manager.certificate)
         try:
             tcdata = tcreader.parseTC(message[1:])
-        except CryptoError, e:
+        except Anomos.Crypto.CryptoError, e:
             log.error("Decryption Error: %s" % str(e))
             self.socket.close()
             return
@@ -71,7 +72,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
         elif tcdata.type == chr(1): # Terminal type
             infohash = tcdata.infohash
             keydata = tcdata.keydata
-            e2e_key = AESKey(keydata[:32],keydata[32:])
+            e2e_key = Anomos.Crypto.AESKey(keydata[:32],keydata[32:])
             torrent = self.manager.get_torrent(infohash)
             if not torrent:
                 log.error("Requested torrent not found")

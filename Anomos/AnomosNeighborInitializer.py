@@ -15,10 +15,8 @@
 
 # Written by John M. Schanck
 
-from Anomos.Protocol import NAT_CHECK_ID
-from Anomos import protocol_name as anomos_protocol_name
-from Anomos import HandshakeError
-from Anomos import LOG as log
+from Anomos.Protocol import NAT_CHECK_ID, NAME as protocol_name
+from Anomos import HandshakeError, LOG as log
 
 class AnomosNeighborInitializer(object):
     ''' Temporary connection handler created to instantiate
@@ -43,11 +41,11 @@ class AnomosNeighborInitializer(object):
            self._message. self._message is then checked for compliance
            to the Anomos protocol'''
         yield 1
-        if ord(self._message) != len(anomos_protocol_name):
+        if ord(self._message) != len(protocol_name):
             raise HandshakeError("Protocol name mismatch")
         self._message = ''
-        yield len(anomos_protocol_name) # protocol name -- 'Anomos'
-        if self._message != anomos_protocol_name:
+        yield len(protocol_name) # protocol name -- 'Anomos'
+        if self._message != protocol_name:
             raise HandshakeError("Protocol name mismatch")
         self._message = ''
         yield 1  # NID
@@ -78,7 +76,7 @@ class AnomosNeighborInitializer(object):
            example with id 255:
                 \x06Anomos\xff\x00\x00\x00\x00\x00\x00\x00
         """
-        hdr = chr(len(anomos_protocol_name)) + anomos_protocol_name + \
+        hdr = chr(len(protocol_name)) + protocol_name + \
                        self.protocol_extensions()
         self.socket.push(hdr)
     def connection_closed(self):

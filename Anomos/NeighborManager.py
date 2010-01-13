@@ -15,13 +15,14 @@
 
 # Written by John Schanck and Rich Jones
 
+import Anomos.Crypto
+
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
 from Anomos.P2PConnection import P2PConnection
 from Anomos.Protocol.TCReader import TCReader
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos.Measure import Measure
-from Anomos.crypto import CryptoError
 from Anomos import BTFailure, LOG as log
 
 class NeighborManager(object):
@@ -31,7 +32,7 @@ class NeighborManager(object):
     def __init__(self, config, certificate, sessionid, schedule, ratelimiter):
         self.config = config
         self.certificate = certificate
-        self.ssl_ctx = self.certificate.getContext(allow_unknown_ca=True)
+        self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=True)
         self.sessionid = sessionid
         self.schedule = schedule
         self.ratelimiter = ratelimiter
@@ -175,7 +176,7 @@ class NeighborManager(object):
         tcreader = TCReader(self.certificate)
         try:
             tcdata = tcreader.parseTC(tc)
-        except CryptoError, e:
+        except Anomos.Crypto.CryptoError, e:
             log.error("Decryption Error: %s" % str(e))
             return
         nid = tcdata.neighborID

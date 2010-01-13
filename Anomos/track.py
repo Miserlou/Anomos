@@ -25,6 +25,8 @@ from time import gmtime, strftime
 #from traceback import print_exc
 from urlparse import urlparse
 
+import Anomos.Crypto
+
 #from Anomos import version
 from Anomos.EventHandler import EventHandler
 from Anomos.HTTPS import HTTPSServer
@@ -33,7 +35,6 @@ from Anomos.NetworkModel import NetworkModel
 
 from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.btformats import statefiletemplate
-from Anomos.crypto import Certificate, initCrypto
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
 from Anomos.zurllib import quote, unquote_plus as unquote
@@ -444,7 +445,7 @@ class Tracker(object):
             simpeer.num_natcheck = 0
             simpeer.nat = True
         if simpeer.nat and simpeer.num_natcheck < self.natcheck:
-            NatCheck(self.certificate.getContext(), self.connectback_result, peerid, ip, port)
+            NatCheck(self.certificate.get_ctx(), self.connectback_result, peerid, ip, port)
         # Check that peer certificate matches
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
@@ -880,12 +881,12 @@ def track(args):
         print 'run with no arguments for parameter explanations'
         return
 
-    initCrypto(config['data_dir'])
-    servercert = Certificate("server", True, True)
+    Anomos.Crypto.init(config['data_dir'])
+    servercert = Anomos.Crypto.Certificate("server", True, True)
     e = EventHandler()
     t = Tracker(config, servercert, e)
     try:
-        s = HTTPSServer(config['bind'], config['port'], servercert.getContext(allow_unknown_ca=True), t.get)
+        s = HTTPSServer(config['bind'], config['port'], servercert.get_ctx(allow_unknown_ca=True), t.get)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:
