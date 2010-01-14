@@ -1495,7 +1495,7 @@ class TorrentBox(gtk.EventBox):
             self.cancelbutton.set_tooltip_text('Remove torrent')
         else:
             self.cancelimage.set_from_stock(gtk.STOCK_CANCEL, gtk.ICON_SIZE_BUTTON)
-            self.cancelbutton.set_tooltip_text('Abort torrent')
+            self.cancelbutton.set_tooltip_text('Cancel torrent')
             
         self.cancelbutton.add(self.cancelimage)
         self.cancelbutton.connect('clicked', self.confirm_remove)
@@ -1682,7 +1682,7 @@ class KnownTorrentBox(TorrentBox):
         self.menu_items = [('----', None),
                            #('Move to _start', self.move_to_start),
                            ('Re_start'  , self.move_to_end  ),
-                           ('_Remove' , self.confirm_remove),
+                           ('_Remove torrent' , self.confirm_remove),
                            ]
 
 
@@ -1748,9 +1748,9 @@ class QueuedTorrentBox(DroppableTorrentBox):
 
 
         if self.completion is not None and self.completion >= 1:
-            self.menu_items += [('_Remove', self.confirm_remove),]
+            self.menu_items += [('_Remove torrent', self.confirm_remove),]
         else:
-            self.menu_items += [('_Abort', self.confirm_remove),]
+            self.menu_items += [('_Cancel download', self.confirm_remove),]
             
         self.make_menu()
 
@@ -1779,11 +1779,11 @@ class PausedTorrentBox(DroppableTorrentBox):
         self.icon.set_from_stock(self.icon_name, gtk.ICON_SIZE_LARGE_TOOLBAR)
 
         
-        menu_items = [("_Abort"        , self.confirm_remove)] #[("Download _later", self.move_to_end   ),
+        menu_items = [("_Cancel download"        , self.confirm_remove)] #[("Download _later", self.move_to_end   ),
                       
 
         if self.completion >= 1:
-            menu_items = [("_Remove", self.confirm_remove)]
+            menu_items = [("_Remove torrent", self.confirm_remove)]
 
         self.menu_items = [("----", None), ] + menu_items
 
@@ -1879,10 +1879,10 @@ class RunningTorrentBox(DroppableTorrentBox):
 
     def make_menu(self):
 
-        menu_items = [("_Abort"  , self.confirm_remove)] #[("Download _later", self.move_to_end),
+        menu_items = [("_Cancel download"  , self.confirm_remove)] #[("Download _later", self.move_to_end),
 
         if self.completion >= 1:
-            menu_items = [("_Remove", self.confirm_remove)]
+            menu_items = [("_Remove torrent", self.confirm_remove)]
                           
 
         self.menu_items = [('----'        , None),
