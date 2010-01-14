@@ -23,7 +23,7 @@ class PeerCert:
     def __init__(self, certObj):
         self.hash_alg = 'sha256'
         self.fingerprint = certObj.get_fingerprint(self.hash_alg)
-        self.pubkey = X509.load_cert_string(certObj.as_pem()).get_pubkey().get_rsa()
+        self.pubkey = certObj.get_pubkey().get_rsa()
 
     def cmp(self, certObj):
         return self.fingerprint == certObj.get_fingerprint(self.hash_alg)
