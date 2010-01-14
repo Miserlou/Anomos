@@ -214,7 +214,6 @@ class Rerequester(object):
             return
         try:
             if self.proxy_url:
-                #This is the old, HTTP Proxy stuff. May be worth implementing both but I'm not sure.
                 h = ProxyHTTPSConnection(self.proxy_url, \
                                          username=self.proxy_username, \
                                          password=self.proxy_password, \
