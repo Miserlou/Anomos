@@ -2514,6 +2514,9 @@ class DownloadInfoFrame(object):
         self.playItem.connect('activate', self.startbutton.toggle)
         self.menu.append(self.playItem)
 
+        self.spacer = gtk.MenuItem(None)
+        self.menu.append(self.spacer)
+
         self.menuItem = gtk.ImageMenuItem(gtk.STOCK_QUIT) 
         self.menuItem.connect('activate', self.ask_quit, self.statusIcon) 
         self.menu.append(self.menuItem) 
