@@ -1554,7 +1554,7 @@ class TorrentBox(gtk.EventBox):
         if self.is_batch:
             filelistfunc = self.open_filelist
 
-        menu_items = [("Torrent _info", self.open_info),]
+        menu_items = [("Torrent _info", self.open_info),('----', None),]
 
         if OpenPath.can_open_files:
             func = None
@@ -1562,8 +1562,7 @@ class TorrentBox(gtk.EventBox):
                 func = self.open_dir
             menu_items += [('_Open directory', func), ]
 
-        menu_items += [('----', None),
-                       ("_File list"  , filelistfunc),]
+        menu_items += [("_File list"  , filelistfunc),]
 
         self.menu = build_menu(menu_items+self.menu_items)
                 
