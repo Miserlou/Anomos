@@ -180,14 +180,13 @@ class Tracker(object):
         #self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
         #self.cached_t = {}  # format: infohash: [time, cache]
         #self.times = {}
-        self.state = {}
         #self.seedcount = {}
 
         self.certificate = certificate
         self.natcheck_ctx = certificate.get_ctx()
 
         self.networkmodel = NetworkModel(config)
-    
+
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
             self.only_local_override_ip = not config['nat_check']
@@ -195,53 +194,18 @@ class Tracker(object):
         self.reannounce_interval = config['reannounce_interval']
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
         self.event_handler.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
-        self.logfile = None
-        self.log = None
-        #TODO: Switch to logging module
-        if (config['logfile'] != '') and (config['logfile'] != '-'):
-            try:
-                self.logfile = config['logfile']
-                self.log = open(self.logfile,'a')
-                sys.stdout = self.log
-                print "# Log Started: ", isotime()
-            except Exception, e:
-                print "**warning** could not redirect stdout to log file: ", sys.exc_info()[0]
-                print 'Exception: ' + str(e)
-
-        if config['hupmonitor']:
-            def huphandler(signum, frame, self = self):
-                try:
-                    self.log.close ()
-                    self.log = open(self.logfile,'a')
-                    sys.stdout = self.log
-                    print "# Log reopened: ", isotime()
-                except Exception, e:
-                    print "**warning** could not reopen logfile"
-                    print 'Exception: ' + str(e)
-
-            signal.signal(signal.SIGHUP, huphandler)
 
         self.parse_dir_interval = config['parse_dir_interval']
         self.parse_blocked()
 
         self.allow_get = config['allow_get']
 
+        self.allowed = {}
         if config['allowed_dir'] != '':
             self.allowed_dir = config['allowed_dir']
-            self.allowed = self.state.setdefault('allowed',{})
-            self.allowed_dir_files = self.state.setdefault('allowed_dir_files',{})
+            self.allowed_dir_files = {}
             self.allowed_dir_blocked = {}
             self.parse_allowed()
-        else:
-            try:
-                del self.state['allowed']
-            except:
-                pass
-            try:
-                del self.state['allowed_dir_files']
-            except:
-                pass
-            self.allowed = None
 
         self.keep_dead = config['keep_dead']
 
@@ -396,7 +360,7 @@ class Tracker(object):
 
     def check_allowed(self, infohash, paramslist):
         params = params_factory(paramslist)
-        if self.allowed is not None:
+        if self.allowed:
             if not self.allowed.has_key(infohash):
                 return (200, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
@@ -432,7 +396,7 @@ class Tracker(object):
         if simpeer and params('event') == 'started':
             # Peer most likely disconnected without reannouncing.
             # TODO: limit the number of times we allow this to happen
-            self.networkmodel.disconnect(simpeer.name)
+            self.networkmodel.disconnect(peerid)
             simpeer = None
         if not simpeer: # Tracker hasn't seen this peer before
             skey = params('sessionid')
@@ -456,7 +420,7 @@ class Tracker(object):
         else:
             needs = simpeer.numNeeded()
             if needs:
-                self.networkmodel.randConnect(simpeer.name, needs)
+                self.networkmodel.randConnect(peerid, needs)
         return simpeer
 
 ## Deprecated
@@ -825,9 +789,6 @@ class Tracker(object):
         #    self.downloads.setdefault(infohash, {})
         #    self.completed.setdefault(infohash, 0)
         #    self.seedcount.setdefault(infohash, 0)
-
-        self.state['allowed'] = self.allowed
-        self.state['allowed_dir_files'] = self.allowed_dir_files
 
     def parse_blocked(self):
         self.event_handler.schedule(self.parse_dir_interval, self.parse_blocked)
