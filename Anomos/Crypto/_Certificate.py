@@ -1,3 +1,16 @@
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import hashlib
 import os
 import sys
@@ -48,10 +61,10 @@ class Certificate:
     def __init__(self, loc=None, secure=False, tracker=False):
         self.secure = secure
         self.tracker = tracker
+        self.stored_pass_cb = None
         if None in (global_cryptodir, global_randfile):
             raise CryptoError('Crypto not initialized, call initCrypto first')
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
-        self.ikeyfile = os.path.join(global_cryptodir, '%s-key-insecure.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
         self._load()
 
@@ -63,28 +76,46 @@ class Certificate:
             if self.tracker:
                 from socket import gethostname
                 hostname = gethostname()
-                tmpname = raw_input("Please enter the tracker's hostname "\
+                tmpname = raw_input("Please enter the tracker's hostname " \
                         "for the SSL certificate (default: %s): " % hostname)
                 if tmpname.strip(" "):
                     hostname = tmpname
             self._create(hostname=hostname)
             return
-        if self.secure:
+        if not self.secure:
+            self.rsakey = RSA.load_key(self.keyfile, m2util.no_passphrase_callback)
+        else:
             # Allow 3 attempts before quitting
             i = 0
             while i < 3:
                 try:
-                    self.rsakey = RSA.load_key(self.keyfile)
+                    self.rsakey = RSA.load_key(self.keyfile, self.passphrase_callback)
                     break
                 except RSA.RSAError:
                     i += 1
             else:
                 log.warning("\nInvalid password entered, exiting.")
                 sys.exit()
-        else:
-            self.rsakey = RSA.load_key(self.keyfile, m2util.no_passphrase_callback)
-        self.rsakey.save_key(self.ikeyfile, None)
         self.cert = X509.load_cert(self.certfile)
+
+    def passphrase_callback(self, v, prompt1='Enter passphrase:', 
+                                     prompt2='Verify passphrase:'):
+        from getpass import getpass
+        while 1:
+            try:
+                p1=getpass(prompt1)
+                if v:
+                    p2=getpass(prompt2)
+                    if p1==p2:
+                        break
+                else:
+                    break
+            except KeyboardInterrupt:
+                return None
+        def new_pcb(v):
+            return p1
+        self.stored_pass_cb = new_pcb
+        return p1
 
     @Anomos.Crypto.use_rand_file
     def _create(self, hostname='localhost'):
@@ -96,7 +127,6 @@ class Certificate:
         else:
             # Save the key unencrypted.
             self.rsakey.save_key(self.keyfile, None, callback=m2util.no_passphrase_callback)
-        self.rsakey.save_key(self.ikeyfile, None, callback=m2util.no_passphrase_callback)
         # Make the public key
         pkey = EVP.PKey()
         pkey.assign_rsa(self.rsakey, 0)
@@ -126,7 +156,10 @@ class Certificate:
         if ctx.load_verify_locations(cafile=cloc) != 1:
             log.error("Problem loading CA certificates")
             raise Exception('CA certificates not loaded')
-        ctx.load_cert(self.certfile, keyfile=self.ikeyfile)
+        if self.stored_pass_cb is not None:
+            ctx.load_cert(self.certfile, keyfile=self.keyfile, callback=self.stored_pass_cb)
+        else:
+            ctx.load_cert(self.certfile, keyfile=self.keyfile)
         cb = mk_verify_cb(allow_unknown_ca=allow_unknown_ca)
         ctx.set_verify(CTX_V_FLAGS,3,cb)
         return ctx
