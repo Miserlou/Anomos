@@ -159,7 +159,6 @@ class Certificate:
         if req_peer_cert:
             CTX_V_FLAGS |= SSL.verify_fail_if_no_peer_cert
         ctx.set_verify(CTX_V_FLAGS,3,cb)
-        ctx.set_info_callback()
         if session:
             ctx.set_session_id_ctx(session)
         return ctx
