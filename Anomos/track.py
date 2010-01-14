@@ -183,7 +183,7 @@ class Tracker(object):
         #self.seedcount = {}
 
         self.certificate = certificate
-        self.natcheck_ctx = certificate.get_ctx()
+        self.natcheck_ctx = certificate.get_ctx(session="natcheck")
 
         self.networkmodel = NetworkModel(config)
 
@@ -681,11 +681,18 @@ class Tracker(object):
         if nip and not self.only_local_override_ip:
             ip = nip
 
-        # Handle non-announce connections. ie: Tracker scrapes, favicon
-        # requests, .atorrent file requests
-        hbc = self.handleBrowserConnections(path)
-        if hbc:
-            return hbc
+
+        if path != 'announce':
+            # Handle non-announce connections. ie: Tracker scrapes, favicon
+            # requests, .atorrent file requests
+            return self.handle_browser_connections(path)
+        else:
+            # From this point on we can assume this is an announce. So first
+            # we need to get the client's certificate.
+            peercert = handler.get_peer_cert()
+            if peercert is None:
+                return (400, 'Bad Request', {'Content-Type': 'text/plain'},
+                        'Error: client attempted to announce without a certificate')
 
         # Validate the GET request
         try:
@@ -695,7 +702,7 @@ class Tracker(object):
                 'you sent me garbage - ' + str(e))
 
         # Update Tracker's information about the peer
-        simpeer = self.update_simpeer(paramslist, ip, handler.get_peer_cert())
+        simpeer = self.update_simpeer(paramslist, ip, peercert)
         if simpeer is None:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                 'Peer authentication failed')
@@ -719,18 +726,19 @@ class Tracker(object):
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma':\
                             'no-cache'}, bencode(data))
 
-    def handleBrowserConnections(self, path):
+    def handle_browser_connections(self, path):
         if path == '' or path == 'index.html':
-            return self.get_infopage()
+            #return self.get_infopage()
+            return (200, 'OK', {'Content-Type' : 'text/plain'}, "index.html is not yet implemented")
         if path == 'scrape':
-            return self.get_scrape(paramslist)
+            #return self.get_scrape(paramslist)
+            return (200, 'OK', {'Content-Type' : 'text/plain'}, "scrape is not yet implemented")
         if (path == 'file'):
-            return self.get_file(params('info_hash'))
+            #return self.get_file(params('info_hash'))
+            return (200, 'OK', {'Content-Type' : 'text/plain'}, "get file is not yet implemented")
         if path == 'favicon.ico' and self.favicon is not None:
             return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
-        if path != 'announce':
-            return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
-        return None
+        return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
 
     def parseQuery(self, query):
         """
@@ -849,7 +857,10 @@ def track(args):
     e = EventHandler()
     t = Tracker(config, servercert, e)
     try:
-        s = HTTPSServer(config['bind'], config['port'], servercert.get_ctx(allow_unknown_ca=True), t.get)
+        ctx = servercert.get_ctx(allow_unknown_ca=True,
+                                 req_peer_cert=False,
+                                 session="tracker")
+        s = HTTPSServer(config['bind'], config['port'], ctx, t.get)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:
