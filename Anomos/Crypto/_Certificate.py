@@ -1,8 +1,9 @@
 import hashlib
 import os
+import sys
 import Anomos.Crypto
 
-from Anomos import bttime
+from Anomos import bttime, LOG as log
 from Anomos.Protocol import toint
 from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath
 from M2Crypto import m2, RSA, EVP, X509, SSL, util as m2util
@@ -78,7 +79,7 @@ class Certificate:
                 except RSA.RSAError:
                     i += 1
             else:
-                log.warning("Invalid password entered, exiting.")
+                log.warning("\nInvalid password entered, exiting.")
                 sys.exit()
         else:
             self.rsakey = RSA.load_key(self.keyfile, m2util.no_passphrase_callback)
