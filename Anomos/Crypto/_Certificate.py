@@ -98,24 +98,17 @@ class Certificate:
                 sys.exit()
         self.cert = X509.load_cert(self.certfile)
 
-    def passphrase_callback(self, v, prompt1='Enter passphrase:', 
-                                     prompt2='Verify passphrase:'):
+    def passphrase_callback(self, v, prompt1='Enter passphrase:'):
         from getpass import getpass
-        while 1:
-            try:
-                p1=getpass(prompt1)
-                if v:
-                    p2=getpass(prompt2)
-                    if p1==p2:
-                        break
-                else:
-                    break
-            except KeyboardInterrupt:
-                return None
-        def new_pcb(v):
+        try:
+            p1=getpass(prompt1)
+        except KeyboardInterrupt:
+            return None
+        else:
+            def new_pcb(v):
+                return p1
+            self.stored_pass_cb = new_pcb
             return p1
-        self.stored_pass_cb = new_pcb
-        return p1
 
     @Anomos.Crypto.use_rand_file
     def _create(self, hostname='localhost'):
