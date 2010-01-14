@@ -184,6 +184,8 @@ class Tracker(object):
         #self.seedcount = {}
 
         self.certificate = certificate
+        self.natcheck_ctx = certificate.get_ctx()
+
         self.networkmodel = NetworkModel(config)
     
         self.only_local_override_ip = config['only_local_override_ip']
@@ -445,7 +447,7 @@ class Tracker(object):
             simpeer.num_natcheck = 0
             simpeer.nat = True
         if simpeer.nat and simpeer.num_natcheck < self.natcheck:
-            NatCheck(self.certificate.get_ctx(), self.connectback_result, peerid, ip, port)
+            NatCheck(self.natcheck_ctx, self.connectback_result, peerid, ip, port)
         # Check that peer certificate matches
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
