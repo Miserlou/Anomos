@@ -95,13 +95,9 @@ def ensure_minimum_config():
     app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
     configdir = get_config_dir()
     if not os.path.isdir(configdir):
-        try:
-            os.mkdir(configdir, 0700)
-            self.copy_config_skel(configdir)
-            shutil.copytree(os.path.join(app_root, 'default_config'), configdir)
-        except:
-            pass
+        shutil.copytree(os.path.join(app_root, 'default_config'), configdir)
     else:
+        #TODO: Versioning of the default configs
         default_configs = os.path.join(app_root, 'default_config')
         if not os.path.exists(os.path.join(configdir, 'config')):
             shutil.copy(os.path.join(default_configs, 'config'), configdir)
@@ -111,7 +107,6 @@ def ensure_minimum_config():
 ensure_minimum_config()
 
 import logging.config
-##XXX: there is a bug here which happens the first time the program is run
 logging.config.fileConfig(os.path.join(get_config_dir(), 'logging.conf'))
 LOG = logging.getLogger()
 if sys.platform == 'win32':
