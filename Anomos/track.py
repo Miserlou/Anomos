@@ -388,7 +388,7 @@ class Tracker(object):
         params = params_factory(paramslist)
         peerid = peercert.get_fingerprint('sha256')[-20:]
         simpeer = self.networkmodel.get(peerid)
-        if params('ip') != ip: # Substitute in client-specified IP
+        if params('ip') is not None and params('ip') != ip: # Substitute in client-specified IP
             ip = params('ip')  # Client cert is rechecked during NatCheck
                                # to prevent abuse.
         port = int(params('port'))
