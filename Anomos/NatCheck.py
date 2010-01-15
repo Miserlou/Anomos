@@ -29,7 +29,7 @@ class NatCheck(object):
 
         self.socket = P2PConnection(addr=(ip,port), ssl_ctx=ssl_ctx)
 
-        peercert = handler.get_peer_cert()
+        peercert = self.socket.get_peer_cert()
         recvd_pid = peercert.get_fingerprint('sha256')[-20:]
         if peerid != recvd_pid:
             # The certificate we received doesn't match the one
