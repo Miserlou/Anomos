@@ -388,10 +388,9 @@ class Tracker(object):
         params = params_factory(paramslist)
         peerid = peercert.get_fingerprint('sha256')[-20:]
         simpeer = self.networkmodel.get(peerid)
-        #XXX: quasi-dangerous hack, allows anyone on localhost to specify
-        #     any IP address they want.
-        if params('ip') != ip and ip == '127.0.0.1':
-            ip = params('ip', '127.0.0.1')
+        if params('ip') != ip: # Substitute in client-specified IP
+            ip = params('ip')  # Client cert is rechecked during NatCheck
+                               # to prevent abuse.
         port = int(params('port'))
         if simpeer and params('event') == 'started':
             # Peer most likely disconnected without reannouncing.

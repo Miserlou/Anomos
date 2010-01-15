@@ -28,7 +28,16 @@ class NatCheck(object):
         self.id = chr(255)
 
         self.socket = P2PConnection(addr=(ip,port), ssl_ctx=ssl_ctx)
-        self.socket.set_post_connection_check_callback(lambda x,y: x != None)
+
+        peercert = handler.get_peer_cert()
+        recvd_pid = peercert.get_fingerprint('sha256')[-20:]
+        if peerid != recvd_pid:
+            # The certificate we received doesn't match the one
+            # given to the tracker.
+            # XXX: Should probably disconnect the peer rather than
+            # just saying the NatCheck failed.
+            log.warning("Peer certificate mismatch")
+            answer(False)
 
         AnomosNeighborInitializer(self, self.socket, self.id)
 
