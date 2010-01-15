@@ -22,7 +22,6 @@ from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath
 from M2Crypto import m2, RSA, EVP, X509, SSL, util as m2util
 
 ## X509 Verification Callbacks ##
-CTX_V_FLAGS = SSL.verify_peer | SSL.verify_fail_if_no_peer_cert
 
 SELF_SIGNED_ERR = [
     m2.X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT,
@@ -105,9 +104,9 @@ class Certificate:
         except KeyboardInterrupt:
             return None
         else:
-            def new_pcb(v):
-                return p1
-            self.stored_pass_cb = new_pcb
+            # Grab the passphrase and make it available through an anonymous callback.
+            # This way it's in memory and we don't have to prompt again.
+            self.stored_pass_cb = lambda v: p1
             return p1
 
     @Anomos.Crypto.use_rand_file
@@ -133,7 +132,7 @@ class Certificate:
         name.CN = hostname
         self.cert.set_subject(name)
         self.cert.set_issuer(name)
-        # Set the period of time the cert is valid for (1 year from issue)
+        # Set the period of time the cert is valid for (5 years from issue)
         notBefore = m2.x509_get_not_before(self.cert.x509)
         notAfter = m2.x509_get_not_after(self.cert.x509)
         m2.x509_gmtime_adj(notBefore, 0)
@@ -143,18 +142,25 @@ class Certificate:
         # Save it
         self.cert.save_pem(self.certfile)
 
-    def get_ctx(self, allow_unknown_ca=False):
+    def get_ctx(self, allow_unknown_ca=False, req_peer_cert=True, session=None):
         cloc = os.path.join(global_certpath, 'cacert.root.pem')
-        ctx = SSL.Context("tlsv1") # Defaults to SSLv23
+        ctx = SSL.Context("sslv23") # Defaults to SSLv23
         if ctx.load_verify_locations(cafile=cloc) != 1:
             log.error("Problem loading CA certificates")
             raise Exception('CA certificates not loaded')
         if self.stored_pass_cb is not None:
+            # Load the certificate using the passphrase stored in stored_pass_cb
             ctx.load_cert(self.certfile, keyfile=self.keyfile, callback=self.stored_pass_cb)
         else:
+            # Load the certificate, prompting the user for their password
             ctx.load_cert(self.certfile, keyfile=self.keyfile)
         cb = mk_verify_cb(allow_unknown_ca=allow_unknown_ca)
+        CTX_V_FLAGS = SSL.verify_peer
+        if req_peer_cert:
+            CTX_V_FLAGS |= SSL.verify_fail_if_no_peer_cert
         ctx.set_verify(CTX_V_FLAGS,3,cb)
+        if session:
+            ctx.set_session_id_ctx(session)
         return ctx
 
     def get_pub(self):

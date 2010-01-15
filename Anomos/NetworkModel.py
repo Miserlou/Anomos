@@ -133,7 +133,7 @@ class SimPeer:
         return self.infohashes.has_key(infohash)
 
     def isSeeding(self, infohash):
-        return self.isSharing(infohash) and self.infohashes[infohash][1] == 0
+        return self.infohashes.get(infohash, (None,None))[1] == 0
 
     def __str__(self):
         return self.name
@@ -163,9 +163,7 @@ class NetworkModel:
                     not self.names[i].isSeeding(infohash))
 
     def getSeedingPeers(self, infohash):
-        return set(i for i in self.names \
-                if self.names[i].isSharing(infohash) and \
-                    self.names[i].isSeeding(infohash))
+        return set(i for i in self.names if self.names[i].isSeeding(infohash))
 
     def initPeer(self, peerid, pubkey, ip, port, sid, num_neighbors=4):
         """

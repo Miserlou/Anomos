@@ -180,12 +180,13 @@ class Tracker(object):
         #self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
         #self.cached_t = {}  # format: infohash: [time, cache]
         #self.times = {}
-        self.state = {}
         #self.seedcount = {}
 
         self.certificate = certificate
+        self.natcheck_ctx = certificate.get_ctx(session="natcheck")
+
         self.networkmodel = NetworkModel(config)
-    
+
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
             self.only_local_override_ip = not config['nat_check']
@@ -193,53 +194,18 @@ class Tracker(object):
         self.reannounce_interval = config['reannounce_interval']
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
         self.event_handler.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
-        self.logfile = None
-        self.log = None
-        #TODO: Switch to logging module
-        if (config['logfile'] != '') and (config['logfile'] != '-'):
-            try:
-                self.logfile = config['logfile']
-                self.log = open(self.logfile,'a')
-                sys.stdout = self.log
-                print "# Log Started: ", isotime()
-            except Exception, e:
-                print "**warning** could not redirect stdout to log file: ", sys.exc_info()[0]
-                print 'Exception: ' + str(e)
-
-        if config['hupmonitor']:
-            def huphandler(signum, frame, self = self):
-                try:
-                    self.log.close ()
-                    self.log = open(self.logfile,'a')
-                    sys.stdout = self.log
-                    print "# Log reopened: ", isotime()
-                except Exception, e:
-                    print "**warning** could not reopen logfile"
-                    print 'Exception: ' + str(e)
-
-            signal.signal(signal.SIGHUP, huphandler)
 
         self.parse_dir_interval = config['parse_dir_interval']
         self.parse_blocked()
 
         self.allow_get = config['allow_get']
 
+        self.allowed = {}
         if config['allowed_dir'] != '':
             self.allowed_dir = config['allowed_dir']
-            self.allowed = self.state.setdefault('allowed',{})
-            self.allowed_dir_files = self.state.setdefault('allowed_dir_files',{})
+            self.allowed_dir_files = {}
             self.allowed_dir_blocked = {}
             self.parse_allowed()
-        else:
-            try:
-                del self.state['allowed']
-            except:
-                pass
-            try:
-                del self.state['allowed_dir_files']
-            except:
-                pass
-            self.allowed = None
 
         self.keep_dead = config['keep_dead']
 
@@ -394,7 +360,7 @@ class Tracker(object):
 
     def check_allowed(self, infohash, paramslist):
         params = params_factory(paramslist)
-        if self.allowed is not None:
+        if self.allowed:
             if not self.allowed.has_key(infohash):
                 return (200, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
@@ -430,7 +396,7 @@ class Tracker(object):
         if simpeer and params('event') == 'started':
             # Peer most likely disconnected without reannouncing.
             # TODO: limit the number of times we allow this to happen
-            self.networkmodel.disconnect(simpeer.name)
+            self.networkmodel.disconnect(peerid)
             simpeer = None
         if not simpeer: # Tracker hasn't seen this peer before
             skey = params('sessionid')
@@ -445,7 +411,7 @@ class Tracker(object):
             simpeer.num_natcheck = 0
             simpeer.nat = True
         if simpeer.nat and simpeer.num_natcheck < self.natcheck:
-            NatCheck(self.certificate.get_ctx(), self.connectback_result, peerid, ip, port)
+            NatCheck(self.natcheck_ctx, self.connectback_result, peerid, ip, port)
         # Check that peer certificate matches
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
@@ -454,7 +420,7 @@ class Tracker(object):
         else:
             needs = simpeer.numNeeded()
             if needs:
-                self.networkmodel.randConnect(simpeer.name, needs)
+                self.networkmodel.randConnect(peerid, needs)
         return simpeer
 
 ## Deprecated
@@ -715,11 +681,18 @@ class Tracker(object):
         if nip and not self.only_local_override_ip:
             ip = nip
 
-        # Handle non-announce connections. ie: Tracker scrapes, favicon
-        # requests, .atorrent file requests
-        hbc = self.handleBrowserConnections(path)
-        if hbc:
-            return hbc
+
+        if path != 'announce':
+            # Handle non-announce connections. ie: Tracker scrapes, favicon
+            # requests, .atorrent file requests
+            return self.handle_browser_connections(path)
+        else:
+            # From this point on we can assume this is an announce. So first
+            # we need to get the client's certificate.
+            peercert = handler.get_peer_cert()
+            if peercert is None:
+                return (400, 'Bad Request', {'Content-Type': 'text/plain'},
+                        'Error: client attempted to announce without a certificate')
 
         # Validate the GET request
         try:
@@ -729,7 +702,7 @@ class Tracker(object):
                 'you sent me garbage - ' + str(e))
 
         # Update Tracker's information about the peer
-        simpeer = self.update_simpeer(paramslist, ip, handler.get_peer_cert())
+        simpeer = self.update_simpeer(paramslist, ip, peercert)
         if simpeer is None:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                 'Peer authentication failed')
@@ -753,18 +726,19 @@ class Tracker(object):
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma':\
                             'no-cache'}, bencode(data))
 
-    def handleBrowserConnections(self, path):
+    def handle_browser_connections(self, path):
         if path == '' or path == 'index.html':
-            return self.get_infopage()
+            #return self.get_infopage()
+            return (200, 'OK', {'Content-Type' : 'text/plain'}, "index.html is not yet implemented")
         if path == 'scrape':
-            return self.get_scrape(paramslist)
+            #return self.get_scrape(paramslist)
+            return (200, 'OK', {'Content-Type' : 'text/plain'}, "scrape is not yet implemented")
         if (path == 'file'):
-            return self.get_file(params('info_hash'))
+            #return self.get_file(params('info_hash'))
+            return (200, 'OK', {'Content-Type' : 'text/plain'}, "get file is not yet implemented")
         if path == 'favicon.ico' and self.favicon is not None:
             return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
-        if path != 'announce':
-            return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
-        return None
+        return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
 
     def parseQuery(self, query):
         """
@@ -823,9 +797,6 @@ class Tracker(object):
         #    self.downloads.setdefault(infohash, {})
         #    self.completed.setdefault(infohash, 0)
         #    self.seedcount.setdefault(infohash, 0)
-
-        self.state['allowed'] = self.allowed
-        self.state['allowed_dir_files'] = self.allowed_dir_files
 
     def parse_blocked(self):
         self.event_handler.schedule(self.parse_dir_interval, self.parse_blocked)
@@ -886,7 +857,10 @@ def track(args):
     e = EventHandler()
     t = Tracker(config, servercert, e)
     try:
-        s = HTTPSServer(config['bind'], config['port'], servercert.get_ctx(allow_unknown_ca=True), t.get)
+        ctx = servercert.get_ctx(allow_unknown_ca=True,
+                                 req_peer_cert=False,
+                                 session="tracker")
+        s = HTTPSServer(config['bind'], config['port'], ctx, t.get)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:

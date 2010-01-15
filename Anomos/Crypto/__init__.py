@@ -45,7 +45,7 @@ def get_rand(*args):
     raise CryptoError("RNG not initialized")
 
 def use_rand_file(function):
-    """Decorator to ease use of randfile which must
+    """Decorator to ease use of a randfile which must
        be opened before crypto operations and closed
        afterwards"""
     def retfun(*args, **kwargs):
@@ -82,7 +82,7 @@ def init(data_dir):
     if not os.path.exists(global_certpath):
         # TODO: make sure this method of getting app_root works on all
         # platforms and configurations
-        app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
+        from Anomos import app_root
         shutil.copytree(os.path.join(app_root, 'default_certificates'), global_certpath)
     # Initialize randfile #
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
@@ -99,3 +99,5 @@ def init(data_dir):
     AESKey = _AESKey.AESKey
     Certificate = _Certificate.Certificate
     PeerCert = _PeerCert.PeerCert
+
+
