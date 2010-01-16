@@ -8,8 +8,7 @@ TODO for .9:
     4) Solid round of bugtesting
     5) Check all uses of sys.platform. Might explain cygwin problems
             http://docs.python.org/library/sys.html#sys.platform
-    6) Update installation instructions, READMEs, etc
-    7) Dedicated seeders for the first few days
+    6) Dedicated seeders for the first few days
             
 TODO for 1.0:
     0)  Dedicated tracker server. No other services, just hidden, key-authed SSH and tracker.anomos.info.
