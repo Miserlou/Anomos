@@ -8,13 +8,14 @@ TODO for .9:
     4) Solid round of bugtesting
     5) Check all uses of sys.platform. Might explain cygwin problems
             http://docs.python.org/library/sys.html#sys.platform
-
-    Also:
-        Have some seeds on something we share! Dedicated seedbox!
-        Better minion collections: Forum? WebIRC? Street Team?
-        General: Update installation instructions, things like BUILD.windows.txt
-        Client: Finish BitTorrent support -- is this still worth doing?
-        Windows, Debian package (Niko?), OSX Build (Joao)
-	Hardening:	Move tracker.anomos.info to its own server
-			shore/iptables rules
-			blocklist	
+    6) Update installation instructions, READMEs, etc
+    7) Dedicated seeders for the first few days
+            
+TODO for 1.0:
+    0)  Dedicated tracker server. No other services, just hidden, key-authed SSH and tracker.anomos.info.
+        This also means an established set of firewall rules and a good blocklist.
+    1)  Multiple trackers/torrent. I don't know how difficult this will be yet - hopefully not too bad.
+    [2:k-1]) Fix all of the bugs from .9.*
+    k)   Debian package. Find a Deb/Ubu maintainer.
+    k+1) Advertising. Bram used porn - I'm thinking this might actually be the way to go. 
+        Also, Stickers/Street team? Maybe we can trade stickers/merch for donations.
