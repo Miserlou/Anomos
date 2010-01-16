@@ -136,8 +136,8 @@ class HTTPSConnection(asynchat.async_chat):
         try:
             self.initiate_send()
         except SSL.SSLError, err:
-            if "unexpected eof" not in errstr:
-                self.handle_error()
+            log.error(err)
+            self.handle_error()
 
     def handle_read(self):
         try:
