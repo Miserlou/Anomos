@@ -24,6 +24,7 @@ import sys
 from time import gmtime, strftime
 #from traceback import print_exc
 from urlparse import urlparse
+from cgi import parse_qs
 
 import Anomos.Crypto
 
@@ -643,7 +644,7 @@ class Tracker(object):
         NOTE: MUST be called on input before it is passed to
               other methods.
         @param paramslist: get request from client which has
-                           been passed through parseQuery
+                           been passed through cgi.parse_qs
         """
         params = params_factory(paramslist)
         infohash = params('info_hash')
@@ -673,7 +674,11 @@ class Tracker(object):
         (scheme, netloc, path, pars, query, fragment) = urlparse(path)
         # unquote and strip leading / from path
         path = unquote(path).lstrip("/")
-        paramslist.update(self.parseQuery(query))
+        pqs = parse_qs(query)
+        # parse_qs returns key/vals in the form {key0:[val0],...}
+        # this converts them to {key0:val0,...}
+        pqs = dict(zip(pqs.keys(), [q[0] for q in pqs.values()]))
+        paramslist.update(pqs)
 
         ip = handler.addr[0]
         nip = get_forwarded_ip(headers)
@@ -738,20 +743,6 @@ class Tracker(object):
         if path == 'favicon.ico' and self.favicon is not None:
             return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
         return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
-
-    def parseQuery(self, query):
-        """
-        @param query: has form "?p1=v1&p2=v2&...&pn=vn"
-        @returns: {p1:v1, p2:v2, ..., pn:vn}
-        """
-        query = query.lstrip('?') # Strip leading '?'
-        params = {} # Dictionary of param:value pairs to be returned
-        for s in query.split('&'): #params are &-delimited
-            if s == '':
-                continue
-            key,val = unquote(s).split('=', 1)
-            params[key] = val
-        return params
 
     #def natcheckOK(self, infohash, peerid, ip, port, not_seed):
     #    bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
