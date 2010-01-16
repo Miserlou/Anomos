@@ -1,9 +1,13 @@
 TODO for .9:
-    1) Finish Protocol Specification!: Path Generation, Hybrid Encryption
-    2) Throw TCode generation into its own thread, or have a unique thread
+    0) Non-blocking SSL connect!
+    1) Checking tracker certs against stored certificates in addition
+       to checking CA
+    2) Tracker parse query fuzzing defense
+    3) Finish Protocol Specification!: Path Generation, Hybrid Encryption
+    4) Throw TCode generation into its own thread, or have a unique thread
         for each request (Much harder!)
-    3) Solid round of bugtesting
-    4) Check all uses of sys.platform. Might explain cygwin problems
+    5) Solid round of bugtesting
+    6) Check all uses of sys.platform. Might explain cygwin problems
             http://docs.python.org/library/sys.html#sys.platform
 
     Also:
