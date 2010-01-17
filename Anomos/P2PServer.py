@@ -69,10 +69,19 @@ class P2PServer(SSL.ssl_dispatcher):
         pass
 
     def handle_error(self):
-        #if self.bound:
-        log.critical('\n'+traceback.format_exc())
-        self.close()
+        if self.bound:
+            log.critical('\n'+traceback.format_exc())
+            self.clear()
 
     def handle_expt(self):
-        log.critical('\n'+traceback.format_exc())
-        self.close()
+        if self.bound:
+            log.critical('\n'+traceback.format_exc())
+            self.clear()
+
+    def close(self):
+        self.del_channel()
+        self.socket.close()
+
+    def clear(self):
+        self.del_channel()
+        self.socket.clear()

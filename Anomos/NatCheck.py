@@ -13,6 +13,8 @@
 
 # Written by John Schanck
 
+import threading
+
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.P2PConnection import P2PConnection
 
@@ -20,26 +22,33 @@ from Anomos import LOG as log
 
 class NatCheck(object):
 
-    def __init__(self, ssl_ctx, resultfunc, peerid, ip, port):
+    def __init__(self, ssl_ctx, resultfunc, schedule, peerid, ip, port):
         self.resultfunc = resultfunc
         self.peerid = peerid
         self.ip = ip
         self.port = port
         self.id = chr(255)
 
-        self.socket = P2PConnection(addr=(ip,port), ssl_ctx=ssl_ctx)
+        self.socket = P2PConnection(addr=(ip,port),
+                                    ssl_ctx=ssl_ctx,
+                                    connect_cb=self.socket_cb,
+                                    schedule=schedule)
 
-        peercert = self.socket.get_peer_cert()
-        recvd_pid = peercert.get_fingerprint('sha256')[-20:]
-        if peerid != recvd_pid:
-            # The certificate we received doesn't match the one
-            # given to the tracker.
-            # XXX: Should probably disconnect the peer rather than
-            # just saying the NatCheck failed.
-            log.warning("Peer certificate mismatch")
-            answer(False)
+    def socket_cb(self, sock):
+        if sock.connected:
+            peercert = self.socket.get_peer_cert()
+            recvd_pid = peercert.get_fingerprint('sha256')[-20:]
+            if self.peerid != recvd_pid:
+                # The certificate we received doesn't match the one
+                # given to the tracker.
+                # XXX: Should probably disconnect the peer rather than
+                # just saying the NatCheck failed.
+                log.warning("Peer certificate mismatch")
+                answer(False)
 
-        AnomosNeighborInitializer(self, self.socket, self.id)
+            AnomosNeighborInitializer(self, self.socket, self.id)
+        else:
+            self.answer(False)
 
     def initializer_failed(self, *args):
         self.answer(False)

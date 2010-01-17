@@ -17,35 +17,33 @@
 
 import asynchat
 import sys
+import threading
 import traceback
 
 from Anomos import LOG as log
 from M2Crypto import SSL
 
 class P2PConnection(asynchat.async_chat):
-    def __init__(self, socket=None, addr=None, ssl_ctx=None):
-        if socket:
-            # Remotely initiated connection
-            asynchat.async_chat.__init__(self, socket)
-        elif addr and (ssl_ctx is not None):
-            # Locally initiated connection
-            sslsock = SSL.Connection(ssl_ctx)
-            asynchat.async_chat.__init__(self, sslsock)
-        else:
-            raise RuntimeError("Connection object created without socket or address")
+    def __init__(self, socket=None, addr=None, ssl_ctx=None, connect_cb=None,
+            schedule=None):
+        asynchat.async_chat.__init__(self, socket)
 
-        #XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX#
-        #XXX  Proper post connection checks! XXX#
-        self.socket.set_post_connection_check_callback(lambda x,y: x != None)
-        #########################################
-
+        self.ssl_ctx = ssl_ctx
+        self.connect_cb = connect_cb
+        self.schedule = schedule
         self.collector = None
         self.new_collector = False
-        self.started_locally = (addr != None)
+        self.started_locally = (addr is not None)
         self.closed = False
 
-        if addr is not None:
-            self.connect(addr)
+        if socket is not None:
+            # TODO: Peers still give a CN mismatch so this check is
+            # necessary. Workaround needed (or more legitimate pcc)
+            self.socket.set_post_connection_check_callback(lambda x,y: x != None)
+
+        if self.started_locally:
+            t = threading.Thread(target=self.connect, args=(addr,))
+            t.start()
 
     def set_collector(self, collector):
         self.collector = collector
@@ -89,9 +87,39 @@ class P2PConnection(asynchat.async_chat):
     ## asyncore.dispatcher methods ##
 
     def connect(self, addr):
-        self.socket.setblocking(1)
-        self.socket.connect(addr)
-        self.socket.setblocking(0)
+        sslsock = SSL.Connection(self.ssl_ctx)
+        # TODO: Peers still give a CN mismatch so this check is
+        # necessary. Workaround needed (or more legitimate pcc)
+        sslsock.set_post_connection_check_callback(lambda x,y: x != None)
+        # TODO: Determine good timeout interval
+        sslsock.set_socket_read_timeout(SSL.timeout(10))
+        sslsock.set_socket_write_timeout(SSL.timeout(10))
+        sslsock.setblocking(1)
+        try:
+            sslsock.connect(addr)
+        except Exception, e:
+            log.warning("Connection failed: %s" % str(e))
+            return
+        # All socket operations after connect() are non-blocking
+        # and handled with asyncore
+        sslsock.setblocking(0)
+        self.addr = addr
+        self.set_socket(sslsock) # registers with asyncore
+        self.connected = True
+        if self.schedule is not None:
+            # Join back into the main thread
+            self.schedule(0, self.do_connect_cb)
+        else:
+            self.do_connect_cb()
+
+    def handle_connect(self):
+        pass
+
+    def do_connect_cb(self):
+        # Ensures that connect_cb is only called once.
+        if self.connect_cb is not None:
+            self.connect_cb(self)
+            self.connect_cb = None
 
     def handle_write(self):
         try:
@@ -108,15 +136,15 @@ class P2PConnection(asynchat.async_chat):
 
     def handle_expt(self):
         log.critical("Exception encountered!")
+        self.clear()
 
     def handle_error(self):
         #TODO: Better logging here..
         t, v, tb = sys.exc_info()
         if isinstance(v, KeyboardInterrupt):
-            log.critical("Ok")
             raise
-        log.critical('\n'+traceback.format_exc())
-        self.close()
+        log.warning(traceback.format_exc())
+        self.clear()
 
     def close(self):
         self.closed = True
@@ -124,4 +152,13 @@ class P2PConnection(asynchat.async_chat):
             self.collector.connection_closed()
         self.del_channel()
         self.socket.close()
+        self.collector = None
+
+    def clear(self):
+        self.closed = True
+        self.do_connect_cb()
+        if self.collector:
+            self.collector.connection_closed()
+        self.del_channel()
+        self.socket.clear()
         self.collector = None

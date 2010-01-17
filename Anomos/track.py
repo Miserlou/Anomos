@@ -178,6 +178,7 @@ class Tracker(object):
                 log.warning('Exception: %s' % str(e))
 
         self.event_handler = event_handler
+        self.schedule = self.event_handler.schedule
         #self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
         #self.cached_t = {}  # format: infohash: [time, cache]
         #self.times = {}
@@ -194,7 +195,7 @@ class Tracker(object):
 
         self.reannounce_interval = config['reannounce_interval']
         self.timeout_downloaders_interval = config['timeout_downloaders_interval']
-        self.event_handler.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
+        self.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
 
         self.parse_dir_interval = config['parse_dir_interval']
         self.parse_blocked()
@@ -410,14 +411,14 @@ class Tracker(object):
             # IP or port changed so we should natcheck again
             simpeer.num_natcheck = 0
             simpeer.nat = True
-        if simpeer.nat and simpeer.num_natcheck < self.natcheck:
-            NatCheck(self.natcheck_ctx, self.connectback_result, peerid, ip, port)
-        # Check that peer certificate matches
         simpeer.update(paramslist)
         if params('event') == 'stopped' and simpeer.numTorrents() == 0:
             # Peer stopped their only/last torrent
             self.networkmodel.disconnect(peerid)
         else:
+            if simpeer.nat and simpeer.num_natcheck < self.natcheck:
+                NatCheck(self.natcheck_ctx, self.connectback_result,
+                        self.schedule, peerid, ip, port)
             needs = simpeer.numNeeded()
             if needs:
                 self.networkmodel.randConnect(peerid, needs)
@@ -772,7 +773,7 @@ class Tracker(object):
         #        self.natchecklog(peerid, ip, port, 503)
 
     def parse_allowed(self):
-        self.event_handler.schedule(self.parse_dir_interval, self.parse_allowed)
+        self.schedule(self.parse_dir_interval, self.parse_allowed)
 
         # logging broken .atorrent files would be useful but could confuse
         # programs parsing log files, so errors are just ignored for now
@@ -789,7 +790,7 @@ class Tracker(object):
         #    self.seedcount.setdefault(infohash, 0)
 
     def parse_blocked(self):
-        self.event_handler.schedule(self.parse_dir_interval, self.parse_blocked)
+        self.schedule(self.parse_dir_interval, self.parse_blocked)
 
         self.blocklist = os.path.join(self.config['data_dir'], "blockedhashes")
         if os.path.exists(self.blocklist):
@@ -829,7 +830,7 @@ class Tracker(object):
         #            del self.times[key]
         #            #del self.downloads[key]
         #            #del self.seedcount[key]
-        self.event_handler.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
+        self.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
 
 def track(args):
     if len(args) == 0:

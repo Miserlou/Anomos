@@ -185,12 +185,19 @@ class HTTPSServer(SSL.ssl_dispatcher):
 
     def handle_error(self):
         log.critical('\n'+traceback.format_exc())
-        self.close()
+        self.clear()
 
     def handle_expt(self):
         log.critical('\n'+traceback.format_exc())
-        self.close()
+        self.clear()
 
     def writable(self):
         return 0
 
+    def close(self):
+        self.del_channel()
+        self.socket.close()
+
+    def clear(self):
+        self.del_channel()
+        self.socket.clear()

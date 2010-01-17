@@ -84,30 +84,30 @@ class NeighborManager(object):
                         'in your config.')
             return
         self.incomplete[id] = loc
-        conn = P2PConnection(addr=loc, ssl_ctx=self.ssl_ctx)
-        self.sock_success(conn, loc)
+        conn = P2PConnection(addr=loc,
+                             ssl_ctx=self.ssl_ctx,
+                             connect_cb=self.socket_cb,
+                             schedule=self.schedule)
 
-    ## Socket failed to open ##
-    def sock_fail(self, loc, err=None):
-        #Remove nid,loc pair from incomplete
-        for k,v in self.incomplete.items():
-            if v == loc:
-                self.rm_neighbor(k)
-        log.info("Failed to open connection to %s\n\
-                 Reason: %s" % (str(loc), str(err)))
+    def socket_cb(self, sock):
+        if sock.connected:
+            log.info(sock.addr)
+            for id,v in self.incomplete.iteritems():
+                if v == sock.addr:
+                    break
+            else:
+                return #loc wasn't found
+            AnomosNeighborInitializer(self, sock, id)
+        else:
+            #Remove nid,loc pair from incomplete
+            for k,v in self.incomplete.items():
+                if v == sock.addr:
+                    self.rm_neighbor(k)
+            log.info("Failed to open connection to %s\n" \
+                     "Reason: %s" % (str(sock.addr), str(err)))
 
     def failed_connections(self):
         return self.failedPeers
-
-    ## Socket opened successfully ##
-    def sock_success(self, sock, loc):
-        ''' @param sock: SingleSocket object for the newly created socket '''
-        for id,v in self.incomplete.iteritems():
-            if v == loc:
-                break
-        else:
-            return #loc wasn't found
-        AnomosNeighborInitializer(self, sock, id)
 
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
