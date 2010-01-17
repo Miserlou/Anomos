@@ -16,6 +16,7 @@
 # Written by John Schanck and Rich Jones
 
 import asynchat
+import socket
 import sys
 import threading
 import traceback
@@ -97,15 +98,17 @@ class P2PConnection(asynchat.async_chat):
         sslsock.setblocking(1)
         try:
             sslsock.connect(addr)
-        except Exception, e:
-            log.warning("Connection failed: %s" % str(e))
-            return
-        # All socket operations after connect() are non-blocking
-        # and handled with asyncore
-        sslsock.setblocking(0)
-        self.addr = addr
-        self.set_socket(sslsock) # registers with asyncore
-        self.connected = True
+        except (SSL.SSLError, socket.error), e:
+            # will result in connect_cb being called with
+            # self.connected = False
+            pass
+        else:
+            # All socket operations after connect() are non-blocking
+            # and handled with asyncore
+            sslsock.setblocking(0)
+            self.addr = addr
+            self.set_socket(sslsock) # registers with asyncore
+            self.connected = True # connect_cb success
         if self.schedule is not None:
             # Join back into the main thread
             self.schedule(0, self.do_connect_cb)
