@@ -353,7 +353,7 @@ class _SingleTorrent(object):
         else:
             data = StringIO()
             print_exc(file=data)
-            log.critical(data.getvalue(), True)
+            log.critical(data.getvalue())
             self._activity = ('killed by internal exception: ' + str(e), 0)
         try:
             self._close()
