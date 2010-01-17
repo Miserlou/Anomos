@@ -1,44 +1,40 @@
-install Python, version 2.3 or later -
+You will first need to do the following things:
+
+Install Python, version 2.6 -
 http://python.org/
 
-install a GTK 2.4 runtime -
-http://gladewin32.sourceforge.net/
+Install the latest GTK runtime -
+http://sourceforge.net/projects/gtk-win/
 
-install pygtk 2.4 -
-http://www.pcpm.ucl.ac.be/~gustin/win32_ports/
+Install the latest PyGTK bundle -
+http://ftp.gnome.org/pub/GNOME/binaries/win32/gtk+/
 
-install venster -
+Install venster -
 http://venster.sourceforge.net/htdocs/index.html
 
-install dnspython -
-http://www.dnspython.org/
+Install py2exe -
+http://www.py2exe.org/
 
-Apply dnspython_patch.diff to resolver.py
+Install the nullsoft (NSIS) installer - 
+http://nsis.sourceforge.net/Main_Page
 
-install py2exe -
-http://starship.python.net/crew/theller/py2exe/
+You will also need to have the installers described in /w32_dependancies/README.txt
 
-install the nullsoft (NSIS) installer - 
-http://www.nullsoft.com/free/nsis/
-
-install the Processes NSIS plugin - 
-http://nsis.sourceforge.net/archive/viewpage.php?pageid=542
-http://www.geocities.com/hardwiredteks/files/setup-processes.zip
-
-the rest of these instructions can be abbreviated by just running
-build.bat
-
-in a shell, go to the root BitTorrent directory and run this command
+In a shell, go to the root Anomos directory and run this command
 python winsetup.py py2exe
 
-now copy all the necessary GTK files from the GTK root installation
+This will create a folder called 'dist' which has the compiled exe
+
+rename anondownloadgui.exe to ANOMOS.exe
+
+Now copy all the necessary GTK files from the GTK root installation
 directory (usually c:\GTK\, see the GTK_BASEPATH environment
-variable) into the dist directory. See build.bat for details.
+variable) into the dist directory. This includes the themes if you want it to look good.
 
-now run nsis on bittorrent.nsi
-c:\progra~1\nsis\makensis.exe bittorrent.nsi
+now run nsis on anomos.nsi
+c:\progra~1\nsis\makensis.exe anomos.nsi
 
-This will create an installer called BitTorrent-{VERSION}.exe
+This will create an installer called Anomos-{VERSION}.exe
 The installer is completely self-contained and will work on any 
 Windows machine, even without the above software having been 
-installed.
+installed, including the dependancies.
