@@ -110,7 +110,7 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
     if comment:
         data['comment'] = comment
     h.write(bencode(data))
-    h.close
+    h.close()
 
 def make_meta_multifile(files, url, piece_len_exp, flag=Event(), progress=dummy,
                    comment=None, target=None, encoding='ascii'):
