@@ -16,7 +16,6 @@
 
 import os
 import re
-import signal
 import sys
 
 #from binascii import b2a_hex
@@ -361,7 +360,6 @@ class Tracker(object):
              open(fpath, 'rb').read())
 
     def check_allowed(self, infohash, paramslist):
-        params = params_factory(paramslist)
         if self.allowed:
             if not self.allowed.has_key(infohash):
                 return (200, 'Not Authorized', \
@@ -851,7 +849,7 @@ def track(args):
         ctx = servercert.get_ctx(allow_unknown_ca=True,
                                  req_peer_cert=False,
                                  session="tracker")
-        s = HTTPSServer(config['bind'], config['port'], ctx, t.get)
+        HTTPSServer(config['bind'], config['port'], ctx, t.get)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:

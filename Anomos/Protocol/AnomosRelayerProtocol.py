@@ -82,7 +82,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
         p_remain = toint(message[1:5])
         self.partial_recv += message[5:]
         if len(self.partial_recv) > self.neighbor.config['max_message_length']:
-            log.error("Received message longer than max length, %d"%l)
+            log.error("Received message longer than max length")
             return
         if len(message[5:]) == p_remain:
             self.got_message(self.partial_recv)

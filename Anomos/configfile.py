@@ -15,7 +15,6 @@
 
 import os
 import sys
-import shutil
 from ConfigParser import SafeConfigParser
 
 from Anomos import get_config_dir, parseargs, version, LOG as log

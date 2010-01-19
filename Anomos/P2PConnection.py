@@ -98,7 +98,7 @@ class P2PConnection(asynchat.async_chat):
         sslsock.setblocking(1)
         try:
             sslsock.connect(addr)
-        except (SSL.SSLError, socket.error), e:
+        except (SSL.SSLError, socket.error):
             # will result in connect_cb being called with
             # self.connected = False
             pass
@@ -127,7 +127,7 @@ class P2PConnection(asynchat.async_chat):
     def handle_write(self):
         try:
             self.initiate_send()
-        except SSL.SSLError, err:
+        except SSL.SSLError:
             self.handle_error()
 
     def handle_read(self):

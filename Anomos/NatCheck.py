@@ -44,7 +44,7 @@ class NatCheck(object):
                 # XXX: Should probably disconnect the peer rather than
                 # just saying the NatCheck failed.
                 log.warning("Peer certificate mismatch")
-                answer(False)
+                self.answer(False)
 
             AnomosNeighborInitializer(self, self.socket, self.id)
         else:

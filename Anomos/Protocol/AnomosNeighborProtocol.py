@@ -45,7 +45,7 @@ class AnomosNeighborProtocol(AnomosProtocol):
         payload = message[5:]
         self.partial_recv += payload
         if len(self.partial_recv) > self.config['max_message_length']:
-            log.error("Received message longer than max length, %d"%l)
+            log.error("Received message longer than max length")
             return
         if len(payload) == p_remain:
             self.got_message(self.partial_recv)

@@ -18,7 +18,7 @@ import sys
 import hashlib
 
 from Anomos.bencode import bencode
-from Anomos import btformats
+from Anomos import btformats, BTFailure
 
 WINDOWS_UNSUPPORTED_CHARS ='"*/:<>?\|'
 windows_translate = [chr(i) for i in range(256)]

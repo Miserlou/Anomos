@@ -15,7 +15,7 @@
 
 from random import shuffle
 
-from Anomos import bttime
+from Anomos import bttime, LOG as log
 from Anomos.Measure import Measure
 from Anomos.bitfield import Bitfield
 

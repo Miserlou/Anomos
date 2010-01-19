@@ -13,7 +13,6 @@
 
 # Written by Bill Bumgarner and Bram Cohen
 
-import sys
 from types import *
 from cStringIO import StringIO
 

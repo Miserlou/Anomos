@@ -103,8 +103,8 @@ class NeighborManager(object):
             for k,v in self.incomplete.items():
                 if v == sock.addr:
                     self.rm_neighbor(k)
-            log.info("Failed to open connection to %s\n" \
-                     "Reason: %s" % (str(sock.addr), str(err)))
+            log.info("Failed to open connection to %s\n" %
+                                 str(sock.addr))
 
     def failed_connections(self):
         return self.failedPeers

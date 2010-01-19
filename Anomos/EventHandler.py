@@ -1,9 +1,7 @@
 import asyncore
 import bisect
 import os
-import select
 import threading
-import time
 import traceback
 
 from Anomos import bttime, LOG as log

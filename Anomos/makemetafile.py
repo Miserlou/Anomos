@@ -17,9 +17,8 @@
 
 import os
 import sys
-import httplib
-from urlparse import urlparse
 import hashlib
+from urlparse import urlparse
 from threading import Event
 
 from Anomos.bencode import bencode

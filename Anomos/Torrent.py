@@ -56,6 +56,3 @@ class Torrent(object):
         for s in self.active_streams:
             if not s.closed:
                 s.close()
-
-    def ever_got_incoming(self):
-        return self.ever_got_inc

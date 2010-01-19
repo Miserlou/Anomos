@@ -15,7 +15,7 @@
 
 # Originally written by Bram Cohen. Modified by John Schanck and Rich Jones
 
-from Anomos import BTFailure
+from Anomos import BTFailure, LOG as log
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.P2PServer import P2PServer
 

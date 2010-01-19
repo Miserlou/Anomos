@@ -92,7 +92,6 @@ if is_frozen_exe:
 
 def ensure_minimum_config():
     import shutil
-    app_root = os.path.split(os.path.abspath(sys.argv[0]))[0]
     configdir = get_config_dir()
     if not os.path.isdir(configdir):
         shutil.copytree(os.path.join(app_root, 'default_config'), configdir)
