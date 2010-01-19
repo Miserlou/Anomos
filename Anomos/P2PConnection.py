@@ -60,6 +60,9 @@ class P2PConnection(asynchat.async_chat):
                          "a connection was assigned a collector")
             raise RuntimeError("Unable to get data collector")
 
+    def flushed(self):
+        return (self.ac_out_buffer == '') and self.producer_fifo.is_empty()
+
     ## asynchat.async_chat methods ##
 
     def collect_incoming_data(self, data):
@@ -84,6 +87,26 @@ class P2PConnection(asynchat.async_chat):
                 self.set_terminator(self.get_reader().next())
             else:
                 self.close()
+
+    #TODO: The handle_close in this method was causing issues with
+    # SSL keep alives. Make this more SSL friendly
+    def recv(self, buffer_size):
+        try:
+            data = self.socket.recv(buffer_size)
+            if not data:
+                # a closed connection is indicated by signaling
+                # a read condition, and having recv() return 0.
+                #self.handle_close()
+                return ''
+            else:
+                return data
+        except socket.error, why:
+            # winsock sometimes throws ENOTCONN
+            if why[0] in [ECONNRESET, ENOTCONN, ESHUTDOWN]:
+                self.handle_close()
+                return ''
+            else:
+                raise
 
     ## asyncore.dispatcher methods ##
 
@@ -133,9 +156,8 @@ class P2PConnection(asynchat.async_chat):
     def handle_read(self):
         try:
             asynchat.async_chat.handle_read(self)
-        except SSL.SSLError, errstr:
-            if "unexpected eof" not in errstr:
-                self.handle_error()
+        except SSL.SSLError:
+            self.handle_error()
 
     def handle_expt(self):
         log.critical("Exception encountered!")
@@ -146,7 +168,7 @@ class P2PConnection(asynchat.async_chat):
         t, v, tb = sys.exc_info()
         if isinstance(v, KeyboardInterrupt):
             raise
-        log.warning(traceback.format_exc())
+        log.info(traceback.format_exc())
         self.clear()
 
     def close(self):

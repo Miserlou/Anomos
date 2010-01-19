@@ -19,6 +19,9 @@ from Anomos import LOG as log
 class EndPoint(AnomosEndPointProtocol):
     def __init__(self, stream_id, neighbor, torrent, aes, data=None):
         AnomosEndPointProtocol.__init__(self)
+        self.partial_recv = ''
+        self.sent_break = False
+
         self.stream_id = stream_id
         self.neighbor = neighbor
         self.manager = neighbor.manager
@@ -52,6 +55,9 @@ class EndPoint(AnomosEndPointProtocol):
         self.download = self.torrent.make_download(self)
         self.torrent.add_active_stream(self)
 
+    def is_flushed(self):
+        return self.neighbor.socket.flushed()
+
     def connection_flushed(self):
         if self.complete and self.should_queue():
             self.ratelimiter.queue(self)
@@ -60,15 +66,9 @@ class EndPoint(AnomosEndPointProtocol):
         return self.next_upload is None and \
                 (self.neighbor.in_queue(self.stream_id) or getattr(self.upload, 'buffer', None))
 
-    def shutdown(self):
-        if self.complete and not self.closed:
-            self.torrent.rm_active_stream(self)
-            self.choker.connection_lost(self)# Must come before changes to
-                                             # upload and download
-            self.download.disconnected()
-            self.choker = None
-            self.upload = None
-        self.closed = True
+    def fatal_error(self, msg=""):
+        log.error(msg)
+        self.close()
 
     def close(self):
         if self.closed:
@@ -79,14 +79,15 @@ class EndPoint(AnomosEndPointProtocol):
             self.send_break()
         self.shutdown()
 
-    def fatal_error(self, msg=""):
-        log.error(msg)
-        if self.complete:
-            self.send_break()
-        self.shutdown()
-
-    def is_flushed(self):
-        return self.neighbor.socket.writable()
+    def shutdown(self):
+        if self.complete and not self.closed:
+            self.torrent.rm_active_stream(self)
+            self.choker.connection_lost(self)# Must come before changes to
+                                             # upload and download
+            self.download.disconnected()
+            self.choker = None
+            self.upload = None
+        self.closed = True
 
     def got_exception(self, e):
         if self.manager.deep_exception:
