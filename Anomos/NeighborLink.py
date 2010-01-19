@@ -177,6 +177,9 @@ class NeighborLink(AnomosNeighborProtocol):
     def connection_closed(self):
         self.close_streams()
         self.manager.lost_neighbor(self.id)
+        # Socket reference must be removed here or socket waits
+        # CLOSE_WAIT state until this object is garbage collected
+        self.socket = None
 
     def uniq_id(self):
         return "%02x:*" % (ord(self.id))
