@@ -19,6 +19,7 @@ import Anomos.Crypto
 from Anomos import bttime, LOG as log
 from Anomos.Protocol import toint
 from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath
+from Anomos.Crypto import CryptoError
 from M2Crypto import m2, RSA, EVP, X509, SSL, util as m2util
 
 ## X509 Verification Callbacks ##
@@ -60,7 +61,6 @@ class Certificate:
     def __init__(self, loc=None, secure=False, tracker=False):
         self.secure = secure
         self.tracker = tracker
-        self.stored_pass_cb = None
         if None in (global_cryptodir, global_randfile):
             raise CryptoError('Crypto not initialized, call initCrypto first')
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
@@ -88,7 +88,7 @@ class Certificate:
             i = 0
             while i < 3:
                 try:
-                    self.rsakey = RSA.load_key(self.keyfile, self.passphrase_callback)
+                    self.rsakey = RSA.load_key(self.keyfile)
                     break
                 except RSA.RSAError:
                     i += 1
@@ -96,18 +96,6 @@ class Certificate:
                 log.warning("\nInvalid password entered, exiting.")
                 sys.exit()
         self.cert = X509.load_cert(self.certfile)
-
-    def passphrase_callback(self, v, prompt1='Enter passphrase:'):
-        from getpass import getpass
-        try:
-            p1=getpass(prompt1)
-        except KeyboardInterrupt:
-            return None
-        else:
-            # Grab the passphrase and make it available through an anonymous callback.
-            # This way it's in memory and we don't have to prompt again.
-            self.stored_pass_cb = lambda v: p1
-            return p1
 
     @Anomos.Crypto.use_rand_file
     def _create(self, hostname='localhost'):
@@ -147,13 +135,11 @@ class Certificate:
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
         if ctx.load_verify_locations(cafile=cloc) != 1:
             log.error("Problem loading CA certificates")
-            raise Exception('CA certificates not loaded')
-        if self.stored_pass_cb is not None:
-            # Load the certificate using the passphrase stored in stored_pass_cb
-            ctx.load_cert(self.certfile, keyfile=self.keyfile, callback=self.stored_pass_cb)
-        else:
-            # Load the certificate, prompting the user for their password
-            ctx.load_cert(self.certfile, keyfile=self.keyfile)
+            raise CryptoError('CA certificates not loaded')
+        m2.ssl_ctx_use_x509(ctx.ctx, self.cert.x509)
+        m2.ssl_ctx_use_rsa_privkey(ctx.ctx, self.rsakey.rsa)
+        if not m2.ssl_ctx_check_privkey(ctx.ctx):
+            raise CryptoError('public/private key mismatch')
         cb = mk_verify_cb(allow_unknown_ca=allow_unknown_ca)
         CTX_V_FLAGS = SSL.verify_peer
         if req_peer_cert:
