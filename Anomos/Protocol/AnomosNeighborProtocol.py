@@ -23,15 +23,11 @@ from Anomos import LOG as log
 
 class AnomosNeighborProtocol(AnomosProtocol):
     ## NeighborProtocol is intended to be implemented by NeighborLink ##
-    def __init__(self, socket):
+    def __init__(self):
         AnomosProtocol.__init__(self)
-
-        self.socket = socket
 
         self.msgmap.update({PARTIAL:self.got_partial,
                             TCODE: self.got_tcode})
-        self.incoming_stream_id = 0
-        self.partial_recv = ''
 
     def format_message(self, stream_id, message):
         return tobinary(stream_id)[2:] + \

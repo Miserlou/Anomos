@@ -28,7 +28,11 @@ class NeighborLink(AnomosNeighborProtocol):
         track of the objects used to manage the active streams between
         those neighbors. '''
     def __init__(self, manager, socket, id, config, ratelimiter):
-        AnomosNeighborProtocol.__init__(self, socket)
+        AnomosNeighborProtocol.__init__(self)
+        self.socket = socket
+        self.incoming_stream_id = 0
+        self.partial_recv = ''
+
         self.id = id
         self.manager = manager
         self.streams = {} # {StreamID : EndPoint or Relayer object}
@@ -134,7 +138,7 @@ class NeighborLink(AnomosNeighborProtocol):
             @type id: int in range 0 to 2**16'''
         return self.streams.get(id, self)
 
-    def connection_flushed(self, socket):
+    def connection_flushed(self):
         ''' Inform all streams that the connection is
             flushed so they may requeue themselves if
             they need to '''
@@ -167,12 +171,6 @@ class NeighborLink(AnomosNeighborProtocol):
             self.socket.push(f)
             snt += len(f)
         return snt
-
-    def connection_lost(self, conn):
-        assert conn is self.socket
-        if self.id != NAT_CHECK_ID:
-            log.info("Neighbor disconnected")
-        self.connection_closed()
 
     def connection_closed(self):
         self.close_streams()

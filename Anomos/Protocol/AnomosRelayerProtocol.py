@@ -30,9 +30,6 @@ class AnomosRelayerProtocol(AnomosProtocol):
                             RELAY: self.relay_message,\
                             PARTIAL: self.got_partial,\
                             ACKBREAK: self.got_ack_break})
-        self.partial_recv = ''
-        self.recvd_break = False
-        self.sent_break = False
     ## Disable direct message reading. ##
     @log_on_call
     def send_break(self):

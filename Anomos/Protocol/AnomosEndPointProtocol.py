@@ -43,8 +43,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             BREAK: self.got_break, \
                             PARTIAL: self.got_partial, \
                             ACKBREAK: self.got_ack_break})
-        self.partial_recv = ''
-        self.sent_break = False
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
@@ -55,17 +53,13 @@ class AnomosEndPointProtocol(AnomosProtocol):
             m = self.e2e_key.decrypt(message[1:])
             self.got_message(m)
         else:
-            import pdb
-            pdb.set_trace()
             raise RuntimeError("Received encrypted data before we were ready")
-    @log_on_call
     def got_break(self):
         self.send_ack_break()
         if not self.closed:
             self.shutdown()
         self.neighbor.end_stream(self.stream_id)
         self.neighbor = None
-    @log_on_call
     def got_ack_break(self):
         if self.sent_break:
             if not self.closed:

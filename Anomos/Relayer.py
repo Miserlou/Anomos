@@ -28,6 +28,10 @@ class Relayer(AnomosRelayerProtocol):
     def __init__(self, stream_id, neighbor, outnid, data=None, orelay=None):
                     #storage, uprate, downrate, choker, key):
         AnomosRelayerProtocol.__init__(self)
+        self.partial_recv = ''
+        self.recvd_break = False
+        self.sent_break = False
+
         self.stream_id = stream_id
         self.neighbor = neighbor
         self.manager = neighbor.manager
@@ -83,7 +87,7 @@ class Relayer(AnomosRelayerProtocol):
             self.ratelimiter.queue(self)
 
     def should_queue(self):
-        return self.next_upload is None and self.neighbor.in_queue(self.stream_id)
+        return (self.next_upload is None) and self.neighbor.in_queue(self.stream_id)
 
     def close(self):
         # Connection was closed locally (as opposed to
