@@ -24,11 +24,11 @@ import sys
 import os
 import threading
 from time import time, strftime
+from urllib2 import urlopen
 
 from Anomos.download import Feedback, Multitorrent
 from Anomos.defaultargs import get_defaults
 from Anomos.parseargs import parseargs, printHelp
-from Anomos.zurllib import urlopen
 from Anomos.bencode import bdecode
 from Anomos.ConvertedMetainfo import ConvertedMetainfo
 from Anomos import configfile

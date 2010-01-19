@@ -16,13 +16,13 @@
 from random import random
 from socket import gethostbyname
 from threading import Thread
+from urllib2 import quote
 
 from Anomos import bttime, BTFailure, LOG as log
 import Anomos.Crypto
 
 from Anomos.bencode import bdecode
 from Anomos.btformats import check_peers
-from Anomos.zurllib import quote
 
 from M2Crypto import version_info as m2version
 from M2Crypto.httpslib import HTTPSConnection
@@ -302,6 +302,7 @@ class Rerequester(object):
             for aes, tc in r.get('tracking codes', []):
                 #TODO: add error callback
                 self.neighbors.start_circuit(tc, self.infohash, Anomos.Crypto.AESKey(aes[:32], aes[32:]))
+                break
             if self.basequery is not None: # We've recently made a successful
                 self.successfunc()     # request of type STARTED or COMPLETED
             self._check()
