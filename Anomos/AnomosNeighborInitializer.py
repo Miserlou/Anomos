@@ -84,3 +84,5 @@ class AnomosNeighborInitializer(object):
             log.info("Failed to initialize connection to %s" % str(self.id))
         if not self.complete:
             self.manager.initializer_failed(self.id)
+    def connection_flushed(self):
+        pass

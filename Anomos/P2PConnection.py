@@ -56,7 +56,7 @@ class P2PConnection(asynchat.async_chat):
                 self.new_collector = False
             return self.collector.get_reader()
         else:
-            log.critical("Request for a reader was made before " + \
+            log.critical("Request for a reader was made before " \
                          "a connection was assigned a collector")
             raise RuntimeError("Unable to get data collector")
 
@@ -152,6 +152,8 @@ class P2PConnection(asynchat.async_chat):
             self.initiate_send()
         except SSL.SSLError:
             self.handle_error()
+        if self.flushed():
+            self.collector.connection_flushed()
 
     def handle_read(self):
         try:
