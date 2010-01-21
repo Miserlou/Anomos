@@ -24,6 +24,11 @@ class PeerCert:
         self.hash_alg = 'sha256'
         self.fingerprint = certObj.get_fingerprint(self.hash_alg)
         self.pubkey = certObj.get_pubkey().get_rsa()
+        # The following prevents a nasty segfault in M2Crypto
+        # versions < .19
+        # TODO: Ban M2Cryto versions < 0.19 and remove this
+        if not isinstance(self.pubkey, RSA.RSA_pub):
+            self.pubkey = RSA.new_pub_key((self.pubkey.e, self.pubkey.n))
 
     def cmp(self, certObj):
         return self.fingerprint == certObj.get_fingerprint(self.hash_alg)
