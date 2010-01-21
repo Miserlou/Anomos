@@ -65,22 +65,28 @@ class Certificate:
             raise CryptoError('Crypto not initialized, call initCrypto first')
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
-        self._load()
+
+        if not (os.path.exists(self.certfile) and os.path.exists(self.keyfile)):
+            if self.tracker:
+                hostname = self._gethostname()
+            else:
+                hostname = 'localhost'
+            self._create(hostname=hostname)
+        else:
+            self._load()
+
+    def _gethostname(self):
+        from socket import gethostname
+        hostname = gethostname()
+        tmpname = raw_input("Please enter the tracker's hostname " \
+                        "for the SSL certificate (default: %s): " % hostname)
+        if tmpname.strip(" "):
+            hostname = tmpname
+        return hostname
 
     def _load(self):
         """Attempts to load the certificate and key from self.certfile and self.keyfile,
            Generates the certificate and key if they don't exist"""
-        if not os.path.exists(self.certfile) or not os.path.exists(self.keyfile):
-            hostname = 'localhost'
-            if self.tracker:
-                from socket import gethostname
-                hostname = gethostname()
-                tmpname = raw_input("Please enter the tracker's hostname " \
-                        "for the SSL certificate (default: %s): " % hostname)
-                if tmpname.strip(" "):
-                    hostname = tmpname
-            self._create(hostname=hostname)
-            return
         if not self.secure:
             self.rsakey = RSA.load_key(self.keyfile, m2util.no_passphrase_callback)
         else:

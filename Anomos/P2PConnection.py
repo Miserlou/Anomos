@@ -37,10 +37,6 @@ class P2PConnection(asynchat.async_chat):
         self.started_locally = (addr is not None)
         self.closed = False
 
-        if socket is not None:
-            # TODO: Peers still give a CN mismatch so this check is
-            # necessary. Workaround needed (or more legitimate pcc)
-            self.socket.set_post_connection_check_callback(lambda x,y: x != None)
 
         if self.started_locally:
             t = threading.Thread(target=self.connect, args=(addr,))
@@ -112,9 +108,8 @@ class P2PConnection(asynchat.async_chat):
 
     def connect(self, addr):
         sslsock = SSL.Connection(self.ssl_ctx)
-        # TODO: Peers still give a CN mismatch so this check is
-        # necessary. Workaround needed (or more legitimate pcc)
-        sslsock.set_post_connection_check_callback(lambda x,y: x != None)
+        checker = PostConnectionChecker()
+        sslsock.set_post_connection_check_callback(checker)
         # TODO: Determine good timeout interval
         sslsock.set_socket_read_timeout(SSL.timeout(10))
         sslsock.set_socket_write_timeout(SSL.timeout(10))
@@ -189,3 +184,9 @@ class P2PConnection(asynchat.async_chat):
         self.del_channel()
         self.socket.clear()
         self.collector = None
+
+
+class PostConnectionChecker(SSL.Checker.Checker):
+    def __call__(self, peercert, host=None):
+        # Ignore host parameter
+        return SSL.Checker.Checker.__call__(self,peercert,None)
