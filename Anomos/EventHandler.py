@@ -59,8 +59,8 @@ class EventHandler(object):
                 context.got_exception(e)
 
     def loop(self):
-        while not self.doneflag.isSet():
-            try:
+        try:
+            while not self.doneflag.isSet():
                 self._pop_externally_added()
                 period = 1e9
                 if len(self.tasks) > 0:
@@ -68,11 +68,11 @@ class EventHandler(object):
                     period = max(0, self.tasks[0][0] - bttime())
                 asyncore.poll(period)
                 self.do_tasks()
-            except KeyboardInterrupt:
-                break
-            except:
-                log.critical('\n'+traceback.format_exc())
-                break
+        except KeyboardInterrupt:
+            #TODO: cleanup?
+            pass
+        except:
+            log.critical('\n'+traceback.format_exc())
 
 if os.name == 'posix':
     class WakeupFD(asyncore.file_dispatcher):
