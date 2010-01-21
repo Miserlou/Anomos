@@ -35,8 +35,6 @@ class P2PConnection(asynchat.async_chat):
         self.collector = None
         self.new_collector = False
         self.started_locally = (addr is not None)
-        self.closed = False
-
 
         if self.started_locally:
             t = threading.Thread(target=self.connect, args=(addr,))
@@ -84,25 +82,15 @@ class P2PConnection(asynchat.async_chat):
             else:
                 self.close()
 
-    #TODO: The handle_close in this method was causing issues with
-    # SSL keep alives. Make this more SSL friendly
     def recv(self, buffer_size):
         try:
             data = self.socket.recv(buffer_size)
-            if not data:
-                # a closed connection is indicated by signaling
-                # a read condition, and having recv() return 0.
-                #self.handle_close()
-                return ''
-            else:
-                return data
-        except socket.error, why:
-            # winsock sometimes throws ENOTCONN
-            if why[0] in [ECONNRESET, ENOTCONN, ESHUTDOWN]:
-                self.handle_close()
-                return ''
-            else:
-                raise
+        except SSL.SSLError:
+            self.handle_error()
+            return
+        if data is None:
+            data = ''
+        return data
 
     ## asyncore.dispatcher methods ##
 
@@ -169,20 +157,20 @@ class P2PConnection(asynchat.async_chat):
         self.clear()
 
     def close(self):
-        self.closed = True
         if self.collector:
             self.collector.connection_closed()
         self.del_channel()
-        self.socket.close()
+        self.socket.close() # SSL.Connection.close()
         self.collector = None
 
     def clear(self):
-        self.closed = True
+        # clear() is called after errors, so call the connect_cb
+        # if necessary
         self.do_connect_cb()
         if self.collector:
             self.collector.connection_closed()
-        self.del_channel()
-        self.socket.clear()
+        self.del_channel()  # Remove this socket from asyncore map
+        self.socket.clear() # SSL.Connection.clear()
         self.collector = None
 
 
