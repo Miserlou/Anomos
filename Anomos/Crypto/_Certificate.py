@@ -32,6 +32,8 @@ CIPHER_SET = 'HIGH:!ADH:!MD5:@STRENGTH'
 # EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:
 # DES-CBC3-SHA:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:AES128-SHA
 
+# CTX_OPTIONS: Only allow TLSv1
+CTX_OPTIONS = m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3
 
 ## X509 Verification Callbacks ##
 SELF_SIGNED_ERR = [
@@ -147,9 +149,10 @@ class Certificate:
         self.cert.save_pem(self.certfile)
 
     def get_ctx(self, allow_unknown_ca=False, req_peer_cert=True, session=None):
-        cloc = os.path.join(global_certpath, 'cacert.root.pem')
-        ctx = SSL.Context("sslv23") # Defaults to SSLv23
+        ctx = SSL.Context("tlsv1")
         ctx.set_cipher_list(CIPHER_SET)
+        ctx.set_options(CTX_OPTIONS)
+        cloc = os.path.join(global_certpath, 'cacert.root.pem')
         if ctx.load_verify_locations(cafile=cloc) != 1:
             log.error("Problem loading CA certificates")
             raise CryptoError('CA certificates not loaded')
