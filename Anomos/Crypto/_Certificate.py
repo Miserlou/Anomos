@@ -22,8 +22,18 @@ from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath
 from Anomos.Crypto import CryptoError
 from M2Crypto import m2, RSA, EVP, X509, SSL, util as m2util
 
-## X509 Verification Callbacks ##
+# Cipher Set:
+CIPHER_SET = 'HIGH:!ADH:!MD5:@STRENGTH'
+# Translation: Use high grade encryption, no Anonymous Diffie Hellman,
+# no MD5, sort by strength.
+# On my system, this results in the following cipher set:
+# [john:~]$ openssl ciphers 'HIGH:!ADH:!MD5:@STRENGTH'
+# DHE-RSA-AES256-SHA:DHE-DSS-AES256-SHA:AES256-SHA:
+# EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:
+# DES-CBC3-SHA:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:AES128-SHA
 
+
+## X509 Verification Callbacks ##
 SELF_SIGNED_ERR = [
     m2.X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT,
     m2.X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN
@@ -139,6 +149,7 @@ class Certificate:
     def get_ctx(self, allow_unknown_ca=False, req_peer_cert=True, session=None):
         cloc = os.path.join(global_certpath, 'cacert.root.pem')
         ctx = SSL.Context("sslv23") # Defaults to SSLv23
+        ctx.set_cipher_list(CIPHER_SET)
         if ctx.load_verify_locations(cafile=cloc) != 1:
             log.error("Problem loading CA certificates")
             raise CryptoError('CA certificates not loaded')
