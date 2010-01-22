@@ -18,7 +18,7 @@ import sys
 import hashlib
 
 from Anomos.bencode import bencode
-from Anomos import btformats, BTFailure
+from Anomos import btformats, BTFailure, LOG as log
 
 WINDOWS_UNSUPPORTED_CHARS ='"*/:<>?\|'
 windows_translate = [chr(i) for i in range(256)]
@@ -36,23 +36,23 @@ for i in (0xFFFE, 0xFFFF):
 
 del x, i
 
-def set_filesystem_encoding(encoding, errorfunc):
+def set_filesystem_encoding(encoding):
     global filesystem_encoding
     filesystem_encoding = 'ascii'
     if encoding == '':
         try:
             sys.getfilesystemencoding
         except AttributeError:
-            errorfunc.warning("This seems to be an old Python version which does not support detecting the filesystem encoding. Assuming 'ascii'.")
+            log.warning("This seems to be an old Python version which does not support detecting the filesystem encoding. Assuming 'ascii'.")
             return
         encoding = sys.getfilesystemencoding()
         if encoding is None:
-            errorfunc.warning("Python failed to autodetect filesystem encoding. Using 'ascii' instead.")
+            log.warning("Python failed to autodetect filesystem encoding. Using 'ascii' instead.")
             return
     try:
         'a1'.decode(encoding)
     except:
-        errorfunc.error("Filesystem encoding '"+encoding+"' is not supported. Using 'ascii' instead.")
+        log.error("Filesystem encoding '"+encoding+"' is not supported. Using 'ascii' instead.")
         return
     filesystem_encoding = encoding
 

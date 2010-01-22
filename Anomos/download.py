@@ -84,7 +84,7 @@ class Multitorrent(object):
         self.singleport_listener = SingleportListener(self.config, self.ssl_ctx)
         self.singleport_listener.find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
-        set_filesystem_encoding(config['filesystem_encoding'], log)
+        set_filesystem_encoding(config['filesystem_encoding'])
 
     def close_listening_socket(self):
         self.singleport_listener.close_sockets()
@@ -521,11 +521,3 @@ class _SingleTorrent(object):
         else:
             uploads = int(sqrt(rate * .6))
         self.config['max_uploads_internal'] = uploads
-
-    #def _log(self, level, text, exception=False):
-    #    #TODO: Turn this into a handler for the python logging module
-    #    self.messages.append((bttime(), level, text))
-    #    if exception:
-    #        self.feedback.exception(self, text)
-    #    else:
-    #        self.feedback.error(self, level, text)
