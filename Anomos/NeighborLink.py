@@ -36,10 +36,10 @@ class NeighborLink(AnomosNeighborProtocol):
         self.id = id
         self.manager = manager
         self.streams = {} # {StreamID : EndPoint or Relayer object}
-        if self.socket.started_locally:
-            self.next_stream_id = 0
-        else:
-            self.next_stream_id = 1
+        #if self.socket.started_locally:
+        self.next_stream_id = 0
+        #else:
+        #    self.next_stream_id = 1
         self.pmq = PartialMessageQueue()
         self.config = config
         self.ratelimiter = ratelimiter
@@ -88,9 +88,10 @@ class NeighborLink(AnomosNeighborProtocol):
             @return: Newly created EndPoint object'''
         if data is None: # Incoming stream
             nxtid = self.incoming_stream_id
+            self.next_stream_id = nxtid + 1
         else: # Localy initialized stream
             nxtid = self.next_stream_id
-            self.next_stream_id += 2
+            self.next_stream_id += 1
         self.streams[nxtid] = \
                     EndPoint(nxtid, self, torrent, aeskey, data)
         log.info("Starting endpoint")
@@ -108,9 +109,10 @@ class NeighborLink(AnomosNeighborProtocol):
             @return: Newly created Relayer object'''
         if orelay is None: # Incoming stream
             nxtid = self.incoming_stream_id
+            self.next_stream_id = nxtid + 1
         else: # Locally initialized stream
             nxtid = self.next_stream_id
-            self.next_stream_id += 2
+            self.next_stream_id += 1
         self.streams[nxtid] = \
                     Relayer(nxtid, self, nid, data, orelay)
         return self.streams[nxtid]
