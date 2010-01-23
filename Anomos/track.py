@@ -184,7 +184,7 @@ class Tracker(object):
         #self.seedcount = {}
 
         self.certificate = certificate
-        self.natcheck_ctx = certificate.get_ctx(session="natcheck")
+        self.natcheck_ctx = certificate.get_ctx(allow_unknown_ca=True)
 
         self.networkmodel = NetworkModel(config)
 
