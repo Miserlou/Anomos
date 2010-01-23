@@ -30,48 +30,19 @@ class AnomosRelayerProtocol(AnomosProtocol):
                             RELAY: self.relay_message,\
                             PARTIAL: self.got_partial,\
                             ACKBREAK: self.got_ack_break})
-    ## Disable direct message reading. ##
-    @log_on_call
-    def send_break(self):
-        self.neighbor.queue_message(self.stream_id, BREAK)
-        self.sent_break = True
-        if self.should_queue():
-            self.ratelimiter.queue(self)
-    def send_tracking_code(self, trackcode):
-        #XXX: Just a test, Throw tcodes into the PMQ instead of sending them
-        # immediately
-        #self.network_ctl_msg(TCODE, trackcode)
-        log.info("Queuing Tracking code!")
-        self.neighbor.queue_message(self.stream_id, TCODE+trackcode)
-        if self.next_upload is None:
-            log.info("Queuing Self!")
-            self.ratelimiter.queue(self)
-    def send_relay_message(self, msg):
-        self.neighbor.queue_message(self.stream_id, msg)
-        if self.next_upload is None:
-            self.ratelimiter.queue(self)
-    def send_confirm(self):
-        self.network_ctl_msg(CONFIRM)
-    def send_ack_break(self):
-        if self.sent_break:
-            self.network_ctl_msg(ACKBREAK)
-    @log_on_call
+    def invalid_message(self, t):
+        log.warning("Invalid message of type %02x on %s. Closing stream."% \
+                    (ord(t), self.uniq_id()))
+        self.close()
+    # Message Receiving calls #
     def got_break(self):
         self.recvd_break = True
         self.send_ack_break()
         self.shutdown() # Close inbound connection
-    @log_on_call
     def got_ack_break(self):
         if self.sent_break:
-            self.shutdown()
             self.neighbor.end_stream(self.stream_id)
             self.neighbor = None
-    #def got_relay(self, message):
-    #    #NOTE: message[0] == RELAY, there's no need to
-    #    #      strip this since we'd just have to add
-    #    #      it again in send_relay. As a result,
-    #    #      send_relay does NOT add a control char.
-    #    self.relay_message(message)
     def got_confirm(self):
         self.connection_completed()
         self.relay_message(CONFIRM)
@@ -84,6 +55,31 @@ class AnomosRelayerProtocol(AnomosProtocol):
         if len(message[5:]) == p_remain:
             self.got_message(self.partial_recv)
             self.partial_recv = ''
+
+    # Message sending calls #
+    def send_break(self):
+        log.info("breaking %s" % str(self))
+        self.network_ctl_msg(BREAK)
+        self.sent_break = True
+        #self.neighbor.queue_message(self.stream_id, BREAK)
+        #if self.should_queue():
+        #    self.ratelimiter.queue(self)
+    def send_tracking_code(self, trackcode):
+        #XXX: Just a test, Throw tcodes into the PMQ instead of sending them
+        # immediately
+        #self.network_ctl_msg(TCODE, trackcode)
+        log.info("Queuing Tracking code!")
+        self.neighbor.queue_message(self.stream_id, TCODE+trackcode)
+        if self.next_upload is None:
+            log.info("Queuing Self!")
+            self.ratelimiter.queue(self)
+    def send_relay_message(self, msg):
+        self.neighbor.queue_message(self.stream_id, msg)
+    def send_confirm(self):
+        self.network_ctl_msg(CONFIRM)
+    def send_ack_break(self):
+        if self.sent_break:
+            self.network_ctl_msg(ACKBREAK)
     #TODO: Analyze effective choking strategies for Relayers
     #def send_choke(self):
     #    self.network_ctl_msg(CHOKE)
@@ -95,7 +91,3 @@ class AnomosRelayerProtocol(AnomosProtocol):
     #def got_unchoke(self):
     #    self.choked = False
     #    self.orelay.send_unchoke()
-    def invalid_message(self, t):
-        log.warning("Invalid message of type %02x on %s. Closing stream."% \
-                    (ord(t), self.uniq_id()))
-        self.close()

@@ -43,6 +43,19 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             BREAK: self.got_break, \
                             PARTIAL: self.got_partial, \
                             ACKBREAK: self.got_ack_break})
+    def invalid_message(self, t):
+        log.warning("Invalid message of type %02x on %s. Closing stream."% \
+                    (ord(t), self.uniq_id()))
+        self.close()
+    def transfer_ctl_msg(self, type, message=""):
+        ''' Send method for file transfer messages.
+            ie. CHOKE, INTERESTED, PIECE '''
+        payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
+        self.neighbor.queue_message(self.stream_id, RELAY + payload)
+        #if self.should_queue():
+        #    self.ratelimiter.queue(self)
+
+    # Message receiving calls #
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
@@ -76,13 +89,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
         if len(payload) == p_remain:
             self.got_message(self.partial_recv)
             self.partial_recv = ''
-    def transfer_ctl_msg(self, type, message=""):
-        ''' Send method for file transfer messages.
-            ie. CHOKE, INTERESTED, PIECE '''
-        payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
-        self.neighbor.queue_message(self.stream_id, RELAY + payload)
-        if self.should_queue():
-            self.ratelimiter.queue(self)
     def got_choke(self):
         if self.download:
             self.download.got_choke()
@@ -131,7 +137,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
         if self.download.got_piece(i, toint(message[5:9]), message[9:]):
             for ep in self.torrent.active_streams:
                 ep.send_have(i)
-    ## Send messages ##
+
+    # Message sending calls #
     def send_break(self):
         self.network_ctl_msg(BREAK)
         self.sent_break = True
@@ -169,7 +176,3 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def send_piece(self, index, begin, piece):
         msg = "".join([tobinary(index), tobinary(begin), piece])
         self.transfer_ctl_msg(PIECE, msg)
-    def invalid_message(self, t):
-        log.warning("Invalid message of type %02x on %s. Closing stream."% \
-                    (ord(t), self.uniq_id()))
-        self.close()
