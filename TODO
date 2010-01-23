@@ -1,15 +1,12 @@
 TODO for .9:
-    0) Non-blocking SSL connect!
-    1) Checking tracker certs against stored certificates in addition
-       to checking CA
+    0) Cleanly remove streams from RateLimiter on stream shutdown (Use Dummy)
+    1) Ask someone about the TCP RST flags we get occasionally
     2) Finish Protocol Specification!: Path Generation, Hybrid Encryption
     3) Throw TCode generation into its own thread, or have a unique thread
         for each request (Much harder!)
     4) Solid round of bugtesting
-    5) Check all uses of sys.platform. Might explain cygwin problems
-            http://docs.python.org/library/sys.html#sys.platform
-    6) Dedicated seeders for the first few days
-            
+    5) Dedicated seeders for the first few days
+
 TODO for 1.0:
     0)  Dedicated tracker server. No other services, just hidden, key-authed SSH and tracker.anomos.info.
         This also means an established set of firewall rules and a good blocklist.
@@ -18,3 +15,5 @@ TODO for 1.0:
     k)   Debian package. Find a Deb/Ubu maintainer.
     k+1) Advertising. Bram used porn - I'm thinking this might actually be the way to go. 
         Also, Stickers/Street team? Maybe we can trade stickers/merch for donations.
+    k+2) Check all uses of sys.platform. Might explain cygwin problems
+            http://docs.python.org/library/sys.html#sys.platform
