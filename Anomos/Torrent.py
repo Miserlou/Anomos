@@ -14,8 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 class Torrent(object):
-    
-    def __init__(self, infohash=None, make_upload=None, downloader=None, numpieces=None):
+
+    def __init__(self, infohash=None, make_upload=None, downloader=None,
+            numpieces=None, context=None):
         ''' Create a new Torrent object
             @param infohash: The torrent's infohash
             @param make_upload: a function for performing uploads
@@ -44,6 +45,8 @@ class Torrent(object):
         self.downtotal_old = 0
         self.active_streams = []
 
+        self.context = context
+
     def add_active_stream(self, endpoint):
         if endpoint not in self.active_streams:
             self.active_streams.append(endpoint)
@@ -56,3 +59,7 @@ class Torrent(object):
         for s in self.active_streams:
             if not s.closed:
                 s.close()
+
+    def handle_exception(self, e):
+        if self.context and getattr(self.context, 'got_exception', None):
+            self.context.got_exception(e)

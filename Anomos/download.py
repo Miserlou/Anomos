@@ -95,8 +95,8 @@ class Multitorrent(object):
             ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
             self.nbr_mngrs[metainfo.announce] = \
                     NeighborManager(config, self.certificate, \
-                                    self.sessionid, self.schedule, \
-                                    self.ratelimiter)
+                                    self.ssl_ctx, self.sessionid, \
+                                    self.schedule, self.ratelimiter)
 
         torrent = _SingleTorrent(self.schedule, \
                                  self.singleport_listener,\
@@ -200,7 +200,6 @@ class _SingleTorrent(object):
         self.feedback = None
         self.messages = []
         self.neighbors = neighbors
-        self.neighbors.deep_exception = self.got_exception
         self.certificate = certificate
         self.sessionid = sessionid
 
@@ -311,7 +310,7 @@ class _SingleTorrent(object):
                     self._storagewrapper, self.config['max_slice_length'],
                     self.config['max_rate_period'])
         self._torrent = Torrent(self.infohash, make_upload,
-                                downloader, len(metainfo.hashes)) 
+                                downloader, len(metainfo.hashes), self)
         self.reported_port = self.config['forwarded_port']
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port(self.neighbors)

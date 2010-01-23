@@ -29,10 +29,10 @@ class NeighborManager(object):
     '''NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
     '''
-    def __init__(self, config, certificate, sessionid, schedule, ratelimiter):
+    def __init__(self, config, certificate, ssl_ctx, sessionid, schedule, ratelimiter):
         self.config = config
         self.certificate = certificate
-        self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=True)
+        self.ssl_ctx = ssl_ctx
         self.sessionid = sessionid
         self.schedule = schedule
         self.ratelimiter = ratelimiter
@@ -41,7 +41,6 @@ class NeighborManager(object):
         self.relay_count = 0
         self.incomplete = {}
         self.torrents = {}
-        self.deep_exception = None
 
         self.waiting_tcs = {}
 

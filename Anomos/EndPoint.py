@@ -90,8 +90,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.closed = True
 
     def got_exception(self, e):
-        if self.manager.deep_exception:
-            self.manager.deep_exception(e)
+        self.torrent.handle_exception(e)
 
     def uniq_id(self):
         return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)
