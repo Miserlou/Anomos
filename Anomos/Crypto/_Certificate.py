@@ -120,7 +120,7 @@ class Certificate:
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
         if self.secure:
-            # Save the key, aes 256 cbc encrypted
+            # Save the key, AES256-CBC encrypted
             self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
         else:
             # Save the key unencrypted.
@@ -150,21 +150,26 @@ class Certificate:
 
     def get_ctx(self, allow_unknown_ca=False, req_peer_cert=True, session=None):
         ctx = SSL.Context("tlsv1")
-        ctx.set_cipher_list(CIPHER_SET)
-        ctx.set_options(CTX_OPTIONS)
-        cloc = os.path.join(global_certpath, 'cacert.root.pem')
-        if ctx.load_verify_locations(cafile=cloc) != 1:
-            log.error("Problem loading CA certificates")
-            raise CryptoError('CA certificates not loaded')
+        # Set certificate and private key
         m2.ssl_ctx_use_x509(ctx.ctx, self.cert.x509)
         m2.ssl_ctx_use_rsa_privkey(ctx.ctx, self.rsakey.rsa)
         if not m2.ssl_ctx_check_privkey(ctx.ctx):
             raise CryptoError('public/private key mismatch')
+        # Ciphers/Options
+        ctx.set_cipher_list(CIPHER_SET)
+        ctx.set_options(CTX_OPTIONS)
+        # CA settings
+        cloc = os.path.join(global_certpath, 'cacert.root.pem')
+        if ctx.load_verify_locations(cafile=cloc) != 1:
+            log.error("Problem loading CA certificates")
+            raise CryptoError('CA certificates not loaded')
+        # Verification
         cb = mk_verify_cb(allow_unknown_ca=allow_unknown_ca)
         CTX_V_FLAGS = SSL.verify_peer
         if req_peer_cert:
             CTX_V_FLAGS |= SSL.verify_fail_if_no_peer_cert
         ctx.set_verify(CTX_V_FLAGS,3,cb)
+        # Session
         if session:
             ctx.set_session_id_ctx(session)
         return ctx
