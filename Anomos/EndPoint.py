@@ -56,7 +56,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.torrent.add_active_stream(self)
 
     def is_flushed(self):
-        return self.neighbor.socket.flushed()
+        return self.neighbor.socket.flushed() and not self.neighbor.in_queue(self.stream_id)
 
     def connection_flushed(self):
         if self.complete and self.should_queue():

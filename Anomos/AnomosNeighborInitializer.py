@@ -67,6 +67,7 @@ class AnomosNeighborInitializer(object):
         self.manager.connection_completed(self.socket, self.id)
         if self.id == NAT_CHECK_ID:
             self.socket.close()
+        self.socket = None
     def protocol_extensions(self):
         """Anomos puts [1:nid][7:null char] into the
            BitTorrent reserved header bytes"""
@@ -84,5 +85,6 @@ class AnomosNeighborInitializer(object):
             log.info("Failed to initialize connection to %s" % str(self.id))
         if not self.complete:
             self.manager.initializer_failed(self.id)
+        self.socket = None
     def connection_flushed(self):
         pass

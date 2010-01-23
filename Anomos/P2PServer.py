@@ -12,6 +12,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import traceback
+import socket
 
 from Anomos import LOG as log
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
@@ -53,9 +54,9 @@ class P2PServer(SSL.ssl_dispatcher):
 
         try:
             sock, addr = self.socket.accept()
-        except Exception, err: # A variety of exceptions might be thrown here
-            log.warning(err) # if anyone wants to figure out exactly which
-            return           # ones, that'd be great.
+        except (SSL.SSLError, socket.error), err:
+            log.warning(err)
+            return
 
         conn = P2PConnection(socket=sock)
         AnomosNeighborInitializer(self.neighbor_manager, conn)

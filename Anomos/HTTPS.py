@@ -155,6 +155,19 @@ class HTTPSConnection(asynchat.async_chat):
         traceback.print_exc()
         self.close()
 
+    def handle_close(self):
+        self.socket.set_shutdown(SSL.m2.SSL_SENT_SHUTDOWN|SSL.m2.SSL_RECEIVED_SHUTDOWN)
+        self.close()
+
+    def close(self):
+        self.del_channel()
+        if self.socket.get_shutdown():
+            self.socket.close() # SSL.Connection.close()
+        else:
+            self.socket.clear()
+        self.connected = False
+
+
 
 class HTTPSServer(SSL.ssl_dispatcher):
     def __init__(self, addr, port, ssl_context, getfunc):
@@ -170,7 +183,6 @@ class HTTPSServer(SSL.ssl_dispatcher):
         conn=SSL.Connection(self.ssl_ctx)
         self.set_socket(conn)
         self.socket.setblocking(0)
-        self.socket.set_accept_state()
         self.set_reuse_addr()
         self.add_channel()
 
@@ -192,7 +204,7 @@ class HTTPSServer(SSL.ssl_dispatcher):
         self.clear()
 
     def writable(self):
-        return 0
+        return False
 
     def close(self):
         self.del_channel()

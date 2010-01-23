@@ -152,6 +152,8 @@ class NeighborLink(AnomosNeighborProtocol):
         t = self.streams.has_key(streamid)
         if not t or (t and not self.streams[streamid].sent_break):
             self.pmq.queue_message(streamid, message)
+        if self.socket.flushed():
+            self.connection_flushed()
 
     def in_queue(self, id):
         return self.pmq.msgs.has_key(id) and len(self.pmq.msgs[id]) > 0

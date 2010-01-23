@@ -23,6 +23,7 @@ import traceback
 
 from Anomos import LOG as log
 from M2Crypto import SSL
+from errno import ECONNRESET, ENOTCONN, ESHUTDOWN
 
 class P2PConnection(asynchat.async_chat):
     def __init__(self, socket=None, addr=None, ssl_ctx=None, connect_cb=None,
@@ -35,6 +36,8 @@ class P2PConnection(asynchat.async_chat):
         self.collector = None
         self.new_collector = False
         self.started_locally = (addr is not None)
+
+        self.want_write = False
 
         if self.started_locally:
             t = threading.Thread(target=self.connect, args=(addr,))
@@ -58,6 +61,18 @@ class P2PConnection(asynchat.async_chat):
         return (self.ac_out_buffer == '') and self.producer_fifo.is_empty()
 
     ## asynchat.async_chat methods ##
+
+    def writable (self):
+        "predicate for inclusion in the writable for select()"
+        # return len(self.ac_out_buffer) or len(self.producer_fifo) or
+        #        (not self.connected) or self.want_write
+        # this is about twice as fast, though not as clear.
+        return not (
+                (self.ac_out_buffer == '') and
+                self.producer_fifo.is_empty() and
+                self.connected and
+                not self.want_write
+                )
 
     def collect_incoming_data(self, data):
         if self.collector:
@@ -83,14 +98,30 @@ class P2PConnection(asynchat.async_chat):
                 self.close()
 
     def recv(self, buffer_size):
-        try:
-            data = self.socket.recv(buffer_size)
-        except SSL.SSLError:
-            self.handle_error()
-            return
-        if data is None:
+        data = self._read_nbio(buffer_size)
+        if not data:
+            self.want_write = True
             data = ''
         return data
+
+    def initiate_send (self):
+        obs = self.ac_out_buffer_size
+        # try to refill the buffer
+        if (len (self.ac_out_buffer) < obs):
+            self.refill_buffer()
+
+        if self.ac_out_buffer and self.connected:
+            # try to send the buffer
+            try:
+                num_sent = self._write_nbio(self.ac_out_buffer[:obs])
+            except SSL.SSLError:
+                self.handle_error()
+                return
+            if num_sent < 0:
+                if err == SSL.m2.ssl_error_want_write:
+                    self.want_write = True
+            else:
+                self.ac_out_buffer = self.ac_out_buffer[num_sent:]
 
     ## asyncore.dispatcher methods ##
 
@@ -130,48 +161,77 @@ class P2PConnection(asynchat.async_chat):
             self.connect_cb(self)
             self.connect_cb = None
 
-    def handle_write(self):
+    def handle_read (self):
+        """ Essentially copied from asynchat. Main differences are
+            SSL friendly recv error handling, and the removal of
+            some terminator cases which don't occur in Anomos """
         try:
-            self.initiate_send()
-        except SSL.SSLError:
-            self.handle_error()
+            data = self.recv (self.ac_in_buffer_size)
+        except SSL.SSLError, err:
+            if "unexpected eof" in err:
+                self.handle_close()
+            elif err[0] in [ECONNRESET, ENOTCONN, ESHUTDOWN]:
+                self.handle_close()
+            else:
+                self.handle_error()
+            return
+
+        self.ac_in_buffer = self.ac_in_buffer + data
+
+        # Continue to search for self.terminator in self.ac_in_buffer,
+        # while calling self.collect_incoming_data.  The while loop
+        # is necessary because we might read several data+terminator
+        # combos with a single recv(1024).
+
+        while self.ac_in_buffer:
+            lb = len(self.ac_in_buffer)
+            n = self.get_terminator()
+            if lb < n:
+                self.collect_incoming_data (self.ac_in_buffer)
+                self.ac_in_buffer = ''
+                self.terminator = self.terminator - lb
+            else:
+                self.collect_incoming_data (self.ac_in_buffer[:n])
+                self.ac_in_buffer = self.ac_in_buffer[n:]
+                self.terminator = 0
+                self.found_terminator()
+
+
+    def handle_write(self):
+        self.want_write = False
+        self.initiate_send()
         if self.flushed():
             self.collector.connection_flushed()
 
-    def handle_read(self):
-        try:
-            asynchat.async_chat.handle_read(self)
-        except SSL.SSLError:
-            self.handle_error()
-
     def handle_expt(self):
         log.critical("Exception encountered!")
-        self.clear()
+        self.close()
 
     def handle_error(self):
         #TODO: Better logging here..
         t, v, tb = sys.exc_info()
         if isinstance(v, KeyboardInterrupt):
             raise
-        log.info(traceback.format_exc())
-        self.clear()
+        else:
+            log.info(traceback.format_exc())
+            self.close()
+
+    def handle_close(self):
+        log.info("Doing Handle Close")
+        if self.collector:
+            self.collector.connection_closed()
+        self.socket.set_shutdown(SSL.m2.SSL_SENT_SHUTDOWN|SSL.m2.SSL_RECEIVED_SHUTDOWN)
+        self.close()
 
     def close(self):
-        if self.collector:
-            self.collector.connection_closed()
+        log.info("Closing")
         self.del_channel()
-        self.socket.close() # SSL.Connection.close()
+        if self.socket.get_shutdown():
+            self.socket.close() # SSL.Connection.close()
+        else:
+            self.socket.clear()
         self.collector = None
-
-    def clear(self):
-        # clear() is called after errors, so call the connect_cb
-        # if necessary
-        self.do_connect_cb()
-        if self.collector:
-            self.collector.connection_closed()
-        self.del_channel()  # Remove this socket from asyncore map
-        self.socket.clear() # SSL.Connection.clear()
-        self.collector = None
+        self.connected = False
 
 
 class PostConnectionChecker(SSL.Checker.Checker):

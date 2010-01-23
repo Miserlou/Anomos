@@ -96,7 +96,8 @@ class Relayer(AnomosRelayerProtocol):
             log.warning("Double close")
             return
         log.info("Closing %s"%self.uniq_id())
-        self.send_break()
+        if not self.sent_break:
+            self.send_break()
         self.shutdown()
 
     def shutdown(self):
@@ -120,7 +121,8 @@ class Relayer(AnomosRelayerProtocol):
         if self.closed:
             log.warning("Double close")
             return
-        self.send_break()
+        if not self.sent_break:
+            self.send_break()
 
     def flush_pre_buffer(self):
         for msg in self.pre_complete_buffer:
@@ -128,11 +130,11 @@ class Relayer(AnomosRelayerProtocol):
         self.pre_complete_buffer = []
 
     def is_flushed(self):
-        return self.neighbor.socket.writable()
+        return self.neighbor.socket.flushed()
 
     def got_exception(self, e):
-        if self.manager.deep_exception:
-            self.manager.deep_exception(e)
+        log.error(e)
+        #self.torrent.handle_exception(e)
 
     def uniq_id(self):
         return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)

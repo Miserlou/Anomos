@@ -219,7 +219,7 @@ class NeighborManager(object):
         if len(self.torrents) == 0:
             # Close all streams when the last torrent is removed
             for n in self.neighbors.values():
-                n.socket.close()
+                n.socket.handle_close()
 
     def get_torrent(self, infohash):
         return self.torrents.get(infohash, None)
