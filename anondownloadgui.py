@@ -35,7 +35,6 @@ import webbrowser
 import logging
 from urllib import quote, url2pathname, urlopen
 import socket
-import thread
 
 from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
 from Anomos.controlsocket import ControlSocket

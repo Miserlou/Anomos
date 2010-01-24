@@ -21,7 +21,6 @@ import os
 import threading
 
 from time import time, strftime
-from signal import signal, SIGWINCH
 from cStringIO import StringIO
 from urllib2 import urlopen
 
