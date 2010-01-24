@@ -91,9 +91,7 @@ class NeighborManager(object):
     def socket_cb(self, sock):
         """ Called by P2PConnection after connect() has completed """
         if sock.connected:
-            #XXX: This call to log was causing this thread to suspend
-            # indefinitely. So much for log being 100% thread-safe
-            #log.info(sock.addr)
+            log.info(sock.addr)
             for id,v in self.incomplete.iteritems():
                 if v == sock.addr:
                     break
