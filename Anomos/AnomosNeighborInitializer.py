@@ -66,7 +66,7 @@ class AnomosNeighborInitializer(object):
         self.complete = True
         self.manager.connection_completed(self.socket, self.id)
         if self.id == NAT_CHECK_ID:
-            self.socket.close()
+            self.socket.handle_close()
         self.socket = None
     def protocol_extensions(self):
         """Anomos puts [1:nid][7:null char] into the
