@@ -89,8 +89,11 @@ class NeighborManager(object):
                              schedule=self.schedule)
 
     def socket_cb(self, sock):
+        """ Called by P2PConnection after connect() has completed """
         if sock.connected:
-            log.info(sock.addr)
+            #XXX: This call to log was causing this thread to suspend
+            # indefinitely. So much for log being 100% thread-safe
+            #log.info(sock.addr)
             for id,v in self.incomplete.iteritems():
                 if v == sock.addr:
                     break
@@ -102,8 +105,7 @@ class NeighborManager(object):
             for k,v in self.incomplete.items():
                 if v == sock.addr:
                     self.rm_neighbor(k)
-            log.info("Failed to open connection to %s\n" %
-                                 str(sock.addr))
+            log.info("Failed to open connection to %s\n" % str(sock.addr))
 
     def failed_connections(self):
         return self.failedPeers
