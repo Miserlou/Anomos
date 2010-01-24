@@ -17,6 +17,7 @@ class EventHandler(object):
         if self.map is None:
             self.map = asyncore.socket_map
 
+        self.contexts = {None : True}
         self.tasks = [] # [[time, function, [arg0,...,argN]], ...]
         self.externally_added = []
         self.thread = threading.currentThread()
@@ -40,10 +41,18 @@ class EventHandler(object):
         while self.externally_added:
             self.schedule(*self.externally_added.pop(0))
 
+    def add_context(self, context):
+        self.contexts[context] = True
+
+    def remove_context(self, context):
+        del self.contexts[context]
+        self.tasks = [x for x in self.tasks if x[2] != context]
+
     def schedule(self, delay, func, context=None):
         """ Insert a task into the queue in a threadsafe manner """
         if threading.currentThread() == self.thread:
-            bisect.insort(self.tasks, (bttime() + delay, func, context))
+            if self.contexts.get(context, False):
+                bisect.insort(self.tasks, (bttime() + delay, func, context))
         else:
             self._external_schedule(delay, func, context)
 

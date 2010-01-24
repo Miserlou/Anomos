@@ -98,11 +98,12 @@ class Multitorrent(object):
                                     self.ssl_ctx, self.sessionid, \
                                     self.schedule, self.ratelimiter)
 
-        torrent = _SingleTorrent(self.schedule, \
+        torrent = _SingleTorrent(self.event_handler, \
                                  self.singleport_listener,\
                                  self.ratelimiter, self.filepool, config,\
                                  self.nbr_mngrs[metainfo.announce],\
                                  self.certificate, self.sessionid)
+        self.event_handler.add_context(torrent)
         def start():
             torrent.start_download(metainfo, feedback, filename)
         self.schedule(0, start, context=torrent)
@@ -167,9 +168,9 @@ class Multitorrent(object):
 
 class _SingleTorrent(object):
 
-    def __init__(self, schedule, singleport_listener, ratelimiter, filepool,
+    def __init__(self, event_handler, singleport_listener, ratelimiter, filepool,
                  config, neighbors, certificate, sessionid):
-        self.schedule = lambda delay, func: schedule(delay, func, context=self)
+        self.event_handler = event_handler
         self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
         self._filepool = filepool
@@ -202,6 +203,9 @@ class _SingleTorrent(object):
         self.neighbors = neighbors
         self.certificate = certificate
         self.sessionid = sessionid
+
+    def schedule(self, delay, func):
+        self.event_handler.schedule(delay, func, context=self)
 
     def start_download(self, *args, **kwargs):
         it = self._start_download(*args, **kwargs)
@@ -433,10 +437,12 @@ class _SingleTorrent(object):
         if self.closed:
             return
         self.closed = True
-        
+
         # GTK Crash Hack
         import time
         time.sleep(.2)
+
+        self.event_handler.remove_context(self)
 
         self._doneflag.set()
         log.info("Closing connections, please wait...")
