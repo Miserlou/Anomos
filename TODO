@@ -1,4 +1,7 @@
 TODO for .9:
+   -2) Relayer counting wtf
+   -1) Tracker needs to avoid issuing TC codes (for the same torrents)
+       on every announce
     0) Cleanly remove streams from RateLimiter on stream shutdown (Use Dummy)
     1) Ask someone about the TCP RST flags we get occasionally
     2) Finish Protocol Specification!: Path Generation, Hybrid Encryption
