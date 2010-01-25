@@ -11,17 +11,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import traceback
+import asyncore
 import socket
+import traceback
 
 from Anomos import LOG as log
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.P2PConnection import P2PConnection
 from M2Crypto import SSL
 
-class P2PServer(SSL.ssl_dispatcher):
+class P2PServer(asyncore.dispatcher):
     def __init__(self, addr, port, ssl_context):
-        SSL.ssl_dispatcher.__init__(self)
+        asyncore.dispatcher.__init__(self)
         self.create_socket(ssl_context)
         self.bound = False     # The bound variable is to prevent handle_error
         self.bind((addr, port))# from logging errors caused by the following

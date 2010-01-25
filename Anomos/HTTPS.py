@@ -11,19 +11,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asynchat
+import asyncore
 import traceback
 
 from Anomos import bttime, LOG as log
+from Anomos.Dispatcher import Dispatcher
 from M2Crypto import SSL
 from cStringIO import StringIO
 from gzip import GzipFile
 from time import strftime
 
 
-class HTTPSConnection(asynchat.async_chat):
+class HTTPSConnection(Dispatcher):
     def __init__(self, socket, getfunc):
-        asynchat.async_chat.__init__(self, socket)
+        Dispatcher.__init__(self, socket)
         self.req = ''
         self.set_terminator('\n')
         self.getfunc = getfunc
@@ -131,30 +132,6 @@ class HTTPSConnection(asynchat.async_chat):
         self.req = ''
         self.next_func = self.next_func(creq)
 
-    ## asyncore.dispatcher methods ##
-    def handle_write(self):
-        try:
-            self.initiate_send()
-        except SSL.SSLError, err:
-            log.error(err)
-            self.handle_error()
-
-    def handle_read(self):
-        try:
-            asynchat.async_chat.handle_read(self)
-        except SSL.SSLError, err:
-            # TODO: Should we handle 'unexpected eof' differently?
-            self.handle_error()
-
-    def handle_expt(self):
-        #TODO: Better logging here..
-        traceback.print_exc()
-        self.close()
-    def handle_error(self):
-        #TODO: Better logging here..
-        traceback.print_exc()
-        self.close()
-
     def handle_close(self):
         self.socket.set_shutdown(SSL.m2.SSL_SENT_SHUTDOWN|SSL.m2.SSL_RECEIVED_SHUTDOWN)
         self.close()
@@ -169,9 +146,9 @@ class HTTPSConnection(asynchat.async_chat):
 
 
 
-class HTTPSServer(SSL.ssl_dispatcher):
+class HTTPSServer(asyncore.dispatcher):
     def __init__(self, addr, port, ssl_context, getfunc):
-        SSL.ssl_dispatcher.__init__(self)
+        asyncore.dispatcher.__init__(self)
         self.ssl_ctx=ssl_context
         self.create_socket()
         self.bind((addr, port))

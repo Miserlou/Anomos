@@ -17,18 +17,16 @@
 
 import asynchat
 import socket
-import sys
 import threading
-import traceback
 
 from Anomos import LOG as log
+from Anomos.Dispatcher import Dispatcher
 from M2Crypto import SSL
-from errno import ECONNRESET, ENOTCONN, ESHUTDOWN
 
-class P2PConnection(asynchat.async_chat):
+class P2PConnection(Dispatcher):
     def __init__(self, socket=None, addr=None, ssl_ctx=None, connect_cb=None,
             schedule=None):
-        asynchat.async_chat.__init__(self, socket)
+        Dispatcher.__init__(self, socket)
 
         self.ssl_ctx = ssl_ctx
         self.connect_cb = connect_cb
@@ -97,32 +95,6 @@ class P2PConnection(asynchat.async_chat):
             else:
                 self.close()
 
-    def recv(self, buffer_size):
-        data = self._read_nbio(buffer_size)
-        if not data:
-            self.want_write = True
-            data = ''
-        return data
-
-    def initiate_send (self):
-        obs = self.ac_out_buffer_size
-        # try to refill the buffer
-        if (len (self.ac_out_buffer) < obs):
-            self.refill_buffer()
-
-        if self.ac_out_buffer and self.connected:
-            # try to send the buffer
-            try:
-                num_sent = self._write_nbio(self.ac_out_buffer[:obs])
-            except SSL.SSLError:
-                self.handle_error()
-                return
-            if num_sent < 0:
-                if err == SSL.m2.ssl_error_want_write:
-                    self.want_write = True
-            else:
-                self.ac_out_buffer = self.ac_out_buffer[num_sent:]
-
     ## asyncore.dispatcher methods ##
 
     def connect(self, addr):
@@ -161,60 +133,11 @@ class P2PConnection(asynchat.async_chat):
             self.connect_cb(self)
             self.connect_cb = None
 
-    def handle_read (self):
-        """ Essentially copied from asynchat. Main differences are
-            SSL friendly recv error handling, and the removal of
-            some terminator cases which don't occur in Anomos """
-        try:
-            data = self.recv (self.ac_in_buffer_size)
-        except SSL.SSLError, err:
-            if "unexpected eof" in err:
-                self.handle_close()
-            elif err[0] in [ECONNRESET, ENOTCONN, ESHUTDOWN]:
-                self.handle_close()
-            else:
-                self.handle_error()
-            return
-
-        self.ac_in_buffer = self.ac_in_buffer + data
-
-        # Continue to search for self.terminator in self.ac_in_buffer,
-        # while calling self.collect_incoming_data.  The while loop
-        # is necessary because we might read several data+terminator
-        # combos with a single recv(1024).
-
-        while self.ac_in_buffer:
-            lb = len(self.ac_in_buffer)
-            n = self.get_terminator()
-            if lb < n:
-                self.collect_incoming_data (self.ac_in_buffer)
-                self.ac_in_buffer = ''
-                self.terminator = self.terminator - lb
-            else:
-                self.collect_incoming_data (self.ac_in_buffer[:n])
-                self.ac_in_buffer = self.ac_in_buffer[n:]
-                self.terminator = 0
-                self.found_terminator()
-
-
     def handle_write(self):
         self.want_write = False
         self.initiate_send()
         if self.flushed():
             self.collector.connection_flushed()
-
-    def handle_expt(self):
-        log.critical("Exception encountered!")
-        self.close()
-
-    def handle_error(self):
-        #TODO: Better logging here..
-        t, v, tb = sys.exc_info()
-        if isinstance(v, KeyboardInterrupt):
-            raise
-        else:
-            log.info(traceback.format_exc())
-            self.close()
 
     def handle_close(self):
         log.info("Doing Handle Close")
