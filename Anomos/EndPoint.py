@@ -42,9 +42,9 @@ class EndPoint(AnomosEndPointProtocol):
             log.info("Sent confirm")
 
     def connection_completed(self):
-        ''' Called when a CONFIRM message is received
+        """ Called when a CONFIRM message is received
             indicating that our peer has received our
-            tracking code '''
+            tracking code """
         if self.complete:
             log.warning("Double complete")
             return

@@ -48,8 +48,8 @@ class AnomosEndPointProtocol(AnomosProtocol):
                     (ord(t), self.uniq_id()))
         self.close()
     def transfer_ctl_msg(self, type, message=""):
-        ''' Send method for file transfer messages.
-            ie. CHOKE, INTERESTED, PIECE '''
+        """ Send method for file transfer messages.
+            ie. CHOKE, INTERESTED, PIECE """
         payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
         self.neighbor.queue_message(self.stream_id, RELAY + payload)
         #if self.should_queue():

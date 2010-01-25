@@ -17,7 +17,7 @@ class Torrent(object):
 
     def __init__(self, infohash=None, make_upload=None, downloader=None,
             numpieces=None, context=None):
-        ''' Create a new Torrent object
+        """ Create a new Torrent object
             @param infohash: The torrent's infohash
             @param make_upload: a function for performing uploads
             @param downloader: A downloader object, for downloading
@@ -25,7 +25,7 @@ class Torrent(object):
             @type infohash: string
             @type make_upload: function
             @type downloader: downloader
-            @type numpieces: int'''
+            @type numpieces: int"""
         self.infohash = infohash
         self.make_upload = make_upload
         self.downloader = downloader

@@ -33,8 +33,8 @@ if m2version < (0, 20, 0):
     from M2Crypto.httpslib import ProxyHTTPSConnection as BrokenHTTPSLib
     import urllib
     class ProxyHTTPSConnection(BrokenHTTPSLib):
-        '''M2Crypto currently fails to cast the port it gets from the url
-           string to an integer -- this class hacks around that.'''
+        """M2Crypto currently fails to cast the port it gets from the url
+           string to an integer -- this class hacks around that."""
         def putrequest(self, method, url, skip_host=0, skip_accept_encoding=0):
             #putrequest is called before connect, so can interpret url and get
             #real host/port to be used to make CONNECT request to proxy

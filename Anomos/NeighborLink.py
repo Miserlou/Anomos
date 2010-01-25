@@ -24,9 +24,9 @@ from Anomos import LOG as log
 from Anomos.Protocol import toint
 
 class NeighborLink(AnomosNeighborProtocol):
-    ''' NeighborLink handles the socket between two neighbors and keeps
+    """ NeighborLink handles the socket between two neighbors and keeps
         track of the objects used to manage the active streams between
-        those neighbors. '''
+        those neighbors. """
     def __init__(self, manager, socket, id, config, ratelimiter):
         AnomosNeighborProtocol.__init__(self)
         self.socket = socket
@@ -56,8 +56,8 @@ class NeighborLink(AnomosNeighborProtocol):
         self._message += data
 
     def _read_messages(self):
-        ''' Read messages off the line and relay or process them
-            depending on connection type '''
+        """ Read messages off the line and relay or process them
+            depending on connection type """
         while True:
             yield 2 # Stream ID
             stream = toint(self._message)
@@ -78,14 +78,14 @@ class NeighborLink(AnomosNeighborProtocol):
 
     ## Stream Management ##
     def start_endpoint_stream(self, torrent, aeskey, data=None):
-        ''' Starts an EndPoint stream
+        """ Starts an EndPoint stream
             @param torrent: Torrent to be uploaded/downloaded
             @param aeskey: AES-256 key to be used for transfer communication
             @param data: Tracking Code to be sent
             @type torrent: Anomos.Torrent.Torrent
             @type aeskey: Anomos.crypto.AESKey
             @type data: String
-            @return: Newly created EndPoint object'''
+            @return: Newly created EndPoint object"""
         if data is None: # Incoming stream
             nxtid = self.incoming_stream_id
             self.next_stream_id = nxtid + 1
@@ -98,7 +98,7 @@ class NeighborLink(AnomosNeighborProtocol):
         return self.streams[nxtid]
 
     def start_relay_stream(self, nid, data=None, orelay=None):
-        ''' Starts one half of a relay stream. The first half started
+        """ Starts one half of a relay stream. The first half started
             will have orelay=None, the second will have orelay=<first relay object>
             @param nid: The Neighbor ID for the other-half of this Relayer
             @param data: The Tracking Code to be forwarded
@@ -106,7 +106,7 @@ class NeighborLink(AnomosNeighborProtocol):
             @type nid: char
             @type data: String
             @type orelay: Anomos.Relayer.Relayer
-            @return: Newly created Relayer object'''
+            @return: Newly created Relayer object"""
         if orelay is None: # Incoming stream
             nxtid = self.incoming_stream_id
             self.next_stream_id = nxtid + 1
@@ -123,27 +123,27 @@ class NeighborLink(AnomosNeighborProtocol):
                 s.close()
 
     def end_stream(self, id):
-        ''' Terminate the stream with specified stream id. Should be
+        """ Terminate the stream with specified stream id. Should be
             called by the stream object which is to be terminated to ensure
             proper shutdown of that stream.
             @param id: Stream id of stream to end
-            @type id: int in range 0 to 2**16'''
+            @type id: int in range 0 to 2**16"""
         self.pmq.remove_by_sid(id)
         if self.streams.has_key(id):
             del self.streams[id]
 
     def get_stream_handler(self, id):
-        ''' Return the handler associated with streamid, otherwise
+        """ Return the handler associated with streamid, otherwise
             return a reference to self (because receiving an unassociated
             stream id implies it's a new one).
             @param id: Stream id to fetch
-            @type id: int in range 0 to 2**16'''
+            @type id: int in range 0 to 2**16"""
         return self.streams.get(id, self)
 
     def connection_flushed(self):
-        ''' Inform all streams that the connection is
+        """ Inform all streams that the connection is
             flushed so they may requeue themselves if
-            they need to '''
+            they need to """
         for stream in self.streams.itervalues():
             stream.connection_flushed()
 
@@ -161,9 +161,9 @@ class NeighborLink(AnomosNeighborProtocol):
         return self.pmq.msgs.has_key(id) and len(self.pmq.msgs[id]) > 0
 
     def send_partial(self, sid, numbytes):
-        ''' Requests numbytes from the PartialMessageQueue
+        """ Requests numbytes from the PartialMessageQueue
             to be sent.
-            @return: Actual number of bytes sent.'''
+            @return: Actual number of bytes sent."""
         msgs = self.pmq.dequeue_partial(sid, numbytes)
         if len(msgs) == 0:
             return 0

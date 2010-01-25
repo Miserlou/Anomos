@@ -19,8 +19,8 @@ from Anomos.Protocol import NAT_CHECK_ID, NAME as protocol_name
 from Anomos import HandshakeError, LOG as log
 
 class AnomosNeighborInitializer(object):
-    ''' Temporary connection handler created to instantiate
-        or receive connections '''
+    """ Temporary connection handler created to instantiate
+        or receive connections """
     def __init__(self, manager, socket, id=None):
         self.manager = manager
         self.socket = socket
@@ -37,9 +37,9 @@ class AnomosNeighborInitializer(object):
     def get_reader(self):
         return self._reader
     def _read_header(self):
-        '''Each yield puts N bytes from Connection.data_came_in into
+        """Each yield puts N bytes from Connection.data_came_in into
            self._message. self._message is then checked for compliance
-           to the Anomos protocol'''
+           to the Anomos protocol"""
         yield 1
         if ord(self._message) != len(protocol_name):
             raise HandshakeError("Protocol name mismatch")

@@ -26,9 +26,9 @@ from Anomos.Measure import Measure
 from Anomos import BTFailure, LOG as log
 
 class NeighborManager(object):
-    '''NeighborManager keeps track of the neighbors a peer is connected to
+    """NeighborManager keeps track of the neighbors a peer is connected to
     and which tracker those neighbors are on.
-    '''
+    """
     def __init__(self, config, certificate, ssl_ctx, sessionid, schedule, ratelimiter):
         self.config = config
         self.certificate = certificate
@@ -63,12 +63,12 @@ class NeighborManager(object):
 
     ## Start a new neighbor connection ##
     def start_connection(self, id, loc):
-        ''' Start a new SSL connection to the peer at loc and 
+        """ Start a new SSL connection to the peer at loc and 
             assign them the NeighborID id
             @param loc: (IP, Port)
             @param id: The neighbor ID to assign to this connection
             @type loc: tuple
-            @type id: int '''
+            @type id: int """
         if self.has_neighbor(id) or self.incomplete.has_key(id):
             # Already had neighbor by that id or at that location
             log.warning('NID collision')
@@ -143,7 +143,7 @@ class NeighborManager(object):
         return len(self.neighbors)
 
     def connection_completed(self, socket, id):
-        '''Called by AnomosNeighborInitializer'''
+        """Called by AnomosNeighborInitializer"""
         if self.incomplete.has_key(id):
             del self.incomplete[id]
         if id == NAT_CHECK_ID:
@@ -162,12 +162,12 @@ class NeighborManager(object):
         self.rm_neighbor(id)
 
     def initializer_failed(self, id):
-        '''Connection closed before finishing initialization'''
+        """Connection closed before finishing initialization"""
         self.rm_neighbor(id)
 
     def start_circuit(self, tc, infohash, aeskey):
-        '''Called from Rerequester to initialize new circuits we've
-        just gotten TCs for from the Tracker'''
+        """Called from Rerequester to initialize new circuits we've
+        just gotten TCs for from the Tracker"""
         if self.count_streams() >= self.config['max_initiate']:
             log.warning("Not starting circuit -- Stream count exceeds maximum")
             return
@@ -195,9 +195,9 @@ class NeighborManager(object):
             self.neighbors[nid].start_endpoint_stream(torrent, aeskey, data=nextTC)
 
     def schedule_tc(self, nid, infohash, aeskey, nextTC):
-        '''Sometimes a tracking code is received before a neighbor is fully
+        """Sometimes a tracking code is received before a neighbor is fully
         initialized. In those cases we schedule the TC to be sent once we get
-        a "connection_completed" from the neighbor.'''
+        a "connection_completed" from the neighbor."""
         def sendtc():
             if self.neighbors.has_key(nid): # Could have been deleted during wait
                 torrent = self.get_torrent(infohash)

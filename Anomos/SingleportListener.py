@@ -22,10 +22,10 @@ from Anomos.P2PServer import P2PServer
 from socket import error as socketerror
 
 class SingleportListener(object):
-    '''SingleportListener gets events from the server sockets (of which there
+    """SingleportListener gets events from the server sockets (of which there
         is one per **tracker**), initializes connection objects, and determines
         what to do with the connection once some data has been read.
-    '''
+    """
     def __init__(self, config, ssl_ctx):
         self.config = config
         self.port = 0

@@ -67,11 +67,11 @@ class BitTorrentProtocol(object):
         """The BitTorrent protocol has 8 reserved bytes in its header"""
         return '\0\0\0\0\0\0\0\0'
     def _read_header(self):
-        '''Yield the number of bytes for each section of the header and sanity
+        """Yield the number of bytes for each section of the header and sanity
            check the received values. If the connection doesn't have a header
            (as in, it's already established) then switch to _read_message and
            reenter the data we read off as if it just came in.
-        '''
+        """
         yield 1   # header length
         if ord(self._message) != len(protocol_name):
             return
@@ -85,8 +85,8 @@ class BitTorrentProtocol(object):
     def _got_full_header(self):
         pass
     def _read_messages(self):
-        ''' Read messages off the line and relay or process them
-            depending on connection type '''
+        """ Read messages off the line and relay or process them
+            depending on connection type """
         while True:
             yield 4   # get the message length in self._message
             l = toint(self._message)
@@ -96,8 +96,8 @@ class BitTorrentProtocol(object):
                 yield l # get the message body
                 self.got_message(self._message)
     def _valid_msg_len(self, m):
-        ''' Check length of received message m against dictionary
-            of valid message lengths '''
+        """ Check length of received message m against dictionary
+            of valid message lengths """
         validp = True
         if m[0] in self.msglens:
             # PIECE must be more than 9 bytes
@@ -107,8 +107,8 @@ class BitTorrentProtocol(object):
                 validp = False
         return validp
     def transfer_ctl_msg(self, type, message=""):
-        ''' Send method for file transfer messages. 
-            ie. CHOKE, INTERESTED, PIECE '''
+        """ Send method for file transfer messages. 
+            ie. CHOKE, INTERESTED, PIECE """
         s = self.format_message(type, message)
         self.send_message(s)
     ## Recv messages ##

@@ -56,10 +56,10 @@ def use_rand_file(function):
     return retfun
 
 def init(data_dir):
-    '''Sets the directory in which to store crypto data/randfile
+    """Sets the directory in which to store crypto data/randfile
     @param data_dir: path to directory
     @type data_dir: string
-    '''
+    """
     # I suppose initializing threading can't hurt, but all of our
     # crypto operations are made from the same thread. So do we need this?
     threading.init()

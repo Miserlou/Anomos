@@ -115,9 +115,9 @@ class Relayer(AnomosRelayerProtocol):
             self.orelay.ore_closed()
 
     def ore_closed(self):
-        ''' Closes the connection when a Break has been received by our
+        """ Closes the connection when a Break has been received by our
             other relay (ore). Called by this object's ore during
-            shutdown '''
+            shutdown """
         if self.closed:
             log.warning("Double close")
             return

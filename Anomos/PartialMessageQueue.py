@@ -33,11 +33,11 @@ class PartialMessageQueue(object):
         self._deeplen = 0
         self.msgs = {}
     def queue_message(self, sid, message):
-        ''' Add a message to the message queue 
+        """ Add a message to the message queue 
             @param streamid: Stream ID of message sender
             @param message: Message to be sent
             @type streamid: int
-            @type message: string'''
+            @type message: string"""
         self._deeplen += len(message)
         self.msgs.setdefault(sid, []).append(message)
     def is_partial(self, message):
@@ -47,12 +47,12 @@ class PartialMessageQueue(object):
         self._deeplen += PARTIAL_FMT_LEN
         return fmt + message
     def dequeue_partial(self, sid, numbytes):
-        ''' Dequeue numbytes from the message queue. Return
+        """ Dequeue numbytes from the message queue. Return
             the stream IDs associated with the messages which
             were dequeued in full and the message to be sent.
             @param numbytes: Number of bytes to be sent
             @type numbytes: int
-            @return: ([Stream IDs...], "Message")'''
+            @return: ([Stream IDs...], "Message")"""
         if self._deeplen == 0 or not self.msgs.has_key(sid):
             return ''
         i, r = self._pindex(sid, numbytes)
@@ -70,7 +70,7 @@ class PartialMessageQueue(object):
         self._deeplen -= sum([len(i) for i in deq])
         return deq
     def remove_by_sid(self, sid):
-        ''' Removes all messages queued by the stream given by sid '''
+        """ Removes all messages queued by the stream given by sid """
         if not self.msgs.has_key(sid):
             return
         del self.msgs[sid]

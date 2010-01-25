@@ -124,7 +124,7 @@ class HandshakeError(Exception):
     pass
 
 def trace_on_call(fn):
-    '''Starts PDB when the decorated method is called'''
+    """Starts PDB when the decorated method is called"""
     import pdb
     def ret_fn(self, *args, **kwargs):
         pdb.set_trace()
@@ -132,7 +132,7 @@ def trace_on_call(fn):
     return ret_fn
 
 def log_on_call(fn):
-    '''Logs a message when the decorated method is called'''
+    """Logs a message when the decorated method is called"""
     def ret_fn(self, *args, **kwargs):
         LOG.info(self.uniq_id() + " calling %s" % fn.__name__)
         return fn(self, *args, **kwargs)
