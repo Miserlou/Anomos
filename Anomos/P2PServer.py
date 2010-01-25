@@ -51,7 +51,9 @@ class P2PServer(asyncore.dispatcher):
         return False
 
     def handle_accept(self):
-        assert self.neighbor_manager is not None
+        if self.neighbor_manager is None:
+            log.warning("Received connection attempt w/o any active torrents")
+            return
 
         try:
             sock, addr = self.socket.accept()
