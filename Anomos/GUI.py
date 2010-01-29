@@ -677,8 +677,57 @@ class SaveFileSelection():
         def hide(self, widget=None):
             return
 
-class ChooseFolderSelection(FileSelection):
-    pass
+class ChooseFolderSelection(gtk.FileSelection):
+
+    def __init__(self, main, title='', fullname='', got_location_func=None, no_location_func=None, got_multiple_location_func=None, show=True):
+        gtk.FileSelection.__init__(self)
+        self.main = main
+        self.set_modal(True)
+        self.set_destroy_with_parent(True)
+        self.set_title(title)
+        if (got_location_func is None and
+            got_multiple_location_func is not None):
+            self.set_select_multiple(True)
+        self.got_location_func = got_location_func
+        self.no_location_func = no_location_func
+        self.got_multiple_location_func = got_multiple_location_func
+        self.cancel_button.connect("clicked", self.destroy)
+        self.d_handle = self.connect('destroy', self.no_location)
+        self.ok_button.connect("clicked", self.done)
+        self.set_filename(fullname)
+        if show:
+            self.show()
+
+    def no_location(self, widget=None):
+        if self.no_location_func is not None:
+            self.no_location_func()
+
+    def done(self, widget=None):
+        if self.get_select_multiple():
+            self.got_multiple_location()
+        else:
+            self.got_location()
+        self.disconnect(self.d_handle)
+        self.destroy()
+
+    def got_location(self):
+        if self.got_location_func is not None:
+            name = self.get_filename()
+            self.got_location_func(name)
+
+    def got_multiple_location(self):
+        if self.got_multiple_location_func is not None:
+            names = self.get_selections()
+            self.got_multiple_location_func(names)
+
+    def destroy(self, widget=None):
+        gtk.FileSelection.destroy(self)
+
+    def close_child_windows(self):
+        self.no_location()
+
+    def close(self, widget=None):
+        self.destroy()
 
 if os.name == 'nt':
     from venster import comdlg
