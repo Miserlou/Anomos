@@ -930,6 +930,7 @@ class FileListWindow(object):
         self.win = Window()
         self.win.set_title('Files in "%s"' % self.metainfo.name)
         self.win.connect("destroy", closefunc)
+        self.win.set_position(gtk.WIN_POS_CENTER)
 
         self.box1 = gtk.VBox()
 
