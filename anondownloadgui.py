@@ -424,7 +424,7 @@ class SeedingButton(gtk.Button):
         self.set_label("Seeds (%d)" % self.count_torrents())
 
     def count_torrents(self):
-        return sum([1 for _,t in self.torrents.iteritems() if t.completion >= 1])
+        return sum([1 for _,t in self.main.torrents.iteritems() if t.completion >= 1])
 
 class DownloadingButton(gtk.Button):
     tip = "List torrents you're downloading"
@@ -451,7 +451,7 @@ class DownloadingButton(gtk.Button):
             self.main.update_torrent_widgets()
 
     def count_torrents(self):
-        return sum([1 for _,t in self.torrents.iteritems() if t.completion < 1])
+        return sum([1 for _,t in self.main.torrents.iteritems() if t.completion < 1])
 
 class VersionWindow(Window):
     def __init__(self, main, newversion, download_url):
@@ -2336,38 +2336,31 @@ class DownloadInfoFrame(object):
 
         file_menu_items = (('_Open an .atorrent file', self.select_torrent_to_open),
 			               ('_Anonymize and open a .torrent file', self.select_old_torrent_to_open),
-                           ('----'          , None),
-                           ('_Play '  , self.startbutton.toggle),
-                           ('Pa_use '  , self.stopbutton.toggle),
-                           ('----'          , None),
+                           ('----',                 None),
+                           ('_Play ',               self.startbutton.toggle),
+                           ('Pa_use ',              self.stopbutton.toggle),
+                           ('----',                 None),
 			               ('Make a _new .atorrent file', self.ntbutton.toggle),
-			               ('----'          , None),
-			               ('S_ettings'     , lambda w: self.open_window('settings')),
-			               ('----'          , None),
-                           ('_Quit'         , lambda w: self.mainwindow.destroy()),
-                           )
-        view_menu_items = (#('Show/Hide _finished torrents', self.toggle_known),
-                           #('_Clean up finished torrents' , self.confirm_remove_finished_torrents),
-                           #('----'          , None),
-                           ('_Downloads'    , self.dbutton.toggle),
-                           ('_Seeds'        , self.sbutton.toggle),
-                           ('----'          , None),
-                           ('_Log'          , lambda w: self.open_window('log')),
-                           # 'View log of all download activity',
-                           #('----'          , None),
-                           ('Settings'     , lambda w: self.open_window('settings')),
-                           #'Change download behavior and network settings',
-                           )
-        
-        control_menu_items = (('_Go'          , self.startbutton.toggle),
-                           ('S_top'          , self.stopbutton.toggle),
+			               ('----',                 None),
+			               ('S_ettings',            lambda w: self.open_window('settings')),
+			               ('----',                 None),
+                           ('_Quit',                lambda w: self.mainwindow.destroy()),
                            )
                            
-        help_menu_items = (('_Help'         , self.open_help),
-                           #('_Help Window'         , lambda w: self.open_window('help')),
-                           ('A_bout'        , lambda w: self.open_window('about')),
-                           ('Donate'       , lambda w: self.donate()),
-                           #('_Raise'        , lambda w: self.raiseerror()), 
+        view_menu_items = (('_Downloads',           self.dbutton.toggle),
+                           ('_Seeds',               self.sbutton.toggle),
+                           ('----',                 None),
+                           ('_Log',                 lambda w: self.open_window('log')),
+                           ('Settings',             lambda w: self.open_window('settings'))
+                           )
+        
+        control_menu_items = (('_Go',               self.startbutton.toggle),
+                           ('S_top',                self.stopbutton.toggle),
+                           )
+                           
+        help_menu_items = (('_Help',                self.open_help),
+                           ('A_bout',               lambda w: self.open_window('about')),
+                           ('Donate',               lambda w: self.donate()), 
                            )
         
         self.filemenu = gtk.MenuItem("_File")
