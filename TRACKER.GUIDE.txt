@@ -1,15 +1,19 @@
-Guide to Running a Anomos Tracker
-0.1
+Guide to Running a Anomos Tracker - 0.1
+Anomos Liberty Enhancements
 
 This document describes how to run an Anomos tracker.
 
 Step 0 - Requirements
 
-    An Anomos tracker must be TIGHTLY secured and managed by a compentant *nix 
+    An Anomos tracker must be TIGHTLY secured and managed by a compentent *nix 
 system administrator. A tracker should be run on a dedicated *nix server with no
 other internet-facing services other than secure, key-authenticated SSH. The 
 server should run a stable distro and security patches should be applied 
 regularly.
+
+    Tracker administrators should also be in regular contact with the Anomos
+development team in case of any important security announcements, and because we
+would like to be your friend. =]
 
 Step 1 - runtracker.sh
 
@@ -24,6 +28,9 @@ a script called runtracker.sh
 
 Execute it like so:
 ./runtracker.sh
+
+If you wish to supply a specific port, use this:
+./runtracker -p 443
 
 If it doesn't run properly, make sure that it is pointing to your anomos source
 directory.
@@ -55,7 +62,47 @@ server-cert.pem file with the signed certificate you got from CACert.
 
 Now clients will be able to authenticate connections with you.
 
+Step 2 - Settings
 
+    You will almost certainly want to modify your tracker for your own purposes. 
+This can be done by modifying the default arguments in the file track.py. Here
+are some of the most important values, though track.py should provide enough
+a good description of what each setting does.
 
+allowed_dir - This decides what torrents should be allowed to be shared on the
+tracker. If it is set, only torrent files in the supplied directory path we be
+allowed to shared. If it is not set, clients will be able to announce with any
+torrent's infohash.
 
+parse_dir_interval - This is how often to check if there are new files in the
+directory given by the previous argument. This will be useful if you wish to add
+shareable files to a tracker without restarting it.
 
+max_path_len - This specifies the maximum length of paths between peers for the 
+tracker to generate.
+
+Step 3 - Firewalls and Blocklists
+
+    To beef up the security and performance of your tracker, you will most
+likely want to set up a firewall rule and establish a blocklist. A good firewall
+rule will limit the rate at which clients are able to make requests to prevent
+flooding.
+    Blocklists can be used to deny tracker access to corporations, governments
+and independent groups who have proven themselves to be harmful to privacy and
+the operation of peer to peer networks. Blocklists can be found from
+www.bluetack.co.uk and www.iblocklist.com. There is a script called linblock,
+available at www.dessent.net/linblock/ which will automatically download and 
+install these lists.
+    There are downsides to blocklists - for one thing, they are never complete,
+and they must not be relied on for complete security. The other downside is that
+they may accidentally block parties who aren't malicious, which would deny
+access to some legitimate users. Take this into consideration if you do decide
+to use blocklists.
+
+If you still have questions, please feel free to ask!
+We are available in these places:
+Email - partners@anomos.info
+Web Forum - http://forum.anomos.info
+IRC - #anomos on irc.freenode.org
+
+Happy tracking!

@@ -18,27 +18,21 @@ import os
 import re
 import sys
 
-#from binascii import b2a_hex
-#from cStringIO import StringIO
 from time import gmtime, strftime
-#from traceback import print_exc
 from urlparse import urlparse
 from urllib2 import quote, unquote
 from cgi import parse_qs
 
 import Anomos.Crypto
 
-#from Anomos import version
 from Anomos.EventHandler import EventHandler
 from Anomos.HTTPS import HTTPSServer
 from Anomos.NatCheck import NatCheck
 from Anomos.NetworkModel import NetworkModel
-
 from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.btformats import statefiletemplate
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
-
 from Anomos import bttime, LOG as log
 
 defaults = [
