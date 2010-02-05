@@ -32,7 +32,7 @@ Execute it like so:
 If you wish to supply a specific port, use this:
 ./runtracker -p 443
 
-If it doesn't run properly, make sure that it is pointing to your anomos source
+If it doesn't run properly, make sure that it is pointing to your Anomos source
 directory.
 
 As this is your first time running the tracker, it will prompt you to answer
