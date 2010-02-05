@@ -39,7 +39,7 @@ As this is your first time running the tracker, it will prompt you to answer
 questions about your certificate. 
 Make sure you answer these questions correctly.
 
-Step 1 - Certificates
+Step 2 - Certificates
 
 Answering the questions prompted by the script will produce a some new files in
 the ./crypto folder. These are your certificates. Before other people can use
@@ -62,7 +62,7 @@ server-cert.pem file with the signed certificate you got from CACert.
 
 Now clients will be able to authenticate connections with you.
 
-Step 2 - Settings
+Step 3 - Settings
 
     You will almost certainly want to modify your tracker for your own purposes. 
 This can be done by modifying the default arguments in the file track.py. Here
@@ -81,7 +81,7 @@ shareable files to a tracker without restarting it.
 max_path_len - This specifies the maximum length of paths between peers for the 
 tracker to generate.
 
-Step 3 - Firewalls and Blocklists
+Step 4 - Firewalls and Blocklists
 
     To beef up the security and performance of your tracker, you will most
 likely want to set up a firewall rule and establish a blocklist. A good firewall
