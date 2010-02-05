@@ -1,0 +1,61 @@
+Guide to Running a Anomos Tracker
+0.1
+
+This document describes how to run an Anomos tracker.
+
+Step 0 - Requirements
+
+    An Anomos tracker must be TIGHTLY secured and managed by a compentant *nix 
+system administrator. A tracker should be run on a dedicated *nix server with no
+other internet-facing services other than secure, key-authenticated SSH. The 
+server should run a stable distro and security patches should be applied 
+regularly.
+
+Step 1 - runtracker.sh
+
+You will need a series of scripts to help run your tracker.
+
+To get them:
+
+git clone git://git.anomos.info/git/anomos-testing.git
+
+And put this in a folder above your Anomos source tree. In this folder, there is
+a script called runtracker.sh
+
+Execute it like so:
+./runtracker.sh
+
+If it doesn't run properly, make sure that it is pointing to your anomos source
+directory.
+
+As this is your first time running the tracker, it will prompt you to answer
+questions about your certificate. 
+Make sure you answer these questions correctly.
+
+Step 1 - Certificates
+
+Answering the questions prompted by the script will produce a some new files in
+the ./crypto folder. These are your certificates. Before other people can use
+your tracker, you will need to have your certificates signed by CACert.org
+
+To do this, you will first need to generate a CSR (Certificate Signing Request).
+In your crypto folder, type:
+
+openssl req -new -key server-key.pem
+
+    Answer the questions it asks, especially the Common Name field, which must
+be your tracker's domain name. Once you've answered the questions, OpenSSL will
+spit out a CSR to the standard output.
+
+Log into CACert, and select "Server Certificates" on the right of the screen,
+then select "new" and paste the CSR (including the ---BEGIN/END--- lines) into 
+the text box and hit submit. CACert will then give you a new server certificate.
+Make a backup of your old server-cert.pem and replace the contents of the 
+server-cert.pem file with the signed certificate you got from CACert.
+
+Now clients will be able to authenticate connections with you.
+
+
+
+
+
