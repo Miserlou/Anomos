@@ -88,6 +88,7 @@ class EndPoint(AnomosEndPointProtocol):
             self.choker = None
             self.upload = None
         self.closed = True
+        self.ratelimiter.clean_closed()
 
     def got_exception(self, e):
         self.torrent.handle_exception(e)

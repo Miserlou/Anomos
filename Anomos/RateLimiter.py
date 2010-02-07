@@ -93,12 +93,6 @@ class RateLimiter(object):
     def clean_closed(self):
         if self.tail is None:
             return
-        class Dummy(object):
-            def __init__(self, next):
-                self.next_upload = next
-            def send_partial(self, size):
-                return 0
-            closed = False
         orig = self.tail
         if self.tail.closed:
             self.tail = Dummy(self.tail.next_upload)
@@ -110,3 +104,11 @@ class RateLimiter(object):
             if c.next_upload.closed:
                 c.next_upload = Dummy(c.next_upload.next_upload)
             c = c.next_upload
+
+class Dummy(object):
+    def __init__(self, next):
+        self.next_upload = next
+    def send_partial(self, size):
+        return 0
+    closed = False
+

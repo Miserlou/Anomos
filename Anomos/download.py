@@ -459,7 +459,6 @@ class _SingleTorrent(object):
             self._singleport_listener.release_port(port)
         if self._storage is not None:
             self._storage.close()
-        self._ratelimiter.clean_closed()
         self.schedule(0, gc.collect)
 
     def get_status(self, spew = False, fileinfo=False):
