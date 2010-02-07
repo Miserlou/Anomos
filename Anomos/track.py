@@ -67,7 +67,8 @@ defaults = [
     ('scrape_allowed', 'full', 'scrape access allowed (can be none, specific or full)'),
     ('max_give', 200, 'maximum number of peers to give with any one request'),
     ('data_dir', '', 'Directory in which to store cryptographic keys'),
-    ('max_path_len', 6, 'Maximum number of hops in a circuit')
+    ('max_path_len', 6, 'Maximum number of hops in a circuit'),
+    ('allow_close_neighbors', 0, 'Allow multiple peers at the same IP address. (0 = disallow)')
     ]
 
 alas = 'your file may exist elsewhere in the universe\nbut alas, not here\n'
