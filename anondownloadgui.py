@@ -35,7 +35,6 @@ import webbrowser
 import logging
 from urllib import quote, url2pathname, urlopen
 import socket
-from threading import Thread
 
 from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
 from Anomos.controlsocket import ControlSocket
@@ -3245,9 +3244,9 @@ class DownloadInfoFrame(object):
         t.start()
 
 #This works most of the time, however, it is not elegant or foolproof.        
-class checkPortThread(Thread):
+class checkPortThread(threading.Thread):
     def __init__(self, port, cbox, w, s):
-        Thread.__init__(self)
+        threading.Thread.__init__(self)
         self.port = str(port)
         self.controlbox = cbox
         self.warning = w
@@ -3262,8 +3261,10 @@ class checkPortThread(Thread):
                 return
             else:
                 log.info("Ports are open!")
+                gtk.gdk.threads_enter()
                 self.controlbox.remove(self.warning)
                 self.controlbox.remove(self.separator2)
+                gtk.gdk.threads_leave()
         except Exception, e:
             return
         
