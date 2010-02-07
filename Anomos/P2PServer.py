@@ -52,13 +52,19 @@ class P2PServer(asyncore.dispatcher):
 
     def handle_accept(self):
         if self.neighbor_manager is None:
-            log.warning("Received connection attempt w/o any active torrents")
+            log.warning("Received connection attempt without any active torrents, this could be the port checker or another service trying to connect on this port.")
+            # If a connection is attempted and never accepted and discarded,
+            # P2PServer will loop endlessly
+            try:
+                self.socket.accept()
+            except Exception, e:
+                return
             return
 
         try:
             sock, addr = self.socket.accept()
         except (SSL.SSLError, socket.error), err:
-            log.warning(err)
+            log.warning("Problem accepting connection: " + str(err))
             return
 
         conn = P2PConnection(socket=sock)

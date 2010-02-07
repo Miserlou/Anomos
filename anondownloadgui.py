@@ -35,6 +35,7 @@ import webbrowser
 import logging
 from urllib import quote, url2pathname, urlopen
 import socket
+from threading import Thread
 
 from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
 from Anomos.controlsocket import ControlSocket
@@ -3238,17 +3239,33 @@ class DownloadInfoFrame(object):
         self.warning = get_warning()
         self.controlbox.pack_start(self.warning, expand=False, fill=True, padding=5)
         self.warning.set_tooltip_text("The ports on your router are not configured properly. This will interefere with file transfers. Please forward the appropriate ports to your machine.")
-
-## This is almost certainly insufficient.
+            
     def checkPort(self):
-        serverSocket = socket.socket()
-        serverSocket.settimeout(.5)
+        t = checkPortThread(self.config['minport'], self.controlbox, self.warning, self.separator2)
+        t.start()
+
+#This works most of the time, however, it is not elegant or foolproof.        
+class checkPortThread(Thread):
+    def __init__(self, port, cbox, w, s):
+        Thread.__init__(self)
+        self.port = str(port)
+        self.controlbox = cbox
+        self.warning = w
+        self.separator2 = s
+    def run(self):
         try:
-            serverSocket.connect((getExternalIP(), self.config['minport']))
-        except socket.error, e:
+            f = urlopen("http://anomos.info/chkport/?port=" + self.port)
+            the_page = str(f.read())
+            f.close()
+            if 'closed' in the_page:
+                log.info("Ports are closed!")
+                return
+            else:
+                log.info("Ports are open!")
+                self.controlbox.remove(self.warning)
+                self.controlbox.remove(self.separator2)
+        except Exception, e:
             return
-        self.controlbox.remove(self.warning)
-        self.controlbox.remove(self.separator2)
         
 #is this a privacy concern?
 def getExternalIP():
