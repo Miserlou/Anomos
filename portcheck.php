@@ -1,10 +1,15 @@
+<!--Borrowed from Deluge, thanks. :)-->
 <?php
-$port = $_GET["port"];
-$address = $_SERVER['REMOTE_ADDR'];
-$checkport = fsockopen($address, $port, $errnum, $errstr, 2);
-
-if(!$checkport){
-       echo "open"
-}else{
-       echo "closed"
-?>
+error_reporting(0);
+$host = $_SERVER['REMOTE_ADDR'];
+$i = $_GET['port'];
+$fp = fsockopen("$host",$i,$errno,$errstr,2);
+if($fp){
+    echo "open";
+    fclose($fp);
+}
+else{
+    echo "closed";
+}
+flush();
+?> 
