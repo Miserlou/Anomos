@@ -51,24 +51,19 @@ class P2PServer(asyncore.dispatcher):
         return False
 
     def handle_accept(self):
-        if self.neighbor_manager is None:
-            log.warning("Received connection attempt without any active torrents, this could be the port checker or another service trying to connect on this port.")
-            # If a connection is attempted and never accepted and discarded,
-            # P2PServer will loop endlessly
-            try:
-                self.socket.accept()
-            except Exception, e:
-                return
-            return
-
         try:
             sock, addr = self.socket.accept()
         except (SSL.SSLError, socket.error), err:
             log.warning("Problem accepting connection: " + str(err))
             return
 
-        conn = P2PConnection(socket=sock)
-        AnomosNeighborInitializer(self.neighbor_manager, conn)
+        if self.neighbor_manager is None:
+            log.warning("Received connection attempt without any active" \
+                        "torrents, this could be the port checker or another" \
+                        "service trying to connect on this port.")
+        else:
+            conn = P2PConnection(socket=sock)
+            AnomosNeighborInitializer(self.neighbor_manager, conn)
 
     def handle_connect(self):
         # Connect for this socket implies it tried to bind
