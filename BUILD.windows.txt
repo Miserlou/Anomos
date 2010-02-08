@@ -23,16 +23,19 @@ You will also need to have the installers described in /w32_dependancies/README.
 In a shell, go to the root Anomos directory and run this command
 python winsetup.py py2exe
 
-This will create a folder called 'dist' which has the compiled exe
+This will create a folder called 'dist' which has the compiled exe.
 
 rename anondownloadgui.exe to ANOMOS.exe
+
+Move the directories /default_config and /default_certificates and their 
+contents into the new /dist folder.
 
 Now copy all the necessary GTK files from the GTK root installation
 directory (usually c:\GTK\, see the GTK_BASEPATH environment
 variable) into the dist directory. This includes the themes if you want it to look good.
 
-now run nsis on anomos.nsi
-c:\progra~1\nsis\makensis.exe anomos.nsi
+Now run NSIS on anomos.nsi using the highest-level available of 
+compression, which is probably LZMA.
 
 This will create an installer called Anomos-{VERSION}.exe
 The installer is completely self-contained and will work on any 

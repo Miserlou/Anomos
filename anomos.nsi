@@ -772,7 +772,6 @@ Section "MainSection" SEC01
   File "dist\pyexpat.pyd"
   File "dist\python26.dll"
   File "dist\README.txt"
-  File "dist\redirdonate.html"
   File "dist\select.pyd"
   SetOutPath "$INSTDIR\share\aclocal"
   File "dist\share\aclocal\freetype2.m4"
@@ -820,6 +819,12 @@ Section "MainSection" SEC01
   SetOutPath "$INSTDIR\w32_dependancies"
   File "dist\w32_dependancies\vcredist_x86.exe"
   File "dist\w32_dependancies\Win32OpenSSL_Light-0_9_8l.exe"
+  SetOutPath "$INSTDIR\default_config"
+  File "dist\default_config\logging.conf"
+  File "dist\default_config\config"
+  SetOutPath "$INSTDIR\default_certificates"
+  File "dist\default_certificates\cacert.root.pem"
+  
 SectionEnd
 
 ; Dependancies
@@ -892,7 +897,6 @@ Section Uninstall
   Delete "$INSTDIR\share\aclocal\glib-2.0.m4"
   Delete "$INSTDIR\share\aclocal\freetype2.m4"
   Delete "$INSTDIR\select.pyd"
-  Delete "$INSTDIR\redirdonate.html"
   Delete "$INSTDIR\README.txt"
   Delete "$INSTDIR\python26.dll"
   Delete "$INSTDIR\pyexpat.pyd"
