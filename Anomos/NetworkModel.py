@@ -220,6 +220,9 @@ class NetworkModel:
                 opid in peer.failedNeighbors or \
                 self.get(opid).nat:
                     continue
+            if not self.config.get('allow_close_neighbors') and \
+                peer.ip == self.get(opid).ip:
+                    continue
             self.connect(peerid, opid)
             c += 1
 
