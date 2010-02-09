@@ -3089,7 +3089,7 @@ class DownloadInfoFrame(object):
             return
         self.running_torrents[torrent].widget.update_status(statistics)
         try:
-            self.statusIcon.set_tooltip('Complete:\t' + (str(statistics['fractionDone']*100)[:3] + '%\nDown:\t\t' + str(statistics['downRate']/1000)[:4] + 'KB/s\nUp:\t\t\t' + str(statistics['upRate']/1000)[:4] + 'KB/s' + '\nRelay:\t\t' + str(statistics['relayRate']/1000)[:4]) + 'KB/s')
+            self.statusIcon.set_tooltip('Complete:\t' + (str(statistics['fractionDone']*100)[:3]) + '%\nDown:\t\t' + str(Rate(statistics['downRate'])) + '\nUp:\t\t\t' + str(Rate(statistics['upRate'])) + '\nRelay:\t\t' + str(Rate(statistics['relayRate'])))
         except KeyError:
             ##Stupid race
             self.statusIcon.set_tooltip('Anomos')
