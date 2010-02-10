@@ -763,6 +763,8 @@ class SettingsWindow(object):
         self.dl_save_in = gtk.Entry()
         self.dl_save_in.set_editable(False)
         self.dl_save_in.original_value = self.config['save_in']
+        self.dl_save_in.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000000"))
+        
         self.set_save_in(self.config['save_in'])
         self.save_in_box.pack_start(self.dl_save_in, expand=True, fill=True)
 
