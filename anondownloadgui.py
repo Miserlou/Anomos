@@ -667,14 +667,14 @@ class LogBuffer(gtk.TextBuffer, logging.Handler):
         gobject.idle_add(self._emit, record)
 
     def _emit(self, record):
-        #gtk.gdk.threads_enter()
+        gtk.gdk.threads_enter()
         now_str = datetime.datetime.strftime(datetime.datetime.now(), '[%Y-%m-%d %H:%M:%S] ')
         self.insert_with_tags_by_name(self.get_end_iter(), now_str, 'small')
         text = record.msg
         level = record.levelname.lower()
         self.insert_with_tags_by_name(self.get_end_iter(), '%s\n'%str(text), 'small', level)
-        #gtk.gdk.flush()
-        #gtk.gdk.threads_leave()
+        gtk.gdk.flush()
+        gtk.gdk.threads_leave()
 
     def clear_log(self):
         self.set_text('')
@@ -2292,7 +2292,7 @@ class DownloadInfoFrame(object):
         self.update_handle = None
         self.unhighlight_handle = None
         self.dlclicked = False
-        #gtk.gdk.threads_enter()
+        gtk.gdk.threads_enter()
         self.mainwindow = Window(gtk.WINDOW_TOPLEVEL)
         self.mainwindow.set_border_width(0)
         self.mainwindow.set_size_request(800,400)
@@ -2524,9 +2524,8 @@ class DownloadInfoFrame(object):
         self.statusIcon.connect('activate', self.onStatusIconActivate)
         self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu) 
         
-        #gtk.gdk.flush()
-        #gtk.gdk.threads_leave()
-
+        gtk.gdk.flush()
+        gtk.gdk.threads_leave()
 
     def onStatusIconActivate(self, widget):
         if self.iconified:
@@ -2557,7 +2556,7 @@ class DownloadInfoFrame(object):
             return 0
 
     def main(self):
-        #gtk.gdk.threads_enter()
+        gtk.gdk.threads_enter()
 
         self.startbutton.set_paused(self.config['pause'])
         self.stopbutton.set_paused(self.config['pause'])
@@ -2569,8 +2568,8 @@ class DownloadInfoFrame(object):
         except KeyboardInterrupt:
             self.torrentqueue.set_done()
             raise
-        #finally:
-        #    gtk.gdk.threads_leave()
+        finally:
+            gtk.gdk.threads_leave()
 
 
     def drag_leave(self, *args):
