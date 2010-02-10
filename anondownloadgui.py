@@ -2498,7 +2498,6 @@ class DownloadInfoFrame(object):
         self.set_size()
         self.mainwindow.show()
         self.paned.set_position(0)
-        gtk.gdk.threads_leave()
         self.iconified = False
 
         self.statusIcon = gtk.StatusIcon()
@@ -2524,7 +2523,9 @@ class DownloadInfoFrame(object):
         self.statusIcon.set_tooltip("Anomos")
         self.statusIcon.connect('activate', self.onStatusIconActivate)
         self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu) 
-	
+        
+        gtk.gdk.flush()
+        gtk.gdk.threads_leave()
 
     def onStatusIconActivate(self, widget):
         if self.iconified:
