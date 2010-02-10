@@ -145,6 +145,7 @@ class Validator(gtk.Entry):
     
     def __init__(self, option_name, config, setfunc):
         gtk.Entry.__init__(self)
+        self.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000000"))
         self.option_name = option_name
         self.config      = config
         self.setfunc     = setfunc
