@@ -41,9 +41,7 @@ class NeighborManager(object):
         self.relay_count = 0
         self.incomplete = {}
         self.torrents = {}
-
         self.waiting_tcs = {}
-
         self.failedPeers = []
 
     ## Got new neighbor list from the tracker ##
@@ -135,6 +133,12 @@ class NeighborManager(object):
     def has_ip(self, ip):
         return ip in [n.socket.addr[0] for n in self.neighbors.values()] \
                 or ip in [x for x,y in self.incomplete.values()]
+                
+    def get_ips(self):
+        ips = []
+        for n in self.neighbors.values():
+            ips.append((n.socket.addr[0],n.socket.addr[1]))
+        return ips
 
     def is_incomplete(self, nid):
         return self.incomplete.has_key(nid)

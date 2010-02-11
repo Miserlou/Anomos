@@ -634,6 +634,62 @@ class LogWindow(object):
 
     def close(self, widget):
         self.win.destroy()
+        
+class ConnectionsWindow(object):
+    def __init__(self, main):
+        self.config = config
+        self.main = main
+        self.win = Window()
+        self.win.set_title('Active Connections')
+        self.win.set_default_size(200, 200)
+        self.win.set_border_width(SPACING)
+        self.win.set_position(gtk.WIN_POS_CENTER)
+        
+        nbr_mngrs = self.main.torrentqueue.wrapped.multitorrent.nbr_mngrs
+        
+        ips = []
+        for url in nbr_mngrs:
+            ips.append(nbr_mngrs[url].get_ips())
+            
+        store = gtk.ListStore(str,str)
+        for ips in ips:
+            for ip in ips:
+                store.append([ip[0], ip[1]])
+        
+        self.treeView = gtk.TreeView(store)
+        self.treeView.connect("row-activated", self.on_activated)
+        self.treeView.set_rules_hint(True)
+        self.create_columns()
+
+        self.scroll = gtk.ScrolledWindow()
+        self.scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.scroll.set_shadow_type(gtk.SHADOW_IN)
+        self.scroll.add(self.treeView)
+
+        self.vbox = gtk.VBox(spacing=SPACING)
+        self.vbox.pack_start(self.scroll)
+
+        self.win.add(self.vbox)        
+        self.win.connect("destroy", lambda w: self.main.window_closed('conns'))
+        self.win.show_all()
+        
+    def create_columns(self):
+    
+        rendererText = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("IP", rendererText, text=0)
+        column.set_sort_column_id(0)    
+        self.treeView.append_column(column)
+        
+        rendererText = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Port", rendererText, text=1)
+        column.set_sort_column_id(1)
+        self.treeView.append_column(column)
+
+    def on_activated(self, widget, row, col):
+        return
+
+    def close(self, widget):
+        self.win.destroy()
 
 class LogBuffer(gtk.TextBuffer, logging.Handler):
     def __init__(self):
@@ -2353,9 +2409,9 @@ class DownloadInfoFrame(object):
         view_menu_items = (('_Downloads',           self.dbutton.toggle),
                            ('_Seeds',               self.sbutton.toggle),
                            ('----',                 None),
+                           ('_Connections',         lambda w: self.open_window('connections')),
                            ('_Log',                 lambda w: self.open_window('log')),
-                           ('Settings',             lambda w: self.open_window('settings'))
-                           )
+                           ('Settings',             lambda w: self.open_window('settings')))
         
         control_menu_items = (('_Go',               self.startbutton.toggle),
                            ('S_top',                self.stopbutton.toggle),
@@ -2534,6 +2590,17 @@ class DownloadInfoFrame(object):
         if self.iconified:
             self.mainwindow.deiconify()
             self.mainwindow.show()
+            
+            #this is a hack to fix a drawing issue with the WIMP theme on W32
+            if self.dlclicked:
+                self.dbutton.toggle(None)
+                self.sbutton.toggle(None)
+                self.dbutton.toggle(None)
+            else:
+                self.sbutton.toggle(None)
+                self.dbutton.toggle(None)
+                self.sbutton.toggle(None)
+            
             self.iconified = False
         else:
             self.mainwindow.iconify()
@@ -2675,7 +2742,9 @@ class DownloadInfoFrame(object):
         elif window_name == 'savefile':
             self.child_windows[window_name] = SaveFileSelection(self, **kwargs)
         elif window_name == 'choosefolder':
-            self.child_windows[window_name] = ChooseFolderSelection(self, **kwargs)            
+            self.child_windows[window_name] = ChooseFolderSelection(self, **kwargs)
+        elif window_name == 'connections':
+            self.child_windows[window_name] = ConnectionsWindow(self, **kwargs)                   
 
         return self.child_windows[window_name]
 
