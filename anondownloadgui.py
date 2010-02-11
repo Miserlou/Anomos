@@ -53,6 +53,7 @@ from Anomos import OpenPath
 from Anomos import Desktop
 from Anomos import ClientIdentifier
 from Anomos import LOG as log
+from Anomos import pygeoip
 
 defaults = get_defaults('anondownloadgui')
 defaults.extend((('donated', '', ''),
@@ -641,7 +642,7 @@ class ConnectionsWindow(object):
         self.main = main
         self.win = Window()
         self.win.set_title('Active Connections')
-        self.win.set_default_size(200, 200)
+        self.win.set_default_size(350, 200)
         self.win.set_border_width(SPACING)
         self.win.set_position(gtk.WIN_POS_CENTER)
         
@@ -650,11 +651,13 @@ class ConnectionsWindow(object):
         ips = []
         for url in nbr_mngrs:
             ips.append(nbr_mngrs[url].get_ips())
+        
+        GEOIP = pygeoip.Database('./Anomos/GeoIP.dat')
             
-        store = gtk.ListStore(str,str)
+        store = gtk.ListStore(str,str,str)
         for ips in ips:
             for ip in ips:
-                store.append([ip[0], ip[1]])
+                store.append([ip[0], ip[1], GEOIP.lookup(ip[0]).country])
         
         self.treeView = gtk.TreeView(store)
         self.treeView.connect("row-activated", self.on_activated)
@@ -683,6 +686,11 @@ class ConnectionsWindow(object):
         rendererText = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Port", rendererText, text=1)
         column.set_sort_column_id(1)
+        self.treeView.append_column(column)
+        
+        rendererText = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Country", rendererText, text=2)
+        column.set_sort_column_id(2)
         self.treeView.append_column(column)
 
     def on_activated(self, widget, row, col):
@@ -2592,6 +2600,7 @@ class DownloadInfoFrame(object):
             self.mainwindow.show()
             
             #this is a hack to fix a drawing issue with the WIMP theme on W32
+            #XXX: move to deiconify. Fuck Windows.
             if self.dlclicked:
                 self.dbutton.toggle(None)
                 self.sbutton.toggle(None)
