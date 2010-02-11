@@ -529,7 +529,8 @@ class AboutWindow(object):
         credits_f.close()
         label = gtk.Label(l.strip())
         label.set_line_wrap(True)
-        label.set_selectable(True)
+        #HACK: Gtk auto selects anything it can, and select_region doesn't work.
+        label.set_selectable(False)
         label.set_justify(gtk.JUSTIFY_CENTER)
         label.set_size_request(250,-1)
         self.vbox.pack_start(label, expand=False, fill=False)
