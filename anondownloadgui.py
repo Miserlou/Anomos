@@ -2593,27 +2593,15 @@ class DownloadInfoFrame(object):
         self.statusIcon.set_from_file('./images/small.png')
         self.statusIcon.set_tooltip("Anomos")
         self.statusIcon.connect('activate', self.onStatusIconActivate)
-        self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu) 
-        
+        self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu)     
+
         gtk.gdk.flush()
-        gtk.gdk.threads_leave()
+        gtk.gdk.threads_leave()   
 
     def onStatusIconActivate(self, widget):
         if self.iconified:
             self.mainwindow.deiconify()
             self.mainwindow.show()
-            
-            #this is a hack to fix a drawing issue with the WIMP theme on W32
-            #XXX: move to deiconify. Fuck Windows.
-            if self.dlclicked:
-                self.dbutton.toggle(None)
-                self.sbutton.toggle(None)
-                self.dbutton.toggle(None)
-            else:
-                self.sbutton.toggle(None)
-                self.dbutton.toggle(None)
-                self.sbutton.toggle(None)
-            
             self.iconified = False
         else:
             self.mainwindow.iconify()
@@ -2865,6 +2853,16 @@ class DownloadInfoFrame(object):
         state = event.new_window_state
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
             pass
+        else:
+            #this is a hack to fix a drawing issue with the WIMP theme on W32
+            if self.dlclicked:
+                self.dbutton.toggle(None)
+                self.sbutton.toggle(None)
+                self.dbutton.toggle(None)
+            else:
+                self.sbutton.toggle(None)
+                self.dbutton.toggle(None)
+                self.sbutton.toggle(None)
 
     def ask_quit(self, widget, event):
         x = self.quitDialog()
