@@ -40,7 +40,7 @@ import gettext
 
 ## XXX: Relativise this
 locale.setlocale(locale.LC_ALL, '')
-gettext.bindtextdomain('anomos', 'locale')
+gettext.bindtextdomain('anomos', './locale')
 gettext.textdomain('anomos')
 _ = gettext.gettext
 
@@ -2034,7 +2034,8 @@ class RunningTorrentBox(DroppableTorrentBox):
                 self.change_to_completed()
         else:
             self.progressbar.set_fraction(fractionDone)
-            progress_bar_label = _('%.1f%% done, %s remaining') % \
+            ## TODO: This is not gettext friendly
+            progress_bar_label = '%.1f%% done, %s remaining' % \
                                  (int(fractionDone*1000)/10, eta_label) 
             self.progressbar.set_text(progress_bar_label)
             
