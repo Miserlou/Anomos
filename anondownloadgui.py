@@ -661,8 +661,7 @@ class ConnectionsWindow(object):
         for url in nbr_mngrs:
             ips.append(nbr_mngrs[url].get_ips())
         
-        #XXX: This needs to stop being absolute
-        GEOIP = pygeoip.Database('./Anomos/GeoIP.dat')
+        GEOIP = pygeoip.Database(os.path.join(doc_root, 'GeoIP.dat'))
             
         store = gtk.ListStore(str,str,str)
         for ips in ips:
