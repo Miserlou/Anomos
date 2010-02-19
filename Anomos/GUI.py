@@ -794,7 +794,7 @@ if os.name == 'nt':
     class OpenFileSelection(BaseFileSelection):
         _klass = comdlg.OpenFileDialog
         _flags = comdlg.OFN_FILEMUSTEXIST|comdlg.OFN_PATHMUSTEXIST
-        _filter = "Torrent files|*.torrent|*.atorrent|"#All files (*.*)|*.*"
+        _filter = "Torrent files|*.torrent|*.atorrent|All files (*.*)|*.*"
 
     class SaveFileSelection(BaseFileSelection):
         _klass = comdlg.SaveFileDialog
