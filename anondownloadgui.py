@@ -2853,6 +2853,8 @@ class DownloadInfoFrame(object):
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
             pass
         else:
+            from time import sleep
+            sleep(2)
             #this is a hack to fix a drawing issue with the WIMP theme on W32
             if self.dlclicked:
                 self.dbutton.toggle(None)
