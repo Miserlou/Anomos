@@ -2850,18 +2850,12 @@ class DownloadInfoFrame(object):
 
     def on_window_event(self, widget, event):
         state = event.new_window_state
+        # One day, we may need this again. Now, the WIMP bug is fixed by
+        # using GTK 2.16 rather than 2.18        
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
             pass
         else:
-            #this is a hack to fix a drawing issue with the WIMP theme on W32
-            if self.dlclicked:
-                self.dbutton.toggle(None)
-                self.sbutton.toggle(None)
-                self.dbutton.toggle(None)
-            else:
-                self.sbutton.toggle(None)
-                self.dbutton.toggle(None)
-                self.sbutton.toggle(None)
+            pass
 
     def ask_quit(self, widget, event):
         x = self.quitDialog()

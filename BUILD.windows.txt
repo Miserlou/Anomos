@@ -3,7 +3,7 @@ You will first need to do the following things:
 Install Python, version 2.6 -
 http://python.org/
 
-Install the latest GTK runtime -
+Install the GTK 2.16 runtime (NOT 2.18!) -
 http://sourceforge.net/projects/gtk-win/
 
 Install the latest PyGTK bundle -
@@ -33,6 +33,8 @@ contents into the new /dist folder.
 Now copy all the necessary GTK files from the GTK root installation
 directory (usually c:\GTK\, see the GTK_BASEPATH environment
 variable) into the dist directory. This includes the themes if you want it to look good.
+You will also need to create a file called gtkrc in ./etc/gtk-2.0 with the line:
+gtk-theme-name = "MS-Windows"
 
 Now run NSIS on anomos.nsi using the highest-level available of 
 compression, which is probably LZMA.
