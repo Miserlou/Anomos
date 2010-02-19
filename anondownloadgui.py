@@ -3171,7 +3171,11 @@ class DownloadInfoFrame(object):
             return
         self.running_torrents[torrent].widget.update_status(statistics)
         try:
-            self.statusIcon.set_tooltip(_('Complete:\t') + (str(statistics['fractionDone']*100)[:3]) + _('%\nDown:\t\t') + str(Rate(statistics['downRate'])) + _('\nUp:\t\t\t') + str(Rate(statistics['upRate'])) + _('\nRelay:\t\t') + str(Rate(statistics['relayRate'])))
+            ## Windows doesn't allow /t in tooltips
+            if (sys.platform == "win32" or sys.platform == "nt"):
+                self.statusIcon.set_tooltip(_('Complete:\t') + (str(statistics['fractionDone']*100)[:3]) + _('%\nDown:') + str(Rate(statistics['downRate'])) + _('\nUp:') + str(Rate(statistics['upRate'])) + _('\nRelay:') + str(Rate(statistics['relayRate'])))
+            else:
+                self.statusIcon.set_tooltip(_('Complete:\t') + (str(statistics['fractionDone']*100)[:3]) + _('%\nDown:\t\t') + str(Rate(statistics['downRate'])) + _('\nUp:\t\t\t') + str(Rate(statistics['upRate'])) + _('\nRelay:\t\t') + str(Rate(statistics['relayRate'])))
         except KeyError:
             ##Stupid race
             self.statusIcon.set_tooltip('Anomos')
