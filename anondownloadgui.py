@@ -38,12 +38,6 @@ import socket
 import locale
 import gettext
 
-## XXX: Relativise this
-locale.setlocale(locale.LC_ALL, '')
-gettext.bindtextdomain('anomos', './locale')
-gettext.textdomain('anomos')
-_ = gettext.gettext
-
 from Anomos.TorrentQueue import RUNNING, QUEUED, KNOWN, ASKING_LOCATION
 from Anomos.controlsocket import ControlSocket
 from Anomos.defaultargs import get_defaults
@@ -62,6 +56,12 @@ from Anomos import Desktop
 from Anomos import ClientIdentifier
 from Anomos import LOG as log
 from Anomos import pygeoip
+
+#This sets the locale information when using translations
+locale.setlocale(locale.LC_ALL, '')
+gettext.bindtextdomain('anomos', os.path.join(doc_root, 'locale'))
+gettext.textdomain('anomos')
+_ = gettext.gettext
 
 defaults = get_defaults('anondownloadgui')
 defaults.extend((('donated', '', ''),
@@ -101,7 +101,6 @@ speed_classes = {
     ( 250, 5446): 'T3'               ,
     (5447,18871): 'OC3'              ,
     }
-
 
 def find_dir(path):
     if os.path.isdir(path):
