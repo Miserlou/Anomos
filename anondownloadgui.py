@@ -2853,8 +2853,6 @@ class DownloadInfoFrame(object):
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
             pass
         else:
-            from time import sleep
-            sleep(2)
             #this is a hack to fix a drawing issue with the WIMP theme on W32
             if self.dlclicked:
                 self.dbutton.toggle(None)
@@ -3173,7 +3171,7 @@ class DownloadInfoFrame(object):
         try:
             ## Windows doesn't allow /t in tooltips
             if (sys.platform == "win32" or sys.platform == "nt"):
-                self.statusIcon.set_tooltip(_('Complete:\t') + (str(statistics['fractionDone']*100)[:3]) + _('%\nDown:') + str(Rate(statistics['downRate'])) + _('\nUp:') + str(Rate(statistics['upRate'])) + _('\nRelay:') + str(Rate(statistics['relayRate'])))
+                self.statusIcon.set_tooltip(_('Complete: ') + (str(statistics['fractionDone']*100)[:3]) + _('%\nDown: ') + str(Rate(statistics['downRate'])) + _('\nUp: ') + str(Rate(statistics['upRate'])) + _('\nRelay: ') + str(Rate(statistics['relayRate'])))
             else:
                 self.statusIcon.set_tooltip(_('Complete:\t') + (str(statistics['fractionDone']*100)[:3]) + _('%\nDown:\t\t') + str(Rate(statistics['downRate'])) + _('\nUp:\t\t\t') + str(Rate(statistics['upRate'])) + _('\nRelay:\t\t') + str(Rate(statistics['relayRate'])))
         except KeyError:
