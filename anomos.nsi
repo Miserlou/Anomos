@@ -816,6 +816,7 @@ Section "MainSection" SEC01
   File "dist\_hashlib.pyd"
   File "dist\_socket.pyd"
   File "dist\_ssl.pyd"
+  File "dist\GeoIP.dat"
   SetOutPath "$INSTDIR\w32_dependancies"
   File "dist\w32_dependancies\vcredist_x86.exe"
   File "dist\w32_dependancies\Win32OpenSSL_Light-0_9_8l.exe"
