@@ -324,7 +324,7 @@ SectionEnd
 ; Dependancies
 
 Section "Deps" SEC02
- MessageBox MB_OK "You will need to install some other things for Anomos to run properly. If you don't have these components installed already (which your probably don't), please just press YES. If you know you have the component already, you can press NO."
+ MessageBox MB_OK "You will need to install some other things for Anomos to run properly. If you don't have these 2 components installed already (which your probably don't), please just press YES. This will open up other installers - just follow the instructions (you can use the default settings for everything). This will not harm your computer. If you know you have the components already, you can press NO."
  MessageBox MB_YESNO "Install the Microsoft Visual C++ 2008 Runtimes?" /SD IDYES IDNO endVC
  ExecWait "$INSTDIR\w32_dependancies\vcredist_x86.exe"
 endVC:
