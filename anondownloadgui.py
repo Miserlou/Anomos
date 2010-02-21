@@ -217,6 +217,22 @@ class PortValidator(Validator):
     minimum = 0
     maximum = 65535
 
+    def __init__(self, option_name, config, setfunc, main):
+        gtk.Entry.__init__(self)
+        self.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000000"))
+        self.option_name = option_name
+        self.config      = config
+        self.setfunc     = setfunc
+
+        self.original_value = config[option_name]
+        self.set_text(str(self.original_value))
+            
+        self.set_size_request(self.width,-1)
+        
+        self.connect('insert-text', self.text_inserted)
+        self.connect('focus-out-event', self.focus_out)
+        self.main = main
+
     def add_end(self, end_name):
         self.end_option_name = end_name
 
@@ -225,6 +241,22 @@ class PortValidator(Validator):
         self.setfunc(self.option_name, value)
         self.setfunc(self.end_option_name, value+PORT_RANGE)
 
+    def focus_out(self, entry, widget):
+        value = self.get_value()
+
+        if value is None:
+            return
+
+        if (self.minimum is not None) and (value < self.minimum):
+            value = self.minimum
+        if (self.maximum is not None) and (value > self.maximum):
+            value = self.maximum
+
+        self.set_value(value)
+        
+        self.main.warning.set_tooltip_text(_("The ports on your router are not configured properly. This will interefere with file transfers. Please forward port ") + str(value) + _(" to your machine."))
+            
+        self.main.checkPort()
 
 class PercentValidator(Validator):
     width = 48
@@ -815,7 +847,7 @@ class SettingsWindow(object):
         self.port_range.set_border_width(SPACING)
         self.port_range.pack_start(gtk.Label(_('starting at port: ')),
                                    expand=False, fill=False)
-        self.minport_field = PortValidator('minport', self.config, self.setfunc)
+        self.minport_field = PortValidator('minport', self.config, self.setfunc, self.main)
         self.minport_field.add_end('maxport')
         self.port_range.pack_start(self.minport_field, expand=False, fill=False)
         self.minport_field.settingswindow = self
@@ -2426,6 +2458,8 @@ class DownloadInfoFrame(object):
         
         control_menu_items = ((_('_Go'),               self.startbutton.toggle),
                            (_('S_top'),                self.stopbutton.toggle),
+                            ('----',                   None),
+                            (_('Remove all'),          self.remove_all_torrents)
                            )
                            
         help_menu_items = ((_('_Help'),                self.open_help),
@@ -2847,6 +2881,18 @@ class DownloadInfoFrame(object):
                 self.torrentqueue.remove_torrent(infohash)
         if self.paned.get_position() > 0:
             self.toggle_known()
+
+    def remove_all_torrents(self, widget):
+        message = gtk.MessageDialog(self.mainwindow, gtk.DIALOG_MODAL, gtk.MESSAGE_QUESTION, gtk.BUTTONS_NONE, "Do you really want remove all torrents?")
+        message.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+        message.add_button(gtk.STOCK_YES, gtk.RESPONSE_YES)
+        message.set_title("Remove all?")
+        resp = message.run()
+        message.destroy()
+        if resp == gtk.RESPONSE_YES:
+            self.torrentqueue.remove_all_torrents()
+        else:
+            return
 
     def on_window_event(self, widget, event):
         state = event.new_window_state
@@ -3312,11 +3358,17 @@ class DownloadInfoFrame(object):
     def raiseerror(self, *args):
         raise ValueError('test traceback behavior')
 
-    def warnIcon(self):
+    def warnIcon(self, value=None):
+        if value == None:
+            value = self.config['minport']
         self.warning = get_warning()
+        self.setWarnIconText(value)
         self.controlbox.pack_start(self.warning, expand=False, fill=True, padding=5)
-        self.warning.set_tooltip_text(_("The ports on your router are not configured properly. This will interefere with file transfers. Please forward the appropriate ports to your machine."))
             
+    def setWarnIconText(self, value):
+        self.warning = get_warning()         
+        self.warning.set_tooltip_text(_("The ports on your router are not configured properly. This will interefere with file transfers. Please forward port ") + str(value) + _(" to your machine."))
+
     def checkPort(self):
         t = checkPortThread(self.config['minport'], self.controlbox, self.warning, self.separator2)
         t.start()

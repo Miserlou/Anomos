@@ -478,6 +478,19 @@ class TorrentQueue(Feedback):
                                           + str(e))
         self._dump_state()
 
+    def remove_all_torrents(self):
+        for infohash, t in self.torrents.iteritems():
+            state = self.torrents[infohash].state
+            if state == QUEUED:
+                self.queue.remove(infohash)
+            elif state in (RUNNING, RUN_QUEUED):
+                self._stop_running(infohash)
+                self._check_queue()
+            else:
+                self.other_torrents.remove(infohash)
+            self.run_ui_task(self.ui.removed_torrent, infohash)
+            del self.torrents[infohash]
+
     def set_save_location(self, infohash, dlpath):
         torrent = self.torrents.get(infohash)
         if torrent is None or torrent.state == RUNNING:
@@ -747,6 +760,6 @@ def _makemethod(methodname):
         #self.wrapped.rawserver.external_add_task(f, 0)
     return wrapper
 
-for methodname in "request_status set_config start_new_torrent remove_torrent set_save_location change_torrent_state check_completion".split():
+for methodname in "request_status set_config start_new_torrent remove_torrent remove_all_torrents set_save_location change_torrent_state check_completion".split():
     setattr(ThreadWrappedQueue, methodname, _makemethod(methodname))
 del _makemethod, methodname

@@ -293,7 +293,10 @@ class Rerequester(object):
             self.announce_interval = r.get('interval', self.announce_interval)
             self.config['rerequest_interval'] = r.get('min interval',
                                             self.config['rerequest_interval'])
-            p = r['peers']
+            
+            p = r.get('peers')
+            if p is None:
+                return
             peers = self._parsepeers(p)
 
             # Initialize any new neighbors
@@ -312,9 +315,11 @@ class Rerequester(object):
         if type(p) == str:
             for x in xrange(0, len(p), 6):
                 ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
+                log.info("Got peer %s"%ip)
                 port = (ord(p[x+4]) << 8) | ord(p[x+5])
                 peers.append((ip, port, None))
         else:
             for x in p:
+                log.info("Got peer %s"%str(x['ip']))
                 peers.append((x['ip'], x['port'], x.get('nid')))
         return peers
