@@ -197,6 +197,7 @@ class MainWindow(Window):
     
     def add_files(self, names):
         for name in names:
+            name = u'' + name
             self.file_store.append((name,))
         torrent_dir = os.path.split(name)[0]
         if torrent_dir[-1] != os.sep:
