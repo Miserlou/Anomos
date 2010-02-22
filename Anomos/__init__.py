@@ -37,7 +37,7 @@ def calc_unix_dirs():
     dp = os.path.join('share', 'doc'    , appdir)
     return ip, dp
 
-app_root = u'' + os.path.split(os.path.abspath(sys.argv[0]))[0]
+app_root = u'' + os.path.split(u'' + os.path.abspath(u'' + sys.argv[0]))[0]
 image_root = os.path.join(app_root, 'images')
 doc_root = app_root
 
