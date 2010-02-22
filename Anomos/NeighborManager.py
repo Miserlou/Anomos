@@ -89,7 +89,7 @@ class NeighborManager(object):
     def socket_cb(self, sock):
         """ Called by P2PConnection after connect() has completed """
         if sock.connected:
-            log.info(sock.addr)
+            log.info('Connected to %s' %str(sock.addr))
             for id,v in self.incomplete.iteritems():
                 if v == sock.addr:
                     break
