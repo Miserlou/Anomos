@@ -760,6 +760,6 @@ def _makemethod(methodname):
         #self.wrapped.rawserver.external_add_task(f, 0)
     return wrapper
 
-for methodname in "request_status set_config start_new_torrent remove_torrent remove_all_torrents set_save_location change_torrent_state check_completion".split():
+for methodname in "_dump_state request_status set_config start_new_torrent remove_torrent remove_all_torrents set_save_location change_torrent_state check_completion".split():
     setattr(ThreadWrappedQueue, methodname, _makemethod(methodname))
 del _makemethod, methodname

@@ -2671,6 +2671,7 @@ class DownloadInfoFrame(object):
             gtk.main() 
         except KeyboardInterrupt:
             self.torrentqueue.set_done()
+            self.torrentqueue._dump_state()
             raise
         finally:
             gtk.gdk.threads_leave()
