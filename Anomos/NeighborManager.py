@@ -73,6 +73,7 @@ class NeighborManager(object):
             log.warning('NID collision - x%02x' % ord(id))
             # To be safe, kill connection with the neighbor we already
             # had with the requested ID and add ID to the failed list
+            # XXX: This requires attention            
             self.rm_neighbor(id)
             self.failedPeers.append(id)
             return
@@ -150,7 +151,7 @@ class NeighborManager(object):
     def get_ips(self):
         ips = []
         for n in self.neighbors.values():
-            ips.append((n.socket.addr[0],n.socket.addr[1]))
+            ips.append([n.socket.addr[0],n.socket.addr[1], n.id])
         return ips
 
     def is_incomplete(self, nid):

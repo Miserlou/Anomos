@@ -694,10 +694,10 @@ class ConnectionsWindow(object):
         
         GEOIP = pygeoip.Database(os.path.join(doc_root, 'GeoIP.dat'))
             
-        store = gtk.ListStore(str,str,str)
+        store = gtk.ListStore(str,str,str,str)       
         for ips in ips:
-            for ip in ips:
-                store.append([ip[0], ip[1], GEOIP.lookup(ip[0]).country])
+            for ip in ips: 
+                store.append([ip[0], ip[1], "\\x%02x"%ord(ip[2]), GEOIP.lookup(ip[0]).country])
         
         self.treeView = gtk.TreeView(store)
         self.treeView.connect("row-activated", self.on_activated)
@@ -727,10 +727,15 @@ class ConnectionsWindow(object):
         column = gtk.TreeViewColumn(_("Port"), rendererText, text=1)
         column.set_sort_column_id(1)
         self.treeView.append_column(column)
+
+        rendererText = gtk.CellRendererText()
+        column = gtk.TreeViewColumn(_("ID"), rendererText, text=2)
+        column.set_sort_column_id(2)
+        self.treeView.append_column(column)
         
         rendererText = gtk.CellRendererText()
-        column = gtk.TreeViewColumn(_("Country"), rendererText, text=2)
-        column.set_sort_column_id(2)
+        column = gtk.TreeViewColumn(_("Country"), rendererText, text=3)
+        column.set_sort_column_id(3)
         self.treeView.append_column(column)
 
     def on_activated(self, widget, row, col):
