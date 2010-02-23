@@ -489,7 +489,7 @@ class TorrentQueue(Feedback):
             else:
                 self.other_torrents.remove(infohash)
             self.run_ui_task(self.ui.removed_torrent, infohash)
-            del self.torrents[infohash]
+        self.torrents=[]
 
     def set_save_location(self, infohash, dlpath):
         torrent = self.torrents.get(infohash)
