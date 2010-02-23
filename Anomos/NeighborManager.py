@@ -70,7 +70,7 @@ class NeighborManager(object):
 
         if self.has_neighbor(id) or self.incomplete.has_key(id):
             # Already had neighbor by that id or at that location
-            log.warning('NID collision - %s'%str(str(id) + str(loc)))
+            log.warning('NID collision - x%02x' % ord(id))
             # To be safe, kill connection with the neighbor we already
             # had with the requested ID and add ID to the failed list
             self.rm_neighbor(id)
@@ -99,10 +99,14 @@ class NeighborManager(object):
             AnomosNeighborInitializer(self, sock, id)
         else:
             #Remove nid,loc pair from incomplete
+            torm = []
             for k,v in self.incomplete.items():
                 if v == loc:
-                    log.info('Failed to connect, removing %s'%(str(v)))
-                    self.rm_neighbor(k)
+                    log.info('Failed to connect, removing \\x%02x' % ord(k))
+                    torm.add(k)                    
+            for j in torm:
+                print j
+                self.rm_neighbor(j)
             if sock.addr == None:
                 #log.info("Failed to connect to an unreachable neighbor %s"%str(loc))
                 if self.incomplete.items() != []:
