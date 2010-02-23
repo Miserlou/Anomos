@@ -67,10 +67,9 @@ class NeighborManager(object):
             @param id: The neighbor ID to assign to this connection
             @type loc: tuple
             @type id: int """
-
         if self.has_neighbor(id) or self.incomplete.has_key(id):
             # Already had neighbor by that id or at that location
-            log.warning('NID collision - %s'%str(str(id) + str(loc)))
+            log.warning('NID collision')
             # To be safe, kill connection with the neighbor we already
             # had with the requested ID and add ID to the failed list
             self.rm_neighbor(id)
@@ -82,12 +81,12 @@ class NeighborManager(object):
                         'in your config.')
             return
         self.incomplete[id] = loc
-        conn = P2PConnection(loc=loc,
+        conn = P2PConnection(addr=loc,
                              ssl_ctx=self.ssl_ctx,
                              connect_cb=self.socket_cb,
                              schedule=self.schedule)
 
-    def socket_cb(self, sock, loc):
+    def socket_cb(self, sock):
         """ Called by P2PConnection after connect() has completed """
         if sock.connected:
             log.info('Connected to %s' %str(sock.addr))
@@ -100,15 +99,10 @@ class NeighborManager(object):
         else:
             #Remove nid,loc pair from incomplete
             for k,v in self.incomplete.items():
-                if v == loc:
-                    log.info('Failed to connect, removing %s'%(str(v)))
+                if v == sock.addr:
                     self.rm_neighbor(k)
             if sock.addr == None:
-                #log.info("Failed to connect to an unreachable neighbor %s"%str(loc))
-                if self.incomplete.items() != []:
-                    log.info("Remaining incomplete peers: %s" %str(len(self.incomplete.items())))
-                else:
-                    log.info("No remaining incomplete peers")
+                log.info("Failed to connect to an unreachable neighbor")
             else:
                 log.info("Failed to open connection to %s\n" % str(sock.addr))
 
