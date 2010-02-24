@@ -29,12 +29,12 @@ class NatCheck(object):
         self.port = port
         self.id = chr(255)
 
-        self.socket = P2PConnection(addr=(ip,port),
+        self.socket = P2PConnection(loc=(ip,port),
                                     ssl_ctx=ssl_ctx,
                                     connect_cb=self.socket_cb,
                                     schedule=schedule)
 
-    def socket_cb(self, sock):
+    def socket_cb(self, sock, loc=None):
         if sock.connected:
             peercert = self.socket.get_peer_cert()
             recvd_pid = peercert.get_fingerprint('sha256')[-20:]
