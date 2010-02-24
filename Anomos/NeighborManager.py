@@ -76,7 +76,8 @@ class NeighborManager(object):
             # XXX: This requires attention            
             self.rm_neighbor(id)
             self.failedPeers.append(id)
-            return
+            #Why return here? At least take one of the connections            
+            #return
         if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
             log.warning('Got duplicate IP address in neighbor list. ' + \
                         'Multiple connections to the same IP are disabled' + \
@@ -103,10 +104,9 @@ class NeighborManager(object):
             torm = []
             for k,v in self.incomplete.items():
                 if v == loc:
-                    log.info('Failed to connect, removing \\x%02x' % ord(k))
-                    torm.add(k)                    
+                    log.info('Failed to connect, discarding \\x%02x' % ord(k))
+                    torm.append(k)            
             for j in torm:
-                print j
                 self.rm_neighbor(j)
             if sock.addr == None:
                 #log.info("Failed to connect to an unreachable neighbor %s"%str(loc))
