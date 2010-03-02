@@ -11,13 +11,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Written by Bram Cohen
+# Written by Bram Cohen, modified by Anomos Liberty Enhancements
 
 import os
 from bisect import bisect_right
 from array import array
 
-from Anomos import BTFailure
+from Anomos import BTFailure, LOG as log
 
 
 class FilePool(object):
@@ -230,12 +230,14 @@ class Storage(object):
                 line = resumefile.readline()
                 size, mtime = line.split()[:2] # allow adding extra fields
                 size = int(size)
-                mtime = int(float(mtime))
             if os.path.exists(filename):
                 fsize = os.path.getsize(filename)
             else:
                 fsize = 0
-            if fsize > 0 and mtime != os.path.getmtime(filename):
+            # Bram cast this to float, then to int for some reason, but that's 
+            # why this didn't work - leaving them as str makes this actually 
+            # work. Ass burgers.
+            if fsize > 0 and str(mtime) != str(os.path.getmtime(filename)):
                 raise BTFailure("Fastresume info doesn't match file "
                                 "modification time")
             if size != fsize:
