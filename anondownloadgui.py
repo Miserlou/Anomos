@@ -392,6 +392,8 @@ class StartButton(gtk.Button):
             self.main.dbutton.update_label()
             self.main.sbutton.show_seeding()
             self.main.dbutton.show_downloading()
+            self.set_sensitive(False)
+            self.main.stopbutton.set_sensitive(True)
 
 class StopButton(gtk.Button):
     stop_tip  = 'Temporarily stop all running torrents'
@@ -418,6 +420,8 @@ class StopButton(gtk.Button):
             self.main.dbutton.update_label()
             self.main.sbutton.show_seeding()
             self.main.dbutton.show_downloading()
+            self.set_sensitive(False)
+            self.main.startbutton.set_sensitive(True)
 
 class NewTorrentButton(gtk.Button):
     tip = _("Create a new torrent")
