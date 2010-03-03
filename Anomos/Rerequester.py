@@ -97,6 +97,7 @@ class Rerequester(object):
         self.path = parsed[2]
         self.basequery = None
 
+        self.failed_peers = []
         self.changed_port = False
         self.announce_interval = 30 * 60
         self.finish = False
@@ -189,9 +190,9 @@ class Rerequester(object):
                 query += '&sessionid='+quote(self.sessionid)
         if self.config['ip']:
             query += '&ip=' + gethostbyname(self.config['ip'])
-        failedPeers = self.neighbors.failed_connections()
-        if failedPeers:
-            query += '&failed=' + quote(''.join(failedPeers))
+        self.failed_peers = self.neighbors.failed_connections()
+        if self.failed_peers:
+            query += '&failed=' + quote(''.join(self.failed_peers))
         Thread(target=self._rerequest, args=[query]).start()
 
     # Must destroy all references that could cause reference circles
@@ -299,6 +300,8 @@ class Rerequester(object):
                 return
             peers = self._parsepeers(p)
 
+            # Remove any successfuly reported failed peers
+            self.neighbors.remove_reported_failids(self.failed_peers)
             # Initialize any new neighbors
             self.neighbors.update_neighbor_list(peers)
             # Start downloads

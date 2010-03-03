@@ -120,6 +120,11 @@ class NeighborManager(object):
     def failed_connections(self):
         return self.failedPeers
 
+    def remove_reported_failids(self, failids):
+        for i in failids:
+            if i in self.failedPeers:
+                self.failedPeers.remove(i)
+
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
         log.info("Adding Neighbor: \\x%02x" % ord(id))
