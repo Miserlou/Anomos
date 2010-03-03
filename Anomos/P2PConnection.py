@@ -24,7 +24,7 @@ from Anomos.Dispatcher import Dispatcher
 from M2Crypto import SSL
 
 class P2PConnection(Dispatcher):
-    def __init__(self, loc=None, socket=None, ssl_ctx=None, connect_cb=None,
+    def __init__(self, socket=None, addr=None, ssl_ctx=None, connect_cb=None,
             schedule=None):
         Dispatcher.__init__(self, socket)
 
@@ -33,13 +33,11 @@ class P2PConnection(Dispatcher):
         self.schedule = schedule
         self.collector = None
         self.new_collector = False
-        self.started_locally = (loc is not None)
-        self.loc = loc
-
+        self.started_locally = (addr is not None)
         self.want_write = False
 
         if self.started_locally:
-            t = threading.Thread(target=self.connect, args=(loc,))
+            t = threading.Thread(target=self.connect, args=(addr,))
             t.start()
 
     def set_collector(self, collector):
@@ -131,7 +129,7 @@ class P2PConnection(Dispatcher):
     def do_connect_cb(self):
         # Ensures that connect_cb is only called once.
         if self.connect_cb is not None:
-            self.connect_cb(self, self.loc)
+            self.connect_cb(self)
             self.connect_cb = None
 
     def handle_write(self):

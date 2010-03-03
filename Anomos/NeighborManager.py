@@ -84,12 +84,12 @@ class NeighborManager(object):
                         'in your config.')
             return
         self.incomplete[id] = loc
-        conn = P2PConnection(loc=loc,
+        conn = P2PConnection(addr=loc,
                              ssl_ctx=self.ssl_ctx,
                              connect_cb=self.socket_cb,
                              schedule=self.schedule)
 
-    def socket_cb(self, sock, loc):
+    def socket_cb(self, sock):
         """ Called by P2PConnection after connect() has completed """
         if sock.connected:
             log.info('Connected to %s' %str(sock.addr))
@@ -103,13 +103,12 @@ class NeighborManager(object):
             #Remove nid,loc pair from incomplete
             torm = []
             for k,v in self.incomplete.items():
-                if v == loc:
+                if v == sock.addr:
                     log.info('Failed to connect, discarding \\x%02x' % ord(k))
                     torm.append(k)            
             for j in torm:
                 self.rm_neighbor(j)
             if sock.addr == None:
-                #log.info("Failed to connect to an unreachable neighbor %s"%str(loc))
                 if self.incomplete.items() != []:
                     log.info("Remaining incomplete peers: %s" %str(len(self.incomplete.items())))
                 else:
