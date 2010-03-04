@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Written by Uoti Urpala and Matt Chisholm
+# Modified heavily by Anomos Liberty Enhancements
 
 from __future__ import division
 
@@ -48,7 +49,7 @@ import makeatorrentgui
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
 from Anomos import is_frozen_exe
-from Anomos import version, doc_root
+from Anomos import version, doc_root, image_root
 from Anomos import TorrentQueue
 from Anomos import BTFailure
 from Anomos import OpenPath
@@ -2418,6 +2419,7 @@ class DownloadInfoFrame(object):
         self.mainwindow.connect('delete-event', self.ask_quit)
         self.mainwindow.connect('window-state-event', self.on_window_event)
         self.mainwindow.set_resizable(True)
+        self.mainwindow.set_icon_from_file(os.path.join(image_root, 'anomos.ico'))
 
         self.accel_group = gtk.AccelGroup()
 
