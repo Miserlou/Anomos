@@ -238,9 +238,11 @@ class PortValidator(Validator):
         self.end_option_name = end_name
 
     def set_value(self, value):
+        self.main.stopbutton.toggle()
         self.set_text(str(value))
         self.setfunc(self.option_name, value)
         self.setfunc(self.end_option_name, value+PORT_RANGE)
+        self.main.startbutton.toggle()
 
     def focus_out(self, entry, widget):
         value = self.get_value()
@@ -383,7 +385,7 @@ class StartButton(gtk.Button):
         self.start_image.show()
         self.add(self.start_image)
 
-    def toggle(self, widget):
+    def toggle(self, widget=None):
         self.set_paused(not self.main.config['pause'])
 
     def set_paused(self, paused):
@@ -411,7 +413,7 @@ class StopButton(gtk.Button):
         self.stop_image.show()
         self.add(self.stop_image)
     
-    def toggle(self, widget):
+    def toggle(self, widget=None):
         self.set_paused(not self.main.config['pause'])
 
     def set_paused(self, paused):
@@ -1028,7 +1030,6 @@ class SettingsWindow(object):
         self.dl_ask_checkbutton.set_active(self.dl_ask_checkbutton.original_value)
         self.set_save_in(self.dl_save_in.original_value)
         self.set_dnd_behavior(self.dnd_original_state)
-        #self.win.destroy() #BUG? should we do this?
 
     def close(self, widget):
         self.win.destroy()
