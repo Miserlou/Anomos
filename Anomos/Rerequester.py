@@ -295,23 +295,24 @@ class Rerequester(object):
             self.config['rerequest_interval'] = r.get('min interval',
                                             self.config['rerequest_interval'])
             
-            p = r.get('peers')
-            if p is None:
-                return
-            peers = self._parsepeers(p)
+            if r.has_key('peers'):
+                p = r.get('peers')
+                if p is None:
+                    return
+                peers = self._parsepeers(p)
 
-            # Remove any successfuly reported failed peers
-            self.neighbors.remove_reported_failids(self.failed_peers)
-            # Initialize any new neighbors
-            self.neighbors.update_neighbor_list(peers)
-            # Start downloads
-            for aes, tc in r.get('tracking codes', []):
-                #TODO: add error callback
-                self.neighbors.start_circuit(tc, self.infohash, Anomos.Crypto.AESKey(aes[:32], aes[32:]))
-                #break
-            if self.basequery is not None: # We've recently made a successful
-                self.successfunc()     # request of type STARTED or COMPLETED
-            self._check()
+                # Remove any successfuly reported failed peers
+                self.neighbors.remove_reported_failids(self.failed_peers)
+                # Initialize any new neighbors
+                self.neighbors.update_neighbor_list(peers)
+                # Start downloads
+                for aes, tc in r.get('tracking codes', []):
+                    #TODO: add error callback
+                    self.neighbors.start_circuit(tc, self.infohash, Anomos.Crypto.AESKey(aes[:32], aes[32:]))
+                    #break
+                if self.basequery is not None: # We've recently made a successful
+                    self.successfunc()     # request of type STARTED or COMPLETED
+                self._check()
 
     def _parsepeers(self, p):
         peers = []
