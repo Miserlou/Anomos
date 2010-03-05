@@ -34,7 +34,7 @@ img_root, doc_root = Anomos.calc_unix_dirs()
 
 data_files = [ (img_root        , glob.glob('images/*png')+['images/anomos.ico',]),
                (img_root+'/logo', glob.glob('images/logo/anomos_[0-9]*.png')  ),
-               (doc_root        , ['credits.txt', 'LICENSE.txt', 'README.txt']),
+               (doc_root        , ['credits.txt', 'LICENSE.txt', 'README.txt', 'GeoIP.dat']),
                ]
 
 setup(
