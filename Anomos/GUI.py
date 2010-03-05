@@ -337,7 +337,13 @@ class FileSelection():
         dialog.set_default_response(gtk.RESPONSE_OK)
 
         filter = gtk.FileFilter()
+        filter.set_name("Atorrents")
+        filter.add_pattern("*.atorrent")
+        dialog.add_filter(filter)
+
+        filter = gtk.FileFilter()
         filter.set_name("Torrents")
+        filter.add_mime_type("application/x-bittorrent")
         filter.add_pattern("*.atorrent")
         filter.add_pattern("*.torrent")
         dialog.add_filter(filter)
@@ -408,14 +414,15 @@ class OpenFileSelection():
             dialog.set_default_response(gtk.RESPONSE_OK)
 
             filter = gtk.FileFilter()
-            filter.set_name("All Torrents")
+            filter.set_name("Atorrents")
             filter.add_pattern("*.atorrent")
-            filter.add_pattern("*.torrent")
             dialog.add_filter(filter)
 
             filter = gtk.FileFilter()
-            filter.set_name("Atorrents only")
+            filter.set_name("Torrents")
+            filter.add_mime_type("application/x-bittorrent")
             filter.add_pattern("*.atorrent")
+            filter.add_pattern("*.torrent")
             dialog.add_filter(filter)
 
             filter = gtk.FileFilter()
@@ -794,7 +801,7 @@ if os.name == 'nt':
     class OpenFileSelection(BaseFileSelection):
         _klass = comdlg.OpenFileDialog
         _flags = comdlg.OFN_FILEMUSTEXIST|comdlg.OFN_PATHMUSTEXIST
-        _filter = "Torrent files|*.torrent|*.atorrent|All files (*.*)|*.*"
+        _filter = "All files (*.*)|*.*"
 
     class SaveFileSelection(BaseFileSelection):
         _klass = comdlg.SaveFileDialog
