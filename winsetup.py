@@ -46,7 +46,7 @@ setup(windows=[{'script': 'anondownloadgui.py',
                 "icon_resources": [(1, "images\\anomos.ico")]}],
       options=opts,
       data_files=[('',["credits.txt", "LICENSE.txt",
-                       "README.txt"]),
+                       "README.txt", "GeoIP.dat"]),
                   ("images", glob.glob("images\\*png")+["images\\anomos.ico"]),
                   ("images\\logo", glob.glob("images\\logo\\*png")) ],
                 )
