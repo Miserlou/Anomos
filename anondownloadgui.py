@@ -2420,7 +2420,7 @@ class DownloadInfoFrame(object):
         self.mainwindow.connect('delete-event', self.ask_quit)
         self.mainwindow.connect('window-state-event', self.on_window_event)
         self.mainwindow.set_resizable(True)
-        self.mainwindow.set_icon_from_file(os.path.join(image_root, 'anomos.ico'))
+        self.mainwindow.set_icon_from_file(os.path.join(image_root, 'small.png'))
 
         self.accel_group = gtk.AccelGroup()
 
@@ -2635,7 +2635,7 @@ class DownloadInfoFrame(object):
         self.menuItem.connect('activate', self.ask_quit, self.statusIcon) 
         self.menu.append(self.menuItem) 
 
-        self.statusIcon.set_from_file('./images/small.png')
+        self.statusIcon.set_from_file(os.path.join(image_root, 'small.png'))
         self.statusIcon.set_tooltip("Anomos")
         self.statusIcon.connect('activate', self.onStatusIconActivate)
         self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu)     
