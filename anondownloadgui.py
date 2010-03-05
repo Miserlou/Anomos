@@ -2212,7 +2212,7 @@ class RunningAndQueueBox(gtk.VBox):
         self.main = main
 
     def drop_on_separator(self, sep, infohash):
-        self.main.change_torrent_state(infohash, QUEUED, 0)
+        pass
 
     def highlight_between(self):
         self.drag_highlight()
@@ -2298,12 +2298,7 @@ class ReorderableBox(DroppableBox):
 
 
     def drop_on_separator(self, sep, infohash):
-        children = self._get_children()
-        for i, child in enumerate(children):
-            if child == sep:
-                reference_child = children[i-1]
-                self.put_infohash_at_child(infohash, reference_child, AFTER)
-                break
+        pass
 
 
     def get_queue(self):
@@ -2412,13 +2407,15 @@ class DownloadInfoFrame(object):
         self.mainwindow.resize(800,400)
         self.mainwindow.set_position(gtk.WIN_POS_CENTER)
 
-        self.mainwindow.drag_dest_set(gtk.DEST_DEFAULT_ALL,
-                                      [EXTERNAL_TARGET,],
-                                      gtk.gdk.ACTION_MOVE)
-
         self.mainwindow.connect('destroy', self.cancel)
         self.mainwindow.connect('delete-event', self.ask_quit)
         self.mainwindow.connect('window-state-event', self.on_window_event)
+        self.mainwindow.connect('drag_data_received', self.on_drag_data_received)
+        TARGET_TYPE_URI_LIST = 80
+        dnd_list = [ ( 'text/uri-list', 0, TARGET_TYPE_URI_LIST ) ]
+        self.mainwindow.drag_dest_set( gtk.DEST_DEFAULT_MOTION |
+                  gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                  dnd_list, gtk.gdk.ACTION_COPY)
         self.mainwindow.set_resizable(True)
         self.mainwindow.set_icon_from_file(os.path.join(image_root, 'small.png'))
 
@@ -2638,7 +2635,7 @@ class DownloadInfoFrame(object):
         self.statusIcon.set_from_file(os.path.join(image_root, 'small.png'))
         self.statusIcon.set_tooltip("Anomos")
         self.statusIcon.connect('activate', self.onStatusIconActivate)
-        self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu)     
+        self.statusIcon.connect('popup-menu', self.popup_menu_cb, self.menu)
 
         gtk.gdk.flush()
         gtk.gdk.threads_leave()   
@@ -2692,16 +2689,29 @@ class DownloadInfoFrame(object):
     def drag_leave(self, *args):
         self.drag_end()
 
+    def on_drag_data_received(self, widget, context, x, y, selection, target_type, timestamp):
+        uri = selection.data.strip('\r\n\x00')
+        uri_splitted = uri.split() # we may have more than one file dropped
+        for uri in uri_splitted:
+            path = self.get_file_path_from_dnd_dropped_uri(uri)
+            if os.path.isfile(path): # is it file?
+                log.info("Opening dragged file %s"%path)
+                self.open_torrent(path)
 
-    def accept_dropped_file(self, widget, drag_context, x, y, selection,
-                            target_type, time):
-        file_uris = selection.data.split('\r\n')
-        for file_uri in file_uris:
-            file_name = url2pathname(file_uri)
-            file_name = file_name[7:]
-            if os.name == 'nt':
-                file_name = file_name.strip('\\')
-            self.open_torrent( file_name )
+    def get_file_path_from_dnd_dropped_uri(self, uri):
+        # get the path to file
+        path = ""
+        if uri.startswith('file:\\\\\\'): # windows
+            path = uri[8:] # 8 is len('file:///')
+        elif uri.startswith('file://'): # nautilus, rox
+            path = uri[7:] # 7 is len('file://')
+        elif uri.startswith('file:'): # xffm
+            path = uri[5:] # 5 is len('file:')
+
+        import urllib
+        path = urllib.url2pathname(path) # escape special chars
+        path = path.strip('\r\n\x00') # remove \r\n and NULL
+        return path
 
     def drag_highlight(self, widget=None):
         widgets = (self.knownbox, self.runbox, self.queuebox) 
