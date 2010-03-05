@@ -1516,6 +1516,8 @@ class TorrentBox(gtk.EventBox):
     def __init__(self, infohash, metainfo, dlpath, completion, main):
         gtk.EventBox.__init__(self)
 
+        self.connect('drag_data_received', main.on_drag_data_received)
+
         self.modify_bg(gtk.STATE_NORMAL,
                             self.get_colormap().alloc_color("white"))
 
@@ -1634,20 +1636,16 @@ class TorrentBox(gtk.EventBox):
         self.hbox.pack_start(self.infobox, expand=True, fill=True)
         self.add( self.vbox )
 
-        self.drag_source_set(gtk.gdk.BUTTON1_MASK,
-                             [BT_TARGET],
-                             gtk.gdk.ACTION_MOVE)
-
         self.vbox.pack_start(DroppableHSeparator(self))
         
     def drag_data_get(self, widget, context, selection, targetType, eventTime):
-        selection.set(selection.target, 8, self.infohash)
+        pass
 
     def drag_begin(self, *args):
         pass
 
     def drag_end(self, *args):
-        self.main.drag_end()
+        pass
 
     def make_done_label(self, statistics=None):
         s = ''
@@ -1818,29 +1816,16 @@ class DroppableTorrentBox(TorrentBox):
 
     def __init__(self, infohash, metainfo, dlpath, completion, main):
         TorrentBox.__init__(self, infohash, metainfo, dlpath, completion, main)
-        self.drag_dest_set(gtk.DEST_DEFAULT_DROP,
-                           [BT_TARGET,],
-                           gtk.gdk.ACTION_MOVE)
         self.index = None
 
     def drag_data_received(self, widget, context, x, y, selection, targetType, time):
-        half_height = self.size_request()[1] // 2
-        where = cmp(y, half_height)
-        if where == 0: where = 1
-        self.parent.put_infohash_at_child(selection.data, self, where)
+        pass
 
     def drag_motion(self, widget, context, x, y, time):
-        self.get_current_index()
-        half_height = self.size_request()[1] // 2
-        if y < half_height: 
-            self.parent.highlight_before_index(self.index)
-        else:
-            self.parent.highlight_after_index(self.index)
-        return False
+        pass
 
     def drag_end(self, *args):
-        self.parent.highlight_child()
-        TorrentBox.drag_end(self, *args)
+        pass
 
     def get_current_index(self):
         self.index = self.parent.get_index_from_child(self)
@@ -2133,36 +2118,27 @@ class DroppableHSeparator(PaddedHSeparator):
     def __init__(self, main, spacing=6):
         PaddedHSeparator.__init__(self, spacing)
         self.main = main
-        self.drag_dest_set(#gtk.DEST_DEFAULT_MOTION| # uncommenting this breaks downward scrolling
-            gtk.DEST_DEFAULT_DROP,
-            [BT_TARGET],
-            gtk.gdk.ACTION_MOVE )
 
     def drag_highlight(self):
-        self.sep.drag_highlight()
-        self.main.main.add_unhighlight_handle()
+        pass
 
     def drag_unhighlight(self):
-        self.sep.drag_unhighlight()
+        pass
 
     def drag_data_received(self, widget, context, x, y, selection, targetType, time):
-        self.main.drop_on_separator(self, selection.data)
+        pass
 
     def drag_motion(self, *args):
-        self.drag_highlight()
-        return False
+        pass
 
 
 class DroppableBox(HSeparatedBox):
     def __init__(self, main, spacing=0):
         HSeparatedBox.__init__(self, spacing=spacing)
         self.main = main
-        self.drag_dest_set(gtk.DEST_DEFAULT_DROP,
-                           [BT_TARGET],
-                           gtk.gdk.ACTION_MOVE)
 
     def drag_motion(self, *args):
-        return False
+        pass
 
     def drag_data_received(self, *args):
         pass
@@ -2172,10 +2148,6 @@ class KnownBox(DroppableBox):
 
     def __init__(self, main, spacing=0):
         DroppableBox.__init__(self, main, spacing=spacing)
-        self.drag_dest_set(gtk.DEST_DEFAULT_MOTION |
-                           gtk.DEST_DEFAULT_DROP,
-                           [BT_TARGET],
-                           gtk.gdk.ACTION_MOVE)
 
     def pack_start(self, widget, *args, **kwargs):
         old_len = len(self.get_children())
@@ -2191,18 +2163,16 @@ class KnownBox(DroppableBox):
             self.main.maximize_known_pane()
 
     def drag_data_received(self, widget, context, x, y, selection, targetType, time):
-        infohash = selection.data
-        self.main.finish(infohash)
+        pass
 
     def drag_motion(self, *args):
-        self.main.drag_highlight(widget=self)
+        pass
     
     def drag_highlight(self):
-        self.main.knownscroll.drag_highlight()
-        self.main.add_unhighlight_handle()
+        pass
 
     def drag_unhighlight(self):
-        self.main.knownscroll.drag_unhighlight()
+        pass
 
 
 class RunningAndQueueBox(gtk.VBox):
@@ -2218,17 +2188,16 @@ class RunningAndQueueBox(gtk.VBox):
         self.drag_highlight()
 
     def drag_highlight(self):
-        self.get_children()[1].drag_highlight()
+        pass
 
     def drag_unhighlight(self):
-        self.get_children()[1].drag_unhighlight()
+        pass
         
 
 class SpacerBox(DroppableBox):
     
     def drag_data_received(self, widget, context, x, y, selection, targetType, time):
-        infohash = selection.data
-        self.main.queuebox.put_infohash_last(infohash)
+        pass
 
 BEFORE = -1
 AFTER  =  1
@@ -2242,52 +2211,25 @@ class ReorderableBox(DroppableBox):
     def __init__(self, main):
         DroppableBox.__init__(self, main)
         self.main = main
-        self.drag_dest_set(#gtk.DEST_DEFAULT_MOTION | # connecting this breaks downward scrolling
-                           gtk.DEST_DEFAULT_DROP |
-                           0,
-                           [BT_TARGET],
-                           gtk.gdk.ACTION_MOVE)
 
 
     def drag_data_received(self, widget, context, x, y, selection, targetType, time):
-        if targetType == BT_TARGET_TYPE:
-            half_height = self.size_request()[1] // 2
-            if y < half_height:
-                self.put_infohash_first(selection.data)
-            else:
-                self.put_infohash_last(selection.data)
-            return True
-        else:
-            print 'got external type'
-            return False
+        pass
 
     def drag_motion(self, *args):
-        return False
+        pass
 
     def drag_highlight(self):
-        final = self.get_children()[-1]
-        final.drag_highlight()
-        self.main.add_unhighlight_handle()
+        pass
 
     def drag_unhighlight(self): 
-        self.highlight_child(index=None)
-        self.parent.drag_unhighlight()
+        pass
 
     def highlight_before_index(self, index):
-        self.drag_unhighlight()
-        children = self._get_children()
-        if index > 0:
-            children[index*2 - 1].drag_highlight()
-        else:
-            self.highlight_at_top()
+        pass
 
     def highlight_after_index(self, index):
-        self.drag_unhighlight()
-        children = self._get_children()
-        if index*2 < len(children)-1:
-            children[index*2 + 1].drag_highlight()
-        else:
-            self.highlight_at_bottom()
+        pass
 
     def highlight_child(self, index=None):
         for i, child in enumerate(self._get_children()):
@@ -2431,6 +2373,12 @@ class DownloadInfoFrame(object):
         self.box2 = gtk.VBox(homogeneous=False, spacing=0)
         self.box2.set_border_width(SPACING)
 
+        self.box2.connect('drag_data_received', self.on_drag_data_received)
+        self.box2.drag_dest_set( gtk.DEST_DEFAULT_MOTION |
+                  gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                  dnd_list, gtk.gdk.ACTION_COPY)
+        self.box1.connect('drag_data_received', self.on_drag_data_received)
+
         self.menubar = gtk.MenuBar()
         self.box1.pack_start(self.menubar, expand=False, fill=False)
 
@@ -2555,6 +2503,7 @@ class DownloadInfoFrame(object):
 
         #This is the splitter thingy.
         self.paned = gtk.VPaned()
+        self.paned.connect('drag_data_received', self.on_drag_data_received)
 
         self.knownscroll = ScrolledWindow()
         self.knownscroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -2564,8 +2513,16 @@ class DownloadInfoFrame(object):
 
         self.knownbox = KnownBox(self)
         self.knownbox.set_border_width(SPACING)
+        self.knownbox.connect('drag_data_received', self.on_drag_data_received)
+        self.knownbox.drag_dest_set( gtk.DEST_DEFAULT_MOTION |
+                  gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                  dnd_list, gtk.gdk.ACTION_COPY)
 
         self.knownscroll.add_with_viewport(self.knownbox)
+        self.knownscroll.connect('drag_data_received', self.on_drag_data_received)
+        self.knownscroll.drag_dest_set( gtk.DEST_DEFAULT_MOTION |
+                  gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                  dnd_list, gtk.gdk.ACTION_COPY)        
         #self.paned.pack1(self.knownscroll, resize=False, shrink=True)
         
         self.mainscroll = AutoScrollingWindow()
@@ -2573,8 +2530,16 @@ class DownloadInfoFrame(object):
         self.mainscroll.set_shadow_type(gtk.SHADOW_IN)
         self.mainscroll.set_size_request(-1, SPACING)
         self.mainscroll.set_border_width(SPACING)
+        self.mainscroll.connect('drag_data_received', self.on_drag_data_received)
+        self.mainscroll.drag_dest_set( gtk.DEST_DEFAULT_MOTION |
+                  gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                  dnd_list, gtk.gdk.ACTION_COPY)
 
         self.event_box = gtk.EventBox()
+        self.event_box.connect('drag_data_received', self.on_drag_data_received)
+        self.event_box.drag_dest_set( gtk.DEST_DEFAULT_MOTION |
+                  gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                  dnd_list, gtk.gdk.ACTION_COPY)        
         self.mainscroll.add_with_viewport(self.event_box)
         self.event_box.show()        
         self.event_box.modify_bg(gtk.STATE_NORMAL,
@@ -2582,11 +2547,14 @@ class DownloadInfoFrame(object):
 
         self.scrollbox = RunningAndQueueBox(self, homogeneous=False)
         self.scrollbox.set_border_width(SPACING)
+        self.scrollbox.connect('drag_data_received', self.on_drag_data_received)
         
         self.runbox = RunningBox(self)
+        self.runbox.connect('drag_data_received', self.on_drag_data_received)
         self.scrollbox.pack_start(self.runbox, expand=False, fill=False)
 
         self.queuebox = QueuedBox(self)
+        self.queuebox.connect('drag_data_received', self.on_drag_data_received)
         self.scrollbox.pack_start(self.queuebox, expand=False, fill=False)
 
         self.scrollbox.pack_start(SpacerBox(self), expand=True, fill=True) 
@@ -2597,6 +2565,7 @@ class DownloadInfoFrame(object):
 
         self.box1.pack_start(self.paned)
 
+        self.box1.connect('drag_data_received', self.on_drag_data_received)
         self.box1.show_all()
 
         self.mainwindow.add(self.box1)
