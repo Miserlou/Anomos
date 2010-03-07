@@ -53,11 +53,14 @@ class NeighborManager(object):
                 self.rm_neighbor(id)
         # Start connections with the new neighbors
         for id, loc in freshids.iteritems():
-            if not self.neighbors.has_key(id) and id not in self.failedPeers:
+            if self.nid_collision(id, loc):
+                # Already had neighbor by the given id at a different location
+                log.warning('NID collision - x%02x' % ord(id))
+                # To be safe, kill connection with the neighbor we already
+                # had with the requested ID and add ID to the failed list
+                self.rm_neighbor(id)
+            elif (not self.has_neighbor(id)) and (id not in self.failedPeers):
                 self.start_connection(id, loc)
-        # Remove the failedPeers that didn't come back as fresh IDs (presumably
-        # the tracker has removed them from our potential neighbor list)
-        self.failedPeers = [id for id in freshids if id in self.failedPeers]
 
     ## Start a new neighbor connection ##
     def start_connection(self, id, loc):
@@ -68,19 +71,9 @@ class NeighborManager(object):
             @type loc: tuple
             @type id: int """
 
-        if self.has_neighbor(id) or self.incomplete.has_key(id):
-            # Already had neighbor by that id or at that location
-            log.warning('NID collision - x%02x' % ord(id))
-            # To be safe, kill connection with the neighbor we already
-            # had with the requested ID and add ID to the failed list
-            # XXX: This requires attention            
-            self.rm_neighbor(id)
-            self.failedPeers.append(id)
-            #Why return here? At least take one of the connections            
-            #return
         if self.config['one_connection_per_ip'] and self.has_ip(loc[0]):
-            log.warning('Got duplicate IP address in neighbor list. ' + \
-                        'Multiple connections to the same IP are disabled' + \
+            log.warning('Got duplicate IP address in neighbor list. ' \
+                        'Multiple connections to the same IP are disabled ' \
                         'in your config.')
             return
         self.incomplete[id] = loc
@@ -145,13 +138,18 @@ class NeighborManager(object):
     def has_neighbor(self, nid):
         return self.neighbors.has_key(nid)
 
+    def nid_collision(self, nid, loc):
+        curloc = self.neighbors.get(nid) or self.incomplete.get(nid)
+        # curloc is either None or an (ip,port) tuple
+        return (curloc and curloc != loc)
+
     def check_session_id(self, sid):
         return sid == self.sessionid
 
     def has_ip(self, ip):
         return ip in [n.socket.addr[0] for n in self.neighbors.values()] \
                 or ip in [x for x,y in self.incomplete.values()]
-                
+
     def get_ips(self):
         ips = []
         for n in self.neighbors.values():
