@@ -411,7 +411,9 @@ class NetworkModel:
         peerobj = self.get(peername)
         sid = peerobj.getSessionID()
         if prevNbr:
-            nid = str(prevNbr.getNID(peername))
+            #XXX: This should fail rather than create a bad TCode
+            #    with a \xff in it
+            nid = str(prevNbr.getNID(peername, '\xff'))
             tocrypt = chr(0) + sid + nid + message
             recvMsgLen = len(sid + nid) + 1 # The 'message' data is for the
                                             # next recipient, not this one.
