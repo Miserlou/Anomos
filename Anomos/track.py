@@ -383,16 +383,20 @@ class Tracker(object):
         params = params_factory(paramslist)
         peerid = peercert.get_fingerprint('sha256')[-20:]
         simpeer = self.networkmodel.get(peerid)
+        if simpeer and not simpeer.cmpCertificate(peercert):
+            # Certificate mismatch
+            raise ValueError("Certificate mismatch")
+
         if params('ip') is not None and params('ip') != ip: # Substitute in client-specified IP
             ip = params('ip')  # Client cert is rechecked during NatCheck
                                # to prevent abuse.
 
-        self.networkmodel.update_peer(peerid, peercert, ip, paramslist)
-        if not simpeer:
-            simpeer = self.networkmodel.get(peerid)
-        if not simpeer.cmpCertificate(peercert):
-            # Certificate mismatch
-            return None
+        if not simpeer: # Create a new simpeer on first announce
+            port = int(params('port'))
+            skey = params('sessionid')
+            simpeer = self.networkmodel.initPeer(peerid, peercert, ip, port, skey)
+
+        self.networkmodel.update_peer(peerid, ip, paramslist)
         if params('event') != 'stopped':
             port = int(params('port'))
             if simpeer.nat and simpeer.num_natcheck < self.natcheck:
@@ -686,8 +690,9 @@ class Tracker(object):
                 'you sent me garbage - ' + str(e))
 
         # Update Tracker's information about the peer
-        simpeer = self.update_peer(paramslist, ip, peercert)
-        if simpeer is None:
+        try:
+            simpeer = self.update_peer(paramslist, ip, peercert)
+        except ValueError, e:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                 'Peer authentication failed')
 
@@ -697,10 +702,9 @@ class Tracker(object):
         notallowed = self.check_allowed(infohash, paramslist)
         if notallowed:
             return notallowed
-        event = params('event')
 
         data = {}
-        if event != 'stopped':
+        if params('event') != 'stopped':
             data['peers'] = self.neighborlist(simpeer.name)
             data['tracking codes'] = self.getTCs(simpeer.name, infohash,
                                                  self.config['response_size'])

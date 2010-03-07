@@ -64,19 +64,25 @@ class SimPeer:
     def numNeeded(self):
         return self.nbrs_needed
 
-    def update(self, params):
+    def update(self, ip, params):
         self.last_seen = bttime()
         ihash = params.get('info_hash')
         dl = params.get('downloaded')
         left = params.get('left')
+        port = int(params.get('port'))
+        # If ip or port changed so we should natcheck again
+        if (ip, port) != (self.ip, self.port):
+            simpeer.num_natcheck = 0
+            simpeer.nat = True
+        # Mark any failed peers
         for x in params.get('failed', []):
             self.failed(x)
+        # Remove any stopped torrents
         if params.get('event') == 'stopped':
             if self.infohashes.has_key(ihash):
                 del self.infohashes[ihash]
         elif None not in (ihash, dl, left):
-            # Input should have already been validated by
-            # tracker.
+            # Update download totals
             self.infohashes[ihash] = (int(dl), int(left))
 
     def addNeighbor(self, peerid, nid, ip, port):
@@ -185,17 +191,9 @@ class NetworkModel:
         self.rand_connect(peerid, num_neighbors)
         return self.names[peerid]
 
-    def update_peer(self, peerid, peercert, ip, params):
+    def update_peer(self, peerid, ip, params):
         simpeer = self.get(peerid)
-        port = int(params.get('port'))
-        if not simpeer:
-            skey = params.get('sessionid')
-            simpeer = self.initPeer(peerid, peercert, ip, port, skey)
-        if (ip, port) != (simpeer.ip, simpeer.port):
-            # IP or port changed so we should natcheck again
-            simpeer.num_natcheck = 0
-            simpeer.nat = True
-        simpeer.update(params)
+        simpeer.update(ip, params)
 
         infohash = params.get('info_hash')
         complete = (params.get('left') == 0)
