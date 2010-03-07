@@ -371,7 +371,7 @@ class Tracker(object):
                 bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}))
         return None
 
-    def update_simpeer(self, paramslist, ip, peercert):
+    def update_peer(self, paramslist, ip, peercert):
         """
         @param paramslist: Parameters from client's GET request
         @param ip: Client's IP address
@@ -386,35 +386,21 @@ class Tracker(object):
         if params('ip') is not None and params('ip') != ip: # Substitute in client-specified IP
             ip = params('ip')  # Client cert is rechecked during NatCheck
                                # to prevent abuse.
-        port = int(params('port'))
-        if simpeer and params('event') == 'started':
-            # Peer most likely disconnected without reannouncing.
-            # TODO: limit the number of times we allow this to happen
-            self.networkmodel.disconnect(peerid)
-            simpeer = None
-        if not simpeer: # Tracker hasn't seen this peer before
-            skey = params('sessionid')
-            if not skey:    # When this method returns None a 400: Bad Request
-                return None # is sent to the requester
-            simpeer = self.networkmodel.initPeer(peerid, peercert, ip, port, skey)
-        elif not simpeer.cmpCertificate(peercert):
+
+        self.networkmodel.update_peer(peerid, peercert, ip, paramslist)
+        if not simpeer:
+            simpeer = self.networkmodel.get(peerid)
+        if not simpeer.cmpCertificate(peercert):
             # Certificate mismatch
             return None
-        if ip != simpeer.ip or port != simpeer.port:
-            # IP or port changed so we should natcheck again
-            simpeer.num_natcheck = 0
-            simpeer.nat = True
-        simpeer.update(paramslist)
-        if params('event') == 'stopped' and simpeer.numTorrents() == 0:
-            # Peer stopped their only/last torrent
-            self.networkmodel.disconnect(peerid)
-        else:
+        if params('event') != 'stopped':
+            port = int(params('port'))
             if simpeer.nat and simpeer.num_natcheck < self.natcheck:
                 NatCheck(self.natcheck_ctx, self.connectback_result,
                         self.schedule, peerid, ip, port)
             needs = simpeer.numNeeded()
             if needs:
-                self.networkmodel.randConnect(peerid, needs)
+                self.networkmodel.rand_connect(peerid, needs)
         return simpeer
 
 ## Deprecated
@@ -700,7 +686,7 @@ class Tracker(object):
                 'you sent me garbage - ' + str(e))
 
         # Update Tracker's information about the peer
-        simpeer = self.update_simpeer(paramslist, ip, peercert)
+        simpeer = self.update_peer(paramslist, ip, peercert)
         if simpeer is None:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                 'Peer authentication failed')

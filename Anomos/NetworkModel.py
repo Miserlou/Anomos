@@ -49,8 +49,8 @@ class SimPeer:
         self.infohashes = {} # {infohash: (downloaded, left)}
         self.last_seen = 0  # Time of last client announce
         self.last_modified = bttime() # Time when client was last modified
-        self.failedNeighbors = []
-        self.needsNeighbors = 0
+        self.failed_nbrs = []
+        self.nbrs_needed = 0
         self.sessionid = sid
         self.num_natcheck = 0
         self.nat = True # assume NAT
@@ -62,7 +62,7 @@ class SimPeer:
         return self.pubkey.cmp(peercert)
 
     def numNeeded(self):
-        return self.needsNeighbors
+        return self.nbrs_needed
 
     def update(self, params):
         self.last_seen = bttime()
@@ -88,6 +88,8 @@ class SimPeer:
         self.neighbors.setdefault(peerid, {'nid':nid,'ip':ip, 'port':port})
         self.id_map[nid] = peerid
         self.last_modified = bttime()
+        if self.nbrs_needed > 0:
+            self.nbrs_needed -= 1
 
     def rmNeighbor(self, peerid):
         """
@@ -99,12 +101,12 @@ class SimPeer:
             del self.id_map[edge['nid']]
             del self.neighbors[peerid]
             self.last_modified = bttime()
+            self.nbrs_needed += 1
 
     def failed(self, nid):
         if self.id_map.has_key(nid):
-            self.failedNeighbors.append(self.id_map[nid])
+            self.failed_nbrs.append(self.id_map[nid])
             self.rmNeighbor(self.id_map[nid])
-            self.needsNeighbors += 1
 
     def getSessionID(self):
         return self.sessionid
@@ -142,7 +144,9 @@ class SimPeer:
 class NetworkModel:
     """Simple Graph model of network"""
     def __init__(self, config):
-        self.names = {}
+        self.names = {}    # {peerid : SimPeer object}
+        self.complete = {} # {infohash : set([peerid,...,])}
+        self.incomplete = {} # {infohash : set([peerid,...,])}
         self.config = config
 
     def get(self, peerid):
@@ -153,17 +157,21 @@ class NetworkModel:
         """
         return self.names.get(peerid, None)
 
-    def getSwarm(self, infohash):
-        return set(i for i in self.names \
-                if self.names[i].isSharing(infohash))
+    def swarm(self, infohash):
+        return set.union(self.leechers(infohash),
+                         self.seeders(infohash))
+        #return set(i for i in self.names \
+        #        if self.names[i].isSharing(infohash))
 
-    def getDownloadingPeers(self, infohash):
-        return set(i for i in self.names \
-                if self.names[i].isSharing(infohash) and \
-                    not self.names[i].isSeeding(infohash))
+    def leechers(self, infohash):
+        return self.incomplete.get(infohash, set()).copy()
+        #return set(i for i in self.names \
+        #        if self.names[i].isSharing(infohash) and \
+        #            not self.names[i].isSeeding(infohash))
 
-    def getSeedingPeers(self, infohash):
-        return set(i for i in self.names if self.names[i].isSeeding(infohash))
+    def seeders(self, infohash):
+        return self.complete.get(infohash, set()).copy()
+        #return set(i for i in self.names if self.names[i].isSeeding(infohash))
 
     def initPeer(self, peerid, pubkey, ip, port, sid, num_neighbors=4):
         """
@@ -174,8 +182,73 @@ class NetworkModel:
         @rtype: SimPeer
         """
         self.names[peerid] = SimPeer(peerid, pubkey, ip, port, sid)
-        self.randConnect(peerid, num_neighbors)
+        self.rand_connect(peerid, num_neighbors)
         return self.names[peerid]
+
+    def update_peer(self, peerid, peercert, ip, params):
+        simpeer = self.get(peerid)
+        port = int(params.get('port'))
+        if not simpeer:
+            skey = params.get('sessionid')
+            simpeer = self.initPeer(peerid, peercert, ip, port, skey)
+        if (ip, port) != (simpeer.ip, simpeer.port):
+            # IP or port changed so we should natcheck again
+            simpeer.num_natcheck = 0
+            simpeer.nat = True
+        simpeer.update(params)
+
+        infohash = params.get('info_hash')
+        complete = (params.get('left') == 0)
+        if params.get('event') == 'stopped':
+            self.remove_from_swarm(peerid, infohash)
+            if simpeer.numTorrents() == 0:
+                self.disconnect(peerid)
+        else:
+            self.update_swarm(peerid, infohash, complete)
+
+
+    def update_swarm(self, peerid, infohash, complete):
+        seedset = self.complete.get(infohash)
+        leechset = self.incomplete.get(infohash)
+        if complete:
+            # Remove peer from the leecher list
+            if leechset and (peerid in leechset):
+                leechset.remove(peerid)
+                if len(leechset) == 0:
+                    del self.incomplete[infohash]
+            # Ensure there's a set for this infohash
+            if not seedset:
+                self.complete[infohash] = set()
+                seedset = self.complete[infohash]
+            # Add them to the seeder list
+            seedset.add(peerid)
+        else:
+            # Remove peer from the seeder list if they previously
+            # reported having the whole file
+            if seedset and (peerid in seedset):
+                seedset.remove(peerid)
+                if len(seedset) == 0:
+                    del self.complete[infohash]
+            # Ensure there's a set for this infohash
+            if not leechset:
+                self.incomplete[infohash] = set()
+                leechset = self.incomplete[infohash]
+            # Add them to the leecher list
+            leechset.add(peerid)
+
+    def remove_from_swarm(self, peerid, infohash):
+        seedset = self.complete.get(infohash)
+        leechset = self.complete.get(infohash)
+        # Remove from seeders list
+        if seedset and (peerid in seedset):
+            seedset.remove(peerid)
+            if len(seedset) == 0:
+                del self.complete[infohash]
+        # Remove from leechers list
+        if leechset and (peerid in leechset):
+            leechset.remove(peerid)
+            if len(leechset) == 0:
+                del self.incomplete[infohash]
 
     def connect(self, v1, v2):
         """
@@ -198,7 +271,7 @@ class NetworkModel:
             raise RuntimeError("No available NeighborIDs. It's possible the \
                                 network is being attacked.")
 
-    def randConnect(self, peerid, numpeers):
+    def rand_connect(self, peerid, numpeers):
         """
         Assign 'numpeers' many randomly selected neighbors to
         peer with id == peerid
@@ -217,7 +290,7 @@ class NetworkModel:
             # to make connections to in the past, or NAT'd peers.
             if  opid == peerid or \
                 opid in peer.neighbors.keys() or \
-                opid in peer.failedNeighbors or \
+                opid in peer.failed_nbrs or \
                 self.get(opid).nat:
                     continue
             if not self.config.get('allow_close_neighbors') and \
@@ -246,9 +319,9 @@ class NetworkModel:
         source = self.get(src)
         snbrs = set(source.neighbors.keys())
         if is_seed:
-            dests = list(self.getDownloadingPeers(infohash))
+            dests = list(self.leechers(infohash))
         else:
-            dests = list(self.getSwarm(infohash))
+            dests = list(self.swarm(infohash))
             if src in dests:
                 dests.remove(src)
         if len(dests) == 0:
@@ -334,8 +407,6 @@ class NetworkModel:
         @rtype: string
         """
         message = plaintext
-        peername = None
-        assert len(pathByNames) > 0
         peername = pathByNames.pop(-1)
         peerobj = self.get(peername)
         sid = peerobj.getSessionID()
