@@ -183,5 +183,8 @@ class NeighborLink(AnomosNeighborProtocol):
         # CLOSE_WAIT state until this object is garbage collected
         self.socket = None
 
+    def get_loc(self):
+        return self.socket.addr
+
     def uniq_id(self):
         return "%02x:*" % (ord(self.id))

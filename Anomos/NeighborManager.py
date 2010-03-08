@@ -139,9 +139,12 @@ class NeighborManager(object):
         return self.neighbors.has_key(nid)
 
     def nid_collision(self, nid, loc):
-        curloc = self.neighbors.get(nid) or self.incomplete.get(nid)
-        # curloc is either None or an (ip,port) tuple
-        return (curloc and curloc != loc)
+        # If the locations are the same, there's no collision
+        if self.neighbors.has_key(nid):
+            return self.neighbors[nid].get_loc() != loc
+        elif self.incomplete.has_key(nid):
+            return self.incomplete[nid] != loc
+        return False
 
     def check_session_id(self, sid):
         return sid == self.sessionid
