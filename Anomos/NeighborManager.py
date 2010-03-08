@@ -58,7 +58,7 @@ class NeighborManager(object):
                 log.warning('NID collision - x%02x' % ord(id))
                 # To be safe, kill connection with the neighbor we already
                 # had with the requested ID and add ID to the failed list
-                #self.rm_neighbor(id)
+                self.rm_neighbor(id)
             elif (not self.has_neighbor(id)) and (id not in self.failedPeers):
                 self.start_connection(id, loc)
 
