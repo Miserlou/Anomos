@@ -394,6 +394,8 @@ class Tracker(object):
         if not simpeer: # Create a new simpeer on first announce
             port = int(params('port'))
             skey = params('sessionid')
+            if skey is None:
+                raise ValueError("Peer did not provide session key")
             simpeer = self.networkmodel.initPeer(peerid, peercert, ip, port, skey)
 
         self.networkmodel.update_peer(peerid, ip, paramslist)
