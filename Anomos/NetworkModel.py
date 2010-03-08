@@ -320,8 +320,8 @@ class NetworkModel:
             dests = list(self.leechers(infohash))
         else:
             dests = list(self.swarm(infohash))
-            if src in dests:
-                dests.remove(src)
+        if src in dests:
+            dests.remove(src)
         if len(dests) == 0:
             return []
 
@@ -331,6 +331,8 @@ class NetworkModel:
             if len(paths) >= how_many:
                 break
             destination = self.get(dname)
+            if destination is None:
+                continue
             # Pick a destination node
             dnbrs = set(destination.neighbors.keys())
             if len(dnbrs) == 0:
