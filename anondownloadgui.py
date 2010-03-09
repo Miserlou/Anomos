@@ -699,12 +699,12 @@ class ConnectionsWindow(object):
         for url in nbr_mngrs:
             ips.append(nbr_mngrs[url].get_ips())
         
-        GEOIP = pygeoip.Database(os.path.join(doc_root, 'GeoIP.dat'))
+        GEOIP = pygeoip.GeoIP(os.path.join(doc_root, 'GeoIP.dat'))
             
         store = gtk.ListStore(str,str,str,str)       
         for ips in ips:
             for ip in ips: 
-                store.append([ip[0], ip[1], "\\x%02x"%ord(ip[2]), GEOIP.lookup(ip[0]).country])
+                store.append([ip[0], ip[1], "\\x%02x"%ord(ip[2]), GEOIP.country_name_by_addr(ip[0])])
         
         self.treeView = gtk.TreeView(store)
         self.treeView.connect("row-activated", self.on_activated)
