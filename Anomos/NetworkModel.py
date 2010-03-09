@@ -72,8 +72,8 @@ class SimPeer:
         port = int(params.get('port'))
         # If ip or port changed so we should natcheck again
         if (ip, port) != (self.ip, self.port):
-            simpeer.num_natcheck = 0
-            simpeer.nat = True
+            self.num_natcheck = 0
+            self.nat = True
         # Mark any failed peers
         for x in params.get('failed', []):
             self.failed(x)
