@@ -1,0 +1,637 @@
+# Swedish translation for anomos
+# Copyright (c) 2010 Rosetta Contributors and Canonical Ltd 2010
+# This file is distributed under the same license as the anomos package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: anomos\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2010-02-18 19:16-0500\n"
+"PO-Revision-Date: 2010-03-09 13:27+0000\n"
+"Last-Translator: Malte Lenz <Unknown>\n"
+"Language-Team: Swedish <sv@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-03-10 12:16+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+#: anondownloadgui.py:87
+msgid "Press the i for information"
+msgstr "Tryck i för information"
+
+#: anondownloadgui.py:88
+msgid "Press the X to remove this download"
+msgstr "Tryck X för att ta bort nerladdningen"
+
+#: anondownloadgui.py:304
+msgid "Open a torrent"
+msgstr "Öppna ett dataflöde"
+
+#: anondownloadgui.py:322
+msgid "Change the settings"
+msgstr "Ändra inställningar"
+
+#: anondownloadgui.py:392
+msgid "Create a new torrent"
+msgstr "Skapa ett nytt dataflöde"
+
+#: anondownloadgui.py:413
+msgid "List torrents you're seeding"
+msgstr "Visa torrents du delar ut"
+
+#: anondownloadgui.py:440
+msgid "List torrents you're downloading"
+msgstr "Visa torrents du laddar ner"
+
+#: anondownloadgui.py:469
+#, python-format
+msgid "New %s version available"
+msgstr ""
+
+#: anondownloadgui.py:517
+#, python-format
+msgid "About %s"
+msgstr "Om %s"
+
+#: anondownloadgui.py:530
+#, python-format
+msgid "Version %s"
+msgstr "Version %s"
+
+#: anondownloadgui.py:550 anondownloadgui.py:2435
+msgid "Donate"
+msgstr "Donera"
+
+#: anondownloadgui.py:570
+#, python-format
+msgid "%s Activity Log"
+msgstr "%s Aktivitetslogg"
+
+#: anondownloadgui.py:653
+msgid "Active Connections"
+msgstr "Aktiva anslutningar"
+
+#: anondownloadgui.py:697
+msgid "Port"
+msgstr "Port"
+
+#: anondownloadgui.py:702
+msgid "Country"
+msgstr "Nationskod"
+
+#: anondownloadgui.py:768
+#, python-format
+msgid "%s Settings"
+msgstr "%s Inställningar"
+
+#: anondownloadgui.py:774
+msgid "Upload rate:"
+msgstr "Uppladdnings hastighet:"
+
+#: anondownloadgui.py:782
+msgid "Seed completed torrents:"
+msgstr "Dela ut färdiga torrents:"
+
+#: anondownloadgui.py:790
+msgid "until share ratio reaches "
+msgstr "tills utdelningsratio når "
+
+#: anondownloadgui.py:802
+msgid "for "
+msgstr "efter "
+
+#: anondownloadgui.py:808
+msgid " minutes, whichever comes first. 0 is unlimited."
+msgstr ""
+
+#: anondownloadgui.py:815
+msgid "Look for available port:"
+msgstr "Leta efter tillgänglig port:"
+
+#: anondownloadgui.py:818
+msgid "starting at port: "
+msgstr "börja med port: "
+
+#: anondownloadgui.py:830
+msgid "Download folder:"
+msgstr "Katalog för överföring:"
+
+#: anondownloadgui.py:835
+msgid "Default:"
+msgstr "Förvalt:"
+
+#: anondownloadgui.py:845
+msgid "Change.."
+msgstr "Ändra.."
+
+#: anondownloadgui.py:850
+msgid "Ask where to save each download"
+msgstr "Fråga var varje nedladdning ska sparas"
+
+#: anondownloadgui.py:863
+msgid "Torrent anonymizer tracker URL:"
+msgstr ""
+
+#: anondownloadgui.py:867
+msgid "The tracker to use instead of the old torrent tracker"
+msgstr ""
+
+#: anondownloadgui.py:872
+msgid "Proxy address to use (Tor+Privoxy is 127.0.0.1:8118):"
+msgstr ""
+
+#: anondownloadgui.py:876
+msgid "Where is your proxy?"
+msgstr "Var är din proxy?"
+
+#: anondownloadgui.py:881
+msgid "IP to report to the tracker:"
+msgstr "IP att rapportera till trackern:"
+
+#: anondownloadgui.py:885
+msgid "If you want to connect through Tor"
+msgstr "Om du vill ansluta genom Tor"
+
+#: anondownloadgui.py:890
+msgid "Automatically fetch external IP (uses anomos.info)"
+msgstr ""
+
+#: anondownloadgui.py:937
+msgid "Choose default download directory"
+msgstr ""
+
+#: anondownloadgui.py:1005
+#, python-format
+msgid "Files in \"%s\""
+msgstr "Filer i \"%s\""
+
+#: anondownloadgui.py:1029
+msgid "Filename"
+msgstr "Filnamn"
+
+#: anondownloadgui.py:1029
+msgid "Length"
+msgstr "Längd"
+
+#: anondownloadgui.py:1194
+#, python-format
+msgid "Peers for \"%s\""
+msgstr ""
+
+#: anondownloadgui.py:1200
+msgid "IP address"
+msgstr "IP-adress"
+
+#: anondownloadgui.py:1200
+msgid "Client"
+msgstr "Klient"
+
+#: anondownloadgui.py:1200
+msgid "Connection"
+msgstr "Anslutning"
+
+#: anondownloadgui.py:1200
+msgid "KB/s down"
+msgstr "KB/s ned"
+
+#: anondownloadgui.py:1200
+msgid "KB/s up"
+msgstr "KB/s upp"
+
+#: anondownloadgui.py:1399
+msgid "Torrent name:"
+msgstr "Torrent-namn:"
+
+#: anondownloadgui.py:1402
+msgid "Announce url:"
+msgstr ""
+
+#: anondownloadgui.py:1406
+msgid ", in one file"
+msgstr ", i en fil"
+
+#: anondownloadgui.py:1408
+#, python-format
+msgid ", in %d files"
+msgstr ", i %d filer"
+
+#: anondownloadgui.py:1409
+msgid "Total size:"
+msgstr "Total storlek:"
+
+#: anondownloadgui.py:1416
+msgid "Pieces:"
+msgstr "Delar:"
+
+#: anondownloadgui.py:1418
+msgid "Info hash:"
+msgstr ""
+
+#: anondownloadgui.py:1427
+msgid "Save in:"
+msgstr "Spara i:"
+
+#: anondownloadgui.py:1431
+msgid "File name:"
+msgstr "Filnamn:"
+
+#: anondownloadgui.py:1444
+msgid "Open directory"
+msgstr "Öppna mapp"
+
+#: anondownloadgui.py:1450
+msgid "Show file list"
+msgstr "Visa fillista"
+
+#: anondownloadgui.py:1568
+msgid "Torrent info"
+msgstr "Torrent-info"
+
+#: anondownloadgui.py:1576 anondownloadgui.py:1945
+msgid "Remove torrent"
+msgstr "Ta bort torrent"
+
+#: anondownloadgui.py:1579
+msgid "Cancel torrent"
+msgstr ""
+
+#: anondownloadgui.py:1614
+#, python-format
+msgid ", will seed for %s"
+msgstr ""
+
+#: anondownloadgui.py:1616
+msgid ", will seed indefinitely."
+msgstr ""
+
+#: anondownloadgui.py:1619
+#, python-format
+msgid "Done, share ratio: %d%%"
+msgstr ""
+
+#: anondownloadgui.py:1622
+#, python-format
+msgid "Done, %s uploaded"
+msgstr "Klar, %s uppladdat"
+
+#: anondownloadgui.py:1625
+msgid "Done"
+msgstr "Färdig"
+
+#: anondownloadgui.py:1638
+msgid "Torrent _info"
+msgstr ""
+
+#: anondownloadgui.py:1644
+msgid "_Open directory"
+msgstr "_Öppna mapp"
+
+#: anondownloadgui.py:1646
+msgid "_File list"
+msgstr "_Fillista"
+
+#: anondownloadgui.py:1718
+#, python-format
+msgid "Are you sure you want to remove \"%s\"?"
+msgstr "Är du säker på att du vill ta bort \"%s\"?"
+
+#: anondownloadgui.py:1721
+#, python-format
+msgid "Your share ratio for this torrent is %d%%. "
+msgstr ""
+
+#: anondownloadgui.py:1723
+#, python-format
+msgid "You have uploaded %s to this torrent. "
+msgstr ""
+
+#: anondownloadgui.py:1726
+msgid "Remove this torrent?"
+msgstr "Ta bort denna torrent?"
+
+#: anondownloadgui.py:1737
+msgid "Anomos has no running torrents"
+msgstr ""
+
+#: anondownloadgui.py:1751
+msgid "Finished"
+msgstr "Färdig"
+
+#: anondownloadgui.py:1752
+msgid "drag into list to seed"
+msgstr ""
+
+#: anondownloadgui.py:1755
+msgid "Failed"
+msgstr "Misslyckades"
+
+#: anondownloadgui.py:1756
+msgid "drag into list to resume"
+msgstr ""
+
+#: anondownloadgui.py:1763
+msgid "Re_start"
+msgstr ""
+
+#: anondownloadgui.py:1764 anondownloadgui.py:1827 anondownloadgui.py:1862
+#: anondownloadgui.py:1961
+msgid "_Remove torrent"
+msgstr ""
+
+#: anondownloadgui.py:1811
+msgid "Waiting"
+msgstr "Väntar"
+
+#: anondownloadgui.py:1822
+msgid "Download _now"
+msgstr ""
+
+#: anondownloadgui.py:1829 anondownloadgui.py:1858 anondownloadgui.py:1958
+msgid "_Cancel download"
+msgstr ""
+
+#: anondownloadgui.py:1846
+msgid "Paused"
+msgstr "Pausad"
+
+#: anondownloadgui.py:1884
+msgid "Running"
+msgstr "Kör"
+
+#: anondownloadgui.py:1934
+msgid "Share ratio: -"
+msgstr ""
+
+#: anondownloadgui.py:2046
+msgid "Download"
+msgstr "Ladda ned"
+
+#: anondownloadgui.py:2048
+msgid "Upload"
+msgstr "Ladda upp"
+
+#: anondownloadgui.py:2050
+msgid "Relay"
+msgstr "Vidarebefordra"
+
+#: anondownloadgui.py:2405
+msgid "Downloads (0)"
+msgstr "Nedladdningar (0)"
+
+#: anondownloadgui.py:2407
+msgid "Seeds (0)"
+msgstr "Utdelare (0)"
+
+#: anondownloadgui.py:2409
+msgid "_Open an .atorrent file"
+msgstr ""
+
+#: anondownloadgui.py:2410
+msgid "_Anonymize and open a .torrent file"
+msgstr ""
+
+#: anondownloadgui.py:2412
+msgid "_Play "
+msgstr ""
+
+#: anondownloadgui.py:2413
+msgid "Pa_use "
+msgstr ""
+
+#: anondownloadgui.py:2415
+msgid "Make a _new .atorrent file"
+msgstr ""
+
+#: anondownloadgui.py:2417
+msgid "S_ettings"
+msgstr "_Inställningar"
+
+#: anondownloadgui.py:2419
+msgid "_Quit"
+msgstr "_Avsluta"
+
+#: anondownloadgui.py:2422
+msgid "_Downloads"
+msgstr "_Nedladdningar"
+
+#: anondownloadgui.py:2423
+msgid "_Seeds"
+msgstr ""
+
+#: anondownloadgui.py:2425
+msgid "_Connections"
+msgstr "A_nslutningar"
+
+#: anondownloadgui.py:2426
+msgid "_Log"
+msgstr "_Logg"
+
+#: anondownloadgui.py:2427
+msgid "Settings"
+msgstr "Inställningar"
+
+#: anondownloadgui.py:2429
+msgid "_Go"
+msgstr "_Kör"
+
+#: anondownloadgui.py:2430
+msgid "S_top"
+msgstr "S_topp"
+
+#: anondownloadgui.py:2433 anondownloadgui.py:2450
+msgid "_Help"
+msgstr "_Hjälp"
+
+#: anondownloadgui.py:2434
+msgid "A_bout"
+msgstr "_Om"
+
+#: anondownloadgui.py:2438
+msgid "_File"
+msgstr "_Fil"
+
+#: anondownloadgui.py:2442
+msgid "_Control"
+msgstr ""
+
+#: anondownloadgui.py:2446
+msgid "_View"
+msgstr "_Visa"
+
+#: anondownloadgui.py:2618
+msgid "Yes"
+msgstr "Ja"
+
+#: anondownloadgui.py:2618
+msgid "No"
+msgstr "Nej"
+
+#: anondownloadgui.py:2618
+msgid "Cancel"
+msgstr "Avbryt"
+
+#: anondownloadgui.py:2619
+msgid "Do you really want to quit?"
+msgstr "Vill du verkligen avsluta?"
+
+#: anondownloadgui.py:2622
+msgid "Really quit?"
+msgstr "Vill du verkligen stänga av?"
+
+#: anondownloadgui.py:2770
+#, python-format
+msgid ""
+"Anomos help is at \n"
+"%s\n"
+" Would you like to go there now?"
+msgstr ""
+"Anomos hjälp finns på \n"
+"%s\n"
+" Vill du gå dit nu?"
+
+#: anondownloadgui.py:2772
+msgid "Visit help web page?"
+msgstr "Besök hemsidan för hjälp?"
+
+#: anondownloadgui.py:2828
+msgid "There is one finished torrent in the list. "
+msgstr "Det finns en färdig torrent i listan. "
+
+#: anondownloadgui.py:2829
+msgid "Do you want to remove it?"
+msgstr "Vill du ta bort den?"
+
+#: anondownloadgui.py:2831
+#, python-format
+msgid "There are %d finished torrents in the list. "
+msgstr "Det finns %d färdiga torrents i listan. "
+
+#: anondownloadgui.py:2832
+msgid "Do you want to remove all of them?"
+msgstr "Vill du ta bort alla?"
+
+#: anondownloadgui.py:2834
+msgid "Remove all finished torrents?"
+msgstr "Ta bort alla färdiga torrents?"
+
+#: anondownloadgui.py:2841
+msgid "No finished torrents"
+msgstr "Inga färdiga torrents"
+
+#: anondownloadgui.py:2842
+msgid "There are no finished torrents to remove."
+msgstr "Det finns inga färdiga torrents att ta bort."
+
+#: anondownloadgui.py:2971
+msgid "File exists!"
+msgstr "Filen finns!"
+
+#: anondownloadgui.py:2972
+#, python-format
+msgid ""
+"\"%s\" already exists.\n"
+" Do you want to choose a different file name?."
+msgstr ""
+"\"%s\" finns redan.\n"
+"Vill du välja ett annat filnamn?"
+
+#: anondownloadgui.py:3109 anondownloadgui.py:3117
+msgid "error"
+msgstr "fel"
+
+#: anondownloadgui.py:3109 anondownloadgui.py:3117
+msgid "critical"
+msgstr ""
+
+#: anondownloadgui.py:3115
+#, python-format
+msgid "(global message) : %s"
+msgstr ""
+
+#: anondownloadgui.py:3123
+#, python-format
+msgid "%s Error"
+msgstr "%s Fel"
+
+#: anondownloadgui.py:3129
+msgid "Multiple errors have occurred. "
+msgstr "Flera fel har inträffat. "
+
+#: anondownloadgui.py:3130
+msgid "Click OK to view the error log."
+msgstr "Klicka OK för att visa loggen med fel."
+
+#: anondownloadgui.py:3174
+msgid "Complete:\t"
+msgstr ""
+
+#: anondownloadgui.py:3174
+msgid ""
+"%\n"
+"Down:\t\t"
+msgstr ""
+"%\n"
+"Ner:\t\t"
+
+#: anondownloadgui.py:3174
+msgid ""
+"\n"
+"Up:\t\t\t"
+msgstr ""
+"\n"
+"%\n"
+"Upp:\t\t\t"
+
+#: anondownloadgui.py:3174
+msgid ""
+"\n"
+"Relay:\t\t"
+msgstr ""
+
+#: anondownloadgui.py:3275
+msgid "Stop running torrent?"
+msgstr ""
+
+#: anondownloadgui.py:3276
+#, python-format
+msgid ""
+"You are about to start \"%s\". Do you want to stop the last running torrent "
+"as well?"
+msgstr ""
+
+#: anondownloadgui.py:3288
+msgid "Have you donated?"
+msgstr "Har du donerat?"
+
+#: anondownloadgui.py:3289
+#, python-format
+msgid "Welcome to the new version of %s. Have you donated?"
+msgstr "Välkommen till den senaste versionen av %s. Har du donerat?"
+
+#: anondownloadgui.py:3303
+msgid "Thanks!"
+msgstr "Tack!"
+
+#: anondownloadgui.py:3304
+msgid "Thanks for donating! To donate again, "
+msgstr "Tack för donationen! För att donera igen, "
+
+#: anondownloadgui.py:3305
+msgid "select \"Donate\" from the \"Help\" menu."
+msgstr "välj \"Donera\" från \"Hjälp\"-menyn."
+
+#: anondownloadgui.py:3322
+msgid ""
+"The ports on your router are not configured properly. This will interefere "
+"with file transfers. Please forward the appropriate ports to your machine."
+msgstr ""
+
+#: anondownloadgui.py:3342
+msgid "Ports are closed!"
+msgstr "Portar är stängda!"
+
+#: anondownloadgui.py:3345
+msgid "Ports are open!"
+msgstr "Portar är öppna!"
