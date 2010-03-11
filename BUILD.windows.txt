@@ -27,7 +27,7 @@ This will create a folder called 'dist' which has the compiled exe.
 
 rename anondownloadgui.exe to ANOMOS.exe
 
-Move the directories /default_config and /default_certificates and their 
+Move the directories /locale, /default_config and /default_certificates and their 
 contents into the new /dist folder.
 
 Now copy all the necessary GTK files from the GTK root installation
