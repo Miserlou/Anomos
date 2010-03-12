@@ -148,6 +148,9 @@ class Rerequester(object):
                 log.warning("Tracker announce still not complete "
                                "%d seconds after starting it" %
                                int(bttime() - self.current_started))
+            ## Announce has been hanging for too long, retry it.
+            if int(bttime() - self.current_started) >= 180:
+                self._announce()
             return
         if self.basequery is None:
             self.basequery = self._makequery()
