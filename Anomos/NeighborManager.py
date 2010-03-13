@@ -141,9 +141,9 @@ class NeighborManager(object):
     def nid_collision(self, nid, loc):
         # If the locations are the same, there's no collision
         if self.neighbors.has_key(nid):
-            return self.neighbors[nid].get_loc() != loc
+            return self.neighbors[nid].get_loc()[0] != loc[0]
         elif self.incomplete.has_key(nid):
-            return self.incomplete[nid] != loc
+            return self.incomplete[nid][0] != loc[0]
         return False
 
     def check_session_id(self, sid):
