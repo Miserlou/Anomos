@@ -70,7 +70,7 @@ class SimPeer:
         dl = params.get('downloaded')
         left = params.get('left')
         port = int(params.get('port'))
-        # If ip or port changed so we should natcheck again
+        # IP or port changed so we should natcheck again
         if (ip, port) != (self.ip, self.port):
             self.num_natcheck = 0
             self.nat = True
@@ -84,6 +84,16 @@ class SimPeer:
         elif None not in (ihash, dl, left):
             # Update download totals
             self.infohashes[ihash] = (int(dl), int(left))
+
+    def natcheck_cb(self, result):
+        """
+        Called by NatCheck after testing a peer.
+        @param result: Result of NatCheck. True on successful connection
+                       False if the peer is unreachable.
+        @type result: boolean
+        """
+        self.num_natcheck += 1
+        self.nat = not result
 
     def addNeighbor(self, peerid, nid, ip, port):
         """
@@ -134,6 +144,9 @@ class SimPeer:
     def getNbrs(self):
         return self.neighbors.keys()
 
+    def get_torrents(self):
+        return self.infohashes.keys()
+
     def numTorrents(self):
         return len(self.infohashes)
 
@@ -162,6 +175,9 @@ class NetworkModel:
         @rtype: SimPeer
         """
         return self.names.get(peerid, None)
+
+    def get_simpeers(self):
+        return self.names.values()
 
     def swarm(self, infohash):
         return set.union(self.leechers(infohash),
@@ -202,6 +218,8 @@ class NetworkModel:
             if simpeer.numTorrents() == 0:
                 self.disconnect(peerid)
         else:
+            if simpeer.nbrs_needed > 0:
+                self.rand_connect(peerid, simpeer.nbrs_needed)
             self.update_swarm(peerid, infohash, complete)
 
 
@@ -302,16 +320,23 @@ class NetworkModel:
         Removes designated peer from network
         @param peerid: Peer ID (str) of peer to be removed
         """
-        if peerid in self.names:
-            for neighborOf in self.names[peerid].getNbrs():
-                if neighborOf in self.names:
-                    self.names[neighborOf].rmNeighbor(peerid)
-            del self.names[peerid]
+        simpeer = self.get(peerid)
+        if simpeer is None:
+            return
+        # Remove disconnecting peer from any neighbor lists it's a part of
+        for neighborOf in self.names[peerid].getNbrs():
+            if self.names.has_key(neighborOf):
+                self.names[neighborOf].rmNeighbor(peerid)
+        # Remove disconnecting peer from all swarms
+        for infohash in simpeer.get_torrents():
+            self.remove_from_swarm(peerid, infohash)
+        # Delete the disconnecting peer's SimPeer object
+        del self.names[peerid]
 
     def nbrsOf(self, peerid):
         if not self.get(peerid):
             return []
-        return self.get(peerid).neighbors.keys()
+        return self.get(peerid).getNbrs()
 
     def getPathsToFile(self, src, infohash, how_many=5, is_seed=False, minhops=3):
         source = self.get(src)

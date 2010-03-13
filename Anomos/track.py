@@ -204,6 +204,7 @@ class Tracker(object):
             self.parse_allowed()
 
         self.keep_dead = config['keep_dead']
+        self.prevtime = bttime()
 
     def allow_local_override(self, ip, given_ip):
         return is_valid_ipv4(given_ip) and (
@@ -402,7 +403,7 @@ class Tracker(object):
         if params('event') != 'stopped':
             port = int(params('port'))
             if simpeer.nat and simpeer.num_natcheck < self.natcheck:
-                NatCheck(self.natcheck_ctx, self.connectback_result,
+                NatCheck(self.natcheck_ctx, simpeer.natcheck_cb,
                         self.schedule, peerid, ip, port)
             needs = simpeer.numNeeded()
             if needs:
@@ -741,22 +742,6 @@ class Tracker(object):
     #    print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
     #        ip, quote(peerid), strftime("[%d/%b/%Y:%H:%M:%S]"), ip, port, result)
 
-    def connectback_result(self, peerid, result):
-        record = self.networkmodel.get(peerid)
-        if record is not None:
-            record.nat = not result
-            record.num_natcheck += 1
-        #if self.config['log_nat_checks']:
-        #    if ( record is None
-        #             or (record['ip'] != ip and record.get('given ip') != ip)
-        #             or record['port'] != port ):
-        #        self.natchecklog(peerid, ip, port, 404)
-        #        return
-        #    if result:
-        #        self.natchecklog(peerid, ip, port, 200)
-        #    else:
-        #        self.natchecklog(peerid, ip, port, 503)
-
     def parse_allowed(self):
         self.schedule(self.parse_dir_interval, self.parse_allowed)
 
@@ -784,37 +769,15 @@ class Tracker(object):
             self.blockedhashes = []
 
     def delete_peer(self, infohash, peerid):
-        #dls = self.downloads[infohash]
-        #peer = dls[peerid]
-        #if not peer['left']:
-        #    self.seedcount[infohash] -= 1
-        #if not peer.get('nat',-1):
-        #    l = self.becache[infohash]
-        #    y = not peer['left']
-        #    for x in l:
-        #        del x[y][peerid]
-        #del self.times[infohash][peerid]
-        #del dls[peerid]
-
-        #for torrent in self.downloads:
-        #    if torrent[peerid] is not None:
-        #        return
-
         self.networkmodel.disconnect(peerid)
 
     def expire_downloaders(self):
-        #for infohash, peertimes in self.times.items():
-        #    for myid, t in peertimes.items():
-        #        if t < self.prevtime:
-        #            self.delete_peer(infohash, myid)
-        #self.prevtime = bttime()
-        #if (self.keep_dead != 1):
-        #    for key, peers in self.downloads.items():
-        #        if len(peers) == 0 and (self.allowed is None or
-        #                                key not in self.allowed):
-        #            del self.times[key]
-        #            #del self.downloads[key]
-        #            #del self.seedcount[key]
+        if not self.keep_dead:
+            for simpeer in self.networkmodel.get_simpeers():
+                if simpeer.last_seen < self.prevtime:
+                    log.info("Timing out " + str(simpeer.name))
+                    self.networkmodel.disconnect(simpeer.name)
+        self.prevtime = bttime()
         self.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
 
 def track(args):

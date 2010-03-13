@@ -57,4 +57,4 @@ class NatCheck(object):
         self.answer(True)
 
     def answer(self, result):
-        self.resultfunc(self.peerid, result)
+        self.resultfunc(result)
