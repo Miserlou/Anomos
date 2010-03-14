@@ -166,6 +166,7 @@ class NetworkModel:
         self.names = {}    # {peerid : SimPeer object}
         self.complete = {} # {infohash : set([peerid,...,])}
         self.incomplete = {} # {infohash : set([peerid,...,])}
+        self.tracked = set() # set([infohash,...])
         self.config = config
 
     def get(self, peerid):
@@ -179,21 +180,18 @@ class NetworkModel:
     def get_simpeers(self):
         return self.names.values()
 
+    def get_infohashes(self):
+        return self.tracked.copy()
+
     def swarm(self, infohash):
         return set.union(self.leechers(infohash),
                          self.seeders(infohash))
-        #return set(i for i in self.names \
-        #        if self.names[i].isSharing(infohash))
 
     def leechers(self, infohash):
         return self.incomplete.get(infohash, set()).copy()
-        #return set(i for i in self.names \
-        #        if self.names[i].isSharing(infohash) and \
-        #            not self.names[i].isSeeding(infohash))
 
     def seeders(self, infohash):
         return self.complete.get(infohash, set()).copy()
-        #return set(i for i in self.names if self.names[i].isSeeding(infohash))
 
     def initPeer(self, peerid, pubkey, ip, port, sid, num_neighbors=4):
         """
@@ -212,7 +210,7 @@ class NetworkModel:
         simpeer.update(ip, params)
 
         infohash = params.get('info_hash')
-        complete = (params.get('left') == 0)
+        complete = (int(params.get('left')) == 0)
         if params.get('event') == 'stopped':
             self.remove_from_swarm(peerid, infohash)
             if simpeer.numTorrents() == 0:
@@ -224,6 +222,8 @@ class NetworkModel:
 
 
     def update_swarm(self, peerid, infohash, complete):
+        if infohash not in self.tracked:
+            self.tracked.add(infohash)
         seedset = self.complete.get(infohash)
         leechset = self.incomplete.get(infohash)
         if complete:
@@ -254,17 +254,22 @@ class NetworkModel:
 
     def remove_from_swarm(self, peerid, infohash):
         seedset = self.complete.get(infohash)
-        leechset = self.complete.get(infohash)
+        leechset = self.incomplete.get(infohash)
+        swarm_size = 0
         # Remove from seeders list
         if seedset and (peerid in seedset):
             seedset.remove(peerid)
+            swarm_size += len(seedset)
             if len(seedset) == 0:
                 del self.complete[infohash]
         # Remove from leechers list
         if leechset and (peerid in leechset):
             leechset.remove(peerid)
+            swarm_size += len(leechset)
             if len(leechset) == 0:
                 del self.incomplete[infohash]
+        if (swarm_size == 0) and (infohash in self.tracked):
+            self.tracked.remove(infohash)
 
     def connect(self, v1, v2):
         """
