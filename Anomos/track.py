@@ -538,8 +538,10 @@ class Tracker(object):
             data['tracking codes'] = self.get_tcs(simpeer.name, infohash,
                                                  self.config['response_size'])
             data['interval'] = self.reannounce_interval
-        #if paramslist.has_key('scrape'):
-        #    data['scrape'] = self.scrapedata(infohash, False)
+
+        if paramslist.has_key('scrape'):
+            data['scrape'] = self.scrapedata(infohash, False)
+
         return (200, 'OK', {'Content-Type': 'text/plain', 'Pragma':\
                             'no-cache'}, bencode(data))
 
