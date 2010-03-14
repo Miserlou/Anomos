@@ -180,9 +180,9 @@ class Rerequester(object):
 
     def _announce(self, event=None):
         self.current_started = bttime()
-        query = ('%s&uploaded=%s&downloaded=%s&left=%s' %
-            (self.basequery, str(self.up() - self.previous_up),
-             str(self.down() - self.previous_down), str(self.amount_left())))
+        query = ('%s&uploaded=%d&downloaded=%d&left=%d' %
+            (self.basequery, self.up() - self.previous_up,
+             self.down() - self.previous_down, self.amount_left()))
         if self.neighbors.count() >= self.config['max_initiate']:
             query += '&numwant=0'
         else:
@@ -222,7 +222,7 @@ class Rerequester(object):
                                          username=self.proxy_username, \
                                          password=self.proxy_password, \
                                          ssl_context=self.ssl_ctx)
-                s = "https://"+self.url+":"+str(self.remote_port)+self.path+query
+                s = "https://%s:%d%s%s" % (self.url, self.remote_port, self.path, query)
                 h.putrequest('GET', s)
                 
                 # I suggest that for now, until there is a better solution in python, 
@@ -280,9 +280,9 @@ class Rerequester(object):
             if self.neighbors.count() > 0:
                 log.error('rejected by tracker - ' + r['failure reason'])
             else:
-                log.critical("Aborting the torrent as it was "
-                    "rejected by the tracker while not connected to any peers."
-                    " Message from the tracker:     " + r['failure reason'])
+                log.critical("Aborting the torrent as it was " \
+                    "rejected by the tracker while not connected to any peers. " \
+                    "Message from the tracker:\n" + r['failure reason'])
             self._fail()
             return
         elif self.neighbors is None:
@@ -297,7 +297,7 @@ class Rerequester(object):
             self.announce_interval = r.get('interval', self.announce_interval)
             self.config['rerequest_interval'] = r.get('min interval',
                                             self.config['rerequest_interval'])
-            
+
             if r.has_key('peers'):
                 p = r.get('peers')
                 if p is None:
@@ -310,9 +310,7 @@ class Rerequester(object):
                 self.neighbors.update_neighbor_list(peers)
                 # Start downloads
                 for aes, tc in r.get('tracking codes', []):
-                    #TODO: add error callback
                     self.neighbors.start_circuit(tc, self.infohash, Anomos.Crypto.AESKey(aes[:32], aes[32:]))
-                    #break
                 if self.basequery is not None: # We've recently made a successful
                     self.successfunc()     # request of type STARTED or COMPLETED
                 self._check()
