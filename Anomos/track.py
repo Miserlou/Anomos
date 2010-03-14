@@ -174,6 +174,7 @@ class Tracker(object):
                 log.warning("**warning** specified favicon file -- %s -- does not exist." % favicon)
                 log.warning('Exception: %s' % str(e))
 
+        # Load the infopage css file
         infopage_css = config['infopage_css']
         self.infopage_css = None
         if infopage_css:
@@ -185,14 +186,8 @@ class Tracker(object):
                 log.warning("**warning** specified css file -- %s -- does not exist." % infopage_css)
                 log.warning('Exception: %s' % str(e))
 
-
-
         self.event_handler = event_handler
         self.schedule = self.event_handler.schedule
-        #self.cached = {}    # format: infohash: [[time1, l1, s1], [time2, l2, s2], [time3, l3, s3]]
-        #self.cached_t = {}  # format: infohash: [time, cache]
-        #self.times = {}
-        #self.seedcount = {}
 
         self.certificate = certificate
         self.natcheck_ctx = certificate.get_ctx(allow_unknown_ca=True)
@@ -223,7 +218,7 @@ class Tracker(object):
         self.show_names = config['show_names']
 
         self.keep_dead = config['keep_dead']
-        self.prevtime = bttime()
+        self.last_expire = bttime()
 
     def allow_local_override(self, ip, given_ip):
         return is_valid_ipv4(given_ip) and (
@@ -392,7 +387,7 @@ class Tracker(object):
         params = params_factory(paramslist)
         peerid = peercert.get_fingerprint('sha256')[-20:]
         simpeer = self.networkmodel.get(peerid)
-        if simpeer and not simpeer.cmpCertificate(peercert):
+        if simpeer and not simpeer.cmp_certificate(peercert):
             # Certificate mismatch
             raise ValueError("Certificate mismatch")
 
@@ -405,7 +400,7 @@ class Tracker(object):
             skey = params('sessionid')
             if skey is None:
                 raise ValueError("Peer did not provide session key")
-            simpeer = self.networkmodel.initPeer(peerid, peercert, ip, port, skey)
+            simpeer = self.networkmodel.init_peer(peerid, peercert, ip, port, skey)
 
         self.networkmodel.update_peer(peerid, ip, paramslist)
         if params('event') != 'stopped':
@@ -413,7 +408,7 @@ class Tracker(object):
             if simpeer.nat and simpeer.num_natcheck < self.natcheck:
                 NatCheck(self.natcheck_ctx, simpeer.natcheck_cb,
                         self.schedule, peerid, ip, port)
-            needs = simpeer.numNeeded()
+            needs = simpeer.num_needed()
             if needs:
                 self.networkmodel.rand_connect(peerid, needs)
         return simpeer
@@ -431,7 +426,7 @@ class Tracker(object):
                  'port':vals['port'], \
                  'nid':vals['nid']} for vals in sim.neighbors.values()]
 
-    def getTCs(self, peerid, infohash, count=3):
+    def get_tcs(self, peerid, infohash, count=3):
         """
         Gets a set of tracking codes from the specified peer to 'count' random
         peers who are sharing the torrent specified by 'infohash'.
@@ -442,7 +437,7 @@ class Tracker(object):
         @type infohash: str
         @type count: int
         """
-        paths = self.networkmodel.getTrackingCodes(peerid, infohash, count)
+        paths = self.networkmodel.get_tracking_codes(peerid, infohash, count)
         return paths
 
     def validate_request(self, paramslist):
@@ -540,7 +535,7 @@ class Tracker(object):
         data = {}
         if params('event') != 'stopped':
             data['peers'] = self.neighborlist(simpeer.name)
-            data['tracking codes'] = self.getTCs(simpeer.name, infohash,
+            data['tracking codes'] = self.get_tcs(simpeer.name, infohash,
                                                  self.config['response_size'])
             data['interval'] = self.reannounce_interval
         #if paramslist.has_key('scrape'):
@@ -564,17 +559,6 @@ class Tracker(object):
             return (200, 'OK', {'Content-Type' : 'text/css'}, self.infopage_css)
         return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
 
-    #def natcheckOK(self, infohash, peerid, ip, port, not_seed):
-    #    bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
-    #    bc[0][not not_seed][peerid] = Bencached(bencode({'ip': ip, 'port': port,
-    #                                          'peer id': peerid}))
-    #    bc[1][not not_seed][peerid] = Bencached(bencode({'ip': ip, 'port': port}))
-    #    bc[2][not not_seed][peerid] = compact_peer_info(ip, port)
-
-    #def natchecklog(self, peerid, ip, port, result):
-    #    print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
-    #        ip, quote(peerid), strftime("[%d/%b/%Y:%H:%M:%S]"), ip, port, result)
-
     def parse_allowed(self):
         self.schedule(self.parse_dir_interval, self.parse_allowed)
 
@@ -586,11 +570,6 @@ class Tracker(object):
                      self.allowed_dir_blocked, ignore,include_metainfo = False)
         ( self.allowed, self.allowed_dir_files, self.allowed_dir_blocked,
           added, garbage2 ) = r
-
-        #for infohash in added:
-        #    self.downloads.setdefault(infohash, {})
-        #    self.completed.setdefault(infohash, 0)
-        #    self.seedcount.setdefault(infohash, 0)
 
     def parse_blocked(self):
         self.schedule(self.parse_dir_interval, self.parse_blocked)
@@ -604,10 +583,10 @@ class Tracker(object):
     def expire_downloaders(self):
         if not self.keep_dead:
             for simpeer in self.networkmodel.get_simpeers():
-                if simpeer.last_seen < self.prevtime:
+                if simpeer.last_seen < self.last_expire:
                     log.info("Timing out " + str(simpeer.name))
                     self.networkmodel.disconnect(simpeer.name)
-        self.prevtime = bttime()
+        self.last_expire = bttime()
         self.schedule(self.timeout_downloaders_interval, self.expire_downloaders)
 
 def track(args):

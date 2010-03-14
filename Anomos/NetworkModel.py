@@ -55,13 +55,10 @@ class SimPeer:
         self.num_natcheck = 0
         self.nat = True # assume NAT
 
-    def needsUpdate(self):
-        return self.last_modified > self.last_seen
-
-    def cmpCertificate(self, peercert):
+    def cmp_certificate(self, peercert):
         return self.pubkey.cmp(peercert)
 
-    def numNeeded(self):
+    def num_needed(self):
         return self.nbrs_needed
 
     def update(self, ip, params):
@@ -95,7 +92,7 @@ class SimPeer:
         self.num_natcheck += 1
         self.nat = not result
 
-    def addNeighbor(self, peerid, nid, ip, port):
+    def add_neighbor(self, peerid, nid, ip, port):
         """
         Assign Neighbor ID to peer
         @type peerid: string
@@ -107,7 +104,7 @@ class SimPeer:
         if self.nbrs_needed > 0:
             self.nbrs_needed -= 1
 
-    def rmNeighbor(self, peerid):
+    def rm_neighbor(self, peerid):
         """
         Remove connection to neighbor
         @type peerid: string
@@ -122,12 +119,12 @@ class SimPeer:
     def failed(self, nid):
         if self.id_map.has_key(nid):
             self.failed_nbrs.append(self.id_map[nid])
-            self.rmNeighbor(self.id_map[nid])
+            self.rm_neighbor(self.id_map[nid])
 
-    def getSessionID(self):
+    def get_session_id(self):
         return self.sessionid
 
-    def getAvailableNIDs(self):
+    def get_avail_nids(self):
         """
         @return: set object containing NIDs in range 0 -> 254 which are not in use
         @rtype: set of ints
@@ -136,25 +133,19 @@ class SimPeer:
         idrange = set([chr(i) for i in range(0, 255)])
         return idrange - used
 
-    def getNID(self, peerid, default=None):
+    def get_nid(self, peerid, default=None):
         """ Return the relative ID associated with peerid
             return default if the vertices aren't connected """
         return self.neighbors.get(peerid, {}).get('nid', default)
 
-    def getNbrs(self):
+    def get_nbrs(self):
         return self.neighbors.keys()
 
     def get_torrents(self):
         return self.infohashes.keys()
 
-    def numTorrents(self):
+    def num_torrents(self):
         return len(self.infohashes)
-
-    def isSharing(self, infohash):
-        return self.infohashes.has_key(infohash)
-
-    def isSeeding(self, infohash):
-        return self.infohashes.get(infohash, (None,None))[1] == 0
 
     def __str__(self):
         return self.name
@@ -193,7 +184,7 @@ class NetworkModel:
     def seeders(self, infohash):
         return self.complete.get(infohash, set()).copy()
 
-    def initPeer(self, peerid, pubkey, ip, port, sid, num_neighbors=4):
+    def init_peer(self, peerid, pubkey, ip, port, sid, num_neighbors=4):
         """
         @type peerid: string
         @param pubkey: public key to use when encrypting to this peer
@@ -213,7 +204,7 @@ class NetworkModel:
         complete = (int(params.get('left')) == 0)
         if params.get('event') == 'stopped':
             self.remove_from_swarm(peerid, infohash)
-            if simpeer.numTorrents() == 0:
+            if simpeer.num_torrents() == 0:
                 self.disconnect(peerid)
         else:
             if simpeer.nbrs_needed > 0:
@@ -281,13 +272,13 @@ class NetworkModel:
         """
         p1 = self.get(v1)
         p2 = self.get(v2)
-        nidsP1 = p1.getAvailableNIDs()
-        nidsP2 = p2.getAvailableNIDs()
+        nidsP1 = p1.get_avail_nids()
+        nidsP2 = p2.get_avail_nids()
         l = list(nidsP1.intersection(nidsP2))
         if len(l):
             nid = random.choice(l)
-            p1.addNeighbor(v2, nid, p2.ip, p2.port)
-            p2.addNeighbor(v1, nid, p1.ip, p2.port)
+            p1.add_neighbor(v2, nid, p2.ip, p2.port)
+            p2.add_neighbor(v1, nid, p1.ip, p2.port)
         else:
             raise RuntimeError("No available NeighborIDs. It's possible the \
                                 network is being attacked.")
@@ -329,21 +320,21 @@ class NetworkModel:
         if simpeer is None:
             return
         # Remove disconnecting peer from any neighbor lists it's a part of
-        for neighborOf in self.names[peerid].getNbrs():
+        for neighborOf in self.names[peerid].get_nbrs():
             if self.names.has_key(neighborOf):
-                self.names[neighborOf].rmNeighbor(peerid)
+                self.names[neighborOf].rm_neighbor(peerid)
         # Remove disconnecting peer from all swarms
         for infohash in simpeer.get_torrents():
             self.remove_from_swarm(peerid, infohash)
         # Delete the disconnecting peer's SimPeer object
         del self.names[peerid]
 
-    def nbrsOf(self, peerid):
+    def nbrs_of(self, peerid):
         if not self.get(peerid):
             return []
-        return self.get(peerid).getNbrs()
+        return self.get(peerid).get_nbrs()
 
-    def getPathsToFile(self, src, infohash, how_many=5, is_seed=False, minhops=3):
+    def get_paths(self, src, infohash, how_many=5, is_seed=False, minhops=3):
         source = self.get(src)
         snbrs = set(source.neighbors.keys())
         if is_seed:
@@ -374,12 +365,12 @@ class NetworkModel:
             for i in range(1, minhops-1):
                 # Take the union of all the neighbor sets of peers in the last
                 # level and append the result to lvls
-                t = reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]])
+                t = reduce(set.union, [set(self.nbrs_of(n)) for n in lvls[i-1]])
                 lvls.append(t)
             isect = snbrs.intersection(lvls[-1])
             # Keep growing until we find an snbr or exhaust the searchable space
             while isect == set([]) and len(lvls) < self.config['max_path_len']:
-                t = reduce(set.union, [set(self.nbrsOf(n)) for n in lvls[i-1]])
+                t = reduce(set.union, [set(self.nbrs_of(n)) for n in lvls[i-1]])
                 lvls.append(t)
                 isect = snbrs.intersection(lvls[-1])
             isect.discard(dname)
@@ -392,7 +383,7 @@ class NetworkModel:
             while c >= 0:
                 exclude.update(path[-1])
                 validChoices = lvls[c].difference(exclude)
-                nbrsOfLast = set(self.nbrsOf(path[-1]))
+                nbrsOfLast = set(self.nbrs_of(path[-1]))
                 candidates = list(nbrsOfLast.intersection(validChoices))
                 if candidates == []: # No non-cyclic path available
                     break
@@ -408,9 +399,9 @@ class NetworkModel:
         print paths
         return paths
 
-    def getTrackingCodes(self, source, infohash, count=3):
-        seedp = self.get(source).isSeeding(infohash)
-        paths = self.getPathsToFile(source, infohash, \
+    def get_tracking_codes(self, source, infohash, count=3):
+        seedp = source in self.complete.get(infohash,[])
+        paths = self.get_paths(source, infohash, \
                                     is_seed=seedp, minhops=3)
         tcs = []
         if len(paths) > count:
@@ -418,12 +409,12 @@ class NetworkModel:
         for p in paths[:min(count, len(paths))]:
             aes = Anomos.Crypto.AESKey()
             kiv = ''.join((aes.key, aes.iv))
-            m = self.encryptTC(p, \
+            m = self.encrypt_tc(p, \
                             plaintext=''.join((infohash,kiv)))
             tcs.append([kiv, m])
         return tcs
 
-    def encryptTC(self, pathByNames, prevNbr=None, plaintext='#', msglen=4096):
+    def encrypt_tc(self, pathByNames, prevNbr=None, plaintext='#', msglen=4096):
         """
         Returns an encrypted tracking code
         @see: http://anomos.info/wp/2008/06/19/tracking-codes-revised/
@@ -439,9 +430,9 @@ class NetworkModel:
         message = plaintext
         peername = pathByNames.pop(-1)
         peerobj = self.get(peername)
-        sid = peerobj.getSessionID()
+        sid = peerobj.get_session_id()
         if prevNbr:
-            nid = str(prevNbr.getNID(peername))
+            nid = str(prevNbr.get_nid(peername))
             tocrypt = chr(0) + sid + nid + message
             recvMsgLen = len(sid + nid) + 1 # The 'message' data is for the
                                             # next recipient, not this one.
@@ -451,7 +442,7 @@ class NetworkModel:
             message = peerobj.pubkey.encrypt(tocrypt, len(tocrypt))
         prevNbr = peerobj
         if len(pathByNames) > 0:
-            return self.encryptTC(pathByNames, prevNbr, message, msglen)
+            return self.encrypt_tc(pathByNames, prevNbr, message, msglen)
         elif len(message) < msglen:
             # Pad to msglen
             return message + Anomos.Crypto.get_rand(msglen-len(message))
@@ -462,7 +453,7 @@ class NetworkModel:
 ###########
 ##TESTING##
 ###########
-def tcTest(numnodes=1000, numedges=10000):
+def tc_test(numnodes=1000, numedges=10000):
     import math
     import time
     from binascii import b2a_hex
@@ -471,7 +462,7 @@ def tcTest(numnodes=1000, numedges=10000):
     graph = NetworkModel()
     pk = Anomos.Crypto.RSAKeyPair('WampWamp') # All use same RSA key for testing.
     for peerid in G_ips:
-        graph.initPeer(peerid, pk.pub_bin(), (peerid, 8080), int(math.log(1000)//math.log(4)))
+        graph.init_peer(peerid, pk.pub_bin(), (peerid, 8080), int(math.log(1000)//math.log(4)))
     print "Num Nodes: %s, Num Connections: %s" % (numnodes, numedges)
     t = time.time()
     for i in range(20):
@@ -497,4 +488,4 @@ if __name__ == "__main__":
         o = opt.strip('-')
         key,val = o.split('=')
         options[key] = int(val)
-    tcTest(**options)
+    tc_test(**options)
