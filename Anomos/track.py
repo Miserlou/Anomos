@@ -266,7 +266,6 @@ class Tracker(object):
                 names.sort()
                 tc = 0
                 td = 0
-                tt = 0  # Total transferred
                 ts = 0  # Total size
                 nf = 0  # Number of files displayed
                 if self.allowed is not None and self.show_names:
@@ -316,13 +315,11 @@ class Tracker(object):
             return (500, 'Internal Server Error', {'Content-Type': 'text/html; charset=iso-8859-1'}, 'Server Error')
 
     def scrapedata(self, infohash, return_name = True):
-        #l = self.downloads[infohash]
-        #n = self.completed.get(infohash, 0)
         c = len(self.networkmodel.complete.get(infohash,[]))
         d = len(self.networkmodel.incomplete.get(infohash,[]))
         f = {'complete': c, 'incomplete': d} #, 'downloaded': n}
-        #if return_name and self.show_names and self.allowed is not None:
-        #    f['name'] = self.allowed[infohash]['name']
+        if return_name and self.show_names and self.allowed is not None:
+            f['name'] = self.allowed[infohash]['name']
         return f
 
     def get_scrape(self, paramslist):
