@@ -330,7 +330,7 @@ class Tracker(object):
         fs = {}
         if params('info_hash'):
             if self.config['scrape_allowed'] not in ['specific', 'full']:
-                return (400, 'Not Authorized', \
+                return (401, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                     bencode({'failure reason': 'specific scrape function is not available with this tracker.'}))
             hashes = self.networkmodel.get_infohashes()
@@ -341,7 +341,7 @@ class Tracker(object):
                     fs[infohash] = self.scrapedata(infohash)
         else:
             if self.config['scrape_allowed'] != 'full':
-                return (400, 'Not Authorized', \
+                return (401, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                     bencode({'failure reason': 'full scrape function is not available with this tracker.'}))
             if self.allowed is not None:
@@ -366,19 +366,19 @@ class Tracker(object):
              'Content-Disposition': 'attachment; filename=' + fname},
              open(fpath, 'rb').read())
 
-    def check_allowed(self, infohash, paramslist):
+    def check_allowed(self, infohash):
         if self.allowed is not None:
             if not self.allowed.has_key(infohash):
-                return (200, 'Not Authorized', \
+                return (401, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
                     bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}))
             if self.config['allowed_controls']:
                 if self.allowed[infohash].has_key('failure reason'):
-                    return (200, 'Not Authorized', \
+                    return (401, 'Not Authorized', \
                         {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
         if b2a_hex(infohash) in self.blockedhashes:
-            return (200, 'Not Authorized', \
+            return (401, 'Not Authorized', \
                 {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
                 bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}))
         return None
@@ -489,9 +489,10 @@ class Tracker(object):
             for k in ['info_hash', 'sessionid', 'failed']:
                 if pqs.has_key(k):
                     pqs[k] = [b64decode(v) for v in pqs[k]]
-        except TypeError:
+        except TypeError, e:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
-                'you sent me garbage - ' + str(e))
+                    bencode({'failure reason':
+                                'you sent me garbage - ' + str(e)}))
 
         # parse_qs returns key/vals in the form {key0:[val0],...}
         # this converts them to {key0:val0,...}
@@ -514,26 +515,28 @@ class Tracker(object):
             peercert = handler.get_peer_cert()
             if peercert is None:
                 return (400, 'Bad Request', {'Content-Type': 'text/plain'},
-                        'Error: client attempted to announce without a certificate')
+                        bencode({'failure reason':
+                                    'You announced without a certificate'}))
 
         # Validate the GET request
         try:
             self.validate_request(paramslist)
         except ValueError, e:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
-                'you sent me garbage - ' + str(e))
+                bencode({'failure reason':
+                            'You sent me garbage - ' + str(e)}))
 
         # Update Tracker's information about the peer
         try:
             simpeer = self.update_peer(paramslist, ip, peercert)
         except ValueError, e:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
-                'Peer authentication failed')
+                bencode({'failure reason': str(e)}))
 
         infohash = params('info_hash')
 
         # Check if Tracker allows this torrent
-        notallowed = self.check_allowed(infohash, paramslist)
+        notallowed = self.check_allowed(infohash)
         if notallowed:
             return notallowed
 
