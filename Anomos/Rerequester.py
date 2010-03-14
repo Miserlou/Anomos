@@ -16,7 +16,7 @@
 from random import random
 from socket import gethostbyname
 from threading import Thread
-from urllib2 import quote
+from base64 import urlsafe_b64encode as b64encode
 
 from Anomos import bttime, BTFailure, LOG as log
 import Anomos.Crypto
@@ -124,7 +124,7 @@ class Rerequester(object):
 
     def _makequery(self):
         return ('?info_hash=%s&port=%s'%
-                (quote(self.infohash), str(self.local_port)))
+                (b64encode(self.infohash), str(self.local_port)))
 
     def change_port(self, port):
         self.local_port = port
@@ -190,12 +190,12 @@ class Rerequester(object):
         if event is not None:
             query += '&event=' + ['started', 'completed', 'stopped'][event]
             if event == STARTED:
-                query += '&sessionid='+quote(self.sessionid)
+                query += '&sessionid='+b64encode(self.sessionid)
         if self.config['ip']:
             query += '&ip=' + gethostbyname(self.config['ip'])
         self.failed_peers = self.neighbors.failed_connections()
         if self.failed_peers:
-            query += '&failed=' + quote(''.join(self.failed_peers))
+            query += '&failed=' + b64encode(''.join(self.failed_peers))
         Thread(target=self._rerequest, args=[query]).start()
 
     # Must destroy all references that could cause reference circles

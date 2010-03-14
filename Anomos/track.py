@@ -21,7 +21,8 @@ import socket
 
 from time import gmtime, strftime
 from urlparse import urlparse
-from urllib2 import quote, unquote
+from base64 import urlsafe_b64encode as b64encode
+from base64 import urlsafe_b64decode as b64decode
 from cgi import parse_qs
 from traceback import print_exc
 from cStringIO import StringIO
@@ -285,7 +286,7 @@ class Tracker(object):
                             sz = self.allowed[infohash]['length']  # size
                             ts += sz
                             if self.allow_get == 1:
-                                linkname = '<a href="/file?info_hash=' + quote(infohash) + '">' + name + '</a>'
+                                linkname = '<a href="/file?info_hash=' + b64encode(infohash) + '">' + name + '</a>'
                             else:
                                 linkname = name
                             s.write('<tr><td><code>%s</code></td><td>%s</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td></tr>\n' \
@@ -481,8 +482,17 @@ class Tracker(object):
         # Parse the requested URL
         (scheme, netloc, path, pars, query, fragment) = urlparse(path)
         # unquote and strip leading / from path
-        path = unquote(path).lstrip("/")
+        path = path.lstrip("/")
         pqs = parse_qs(query)
+        try:
+            # base64_decode the appropriate fields
+            for k in ['info_hash', 'sessionid', 'failed']:
+                if pqs.has_key(k):
+                    pqs[k] = [b64decode(v) for v in pqs[k]]
+        except TypeError:
+            return (400, 'Bad Request', {'Content-Type': 'text/plain'},
+                'you sent me garbage - ' + str(e))
+
         # parse_qs returns key/vals in the form {key0:[val0],...}
         # this converts them to {key0:val0,...}
         pqs = dict(zip(pqs.keys(), [q[0] for q in pqs.values()]))
