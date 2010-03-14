@@ -376,7 +376,7 @@ class Tracker(object):
                     return (200, 'Not Authorized', \
                         {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
-        if infohash in self.blockedhashes:
+        if b2a_hex(infohash) in self.blockedhashes:
             return (200, 'Not Authorized', \
                 {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},\
                 bencode({'failure reason': 'Requested download is not authorized for use with this tracker.'}))
@@ -587,7 +587,7 @@ class Tracker(object):
 
         self.blocklist = os.path.join(self.config['data_dir'], "blockedhashes")
         if os.path.exists(self.blocklist):
-            self.blockedhashes = open(self.blocklist, "r").readlines()
+            self.blockedhashes = [x.strip() for x in open(self.blocklist, "r").readlines()]
         else:
             self.blockedhashes = []
 
