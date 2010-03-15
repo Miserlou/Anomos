@@ -150,7 +150,7 @@ class Rerequester(object):
                                int(bttime() - self.current_started))
             ## Announce has been hanging for too long, retry it.
             if int(bttime() - self.current_started) >= 180:
-                self._announce()
+                self._announce(STARTED)
             return
         if self.basequery is None:
             self.basequery = self._makequery()
