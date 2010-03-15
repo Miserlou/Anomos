@@ -1419,7 +1419,7 @@ class TorrentInfoWindow(object):
         self.win.set_position(gtk.WIN_POS_CENTER)
         self.torrent_box = torrent_box
         name = self.torrent_box.metainfo.name
-        self.win.set_title('Info for "%s"'%name)
+        self.win.set_title(_('Info for "%s"'%name))
         self.win.set_size_request(-1,-1)
         self.win.set_border_width(SPACING)
         self.win.set_resizable(False)
@@ -1450,14 +1450,13 @@ class TorrentInfoWindow(object):
         add_item(_('Total size:'),  str(size)+num_files, y)
         y+=1
 
-        if advanced_ui:
-            pl = self.torrent_box.metainfo.piece_length
-            count, lastlen = divmod(size, pl)
-            sizedetail = '%d x %d + %d = %d' % (count, pl, lastlen, int(size))
-            add_item(_('Pieces:'), sizedetail, y)
-            y+=1
-            add_item(_('Info hash:'), self.torrent_box.infohash.encode('hex'), y)
-            y+=1
+        pl = self.torrent_box.metainfo.piece_length
+        count, lastlen = divmod(size, pl)
+        sizedetail = '%d x %d + %d = %d' % (count, pl, lastlen, int(size))
+        add_item(_('Pieces:'), sizedetail, y)
+        y+=1
+        add_item(_('Info hash:'), self.torrent_box.infohash.encode('hex'), y)
+        y+=1
 
         path = self.torrent_box.dlpath 
         filename = ''
