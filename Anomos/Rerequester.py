@@ -169,7 +169,7 @@ class Rerequester(object):
             return
         if self.fail_wait is not None:
             if self.last_time + self.fail_wait <= bttime():
-                self._announce()
+                self._announce(STARTED)
             return
         if self.last_time > bttime() - self.config['rerequest_interval']:
             return
@@ -295,8 +295,8 @@ class Rerequester(object):
             if r.has_key('warning message'):
                 log.error('warning from tracker - ' + r['warning message'])
             self.announce_interval = r.get('interval', self.announce_interval)
-            self.config['rerequest_interval'] = r.get('min interval',
-                                            self.config['rerequest_interval'])
+            self.config['rerequest_interval'] = self.announce_interval
+                                                #r.get('min interval', self.config['rerequest_interval'])
 
             if r.has_key('peers'):
                 p = r.get('peers')
