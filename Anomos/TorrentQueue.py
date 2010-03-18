@@ -316,7 +316,7 @@ class TorrentQueue(Feedback):
                     if t is None:
                         continue
                     infohash, t = t
-                    if t.dlpath is None:
+                    if t.dlpath is None or not os.path.exists(t.dlpath):
                         raise BTFailure("Invalid state file contents")
                     t.state = RUN_QUEUED
                     self.running_torrents.append(infohash)
@@ -328,7 +328,7 @@ class TorrentQueue(Feedback):
                 if t is None:
                     continue
                 infohash, t = t
-                if t.dlpath is None:
+                if t.dlpath is None or not os.path.exists(t.dlpath):
                     raise BTFailure("Invalid state file contents")
                 t.state = QUEUED
                 self.queue.append(infohash)
@@ -340,7 +340,7 @@ class TorrentQueue(Feedback):
                 if t is None:
                     continue
                 infohash, t = t
-                if t.dlpath is None:
+                if t.dlpath is None or not os.path.exists(t.dlpath):
                     t.state = ASKING_LOCATION
                 else:
                     t.state = KNOWN
