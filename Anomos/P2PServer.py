@@ -28,8 +28,7 @@ class P2PServer(asyncore.dispatcher):
         self.bind((addr, port))# from logging errors caused by the following
         self.bound = True      # call to bind. Errors from bind are caught by
                                # _find_port in Multitorrent.
-        self.listen(10) # TODO: Make this queue length a configuration option
-                        # or determine a best value for it
+        self.listen(socket.SOMAXCONN)
 
         # Neighbor Manager is set after the torrent is started
         self.neighbor_manager = None

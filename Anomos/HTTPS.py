@@ -13,8 +13,9 @@
 
 import asyncore
 import traceback
+import socket
 
-from Anomos import bttime, LOG as log
+from Anomos import LOG as log
 from Anomos.Dispatcher import Dispatcher
 from M2Crypto import SSL
 from cStringIO import StringIO
@@ -152,8 +153,7 @@ class HTTPSServer(asyncore.dispatcher):
         self.ssl_ctx=ssl_context
         self.create_socket()
         self.bind((addr, port))
-        self.listen(10) # TODO: Make this queue length a configuration option
-                        # or determine a best value for it
+        self.listen(socket.SOMAXCONN)
         self.getfunc = getfunc
 
     def create_socket(self):
@@ -166,8 +166,8 @@ class HTTPSServer(asyncore.dispatcher):
     def handle_accept(self):
         try:
             sock, addr = self.socket.accept()
-        except Exception, e:
-            log.warning(e)
+        except (SSL.SSLError, socket.error), e:
+            log.warning("Exception in HTTPSServer socket.accept: " + str(e))
             return
 
         conn = HTTPSConnection(sock, self.getfunc)
