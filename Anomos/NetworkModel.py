@@ -19,7 +19,7 @@ import random
 from sys import maxint as INFINITY
 import Anomos.Crypto
 
-from Anomos import bttime
+from Anomos import bttime, is_valid_ip
 
 # Use psyco if it's available.
 try:
@@ -71,8 +71,11 @@ class SimPeer:
         port = int(params.get('port'))
         # IP or port changed so we should natcheck again
         if (ip, port) != (self.ip, self.port):
-            self.num_natcheck = 0
-            self.nat = True
+            self.nat = True # Assume peer is NAT'd
+            if is_valid_ip(ip):
+                self.num_natcheck = 0
+            else: # Don't natcheck invalid addresses
+                self.num_natcheck = INFINITY
         # Mark any failed peers
         for x in params.get('failed', []):
             self.failed(x)
@@ -84,15 +87,8 @@ class SimPeer:
             # Update download totals
             self.infohashes[ihash] = (int(dl), int(left))
 
-    def natcheck_cb(self, result):
-        """
-        Called by NatCheck after testing a peer.
-        @param result: Result of NatCheck. True on successful connection
-                       False if the peer is unreachable.
-        @type result: boolean
-        """
-        self.num_natcheck += 1
-        self.nat = not result
+    def needs_natcheck(self, max_nc_attempts=3):
+        return self.nat and self.num_natcheck < max_nc_attempts
 
     def add_neighbor(self, peerid, nid, ip, port):
         """
@@ -158,7 +154,8 @@ class NetworkModel:
         self.names = {}    # {peerid : SimPeer object}
         self.complete = {} # {infohash : set([peerid,...,])}
         self.incomplete = {} # {infohash : set([peerid,...,])}
-        self.tracked = set() # set([infohash,...])
+        self.reachable = set() # set(peerid,...)
+        self.tracked = set() # set(infohash,...)
         self.config = config
 
     def get(self, peerid):
@@ -197,6 +194,21 @@ class NetworkModel:
         self.rand_connect(peerid, num_neighbors)
         return self.names[peerid]
 
+    def natcheck_cb(self, peerid, result):
+        """
+        Called by NatCheck after testing a peer.
+        @param result: Result of NatCheck. True on successful connection
+                       False if the peer is unreachable.
+        @type result: boolean
+        """
+        record = self.get(peerid)
+        if record is not None:
+            record.nat = not result
+            record.num_natcheck += 1
+            if not (record.nat or peerid in self.reachable):
+                # Peer is not NAT'd and we don't have them in the reachable list
+                self.reachable.add(peerid)
+
     def update_peer(self, peerid, ip, params):
         simpeer = self.get(peerid)
         simpeer.update(ip, params)
@@ -208,6 +220,9 @@ class NetworkModel:
             if simpeer.num_torrents() == 0:
                 self.disconnect(peerid)
         else:
+            if not (simpeer.nat or peerid in self.reachable):
+                # Peer is not NAT'd and we don't have them in the reachable list
+                self.reachable.add(peerid)
             if simpeer.nbrs_needed > 0:
                 self.rand_connect(peerid, simpeer.nbrs_needed)
             self.update_swarm(peerid, infohash, complete)
@@ -290,27 +305,22 @@ class NetworkModel:
         peer with id == peerid
         """
         peer = self.get(peerid)
-        order = range(len(self.names.keys()))
-        random.shuffle(order)
-        candidates = self.names.keys()
-        c = 0
-        for i in order:
-            if c >= numpeers:
+        candidates = random.sample(self.reachable, len(self.reachable))
+        for opid in candidates:
+            if numpeers <= 0:
                 break
-            opid = candidates[i]
             # Don't connect peers to: Themselves, peers who
             # they're already neighbors with, peers they've failed
-            # to make connections to in the past, or NAT'd peers.
+            # to make connections to in the past.
             if  opid == peerid or \
                 opid in peer.neighbors.keys() or \
-                opid in peer.failed_nbrs or \
-                self.get(opid).nat:
+                opid in peer.failed_nbrs:
                     continue
             if not self.config.get('allow_close_neighbors') and \
                 peer.ip == self.get(opid).ip:
                     continue
             self.connect(peerid, opid)
-            c += 1
+            numpeers -= 1
 
     def disconnect(self, peerid):
         """

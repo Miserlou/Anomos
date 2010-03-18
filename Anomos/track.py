@@ -16,8 +16,6 @@
 
 import os
 import re
-import sys
-import socket
 
 from time import gmtime, strftime
 from urlparse import urlparse
@@ -35,10 +33,9 @@ from Anomos.HTTPS import HTTPSServer
 from Anomos.NatCheck import NatCheck
 from Anomos.NetworkModel import NetworkModel
 from Anomos.bencode import bencode, bdecode, Bencached
-from Anomos.btformats import statefiletemplate
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.parsedir import parsedir
-from Anomos import bttime, version, LOG as log
+from Anomos import bttime, version, is_valid_ipv4, LOG as log
 
 defaults = [
     ('port', 80, "Port to listen on."),
@@ -121,14 +118,6 @@ def compact_peer_info(ip, port):
     except:
         s = ''  # not a valid IP, must be a domain name
     return s
-
-def is_valid_ipv4(ip):
-    try:
-        socket.inet_pton(socket.AF_INET, ip)
-    except socket.error:
-        return False
-    else:
-        return True
 
 def is_local_ip(ip):
     try:
@@ -405,12 +394,12 @@ class Tracker(object):
         self.networkmodel.update_peer(peerid, ip, paramslist)
         if params('event') != 'stopped':
             port = int(params('port'))
-            if simpeer.nat and simpeer.num_natcheck < self.natcheck:
-                NatCheck(self.natcheck_ctx, simpeer.natcheck_cb,
+            if simpeer.needs_natcheck(self.natcheck):
+                NatCheck(self.natcheck_ctx, self.networkmodel.natcheck_cb,
                         self.schedule, peerid, ip, port)
-            needs = simpeer.num_needed()
-            if needs:
-                self.networkmodel.rand_connect(peerid, needs)
+            nbrs_needed = simpeer.num_needed()
+            if nbrs_needed > 0:
+                self.networkmodel.rand_connect(peerid, nbrs_needed)
         return simpeer
 
     def neighborlist(self, peerid):

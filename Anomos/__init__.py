@@ -144,3 +144,23 @@ def toint(s):
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
+
+def is_valid_ip(ip):
+    return is_valid_ipv4(ip) or is_valid_ipv6(ip)
+
+def is_valid_ipv4(ip):
+    try:
+        socket.inet_pton(socket.AF_INET, ip)
+    except socket.error:
+        return False
+    else:
+        return True
+
+def is_valid_ipv6(ip):
+    #XXX: We don't actually support IPv6 yet...
+    try:
+        socket.inet_pton(socket.AF_INET6, ip)
+    except socket.error:
+        return False
+    else:
+        return True
