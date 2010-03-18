@@ -33,6 +33,8 @@ class SimPeer:
     Container for some information tracker needs to know about each peer, also
     node in Graph model of network topology used for Tracking Code generation.
     """
+    ID_RANGE = set(chr(i) for i in range(256))
+
     def __init__(self, name, pubkey, ip, port, sid):
         """
         @param name: Peer ID to be assigned to this SimPeer
@@ -130,8 +132,7 @@ class SimPeer:
         @rtype: set of ints
         """
         used = set(self.id_map.keys())
-        idrange = set([chr(i) for i in range(0, 255)])
-        return idrange - used
+        return SimPeer.ID_RANGE.copy() - used
 
     def get_nid(self, peerid, default=None):
         """ Return the relative ID associated with peerid
