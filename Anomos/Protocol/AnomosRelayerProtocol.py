@@ -68,10 +68,10 @@ class AnomosRelayerProtocol(AnomosProtocol):
         #XXX: Just a test, Throw tcodes into the PMQ instead of sending them
         # immediately
         #self.network_ctl_msg(TCODE, trackcode)
-        log.info("Queuing Tracking code!")
+        log.info("Queuing tracking code")
         self.neighbor.queue_message(self.stream_id, TCODE+trackcode)
         if self.next_upload is None:
-            log.info("Queuing Self!")
+            log.info("Queuing self")
             self.ratelimiter.queue(self)
     def send_relay_message(self, msg):
         self.neighbor.queue_message(self.stream_id, msg)
