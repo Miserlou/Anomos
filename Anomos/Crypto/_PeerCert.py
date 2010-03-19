@@ -47,9 +47,9 @@ class PeerCert:
         # Encrypt the session key which we'll use to bulk encrypt the rest of the data
         esk = self.pubkey.public_encrypt(enc_asymm, RSA.pkcs1_oaep_padding)
         md = EVP.MessageDigest("sha1")
-        md.update(enc_asymm + enc_symm)
+        md.update(enc_symm)
         checksum = md.digest()
-        content = checksum + enc_symm + data[payloadlen:]
+        content = enc_symm + checksum + data[payloadlen:]
         padlen = (-len(content)) % 32
         padding = Anomos.Crypto.get_rand(padlen)
         ciphertext = sessionkey.encrypt(content+padding)

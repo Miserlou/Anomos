@@ -202,15 +202,15 @@ class Certificate:
         sessionkey = Anomos.Crypto.AESKey(sk, iv)
         # Decrypt the rest of the message with the session key
         content = sessionkey.decrypt(data[rsa_keysize_B:])
-        pos = 20
-        givenchksum = content[:pos] # first 20 bytes
-        smsglen = content[pos:pos+4] # next 4 bytes
-        imsglen = toint(smsglen)
-        pos += 4
-        message = content[pos:pos+imsglen]
-        pos += imsglen
+        msglen = content[:4] # first 4 bytes
+        msglen_int = toint(msglen)
+        pos = 4
+        message = content[pos:pos+msglen_int] # next msglen_int bytes
+        pos += msglen_int
+        givenchksum = content[pos:pos+20] # next 20 bytes
+        pos += 20
         md = EVP.MessageDigest("sha1")
-        md.update(sk+iv+smsglen+message)
+        md.update(msglen + message)
         mychksum = md.digest()
         if givenchksum != mychksum:
             raise CryptoError("Bad Checksum - Data may have been tampered with")
