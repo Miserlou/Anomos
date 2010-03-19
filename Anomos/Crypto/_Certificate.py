@@ -11,7 +11,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import hashlib
 import os
 import sys
 import Anomos.Crypto
@@ -21,6 +20,7 @@ from Anomos.Protocol import toint
 from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath
 from Anomos.Crypto import CryptoError
 from M2Crypto import m2, RSA, EVP, X509, SSL, util as m2util
+from binascii import b2a_hex
 
 # Cipher Set:
 CIPHER_SET = 'HIGH:!ADH:!MD5:@STRENGTH'
@@ -174,38 +174,34 @@ class Certificate:
             ctx.set_session_id_ctx(session)
         return ctx
 
-    def get_pub(self):
-        return self.rsakey.pub()[1]
-
     def fingerprint(self):
-        return hashlib.sha1(self.get_pub()).hexdigest()
+        md = EVP.MessageDigest("sha1")
+        md.update(self.rsakey.pub()[1])
+        return b2a_hex(md.digest())
 
-    def decrypt(self, data, returnpad=False):
+    def decrypt(self, data):
         """
         Decrypts data encrypted with this public key
 
         @param data: The data, padding and all, to be decrypted
         @type data: string
-        @param returnpad: return "junk" decrypted padding as well as message. Default: False
-        @type returnpad: boolean
 
         @raise CryptoError: Priv. decrypt fail or Bad Checksum
 
         @return: tuple (decrypted message, padding) if returnpad is true, string otherwise
         @rtype: tuple
         """
-        byte_key_size = len(self.rsakey)/8
+        rsa_keysize_B = len(self.rsakey)/8
         # Decrypt the session key and IV with our private key
         try:
-            tmpsk = self.rsakey.private_decrypt(data[:byte_key_size], RSA.pkcs1_oaep_padding)
+            tmpsk = self.rsakey.private_decrypt(data[:rsa_keysize_B], RSA.pkcs1_oaep_padding)
         except RSA.RSAError, e:
             raise CryptoError("A decryption error occurred: %s" % str(e))
         sk = tmpsk[:32] # Session Key
         iv = tmpsk[32:] # IV
         sessionkey = Anomos.Crypto.AESKey(sk, iv)
         # Decrypt the rest of the message with the session key
-        content = sessionkey.decrypt(data[byte_key_size:])
-        #pos = sha.digestsize
+        content = sessionkey.decrypt(data[rsa_keysize_B:])
         pos = 20
         givenchksum = content[:pos] # first 20 bytes
         smsglen = content[pos:pos+4] # next 4 bytes
@@ -213,10 +209,9 @@ class Certificate:
         pos += 4
         message = content[pos:pos+imsglen]
         pos += imsglen
-        mychksum = hashlib.sha1(sk+smsglen+message).digest()
+        md = EVP.MessageDigest("sha1")
+        md.update(sk+iv+smsglen+message)
+        mychksum = md.digest()
         if givenchksum != mychksum:
             raise CryptoError("Bad Checksum - Data may have been tampered with")
-        if returnpad:
-            return (message, content[pos:])
-        else:
-            return message
+        return (message, content[pos:])

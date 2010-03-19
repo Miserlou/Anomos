@@ -13,7 +13,7 @@
 
 import hashlib
 
-from M2Crypto import RSA, X509
+from M2Crypto import RSA, X509, EVP
 
 from Anomos import tobinary
 from Anomos.Crypto import global_randfile
@@ -33,23 +33,24 @@ class PeerCert:
     def cmp(self, certObj):
         return self.fingerprint == certObj.get_fingerprint(self.hash_alg)
 
-    def encrypt(self, data, rmsglen=None):
+    def encrypt(self, data, payloadlen=None):
         """
         @type data: string
         @return: ciphertext of data, format: {RSA encrypted session key}[Checksum(sessionkey, info, content)][msg length][content][padding]
         @rtype: string
         """
+        if payloadlen is None:
+            payloadlen = len(data)
         sessionkey = Anomos.Crypto.AESKey()
+        enc_asymm = sessionkey.key + sessionkey.iv
+        enc_symm = tobinary(payloadlen) + data[:payloadlen]
         # Encrypt the session key which we'll use to bulk encrypt the rest of the data
-        esk = self.pubkey.public_encrypt(sessionkey.key+sessionkey.iv, RSA.pkcs1_oaep_padding)
-        if rmsglen:
-            bmsglen = tobinary(rmsglen)
-        else:
-            rmsglen = len(data)
-            bmsglen = tobinary(len(data))
-        checksum = hashlib.sha1(sessionkey.key + bmsglen + data[:rmsglen]).digest()
-        content = checksum + bmsglen + data
-        padlen = 32-(len(content)%32)
+        esk = self.pubkey.public_encrypt(enc_asymm, RSA.pkcs1_oaep_padding)
+        md = EVP.MessageDigest("sha1")
+        md.update(enc_asymm + enc_symm)
+        checksum = md.digest()
+        content = checksum + enc_symm + data[payloadlen:]
+        padlen = (-len(content)) % 32
         padding = Anomos.Crypto.get_rand(padlen)
         ciphertext = sessionkey.encrypt(content+padding)
         return esk + ciphertext

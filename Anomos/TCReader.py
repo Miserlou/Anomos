@@ -24,7 +24,7 @@ class TCReader(object):
     def parseTC(self, tc): # Raises CryptoError!
         # Payload is the readable data at this layer of the onion
         # nextLayer is the encrypted portion for the next peer
-        payload, nextLayer = self.cert.decrypt(tc, True)
+        payload, nextLayer = self.cert.decrypt(tc)
         return TCodeData(payload, self.repad(nextLayer, len(tc)))
     def repad(self, layer, size):
         return layer + Anomos.Crypto.get_rand(size-len(layer))
