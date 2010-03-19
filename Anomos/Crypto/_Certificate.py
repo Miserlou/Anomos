@@ -33,7 +33,7 @@ CIPHER_SET = 'HIGH:!ADH:!MD5:@STRENGTH'
 # DES-CBC3-SHA:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:AES128-SHA
 
 # CTX_OPTIONS: Only allow TLSv1
-CTX_OPTIONS = m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3
+CTX_OPTIONS = m2.SSL_OP_NO_SSLv2
 
 ## X509 Verification Callbacks ##
 SELF_SIGNED_ERR = [
@@ -149,7 +149,7 @@ class Certificate:
         self.cert.save_pem(self.certfile)
 
     def get_ctx(self, allow_unknown_ca=False, req_peer_cert=True, session=None):
-        ctx = SSL.Context("tlsv1")
+        ctx = SSL.Context("sslv23")
         # Set certificate and private key
         m2.ssl_ctx_use_x509(ctx.ctx, self.cert.x509)
         m2.ssl_ctx_use_rsa_privkey(ctx.ctx, self.rsakey.rsa)
