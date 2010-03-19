@@ -20,7 +20,7 @@ import Anomos.Crypto
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.NeighborLink import NeighborLink
 from Anomos.P2PConnection import P2PConnection
-from Anomos.Protocol.TCReader import TCReader
+from Anomos.TCReader import TCReader
 from Anomos.Protocol import NAT_CHECK_ID
 from Anomos.Measure import Measure
 from Anomos import BTFailure, LOG as log

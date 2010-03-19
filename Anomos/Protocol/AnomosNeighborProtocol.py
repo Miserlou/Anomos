@@ -18,7 +18,7 @@
 import Anomos.Crypto
 
 from Anomos.Protocol import PARTIAL, TCODE, tobinary, toint, AnomosProtocol
-from Anomos.Protocol.TCReader import TCReader
+from Anomos.TCReader import TCReader
 from Anomos import LOG as log
 
 class AnomosNeighborProtocol(AnomosProtocol):
