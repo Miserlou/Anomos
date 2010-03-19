@@ -274,3 +274,6 @@ class NeighborManager(object):
         count = self.relay_count
         sent = self.relay_measure.get_total()
         return {'relayRate' : rate, 'relayCount' : count, 'relaySent' : sent}
+
+    def relayed(self):
+        return self.relay_measure.get_total()

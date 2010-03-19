@@ -48,7 +48,8 @@ class SimPeer:
         self.pubkey = Anomos.Crypto.PeerCert(pubkey)
         self.neighbors = {} # {PeerID: {nid:#, ip:"", port:#}}
         self.id_map = {}    # {NeighborID : PeerID}
-        self.infohashes = {} # {infohash: (downloaded, left)}
+        self.infohashes = {} # {infohash: (uploaded, downloaded, left)}
+        self.relayed_total = 0
         self.last_seen = 0  # Time of last client announce
         self.last_modified = bttime() # Time when client was last modified
         self.failed_nbrs = []
@@ -65,9 +66,6 @@ class SimPeer:
 
     def update(self, ip, params):
         self.last_seen = bttime()
-        ihash = params.get('info_hash')
-        dl = params.get('downloaded')
-        left = params.get('left')
         port = int(params.get('port'))
         # IP or port changed so we should natcheck again
         if (ip, port) != (self.ip, self.port):
@@ -79,13 +77,25 @@ class SimPeer:
         # Mark any failed peers
         for x in params.get('failed', []):
             self.failed(x)
+        # Update stats
+        ihash = params.get('info_hash')
+        rl = params.get('relayed')
+        if rl is not None:
+            self.relayed_total = rl
         # Remove any stopped torrents
         if params.get('event') == 'stopped':
             if self.infohashes.has_key(ihash):
                 del self.infohashes[ihash]
-        elif None not in (ihash, dl, left):
-            # Update download totals
-            self.infohashes[ihash] = (int(dl), int(left))
+        else:
+            # Update upload/download/left
+            if self.infohashes.has_key(ihash):
+                p_ul, p_dl, p_left = self.infohashes[ihash]
+            else:
+                p_ul, p_dl, p_left = (0,0,0)
+            ul = params.get('uploaded', p_ul)
+            dl = params.get('downloaded', p_dl)
+            left = params.get('left', p_left)
+            self.infohashes[ihash] = (int(ul), int(dl), int(left))
 
     def needs_natcheck(self, max_nc_attempts=3):
         return self.nat and self.num_natcheck < max_nc_attempts

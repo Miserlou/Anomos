@@ -104,8 +104,6 @@ class Rerequester(object):
         self.current_started = None
         self.fail_wait = None
         self.last_time = None
-        self.previous_down = 0
-        self.previous_up = 0
         self.warned = False
         self.proxy_url = self.config.get('tracker_proxy', None)
         self.proxy_username = None
@@ -160,8 +158,6 @@ class Rerequester(object):
             self._announce(STOPPED)
             self.changed_port = False
             self.basequery = None
-            self.previous_up = self.up()
-            self.previous_down = self.down()
             return
         if self.finish:
             self.finish = False
@@ -180,9 +176,9 @@ class Rerequester(object):
 
     def _announce(self, event=None):
         self.current_started = bttime()
-        query = ('%s&uploaded=%d&downloaded=%d&left=%d' %
-            (self.basequery, self.up() - self.previous_up,
-             self.down() - self.previous_down, self.amount_left()))
+        query = ('%s&uploaded=%d&downloaded=%d&relayed=%d&left=%d' %
+            (self.basequery, self.up(), self.down(), self.neighbors.relayed(),
+             self.amount_left()))
         if self.neighbors.count() >= self.config['max_initiate']:
             query += '&numwant=0'
         else:
