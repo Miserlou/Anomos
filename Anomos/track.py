@@ -129,6 +129,19 @@ def is_local_ip(ip):
     except ValueError:
         return False
 
+def size_format(s):
+    if (s < 1024):
+        r = "%d B" % int(s)
+    elif (s < 1048576):
+        r = "%.2f KiB" % (s/1024.0)
+    elif (s < 1073741824):
+        r = "%.2f MiB" % (s/1048576.0)
+    elif (s < 1099511627776):
+        r = "%.2f GiB" % (s/1073741824.0)
+    else:
+        r = "%.2f TiB" % (s/1099511627776.0)
+    return r
+
 def params_factory(dictionary, default=None):
     """
     Function factory that lets us easily get info from dictionaries of the
@@ -137,11 +150,12 @@ def params_factory(dictionary, default=None):
     @param default: the default value to return if key is not found
     @rtype: function
     """
-    def params(key, default=default, d=dictionary):
-        if d.has_key(key):
-            return d[key]
+    def params(key, default=default):
+        if dictionary.has_key(key):
+            return dictionary[key]
         return default
     return params
+
 
 class Tracker(object):
 
@@ -367,10 +381,10 @@ class Tracker(object):
     def update_peer(self, paramslist, ip, peercert):
         """
         @param paramslist: Parameters from client's GET request
-        @param ip: Client's IP address
-        @param peercert:
         @type paramslist: list
+        @param ip: Client's IP address
         @type ip: string
+        @param peercert: Client X509 Certificate
         @type peercert: M2Crypto.X509.X509
         """
         params = params_factory(paramslist)
@@ -541,24 +555,24 @@ class Tracker(object):
                             'no-cache'}, bencode(data))
 
     def handle_browser_connections(self, path, paramslist):
+        # / or /index.html
         if path == '' or path == 'index.html':
             return self.get_infopage()
-            #return (200, 'OK', {'Content-Type' : 'text/plain'}, "index.html is not yet implemented")
+        # /scrape
         if path == 'scrape':
             return self.get_scrape(paramslist)
-            #return (200, 'OK', {'Content-Type' : 'text/plain'}, "scrape is not yet implemented")
-        if (path == 'file') and paramslist.has_key('info_hash'):
+        # /file?info_hash=...
+        if path == 'file' and paramslist.has_key('info_hash'):
             return self.get_file(paramslist.get('info_hash'))
-            #return (200, 'OK', {'Content-Type' : 'text/plain'}, "get file is not yet implemented")
+        # /favicon.ico
         if path == 'favicon.ico' and self.favicon is not None:
             return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
+        # /infopage.css
         if path == 'infopage.css' and self.infopage_css is not None:
             return (200, 'OK', {'Content-Type' : 'text/css'}, self.infopage_css)
         return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
 
     def parse_allowed(self):
-        self.schedule(self.parse_dir_interval, self.parse_allowed)
-
         # logging broken .atorrent files would be useful but could confuse
         # programs parsing log files, so errors are just ignored for now
         def ignore(message):
@@ -568,14 +582,18 @@ class Tracker(object):
         ( self.allowed, self.allowed_dir_files, self.allowed_dir_blocked,
           added, garbage2 ) = r
 
-    def parse_blocked(self):
-        self.schedule(self.parse_dir_interval, self.parse_blocked)
+        self.schedule(self.parse_dir_interval, self.parse_allowed)
 
+
+    def parse_blocked(self):
         self.blocklist = os.path.join(self.config['data_dir'], "blockedhashes")
         if os.path.exists(self.blocklist):
             self.blockedhashes = [x.strip() for x in open(self.blocklist, "r").readlines()]
         else:
             self.blockedhashes = []
+
+        self.schedule(self.parse_dir_interval, self.parse_blocked)
+
 
     def expire_downloaders(self):
         if not self.keep_dead:
@@ -611,17 +629,4 @@ def track(args):
     else:
         e.loop()
         print '# Shutting down: ' + isotime()
-
-def size_format(s):
-    if (s < 1024):
-        r = "%d B" % int(s)
-    elif (s < 1048576):
-        r = "%.2f KiB" % (s/1024.0)
-    elif (s < 1073741824):
-        r = "%.2f MiB" % (s/1048576.0)
-    elif (s < 1099511627776):
-        r = "%.2f GiB" % (s/1073741824.0)
-    else:
-        r = "%.2f TiB" % (s/1099511627776.0)
-    return r
 
