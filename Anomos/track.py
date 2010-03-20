@@ -447,7 +447,13 @@ class Tracker(object):
             raise ValueError('invalid or unspecified port')
         dl = params('downloaded')
         if dl and int(dl) < 0:
-            raise ValueError('invalid amount downloaded')
+            raise ValueError('invalid downloaded amount')
+        ul = params('uploaded')
+        if ul and int(ul) < 0:
+            raise ValueError('invalid uploaded amount')
+        rl = params('relayed')
+        if rl and int(rl) < 0:
+            raise ValueError('invalid relayed amount ')
         left = params('left')
         if left and int(left) < 0:
             raise ValueError('invalid amount left')
