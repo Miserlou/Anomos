@@ -55,6 +55,10 @@ class EndPoint(AnomosEndPointProtocol):
         self.download = self.torrent.make_download(self)
         self.torrent.add_active_stream(self)
 
+    def completion_timeout(self):
+        if not self.complete:
+            self.close()
+
     def is_flushed(self):
         return self.neighbor.socket.flushed() and not self.neighbor.in_queue(self.stream_id)
 

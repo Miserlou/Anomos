@@ -94,6 +94,7 @@ class NeighborLink(AnomosNeighborProtocol):
             self.next_stream_id += 1
         self.streams[nxtid] = \
                     EndPoint(nxtid, self, torrent, aeskey, data)
+        self.manager.schedule(180, self.streams[nxtid].completion_timeout)
         log.info("Starting endpoint")
         return self.streams[nxtid]
 
@@ -115,6 +116,7 @@ class NeighborLink(AnomosNeighborProtocol):
             self.next_stream_id += 1
         self.streams[nxtid] = \
                     Relayer(nxtid, self, nid, data, orelay)
+        self.manager.schedule(180, self.streams[nxtid].completion_timeout)
         return self.streams[nxtid]
 
     def close_streams(self):

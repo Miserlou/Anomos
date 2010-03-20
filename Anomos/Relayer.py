@@ -82,6 +82,10 @@ class Relayer(AnomosRelayerProtocol):
         self.orelay.complete = True
         self.orelay.flush_pre_buffer()
 
+    def completion_timeout(self):
+        if not self.complete:
+            self.close()
+
     def connection_flushed(self):
         if self.should_queue():
             self.ratelimiter.queue(self)
