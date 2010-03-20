@@ -57,7 +57,7 @@ class Relayer(AnomosRelayerProtocol):
         self.measurer = measurer
 
     def _complete_relay_message(self, msg):
-        if not self.orelay.closed:
+        if not (self.orelay.closed or self.orelay.sent_break):
             self.orelay.send_relay_message(msg)
 
     def relay_message(self, msg):
@@ -97,10 +97,10 @@ class Relayer(AnomosRelayerProtocol):
         # Connection was closed locally (as opposed to
         # being closed by receiving a BREAK message)
         if self.closed:
-            log.warning("Double close")
+            log.warning("%s: Double close" % self.uniq_id())
             return
         log.info("Closing %s"%self.uniq_id())
-        if not self.sent_break:
+        if self.complete and not self.sent_break:
             self.send_break()
         self.shutdown()
 
@@ -109,15 +109,13 @@ class Relayer(AnomosRelayerProtocol):
             log.warning("Double close")
             return
         self.closed = True
-        self.ratelimiter.clean_closed()
-        if not self.complete:
-            return
         if not (self.decremented_count or self.orelay.decremented_count):
             self.manager.dec_relay_count()
             self.decremented_count = True
         # Tell our orelay to close.
         if not self.orelay.closed:
             self.orelay.ore_closed()
+        self.ratelimiter.clean_closed()
 
     def ore_closed(self):
         """ Closes the connection when a Break has been received by our
