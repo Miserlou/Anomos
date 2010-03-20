@@ -136,12 +136,12 @@ class P2PConnection(Dispatcher):
         self.want_write = False
         self.initiate_send()
         if self.flushed():
-            self.collector.connection_flushed()
+            self.collector.socket_flushed()
 
     def handle_close(self):
         log.info("Doing Handle Close")
         if self.collector:
-            self.collector.connection_closed()
+            self.collector.socket_closed()
         self.socket.set_shutdown(SSL.m2.SSL_SENT_SHUTDOWN|SSL.m2.SSL_RECEIVED_SHUTDOWN)
         self.close()
 

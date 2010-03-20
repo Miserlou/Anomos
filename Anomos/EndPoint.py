@@ -62,7 +62,7 @@ class EndPoint(AnomosEndPointProtocol):
     def is_flushed(self):
         return self.neighbor.socket.flushed() and not self.neighbor.in_queue(self.stream_id)
 
-    def connection_flushed(self):
+    def socket_flushed(self):
         if self.complete and self.should_queue():
             self.ratelimiter.queue(self)
 

@@ -86,7 +86,7 @@ class Relayer(AnomosRelayerProtocol):
         if not self.complete:
             self.close()
 
-    def connection_flushed(self):
+    def socket_flushed(self):
         if self.should_queue():
             self.ratelimiter.queue(self)
 

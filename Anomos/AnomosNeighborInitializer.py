@@ -80,11 +80,11 @@ class AnomosNeighborInitializer(object):
         hdr = chr(len(protocol_name)) + protocol_name + \
                        self.protocol_extensions()
         self.socket.push(hdr)
-    def connection_closed(self):
+    def socket_closed(self):
         if self.id != NAT_CHECK_ID and self.id != '':
             log.info("Failed to initialize connection to %s" % str(self.id))
         if not self.complete:
             self.manager.initializer_failed(self.id)
         self.socket = None
-    def connection_flushed(self):
+    def socket_flushed(self):
         pass

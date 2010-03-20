@@ -119,7 +119,7 @@ class NeighborLink(AnomosNeighborProtocol):
         self.manager.schedule(180, self.streams[nxtid].completion_timeout)
         return self.streams[nxtid]
 
-    def close_streams(self):
+    def close_all_streams(self):
         for s in self.streams.values():
             if not s.closed:
                 s.close()
@@ -142,12 +142,12 @@ class NeighborLink(AnomosNeighborProtocol):
             @type id: int in range 0 to 2**16"""
         return self.streams.get(id, self)
 
-    def connection_flushed(self):
+    def socket_flushed(self):
         """ Inform all streams that the connection is
             flushed so they may requeue themselves if
             they need to """
         for stream in self.streams.itervalues():
-            stream.connection_flushed()
+            stream.socket_flushed()
 
     def send_immediately(self, message):
         self.socket.push(message)
@@ -157,7 +157,7 @@ class NeighborLink(AnomosNeighborProtocol):
         if not t or (t and not self.streams[streamid].sent_break):
             self.pmq.queue_message(streamid, message)
         if self.socket.flushed():
-            self.connection_flushed()
+            self.socket_flushed()
 
     def in_queue(self, id):
         return self.pmq.msgs.has_key(id) and len(self.pmq.msgs[id]) > 0
@@ -178,8 +178,8 @@ class NeighborLink(AnomosNeighborProtocol):
             snt += len(f)
         return snt
 
-    def connection_closed(self):
-        self.close_streams()
+    def socket_closed(self):
+        self.close_all_streams()
         self.manager.lost_neighbor(self.id)
         # Socket reference must be removed here or socket waits
         # CLOSE_WAIT state until this object is garbage collected
