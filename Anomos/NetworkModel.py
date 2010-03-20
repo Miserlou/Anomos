@@ -347,6 +347,9 @@ class NetworkModel:
         # Remove disconnecting peer from all swarms
         for infohash in simpeer.get_torrents():
             self.remove_from_swarm(peerid, infohash)
+        # Remove peer from reachable set
+        if peerid in self.reachable:
+            self.reachable.remove(peerid)
         # Delete the disconnecting peer's SimPeer object
         del self.names[peerid]
 
