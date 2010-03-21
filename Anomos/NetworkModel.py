@@ -316,6 +316,11 @@ class NetworkModel:
         """
         peer = self.get(peerid)
         candidates = random.sample(self.reachable, len(self.reachable))
+        allow_close = self.config.get('allow_close_neighbors')
+        if not allow_close:
+            bad_ips = [i['ip'] for i in peer.neighbors.values()]
+            bad_ips.append(peer.ip)
+            print bad_ips
         for opid in candidates:
             if numpeers <= 0:
                 break
@@ -326,9 +331,10 @@ class NetworkModel:
                 opid in peer.neighbors.keys() or \
                 opid in peer.failed_nbrs:
                     continue
-            if not self.config.get('allow_close_neighbors') and \
-                peer.ip == self.get(opid).ip:
-                    continue
+            # Don't connect peers to other peers at the same IP or
+            # peers with the same IP as a neighbor they already have
+            if not allow_close and self.get(opid).ip in bad_ips:
+                continue
             self.connect(peerid, opid)
             numpeers -= 1
 
