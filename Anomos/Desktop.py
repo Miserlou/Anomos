@@ -15,7 +15,7 @@
 
 import os
 
-from __init__ import get_home_dir
+from Anomos import get_home_dir
 
 desktop = None
 

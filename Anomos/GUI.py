@@ -13,15 +13,13 @@
 
 # written by Matt Chisholm, modified by Anomos Liberty Enhancements
 
-from __future__ import division
-
 import gtk
 import pango
 import gobject
 import os
 import threading
 
-from __init__ import image_root, app_name, FAQ_URL, LOG as log
+from Anomos import image_root, app_name, FAQ_URL, LOG as log
 
 SPACING = 8
 WINDOW_TITLE_LENGTH = 128 # do we need this?
