@@ -22,6 +22,7 @@ class Dispatcher (asyncore.dispatcher):
         self.ac_in_buffer = ''
         self.ac_out_buffer = ''
         self.producer_fifo = fifo()
+        self.zero_count = 0
         asyncore.dispatcher.__init__ (self, conn)
 
     def collect_incoming_data(self, data):
@@ -63,6 +64,20 @@ class Dispatcher (asyncore.dispatcher):
             else:
                 self.handle_error()
             return
+
+        # XXX: This is a hack. When a connection is closed abruptly
+        # without a shutdown notification, we get left in a CLOSE_WAIT
+        # state, and do zero reads forever. We need to allow a few zero
+        # reads to occur normally, but 100 almost certainly means we're
+        # stuck in CLOSE_WAIT.
+        if len(data) == 0:
+            self.zero_count += 1
+            if self.zero_count >= 100:
+                self.handle_close()
+                return
+        else:
+            self.zero_count = 0
+        ##############################################################
 
         self.ac_in_buffer = self.ac_in_buffer + data
 
@@ -214,7 +229,7 @@ class Dispatcher (asyncore.dispatcher):
 
 class simple_producer:
 
-    def __init__ (self, data, buffer_size=512):
+    def __init__ (self, data, buffer_size=1024):
         self.data = data
         self.buffer_size = buffer_size
 
