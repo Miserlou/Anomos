@@ -14,7 +14,7 @@
 import os
 
 can_open_files = False
-posix_browsers = ('gnome-open','konqueror',) #gmc, gentoo only work on dirs
+posix_browsers = ('gnome-open','konqueror','exo-open') #gmc, gentoo only work on dirs
 default_posix_browser = ''
 
 def openpath_nt(path):

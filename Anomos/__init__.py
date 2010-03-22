@@ -13,7 +13,7 @@
 
 import sys
 #TODO: Check actual earliest supported version
-assert sys.version_info >= (2, 4, 0), "Python 2.4.0 or newer required"
+assert sys.version_info >= (2, 5, 0), "Python 2.5.0 or newer required"
 
 app_name = "Anomos"
 version = '0.9.0'

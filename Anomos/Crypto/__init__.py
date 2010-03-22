@@ -60,8 +60,6 @@ def init(data_dir):
     @param data_dir: path to directory
     @type data_dir: string
     """
-    # I suppose initializing threading can't hurt, but all of our
-    # crypto operations are made from the same thread. So do we need this?
     threading.init()
 
     global get_rand
@@ -70,21 +68,19 @@ def init(data_dir):
     if None not in (global_cryptodir, global_randfile):
         log.warning("Crypto already initialized with root directory: %s. Not using %s." % (global_dd, data_dir))
         return
-    # Initialize directory structure #
+    # Initialize directory structure
     global_dd = data_dir
     global_cryptodir = os.path.join(data_dir, 'crypto')
     if not os.path.exists(data_dir):
         os.mkdir(data_dir, 0700)
     if not os.path.exists(global_cryptodir):
         os.mkdir(global_cryptodir, 0700)
-    # Copy the default certificates into the user's crypto dir #
+    # Copy the default certificates into the user's crypto dir
     global_certpath = os.path.join(global_cryptodir, 'default_certificates')
     if not os.path.exists(global_certpath):
-        # TODO: make sure this method of getting app_root works on all
-        # platforms and configurations
         from Anomos import app_root
         shutil.copytree(os.path.join(app_root, 'default_certificates'), global_certpath)
-    # Initialize randfile #
+    # Initialize randfile
     global_randfile = os.path.join(global_cryptodir, 'randpool.dat')
     if Rand.save_file(global_randfile) == 0:
         raise CryptoError('Rand file not writable')
@@ -94,6 +90,7 @@ def init(data_dir):
         return rb
     get_rand = randfunc
 
+    # Make Crypto objects accessible now that init has been called.
     global AESKey, Certificate, PeerCert
     import _AESKey, _Certificate, _PeerCert
     AESKey = _AESKey.AESKey

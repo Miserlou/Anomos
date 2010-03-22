@@ -20,7 +20,7 @@ from __future__ import division
 
 import sys
 
-assert sys.version_info >= (2, 3), "Install Python 2.3 or greater"
+assert sys.version_info >= (2, 5), "Install Python 2.5 or greater"
 
 import itertools
 import math
@@ -54,7 +54,6 @@ from Anomos import TorrentQueue
 from Anomos import BTFailure
 from Anomos import OpenPath
 from Anomos import Desktop
-from Anomos import ClientIdentifier
 from Anomos import LOG as log
 from Anomos import pygeoip
 
@@ -936,7 +935,7 @@ class SettingsWindow(object):
         def toggle_auto_ip(w):
             self.config['auto_ip'] = int(not self.config['auto_ip'])
             self.setfunc('auto_ip', self.config['auto_ip'])
-            if self.config['auto_ip'] is 1:
+            if self.config['auto_ip'] == 1:
                 self.ip_field.set_value(getExternalIP())
             
         self.auto_ip_checkbutton.connect('toggled', toggle_auto_ip)
@@ -1221,192 +1220,6 @@ class FileListWindow(object):
             if advanced_ui:
                 self.store.set_value(it, 3, '*' * alloc)
             it = self.store.iter_next(it)
-
-    def close(self):
-        self.win.destroy()
-
-#TODO:  This can be removed, probably. Don't think there's much worth salvaging.
-class PeerListWindow(object):
-
-    def __init__(self, torrent_name, closefunc):
-        self.win = Window()
-        self.win.set_position(gtk.WIN_POS_CENTER)
-        self.win.connect("destroy", closefunc)
-        self.win.set_title(_('Peers for "%s"'%torrent_name))
-        self.sw = gtk.ScrolledWindow()
-        self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
-        self.sw.set_shadow_type(gtk.SHADOW_IN)
-        self.win.add(self.sw)
-
-        column_header = [_('IP address'), _('Client'), _('Connection'), _('KB/s down'), _('KB/s up'), 'MB downloaded', 'MB uploaded', '% complete', 'KB/s est. peer download']
-        pre_size_list = ['666.666.666.666', 'TorrentStorm 1.3', 'bad peer', 66666, 66666, '1666.66', '1666.66', '100.0', 6666]
-        numeric_cols = [3,4,5,6,7,8]
-        store_types = [gobject.TYPE_STRING]*3  + [gobject.TYPE_INT]*2 + [gobject.TYPE_STRING]*3 + [gobject.TYPE_INT]
-        
-        if advanced_ui:
-            column_header[2:2] = ['Peer ID']
-            pre_size_list[2:2] = ['-AZ2104-']
-            store_types[2:2]   = [gobject.TYPE_STRING]
-            column_header[5:5] = ['Interested','Choked','Snubbed']
-            pre_size_list[5:5] = ['*','*','*']
-            store_types[5:5]   = [gobject.TYPE_STRING]*3
-            column_header[9:9] = ['Interested','Choked','Optimistic upload']
-            pre_size_list[9:9] = ['*','*','*']
-            store_types[9:9]   = [gobject.TYPE_STRING]*3
-            numeric_cols = [4,8,12,13,14,15]
-
-        num_columns = len(column_header)
-        self.store = gtk.ListStore(*store_types)
-        self.store.append(pre_size_list)
-
-        def makesortfunc(sort_func):
-            def sortfunc(treemodel, iter1, iter2, column):
-                a_str = treemodel.get_value(iter1, column)
-                b_str = treemodel.get_value(iter2, column)
-                if a_str is not None and b_str is not None:
-                    return sort_func(a_str,b_str)
-                else:
-                    return 0
-            return sortfunc
-
-        def ip_sort(a_str,b_str):
-            a = map(int, a_str.split('.'))
-            b = map(int, b_str.split('.'))
-            return cmp(a,b)
-
-        def float_sort(a_str,b_str):
-            a,b = 0,0
-            try: a = float(a_str)
-            except ValueError: pass
-            try: b = float(b_str)
-            except ValueError: pass
-            return cmp(a,b)
-
-        self.store.set_sort_func(0, makesortfunc(ip_sort), 0)
-        for i in range(2,5):
-            self.store.set_sort_func(num_columns-i, makesortfunc(float_sort), num_columns-i)
-        
-        self.treeview = gtk.TreeView(self.store)
-        cs = []
-        for i, name in enumerate(column_header):
-            r = gtk.CellRendererText()
-            if i in numeric_cols:
-                r.set_property('xalign', 1)
-            column = gtk.TreeViewColumn(name, r, text = i)
-            column.set_resizable(True)
-            column.set_min_width(5)
-            column.set_sort_column_id(i)
-            self.treeview.append_column(column)
-            cs.append(column)
-        self.treeview.set_rules_hint(True)
-        self.sw.add(self.treeview)
-        self.treeview.set_headers_visible(False)
-        self.treeview.columns_autosize()
-        self.sw.show_all()
-        self.treeview.realize()
-        for column in cs:
-            column.set_fixed_width(column.get_width())
-            column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-        self.treeview.set_headers_visible(True)
-        self.store.clear()
-        self.treeview.get_selection().set_mode(gtk.SELECTION_NONE)
-        width = self.treeview.size_request()[0]
-        self.win.set_default_size(width+SCROLLBAR_WIDTH, 300)
-        self.win.show_all()
-        self.prev = []
-
-
-    def update(self, peers, bad_peers):
-        fields = []
-
-        def p_bool(value): return value and '*' or ''
-
-        for peer in peers:
-            field = []
-            field.append(peer['ip']) 
-
-            client, version = ClientIdentifier.identify_client(peer['id']) 
-            field.append(client + ' ' + version)
-
-            if advanced_ui:
-                field.append(quote(peer['id'])) 
-
-            field.append(peer['initiation'] == 'R' and 'remote' or 'local')
-            dl = peer['download']
-            ul = peer['upload']
-
-            for l in (dl, ul):
-                rate = l[1]
-                if rate > 100:
-                    field.append(int(round(rate/(2**10)))) 
-                else:
-                    field.append(0)
-                if advanced_ui:
-                    field.append(p_bool(l[2]))
-                    field.append(p_bool(l[3]))
-                    if len(l) > 4:
-                        field.append(p_bool(l[4]))
-                    else:
-                        field.append(p_bool(peer['is_optimistic_unchoke']))
-
-            field.append('%.2f'%round(dl[0] / 2**20, 2))
-            field.append('%.2f'%round(ul[0] / 2**20, 2))
-            field.append('%.1f'%round(int(peer['completed']*1000)/10, 1))
-
-            field.append(int(peer['speed']//(2**10)))
-
-            fields.append(field)
-
-        for (ip, (is_banned, stats)) in bad_peers.iteritems():
-            field = []
-            field.append(ip)
-
-            client, version = ClientIdentifier.identify_client(stats.peerid)
-            field.append(client + ' ' + version)
-
-            if advanced_ui:
-                field.append(quote(stats.peerid))
-
-            field.append('bad peer')
-
-            # the sortable peer list won't take strings in these fields
-            field.append(0) 
-
-            if advanced_ui:
-                field.extend([0] * 7) # upRate, * fields
-            else:
-                field.extend([0] * 1) # upRate
-                
-            field.append("%d ok" % stats.numgood)
-            field.append("%d bad" % len(stats.bad))
-            if is_banned: # completion
-                field.append('banned')
-            else:
-                field.append('ok')
-            field.append(0) # peer dl rate
-            fields.append(field)
-
-        if self.store.get_sort_column_id() < 0:
-            # ListStore is unsorted, it might be faster to set only modified fields
-            it = self.store.get_iter_first()
-            for old, new in itertools.izip(self.prev, fields):
-                if old != new:
-                    for i, value in enumerate(new):
-                        if value != old[i]:
-                            self.store.set_value(it, i, value)
-                it = self.store.iter_next(it)
-            for i in range(len(fields), len(self.prev)):
-                self.store.remove(it)
-            for i in range(len(self.prev), len(fields)):
-                self.store.append(fields[i])
-            self.prev = fields
-        else:
-            # ListStore is sorted, no reason not to to reset all fields
-            self.store.clear()
-            for field in fields:
-                self.store.append(field)
-            
-        
 
     def close(self):
         self.win.destroy()
@@ -1911,7 +1724,6 @@ class RunningTorrentBox(DroppableTorrentBox):
                                                          torrent_menu_tip))
 
         self.seed = False
-        self.peerlistwindow = None
 
         self.icon.set_from_stock('anon-running', gtk.ICON_SIZE_LARGE_TOOLBAR)
 
@@ -2002,7 +1814,6 @@ class RunningTorrentBox(DroppableTorrentBox):
 
     def close_child_windows(self):
         TorrentBox.close_child_windows(self)
-        self.close_peerlist()
 
     def open_filelist(self, widget):
         if not self.is_batch:
@@ -2011,19 +1822,6 @@ class RunningTorrentBox(DroppableTorrentBox):
             self.filelistwindow = FileListWindow(self.metainfo,
                                                  self.filelistclosed)
             self.main.make_statusrequest()
-
-    def open_peerlist(self, widget):
-        if self.peerlistwindow is None:
-            self.peerlistwindow = PeerListWindow(self.metainfo.name,
-                                                 self.peerlistclosed)
-            self.main.make_statusrequest()
-
-    def peerlistclosed(self, widget):
-        self.peerlistwindow = None
-
-    def close_peerlist(self):
-        if self.peerlistwindow is not None:
-            self.peerlistwindow.close()
 
     def update_status(self, statistics):
         fractionDone = statistics.get('fractionDone')
@@ -2102,10 +1900,6 @@ class RunningTorrentBox(DroppableTorrentBox):
             self.elabels[2].set_text('Next distributed copies: ' + ', '.join(["%d:%.1f%%" % (a, int(b*1000)/10) for a, b in zip(itertools.count(int(statistics['numCopies']+1)), statistics['numCopyList'])]))
             self.elabels[3].set_text('%d bad pieces + %s in discarded requests' % (statistics['storage_numflunked'], Size(statistics['discarded'])))
 
-        if self.peerlistwindow is not None:
-            spew = statistics.get('spew')
-            if spew is not None:
-                self.peerlistwindow.update(spew, statistics['bad_peers'])
         if self.filelistwindow is not None:
             if 'files_left' in statistics:
                 self.filelistwindow.update(statistics['files_left'],
@@ -2241,6 +2035,8 @@ class ReorderableBox(DroppableBox):
     def drop_on_separator(self, sep, infohash):
         pass
 
+    def put_infohash_at_index(self, infohash, target_index):
+        pass
 
     def get_queue(self):
         queue = []
@@ -2676,8 +2472,7 @@ class DownloadInfoFrame(object):
         elif uri.startswith('file:'): # xffm
             path = uri[5:] # 5 is len('file:')
 
-        import urllib
-        path = urllib.url2pathname(path) # escape special chars
+        path = url2pathname(path) # escape special chars
         path = path.strip('\r\n\x00') # remove \r\n and NULL
         return path
 
@@ -2923,8 +2718,7 @@ class DownloadInfoFrame(object):
         if self.config['pause']:
             return True
         for infohash, t in self.running_torrents.iteritems():
-            self.torrentqueue.request_status(infohash, t.widget.peerlistwindow
-                             is not None, t.widget.filelistwindow is not None)
+            self.torrentqueue.request_status(infohash, False, t.widget.filelistwindow is not None)
         return True
 
 
@@ -3440,7 +3234,7 @@ if __name__ == '__main__':
         newtorrents = args
     controlsocket = ControlSocket(config)
 
-    if config['auto_ip'] is 1:
+    if config['auto_ip'] == 1:
         config['ip'] = getExternalIP()
 
     got_control_socket = True
