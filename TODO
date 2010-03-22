@@ -1,20 +1,13 @@
-TODO for .9:
-    1) Relayer counting wtf
-    2) Throw TCode generation into its own thread, or have a unique thread
-        for each request (Much harder!)
-    3) Solid round of bugtesting
-    4) Dedicated seeders for the first few days
-
 TODO for 1.0:
-   -1) Tracker needs to avoid issuing TC codes (for the same torrents)
-       on every announce
-    0)  Dedicated tracker server. No other services, just hidden, key-authed SSH and tracker.anomos.info.
+    0) Finish Protocol Specification
+    1) Lots of testing
+    2) Multi-torrent announce, POST method?
+    3)  Dedicated tracker server. No other services, just hidden, key-authed SSH and tracker.anomos.info.
         This also means an established set of firewall rules and a good blocklist.
-    1)  Multiple trackers/torrent. I don't know how difficult this will be yet - hopefully not too bad.
-    2) Finish Protocol Specification!: Path Generation, Hybrid Encryption
-    [3:k-1]) Fix all of the bugs from .9.*
+    4)  Multiple trackers/torrent. I don't know how difficult this will be yet - hopefully not too bad.
+    [5:k-1]) Fix all of the bugs from .9.*
     k)   Debian package. Find a Deb/Ubu maintainer.
-    k+1) Advertising. Bram used porn - I'm thinking this might actually be the way to go. 
+    k+1) Advertising. Bram used porn - I'm thinking this might actually be the way to go.
         Also, Stickers/Street team? Maybe we can trade stickers/merch for donations.
     k+2) Check all uses of sys.platform. Might explain cygwin problems
             http://docs.python.org/library/sys.html#sys.platform
