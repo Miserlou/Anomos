@@ -145,6 +145,8 @@ def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
+
+import socket
 def is_valid_ip(ip):
     return is_valid_ipv4(ip) or is_valid_ipv6(ip)
 
