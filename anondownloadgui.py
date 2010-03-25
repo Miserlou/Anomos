@@ -3217,8 +3217,9 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if (sys.platform == "win32" or sys.platform == "nt"):
-        sys.stdout = open("logfile.txt", "w")
-        sys.stderr = open("logfile.txt", "w")
+        pth = os.path.join(config['data_dir'], "logfile.txt")
+        sys.stdout = open(pth, "w")
+        sys.stderr = open(pth, "w")
     sys.argv[0] = 'anomos'
 
     advanced_ui = config['advanced']
