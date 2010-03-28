@@ -65,6 +65,8 @@ class GenGraph(object):
         for s in self.nm.names.values():
             if s.nat:
                 G.get_node(s.name).attr['color']='orange'
+            if len(s.neighbors) == 0:
+                G.get_node(s.name).attr['color']='red'
             for n in s.neighbors:
                 G.add_edge(s.name, n)
 
@@ -78,11 +80,14 @@ class GenGraph(object):
         #G.graph_attr.update(root="center")
     # 2) Choose the node with the fewest number of first and second degree
     # neighbors. This is roughly speaking the least connected peer in the network.
+    # ... Sorry this is the worst code ever. It started as a simple list
+    # comprehension and got steadily more complex ...
         center = min([
                         (len(s.neighbors) + sum([len(self.nm.get(i).neighbors)-1 for i in s.neighbors]), s)
-                            for s in self.nm.names.values()
-                     ])[1].name
-        G.graph_attr.update(root=center)
+                            for s in self.nm.names.values() if len(s.neighbors) > 0
+                     ] or [(0, s)])[1]
+        G.graph_attr.update(root=center.name)
+        G.get_node(center.name).attr['style'] = 'filled'
 
         G.layout("twopi")
         G.draw(filename)
