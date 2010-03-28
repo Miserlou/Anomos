@@ -64,15 +64,22 @@ class GenGraph(object):
             for n in s.neighbors:
                 G.add_edge(s.name, n)
 
-        # Create center node, and connect all reachable peers to it
-        # This structures the output such that reachable peers appear
-        # clustered together in the center of the image
-        G.add_node("center", label="",style="invisible")
-        for n in self.nm.reachable:
-            G.add_edge("center",n,style="invisible")
+    # Layout options:
+    # 1) Create fake center node, and connect all reachable peers to it
+    # This structures the output such that reachable peers appear
+    # clustered together in the center of the image
+        #G.add_node("center", label="",style="invisible")
+        #for n in self.nm.reachable:
+        #    G.add_edge("center",n,style="invisible")
+        #G.graph_attr.update(root="center")
+    # 2) Choose the node with the fewest number of first and second degree
+    # neighbors. This is roughly speaking the least connected peer in the network.
+        center = min([
+                        (len(s.neighbors) + sum([len(self.nm.get(i).neighbors)-1 for i in s.neighbors]), s)
+                            for s in self.nm.names.values()
+                     ])[1].name
+        G.graph_attr.update(root=center)
 
-        #G.add_subgraph(list(self.nm.reachable))
-        #G.add_subgraph(list(set(self.nm.names)-self.nm.reachable))
         G.layout("twopi")
         G.draw(filename)
 
