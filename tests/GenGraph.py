@@ -17,11 +17,13 @@ class GenGraph(object):
         self.nm = NetworkModel.NetworkModel({'allow_close_neighbors':0})
         self.cert = X509.load_cert(os.path.join(Anomos.Crypto.global_cryptodir,"fake-peer-cert.pem"))
         self.p_reach=p_reach
+        self.connect_order = []
     def init_peer(self, reachable=True):
         peerid = ''.join(str(i) for i in random.sample(string.lowercase, 20))
         ip = '.'.join(str(i) for i in random.sample(range(256),4))
         numcon = math.ceil(len(self.nm.reachable)**(1.0/3))
         self.nm.init_peer(peerid, self.cert, ip, '5881', 'session', numcon)
+        self.connect_order.append(peerid)
         if reachable:
             # Make the peer reachable
             self.nm.get(peerid).nat = False
@@ -38,18 +40,20 @@ class GenGraph(object):
         dds.sort()
         for i in dds:
             print "%d, %d" % i
-    def announce_all(self):
+    def announce(self, peerid):
         numcon = math.ceil(len(self.nm.reachable)**(1.0/3))
-        for s in self.nm.names.values():
+        s = self.nm.get(peerid)
+        if s is not None:
             n = len(s.neighbors)
             if n < numcon:
                 self.nm.rand_connect(s.name, numcon-n)
+    def announce_all(self):
+        map(self.announce, self.nm.names.values())
     def draw_graph(self, filename):
         G = pgv.AGraph()
         G.graph_attr.update(size="7")
         G.graph_attr.update(ratio="fill")
         G.graph_attr.update(ranksep=".5,1.0")
-        G.graph_attr.update(root="center")
 
         G.node_attr.update(shape="circle")
         G.node_attr.update(fixedsize="True")
@@ -97,9 +101,19 @@ if __name__ == '__main__':
     reachability = [1]*int(size*ratio)
     reachability.extend([0]*int(math.ceil(size*(1-ratio))))
     random.shuffle(reachability)
+    arrival_rate = 5 # 1 every 5 minutes
+    reannounce_interval = 45 # 1 every 45 minutes
+    rst = reannounce_interval / arrival_rate
+    counter = 0
+    indx = 0
     for i in range(size):
         gg.init_peer(reachability[i])
-    gg.announce_all()
+        counter = (counter + 1) % rst
+        if counter == 0:
+            gg.announce(gg.connect_order[indx])
+                    #TODO: uncomment when departure rate is added
+            indx = (indx + 1) #% len(gg.connect_order)
+    #gg.announce_all()
     #gg.announce_all()
     outdir = os.path.join(gg.root, "graphs")
     try:
