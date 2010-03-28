@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import Anomos
 import math
 import os
@@ -15,22 +17,33 @@ class GenGraph(object):
         self.nm = NetworkModel.NetworkModel({'allow_close_neighbors':0})
         self.cert = X509.load_cert(os.path.join(Anomos.Crypto.global_cryptodir,"fake-peer-cert.pem"))
         self.p_reach=p_reach
-    def init_peer(self):
+    def init_peer(self, reachable=True):
         peerid = ''.join(str(i) for i in random.sample(string.lowercase, 20))
         ip = '.'.join(str(i) for i in random.sample(range(256),4))
         numcon = math.ceil(len(self.nm.reachable)**(1.0/3))
         self.nm.init_peer(peerid, self.cert, ip, '5881', 'session', numcon)
-        if random.uniform(0,1) <= self.p_reach:
+        if reachable:
             # Make the peer reachable
             self.nm.get(peerid).nat = False
             self.nm.reachable.add(peerid)
+    def degree_distribution(self):
+        dd = {}
+        for s in self.nm.names.values():
+            x = len(s.neighbors)
+            if dd.has_key(x):
+                dd[x] += 1
+            else:
+                dd[x] = 1
+        dds = dd.items()
+        dds.sort()
+        for i in dds:
+            print "%d, %d" % i
     def announce_all(self):
         numcon = math.ceil(len(self.nm.reachable)**(1.0/3))
         for s in self.nm.names.values():
             n = len(s.neighbors)
             if n < numcon:
                 self.nm.rand_connect(s.name, numcon-n)
-
     def draw_graph(self, filename):
         G = pgv.AGraph()
         G.graph_attr.update(size="7")
@@ -74,15 +87,19 @@ if __name__ == '__main__':
     size = int(sys.argv[2])
     prefix = sys.argv[3]
     gg = GenGraph(ratio)
+    reachability = [1]*int(size*ratio)
+    reachability.extend([0]*int(math.ceil(size*(1-ratio))))
+    random.shuffle(reachability)
     for i in range(size):
-        gg.init_peer()
+        gg.init_peer(reachability[i])
     gg.announce_all()
-    gg.announce_all()
+    #gg.announce_all()
     outdir = os.path.join(gg.root, "graphs")
     try:
         os.mkdir(outdir)
     except OSError:
         pass
+    #gg.degree_distribution()
     gg.draw_graph(os.path.join(outdir,"%s-%.2f-%d.png" % (prefix, ratio, size)))
 
 
