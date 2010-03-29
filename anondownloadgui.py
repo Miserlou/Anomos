@@ -2806,12 +2806,19 @@ class DownloadInfoFrame(object):
         def no_location():
             self.window_closed('savefile')
             self.torrentqueue.remove_torrent(infohash)
-
-        selector = self.open_window('savefile',
-                                    title="Save location for " + metainfo.name,
-                                    fullname=fullname,
-                                    got_location_func = lambda fn: self.got_location(infohash, fn),
-                                    no_location_func=no_location)
+            
+        if len(metainfo.sizes) < 2:
+            selector = self.open_window('savefile',
+                                            title="Save location for " + metainfo.name,
+                                            fullname=fullname,
+                                            got_location_func = lambda fn: self.got_location(infohash, fn),
+                                            no_location_func=no_location)
+        else:
+                        selector = self.open_window('choosefolder',
+                                            title="Save location for " + metainfo.name,
+                                            fullname=fullname,
+                                            got_location_func = lambda fn: self.got_location(infohash, fn),
+                                            no_location_func=no_location)
 
         self.torrents[infohash].widget = selector
 
