@@ -16,7 +16,7 @@ import sys
 assert sys.version_info >= (2, 5, 0), "Python 2.5.0 or newer required"
 
 app_name = "Anomos"
-version = '0.9.0'
+version = '0.9.1'
 
 URL = 'http://www.anomos.info/'
 DONATE_URL = URL+'donate'
