@@ -3,7 +3,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "Anomos"
-!define PRODUCT_VERSION "0.9.0.1"
+!define PRODUCT_VERSION "0.9.1"
 !define PRODUCT_PUBLISHER "Anomos Liberty Enhancements"
 !define PRODUCT_WEB_SITE "http://www.anomos.info"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\ANOMOS.exe"
@@ -262,7 +262,6 @@ Section "MainSection" SEC01
   File "dist\libpng14-14.dll"
   File "dist\library.zip"
   File "dist\LICENSE.txt"
-  File "dist\logfile.txt"
   File "dist\M2Crypto.__m2crypto.pyd"
   File "dist\makeatorrentgui.exe"
   File "dist\pango.pyd"
