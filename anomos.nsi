@@ -555,9 +555,8 @@ endVC:
  MessageBox MB_YESNO "Install OpenSSL Light 0.9.8l?" /SD IDYES IDNO endOSSL
  ExecWait "$INSTDIR\w32_dependancies\Win32OpenSSL_Light-0_9_8l.exe"
 endOSSL:
-SectionEnd
-
 ${registerExtension} "$INSTDIR\ANOMOS.exe" ".atorrent" "aTorrents - Anonymous Torrent Files"
+SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
