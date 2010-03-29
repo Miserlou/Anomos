@@ -483,7 +483,7 @@ endVC:
  ExecWait "$INSTDIR\w32_dependancies\Win32OpenSSL_Light-0_9_8l.exe"
 endOSSL:
 !insertmacro APP_ASSOCIATE "anomos" "anomos.torrent" "$INSTDIR\ANOMOS.exe,0" \
-     "Open Anonymous Torrent" "$INSTDIR\ANOMOS.exe"
+     "Open Anonymous Torrent" "$INSTDIR\ANOMOS.exe $\"%1$\""
 !insertmacro UPDATEFILEASSOC
 SectionEnd
 
