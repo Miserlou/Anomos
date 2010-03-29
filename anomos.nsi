@@ -482,7 +482,6 @@ endVC:
  MessageBox MB_YESNO "Install OpenSSL Light 0.9.8l?" /SD IDYES IDNO endOSSL
  ExecWait "$INSTDIR\w32_dependancies\Win32OpenSSL_Light-0_9_8l.exe"
 endOSSL:
-!macro APP_ASSOCIATE EXT FILECLASS DESCRIPTION ICON COMMANDTEXT COMMAND
 !insertmacro APP_ASSOCIATE ".atorrent" "anomos.torrent" "Anonymous Torrent" "$INSTDIR\ANOMOS.exe,0" \
      "Open Anonymous Torrent" "$INSTDIR\ANOMOS.exe"
 !insertmacro UPDATEFILEASSOC
