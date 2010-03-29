@@ -8,13 +8,13 @@ msgstr ""
 "Project-Id-Version: anomos\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-02-18 19:16-0500\n"
-"PO-Revision-Date: 2010-03-09 13:27+0000\n"
-"Last-Translator: Malte Lenz <Unknown>\n"
+"PO-Revision-Date: 2010-03-11 23:02+0000\n"
+"Last-Translator: Andreas Thuresson <Unknown>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2010-03-10 12:16+0000\n"
+"X-Launchpad-Export-Date: 2010-03-27 22:00+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
 #: anondownloadgui.py:87
@@ -48,7 +48,7 @@ msgstr "Visa torrents du laddar ner"
 #: anondownloadgui.py:469
 #, python-format
 msgid "New %s version available"
-msgstr ""
+msgstr "Ny %s version tillgänglig"
 
 #: anondownloadgui.py:517
 #, python-format
@@ -136,11 +136,11 @@ msgstr ""
 
 #: anondownloadgui.py:867
 msgid "The tracker to use instead of the old torrent tracker"
-msgstr ""
+msgstr "Trackern som ska användas istället för den gammla"
 
 #: anondownloadgui.py:872
 msgid "Proxy address to use (Tor+Privoxy is 127.0.0.1:8118):"
-msgstr ""
+msgstr "Proxy adress att använda (Tor+Privoxy är 127.0.0.1:8118):"
 
 #: anondownloadgui.py:876
 msgid "Where is your proxy?"
@@ -156,7 +156,7 @@ msgstr "Om du vill ansluta genom Tor"
 
 #: anondownloadgui.py:890
 msgid "Automatically fetch external IP (uses anomos.info)"
-msgstr ""
+msgstr "Hämta externt IP automatiskt (använder anomos.info)"
 
 #: anondownloadgui.py:937
 msgid "Choose default download directory"
@@ -255,7 +255,7 @@ msgstr "Ta bort torrent"
 
 #: anondownloadgui.py:1579
 msgid "Cancel torrent"
-msgstr ""
+msgstr "Avbryt dataflöde"
 
 #: anondownloadgui.py:1614
 #, python-format
@@ -269,7 +269,7 @@ msgstr ""
 #: anondownloadgui.py:1619
 #, python-format
 msgid "Done, share ratio: %d%%"
-msgstr ""
+msgstr "Färdig, utdelnings kvot: %d%%"
 
 #: anondownloadgui.py:1622
 #, python-format
@@ -313,7 +313,7 @@ msgstr "Ta bort denna torrent?"
 
 #: anondownloadgui.py:1737
 msgid "Anomos has no running torrents"
-msgstr ""
+msgstr "Anomos har inga aktiva dataflöden"
 
 #: anondownloadgui.py:1751
 msgid "Finished"

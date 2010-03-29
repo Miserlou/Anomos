@@ -8,13 +8,13 @@ msgstr ""
 "Project-Id-Version: anomos\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-02-18 19:16-0500\n"
-"PO-Revision-Date: 2010-03-09 20:29+0000\n"
-"Last-Translator: Ian Springer <Unknown>\n"
+"PO-Revision-Date: 2010-03-27 19:02+0000\n"
+"Last-Translator: DiegoJ <diegojromerolopez@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2010-03-10 12:16+0000\n"
+"X-Launchpad-Export-Date: 2010-03-27 22:00+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
 #: anondownloadgui.py:87
@@ -92,7 +92,7 @@ msgstr "relación de carga"
 
 #: anondownloadgui.py:782
 msgid "Seed completed torrents:"
-msgstr ""
+msgstr "Sembrar torrents completados:"
 
 #: anondownloadgui.py:790
 msgid "until share ratio reaches "
@@ -132,7 +132,7 @@ msgstr "Preguntar dónde guardar cada descarga"
 
 #: anondownloadgui.py:863
 msgid "Torrent anonymizer tracker URL:"
-msgstr ""
+msgstr "Dirección del rastreador que hace torrents anónimos:"
 
 #: anondownloadgui.py:867
 msgid "The tracker to use instead of the old torrent tracker"
@@ -140,7 +140,7 @@ msgstr "El seguidor de utilizar en lugar del antiguo torrent tracker"
 
 #: anondownloadgui.py:872
 msgid "Proxy address to use (Tor+Privoxy is 127.0.0.1:8118):"
-msgstr ""
+msgstr "Dirección del proxy a usar (Tor+Privoxy es 127.0.0.1:8118):"
 
 #: anondownloadgui.py:876
 msgid "Where is your proxy?"
@@ -260,11 +260,11 @@ msgstr "cancelar torrent"
 #: anondownloadgui.py:1614
 #, python-format
 msgid ", will seed for %s"
-msgstr ""
+msgstr ", se sembrará durante %s"
 
 #: anondownloadgui.py:1616
 msgid ", will seed indefinitely."
-msgstr ""
+msgstr ", se sembrará indefinidamente."
 
 #: anondownloadgui.py:1619
 #, python-format
@@ -321,7 +321,7 @@ msgstr "Terminado"
 
 #: anondownloadgui.py:1752
 msgid "drag into list to seed"
-msgstr ""
+msgstr "arrastre en la lista para sembrar"
 
 #: anondownloadgui.py:1755
 msgid "Failed"
@@ -382,7 +382,7 @@ msgstr "descargas (0)"
 
 #: anondownloadgui.py:2407
 msgid "Seeds (0)"
-msgstr ""
+msgstr "Semillas (0)"
 
 #: anondownloadgui.py:2409
 msgid "_Open an .atorrent file"
@@ -390,7 +390,7 @@ msgstr "abrir un archivo de .atorrent"
 
 #: anondownloadgui.py:2410
 msgid "_Anonymize and open a .torrent file"
-msgstr ""
+msgstr "_Anonimizar y abrir un archivo .torrent"
 
 #: anondownloadgui.py:2412
 msgid "_Play "
@@ -402,7 +402,7 @@ msgstr "Pa_use "
 
 #: anondownloadgui.py:2415
 msgid "Make a _new .atorrent file"
-msgstr ""
+msgstr "Hacer un _nuevo archivo .atorrent"
 
 #: anondownloadgui.py:2417
 msgid "S_ettings"
@@ -418,7 +418,7 @@ msgstr "_Descargas"
 
 #: anondownloadgui.py:2423
 msgid "_Seeds"
-msgstr ""
+msgstr "_Semillas"
 
 #: anondownloadgui.py:2425
 msgid "_Connections"
@@ -521,7 +521,7 @@ msgstr "No torrents terminado"
 
 #: anondownloadgui.py:2842
 msgid "There are no finished torrents to remove."
-msgstr ""
+msgstr "No hay torrents terminados a eliminar."
 
 #: anondownloadgui.py:2971
 msgid "File exists!"
@@ -533,6 +533,8 @@ msgid ""
 "\"%s\" already exists.\n"
 " Do you want to choose a different file name?."
 msgstr ""
+"\"%s\" ya existe.\n"
+" ¿Quiere elegir un nombre de archivo diferente?"
 
 #: anondownloadgui.py:3109 anondownloadgui.py:3117
 msgid "error"
@@ -545,7 +547,7 @@ msgstr "crítico"
 #: anondownloadgui.py:3115
 #, python-format
 msgid "(global message) : %s"
-msgstr ""
+msgstr "(mensaje global) : %s"
 
 #: anondownloadgui.py:3123
 #, python-format
@@ -562,29 +564,35 @@ msgstr "Haga clic en OK para ver el log de errores"
 
 #: anondownloadgui.py:3174
 msgid "Complete:\t"
-msgstr ""
+msgstr "Completado:\t"
 
 #: anondownloadgui.py:3174
 msgid ""
 "%\n"
 "Down:\t\t"
 msgstr ""
+"%\n"
+"Descargando:\t\t"
 
 #: anondownloadgui.py:3174
 msgid ""
 "\n"
 "Up:\t\t\t"
 msgstr ""
+"\n"
+"Subiendo:\t\t\t"
 
 #: anondownloadgui.py:3174
 msgid ""
 "\n"
 "Relay:\t\t"
 msgstr ""
+"\n"
+"Retransmisión:\t\t"
 
 #: anondownloadgui.py:3275
 msgid "Stop running torrent?"
-msgstr ""
+msgstr "¿Parar torrent en ejecución?"
 
 #: anondownloadgui.py:3276
 #, python-format
@@ -592,6 +600,7 @@ msgid ""
 "You are about to start \"%s\". Do you want to stop the last running torrent "
 "as well?"
 msgstr ""
+"Va a iniciar «%s». ¿Quiere parar también el último torrent en ejecución?"
 
 #: anondownloadgui.py:3288
 msgid "Have you donated?"
@@ -619,6 +628,9 @@ msgid ""
 "The ports on your router are not configured properly. This will interefere "
 "with file transfers. Please forward the appropriate ports to your machine."
 msgstr ""
+"Los puertos en su enrutador no están configurados adecuadamente. Esto "
+"interferirá con las transferencias de archivos. Redireccione los puertos "
+"adecuados a su equipo."
 
 #: anondownloadgui.py:3342
 msgid "Ports are closed!"
