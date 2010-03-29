@@ -3,6 +3,13 @@ You will first need to do the following things:
 Install Python, version 2.6 -
 http://python.org/
 
+Install MSysGit (Latest) -
+http://code.google.com/p/msysgit/
+    * This will also install Cygwin, which rules.
+    
+Install M2Crypto (Latest Windows build) -
+http://chandlerproject.org/pub/Projects/MeTooCrypto/
+
 Install the GTK 2.16 runtime (NOT 2.18!) -
 http://sourceforge.net/projects/gtk-win/
 
