@@ -148,18 +148,21 @@ class HTTPSConnection(Dispatcher):
 
 
 class HTTPSServer(asyncore.dispatcher):
-    def __init__(self, addr, port, ssl_context, getfunc):
+    def __init__(self, addr, port, ssl_context, schedule, getfunc):
         asyncore.dispatcher.__init__(self)
         self.ssl_ctx=ssl_context
         self.create_socket()
         self.bind((addr, port))
         self.listen(socket.SOMAXCONN)
+        self.schedule = schedule
         self.getfunc = getfunc
 
     def create_socket(self):
         conn=SSL.Connection(self.ssl_ctx)
         self.set_socket(conn)
-        self.socket.setblocking(0)
+        self.socket.setblocking(1)
+        self.socket.set_socket_read_timeout(SSL.timeout(1))
+        self.socket.set_socket_write_timeout(SSL.timeout(1))
         self.set_reuse_addr()
         self.add_channel()
 
@@ -169,8 +172,9 @@ class HTTPSServer(asyncore.dispatcher):
         except (SSL.SSLError, socket.error), e:
             log.warning("Exception in HTTPSServer socket.accept: " + str(e))
             return
+        sock.setblocking(0)
 
-        conn = HTTPSConnection(sock, self.getfunc)
+        self.schedule(0, lambda: HTTPSConnection(sock, self.getfunc))
 
     def handle_error(self):
         log.critical('\n'+traceback.format_exc())
