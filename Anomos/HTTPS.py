@@ -148,13 +148,12 @@ class HTTPSConnection(Dispatcher):
 
 
 class HTTPSServer(asyncore.dispatcher):
-    def __init__(self, addr, port, ssl_context, schedule, getfunc):
+    def __init__(self, addr, port, ssl_context, getfunc):
         asyncore.dispatcher.__init__(self)
         self.ssl_ctx=ssl_context
         self.create_socket()
         self.bind((addr, port))
         self.listen(socket.SOMAXCONN)
-        self.schedule = schedule
         self.getfunc = getfunc
 
     def create_socket(self):
@@ -174,7 +173,7 @@ class HTTPSServer(asyncore.dispatcher):
             return
         sock.setblocking(0)
 
-        self.schedule(0, lambda: HTTPSConnection(sock, self.getfunc))
+        HTTPSConnection(sock, self.getfunc)
 
     def handle_error(self):
         log.critical('\n'+traceback.format_exc())
