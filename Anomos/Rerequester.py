@@ -208,7 +208,7 @@ class Rerequester(object):
         """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.
         """
-        log.info("Making announce to " + self.url)
+        log.info("Making announce to " + self.url + ":" + str(self.remote_port))
         if not self.https:
             log.warning("Warning: Will not connect to non HTTPS server")
             return
