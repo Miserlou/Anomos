@@ -136,7 +136,7 @@ class NeighborManager(object):
         pass
 
     def has_neighbor(self, nid):
-        return self.neighbors.has_key(nid)
+        return self.neighbors.has_key(nid) or self.incomplete.has_key(nid)
 
     def nid_collision(self, nid, loc):
         # If the locations are the same, there's no collision
