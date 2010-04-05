@@ -114,7 +114,7 @@ class Relayer(AnomosRelayerProtocol):
             self.manager.dec_relay_count()
             self.decremented_count = True
         # Tell our orelay to close.
-        if not self.orelay.closed:
+        if self.orelay and not self.orelay.closed:
             self.orelay.ore_closed()
         self.ratelimiter.clean_closed()
 
