@@ -1,4 +1,4 @@
-## usr/bin/python
+#!/usr/bin/env python
 
 ## Mass Anomosification Script - Rich Jones, Anomos Liberty Enhancements
 ## Public Domain, 2010
