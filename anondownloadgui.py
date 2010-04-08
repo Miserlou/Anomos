@@ -2809,12 +2809,12 @@ class DownloadInfoFrame(object):
             
         if len(metainfo.sizes) < 2:
             selector = self.open_window('savefile',
-                                            title="Save location for " + metainfo.name,
-                                            fullname=fullname,
-                                            got_location_func = lambda fn: self.got_location(infohash, fn),
-                                            no_location_func=no_location)
+                title="Save location for " + metainfo.name,
+                fullname=fullname,
+                got_location_func = lambda fn: self.got_location(infohash, fn),
+                no_location_func=no_location)
         else:
-                        selector = self.open_window('choosefolder',
+            selector = self.open_window('choosefolder',
                                             title="Save location for " + metainfo.name,
                                             fullname=fullname,
                                             got_location_func = lambda fn: self.got_location(infohash, fn),
