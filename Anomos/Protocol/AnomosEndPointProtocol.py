@@ -17,7 +17,7 @@
 
 from Anomos.Protocol import CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED, \
                             HAVE, BITFIELD, REQUEST, PIECE, CANCEL, \
-                            TCODE, CONFIRM, ENCRYPTED, RELAY, BREAK, PARTIAL, \
+                            TCODE, CONFIRM, ENCRYPTED, BREAK, PARTIAL, \
                             ACKBREAK
 from Anomos.Protocol import tobinary, toint, AnomosProtocol
 from Anomos.bitfield import Bitfield
@@ -39,7 +39,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
                             CANCEL: self.got_cancel,\
                             CONFIRM: self.got_confirm, \
                             ENCRYPTED: self.got_encrypted, \
-                            RELAY: self.got_relay, \
                             BREAK: self.got_break, \
                             PARTIAL: self.got_partial, \
                             ACKBREAK: self.got_ack_break})
@@ -51,7 +50,7 @@ class AnomosEndPointProtocol(AnomosProtocol):
         """ Send method for file transfer messages.
             ie. CHOKE, INTERESTED, PIECE """
         payload = ENCRYPTED + self.e2e_key.encrypt(type + message)
-        self.neighbor.queue_message(self.stream_id, RELAY + payload)
+        self.neighbor.queue_message(self.stream_id, payload)
         #if self.should_queue():
         #    self.ratelimiter.queue(self)
 
@@ -59,8 +58,6 @@ class AnomosEndPointProtocol(AnomosProtocol):
     def got_confirm(self):
         if not self.complete:
             self.connection_completed()
-    def got_relay(self, message):
-        self.got_message(message[1:])
     def got_encrypted(self, message):
         if self.e2e_key is not None:
             m = self.e2e_key.decrypt(message[1:])

@@ -15,7 +15,7 @@
 
 # Written by John Schanck
 
-from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, RELAY, BREAK, PARTIAL, ACKBREAK
+from Anomos.Protocol import TCODE, CONFIRM, UNCHOKE, CHOKE, ENCRYPTED, BREAK, PARTIAL, ACKBREAK
 from Anomos.Protocol import AnomosProtocol, toint
 from Anomos import bttime, log_on_call, LOG as log
 
@@ -27,7 +27,7 @@ class AnomosRelayerProtocol(AnomosProtocol):
                             #UNCHOKE: self.got_unchoke,\
                             CONFIRM: self.got_confirm, \
                             BREAK: self.got_break,\
-                            RELAY: self.relay_message,\
+                            ENCRYPTED: self.relay_message,\
                             PARTIAL: self.got_partial,\
                             ACKBREAK: self.got_ack_break})
     def invalid_message(self, t):
