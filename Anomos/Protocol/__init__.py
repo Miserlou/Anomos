@@ -14,7 +14,7 @@
 from binascii import b2a_hex
 from Anomos import LOG as log
 
-NAME = "Anomos"
+NAME = "Anomos10"
 
 NAT_CHECK_ID = chr(255)
 
