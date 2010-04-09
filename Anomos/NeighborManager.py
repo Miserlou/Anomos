@@ -103,7 +103,7 @@ class NeighborManager(object):
                 self.rm_neighbor(j)
             if sock.addr == None:
                 if self.incomplete.items() != []:
-                    log.info("Remaining incomplete peers: %s" %str(len(self.incomplete.items())))
+                    log.info("Remaining incomplete peers: %d" %len(self.incomplete.items()))
                 else:
                     log.info("No remaining incomplete peers")
             else:
@@ -126,7 +126,7 @@ class NeighborManager(object):
     def rm_neighbor(self, nid):
         if self.incomplete.has_key(nid):
             self.incomplete.pop(nid)
-        if self.has_neighbor(nid):
+        if self.neighbors.has_key(nid):
             self.neighbors.pop(nid)
         if nid is not None:
             self.failedPeers.append(nid)
