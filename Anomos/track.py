@@ -323,15 +323,17 @@ class Tracker(object):
     def get_scrape(self, paramslist):
         params = params_factory(paramslist)
         fs = {}
+        
+        # TODO: This doesn't appear to work with multiple &info_hash,
+        # the params only supplies the first info_hash
         if params('info_hash'):
             if self.config['scrape_allowed'] not in ['specific', 'full']:
                 return (401, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                     bencode({'failure reason': 'specific scrape function is not available with this tracker.'}))
-            for infohash in params('info_hash'):
-                if self.allowed is not None and infohash not in self.allowed:
-                    continue
-                fs[infohash] = self.scrapedata(infohash)
+            if self.allowed is not None and infohash not in self.allowed:
+                continue
+            fs[infohash] = self.scrapedata(infohash)
         else:
             if self.config['scrape_allowed'] != 'full':
                 return (401, 'Not Authorized', \
