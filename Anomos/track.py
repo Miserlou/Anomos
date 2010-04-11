@@ -331,8 +331,6 @@ class Tracker(object):
                 return (401, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                     bencode({'failure reason': 'specific scrape function is not available with this tracker.'}))
-            if self.allowed is not None and infohash not in self.allowed:
-                continue
             fs[infohash] = self.scrapedata(infohash)
         else:
             if self.config['scrape_allowed'] != 'full':
