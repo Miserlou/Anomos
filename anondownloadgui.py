@@ -1255,6 +1255,16 @@ class TorrentInfoWindow(object):
 
         add_item(_('Announce url:'), self.torrent_box.metainfo.announce, y)
         y+=1
+        
+        # Holy shit!
+        scrape_data = self.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.torrent_box.infohash]._rerequest.scrape()
+        
+        # Also, it makes the infopage load delayed and should be done in a Thread
+        add_item(_('Seeds:'), scrape_data['files'][self.torrent_box.infohash]['complete'], y)
+        y+=1
+        
+        add_item(_('Leechers:'), scrape_data['files'][self.torrent_box.infohash]['incomplete'], y)
+        y+=1
 
         size = Size(self.torrent_box.metainfo.file_size)
         num_files = _(', in one file')

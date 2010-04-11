@@ -80,11 +80,14 @@ class Multitorrent(object):
                                         config['upload_unit_size'])
 
         self.nbr_mngrs = {}
+        self.torrents = {}
 
         self.singleport_listener = SingleportListener(self.config, self.ssl_ctx)
         self.singleport_listener.find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
         set_filesystem_encoding(config['filesystem_encoding'])
+        
+        
 
     def close_listening_socket(self):
         self.singleport_listener.close_sockets()
@@ -104,6 +107,7 @@ class Multitorrent(object):
                                  self.nbr_mngrs[metainfo.announce],\
                                  self.certificate, self.sessionid)
         self.event_handler.add_context(torrent)
+        self.torrents[metainfo.infohash] = torrent
         def start():
             torrent.start_download(metainfo, feedback, filename)
         self.schedule(0, start, context=torrent)
