@@ -1257,15 +1257,8 @@ class TorrentInfoWindow(object):
         y+=1
         
         # Holy shit!
-        scrape_data = self.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.torrent_box.infohash]._rerequest.scrape()
-        
-        if isinstance(scrape_data, dict):
-            # Also, it makes the infopage load delayed and should be done in a Thread
-            add_item(_('Seeds:'), scrape_data['files'][self.torrent_box.infohash]['complete'], y)
-            y+=1
-            
-            add_item(_('Leechers:'), scrape_data['files'][self.torrent_box.infohash]['incomplete'], y)
-            y+=1
+        s_thread = getScrapeThread(self, self.torrent_box.infohash)
+        s_thread.start()
 
         size = Size(self.torrent_box.metainfo.file_size)
         num_files = _(', in one file')
@@ -3199,6 +3192,41 @@ class checkPortThread(threading.Thread):
                 self.controlbox.remove(self.separator2)
                 gtk.gdk.threads_leave()
         except Exception, e:
+            return
+            
+#This works most of the time, however, it is not elegant or foolproof.        
+class getScrapeThread(threading.Thread):
+    def __init__(self, box, infohash):
+        threading.Thread.__init__(self)
+        self.box = box
+        self.infohash = infohash
+        self.table = self.box.table
+        
+    def add_item(self, key, val, y):
+        self.table.attach(ralign(gtk.Label(key)), 0, 1, y, y+1)
+        v = gtk.Label(val)
+        v.set_selectable(True)
+        self.table.attach(lalign(v), 1, 2, y, y+1)
+        
+    def run(self):
+        try:
+            # :( :( :(
+            y = 7
+            scrape_data = self.box.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.infohash]._rerequest.scrape()
+            
+            if isinstance(scrape_data, dict):
+                self.add_item(_('Seeds:'), scrape_data['files'][self.infohash]['complete'], y)
+                y = y+1
+                
+                self.add_item(_('Leechers:'), scrape_data['files'][self.infohash]['incomplete'], y)
+                y+=1
+            
+                #Gtk shits here.. not sure how to resolve
+                self.box.vbox.pack_start(self.table)
+                self.box.win.show_all()
+        
+        except Exception, e:
+            log.info(e)
             return
         
 #is this a privacy concern?
