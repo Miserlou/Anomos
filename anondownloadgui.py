@@ -79,7 +79,7 @@ ui_options = 'max_upload_rate minport maxport '\
              'ask_for_save save_in ip dnd_behavior '\
              'min_uploads max_uploads max_initiate '\
              'max_allow_in max_files_open display_interval '\
-             'donated pause auto_ip tracker_proxy anonymizer'.split()
+             'donated pause tracker_proxy anonymizer'.split()
 advanced_ui = 0
 advanced_ui_options_index = 10
 
@@ -927,19 +927,6 @@ class SettingsWindow(object):
         self.ip_box.pack_start(self.ip_field, expand=False, fill=False)
         self.ip_frame.add(self.ip_box)
         self.vbox.pack_start(self.ip_frame, expand=False, fill=False)
-
-        self.auto_ip_checkbutton = gtk.CheckButton(_("Automatically fetch external IP (uses anomos.info)"))
-        self.auto_ip_checkbutton.set_active( bool(self.config['auto_ip']) )
-        self.auto_ip_checkbutton.original_value = bool(self.config['auto_ip'])
-
-        def toggle_auto_ip(w):
-            self.config['auto_ip'] = int(not self.config['auto_ip'])
-            self.setfunc('auto_ip', self.config['auto_ip'])
-            if self.config['auto_ip'] == 1:
-                self.ip_field.set_value(getExternalIP())
-            
-        self.auto_ip_checkbutton.connect('toggled', toggle_auto_ip)
-        self.ip_box.pack_start(self.auto_ip_checkbutton, expand=False, fill=False)
 
         self.buttonbox = gtk.HButtonBox()
         self.buttonbox.set_spacing(SPACING)
@@ -3228,17 +3215,6 @@ class getScrapeThread(threading.Thread):
         except Exception, e:
             log.info(e)
             return
-        
-#is this a privacy concern?
-def getExternalIP():
-    try:
-        ## XXX: Broken with HTTPS
-        f = urlopen("http://anomos.info/getip/")
-        s = str(f.read())
-        f.close()
-        return s
-    except:
-        return ""
 
 def anomosify(data, config):
 
@@ -3280,9 +3256,6 @@ if __name__ == '__main__':
     else:
         newtorrents = args
     controlsocket = ControlSocket(config)
-
-    if config['auto_ip'] == 1:
-        config['ip'] = getExternalIP()
 
     got_control_socket = True
     try:
