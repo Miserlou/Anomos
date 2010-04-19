@@ -1271,8 +1271,26 @@ class TorrentInfoWindow(object):
         if not self.torrent_box.is_batch:
             add_item(_('File name:'), filename, y)
             y+=1
+            
+        def add_item2(key, val, y):
+            self.table.attach(ralign(key), 0, 1, y, y+1)
+            v = val
+            v.set_selectable(True)
+            self.table.attach(lalign(v), 1, 2, y, y+1)
+            
+        self.seeds = gtk.Label(_("Seeds:"))
+        self.seed_count = gtk.Label("0")
+        add_item2(self.seeds, self.seed_count,y)
+        y+=1
+        self.leechers = gtk.Label(_("Leechers:"))
+        self.leech_count = gtk.Label("0")
+        add_item2(self.leechers, self.leech_count,y)
+        y+=1
+        
         
         self.vbox.pack_start(self.table)
+        
+        self.vbox.pack_start(gtk.HSeparator(), expand=False, fill=False)
 
         self.hbox = gtk.HBox(spacing=SPACING)
         lbbox = gtk.HButtonBox()
@@ -3182,32 +3200,14 @@ class getScrapeThread(threading.Thread):
         threading.Thread.__init__(self)
         self.box = box
         self.infohash = infohash
-        self.table = self.box.table
-        
-    def add_item(self, key, val, y):
-        self.table.attach(ralign(gtk.Label(key)), 0, 1, y, y+1)
-        v = gtk.Label(val)
-        v.set_selectable(True)
-        self.table.attach(lalign(v), 1, 2, y, y+1)
         
     def run(self):
         try:
             # :( :( :(
-            y = 6
             scrape_data = self.box.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.infohash]._rerequest.scrape()
-            
-            if isinstance(scrape_data, dict):
-                self.add_item(_('Seeds:'), scrape_data['files'][self.infohash]['complete'], y)
-                y = y+1
-                
-                self.add_item(_('Leechers:'), scrape_data['files'][self.infohash]['incomplete'], y)
-                y+=1
 
-                gtk.gdk.threads_enter()
-                self.box.vbox.remove(self.table)
-                self.box.vbox.pack_start(self.table)
-                self.box.win.show_all()
-                gtk.gdk.threads_leave()
+            self.box.seed_count.set_text(str(scrape_data['files'][self.infohash]['complete']))
+            self.box.leech_count.set_text(str(scrape_data['files'][self.infohash]['incomplete']))
         
         except Exception, e:
             log.info(e)
