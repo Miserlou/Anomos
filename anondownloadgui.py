@@ -3179,10 +3179,13 @@ class checkPortThread(threading.Thread):
         self.separator2 = s
     def run(self):
         try:
-            f = urlopen("http://anomos.info/chkport/?port=" + self.port)
+            # Using our own is a bit too obvious for my taste.
+            # Sorry, uTorrent guys. You know we love you.
+            # TODO: Find a neutral, 3rd party HTTPS port checker 
+            f = urlopen("http://www.utorrent.com/testport?port=" + self.port)
             the_page = str(f.read())
             f.close()
-            if 'closed' in the_page:
+            if 'error' in the_page:
                 log.info(_("Ports are closed!"))
                 return
             else:
