@@ -1256,9 +1256,6 @@ class TorrentInfoWindow(object):
 
         pl = self.torrent_box.metainfo.piece_length
         count, lastlen = divmod(size, pl)
-        sizedetail = '%d x %d + %d = %d' % (count, pl, lastlen, int(size))
-        add_item(_('Pieces:'), sizedetail, y)
-        y+=1
         add_item(_('Info hash:'), self.torrent_box.infohash.encode('hex'), y)
         y+=1
 
@@ -1276,8 +1273,6 @@ class TorrentInfoWindow(object):
             y+=1
         
         self.vbox.pack_start(self.table)
-
-        self.vbox.pack_start(gtk.HSeparator(), expand=False, fill=False)
 
         self.hbox = gtk.HBox(spacing=SPACING)
         lbbox = gtk.HButtonBox()
@@ -3198,7 +3193,7 @@ class getScrapeThread(threading.Thread):
     def run(self):
         try:
             # :( :( :(
-            y = 7
+            y = 6
             scrape_data = self.box.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.infohash]._rerequest.scrape()
             
             if isinstance(scrape_data, dict):
@@ -3207,10 +3202,12 @@ class getScrapeThread(threading.Thread):
                 
                 self.add_item(_('Leechers:'), scrape_data['files'][self.infohash]['incomplete'], y)
                 y+=1
-            
-                #Gtk shits here.. not sure how to resolve
+
+                gtk.gdk.threads_enter()
+                self.box.vbox.remove(self.table)
                 self.box.vbox.pack_start(self.table)
                 self.box.win.show_all()
+                gtk.gdk.threads_leave()
         
         except Exception, e:
             log.info(e)
