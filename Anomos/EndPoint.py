@@ -55,9 +55,11 @@ class EndPoint(AnomosEndPointProtocol):
         self.choker.connection_made(self)
         self.download = self.torrent.make_download(self)
         self.torrent.add_active_stream(self)
+        log.info("Confirm received, stream is now active")
 
     def completion_timeout(self):
         if not self.complete:
+            log.info("Timeout close")
             self.close()
 
     def is_flushed(self):
@@ -85,6 +87,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.shutdown()
 
     def shutdown(self):
+        log.info("Shutting down EP")
         if self.complete and not self.closed:
             self.torrent.rm_active_stream(self)
             self.choker.connection_lost(self)# Must come before changes to
@@ -96,12 +99,14 @@ class EndPoint(AnomosEndPointProtocol):
         self.ratelimiter.clean_closed()
 
     def got_exception(self, e):
+        log.info("EP Exception")
         self.torrent.handle_exception(e)
 
     def uniq_id(self):
         return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)
 
     def send_partial(self, amount):
+        log.info("Sending partial")
         """ Provides partial sending of messages for RateLimiter """
         if self.closed:
             # Send nothing if the connection is closed.
