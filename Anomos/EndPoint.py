@@ -36,6 +36,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.next_upload = None
         if data is not None:
             self.send_tracking_code(data)
+            log.info("Sent TC")
         else:
             self.send_confirm()
             self.connection_completed()
