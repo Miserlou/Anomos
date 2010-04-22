@@ -101,10 +101,11 @@ class Multitorrent(object):
                                     self.ssl_ctx, self.sessionid, \
                                     self.schedule, self.ratelimiter)
 
+        ## Needs {announce/certificate} list
         torrent = _SingleTorrent(self.event_handler, \
                                  self.singleport_listener,\
                                  self.ratelimiter, self.filepool, config,\
-                                 self.nbr_mngrs[metainfo.announce],\    ## Needs {announce/certificate} list
+                                 self.nbr_mngrs[metainfo.announce],\
                                  self.certificate, self.sessionid)
         self.event_handler.add_context(torrent)
         self.torrents[metainfo.infohash] = torrent
