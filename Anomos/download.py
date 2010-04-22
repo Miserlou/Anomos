@@ -101,7 +101,7 @@ class Multitorrent(object):
         torrent = _SingleTorrent(self.event_handler, \
                                  self.singleport_listener,\
                                  self.ratelimiter, self.filepool, config,\
-                                 self.nbr_mngrs[metainfo.announce],\
+                                 self.nbr_mngrs[metainfo.announce],\    ## Needs {announce/certificate} list
                                  self.certificate, self.sessionid)
         self.event_handler.add_context(torrent)
         def start():
