@@ -3,10 +3,14 @@ Rich Jones
 John Schanck
 
 Special Thanks:
-Omac, scp1, megatomate and all them boys in IRC
+Omac, Namespace and all them boys in IRC
+
+Funding Graciously Provided By:
+NLNet Foundation
+http://www.nlnet.nl
 
 Icons:
-wefunction.com/2008/07/function-free-icon-set/
+http://wefunction.com/2008/07/function-free-icon-set/
 
 Based on BitTorrent 4.0:
 

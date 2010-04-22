@@ -323,17 +323,16 @@ class Tracker(object):
     def get_scrape(self, paramslist):
         params = params_factory(paramslist)
         fs = {}
+        
+        # TODO: This doesn't appear to work with multiple &info_hash,
+        # the params only supplies the first info_hash
         if params('info_hash'):
+            infohash = params('info_hash')
             if self.config['scrape_allowed'] not in ['specific', 'full']:
                 return (401, 'Not Authorized', \
                     {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, \
                     bencode({'failure reason': 'specific scrape function is not available with this tracker.'}))
-            hashes = self.networkmodel.get_infohashes()
-            for infohash in params('info_hash'):
-                if self.allowed is not None and infohash not in self.allowed:
-                    continue
-                if infohash in hashes:
-                    fs[infohash] = self.scrapedata(infohash)
+            fs[infohash] = self.scrapedata(infohash)
         else:
             if self.config['scrape_allowed'] != 'full':
                 return (401, 'Not Authorized', \

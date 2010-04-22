@@ -22,7 +22,6 @@ from cStringIO import StringIO
 from gzip import GzipFile
 from time import strftime
 
-
 class HTTPSConnection(Dispatcher):
     def __init__(self, socket, getfunc):
         Dispatcher.__init__(self, socket)
@@ -131,6 +130,10 @@ class HTTPSConnection(Dispatcher):
     def found_terminator(self):
         creq = self.req
         self.req = ''
+        if not self.next_func:
+            log.info("Malformed request from %s:%d" % self.socket.addr)
+            self.handle_close()
+            return
         self.next_func = self.next_func(creq)
 
     def handle_close(self):

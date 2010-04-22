@@ -14,7 +14,7 @@
 from binascii import b2a_hex
 from Anomos import LOG as log
 
-NAME = "Anomos"
+NAME = "Anomos10"
 
 NAT_CHECK_ID = chr(255)
 
@@ -33,14 +33,13 @@ CANCEL = chr(0x8) # index, begin, piece
 TCODE = chr(0x9)
 CONFIRM = chr(0xA)
 ENCRYPTED = chr(0xB) # The data that follows is AES encrypted
-RELAY = chr(0xC)
-BREAK = chr(0xD)
-ACKBREAK = chr(0xE)
-PARTIAL = chr(0xF)
+BREAK = chr(0xC)
+ACKBREAK = chr(0xD)
+PARTIAL = chr(0xE)
 
 _MCODES = ['CHOKE', 'UNCHOKE', 'INTERESTED', 'NOT_INTERESTED', 'HAVE',\
            'BITFIELD', 'REQUEST', 'PIECE', 'CANCEL', 'TCODE', 'CONFIRM',\
-           'ENCRYPTED', 'RELAY', 'BREAK', 'PARTIAL']
+           'ENCRYPTED', 'BREAK', 'PARTIAL']
 
 def mcode_to_name(c):
     return _MCODES[c]
@@ -100,7 +99,7 @@ class AnomosProtocol(object):
             streams used to keep the number of active connections
             low. All messages are prefixed with a 2-byte Stream ID.
             The format is thus: [StreamID][Message Length][Type][Payload]
-            @param type: TCODE, RELAY, BREAK, CHOKE, etc...
+            @param type: TCODE, ENCRYPTED, BREAK, CHOKE, etc...
             @param message: Message type appropriate payload
             @type type: char (strictly 1 byte)
             @type message: string"""

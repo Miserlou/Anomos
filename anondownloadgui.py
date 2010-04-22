@@ -79,7 +79,7 @@ ui_options = 'max_upload_rate minport maxport '\
              'ask_for_save save_in ip dnd_behavior '\
              'min_uploads max_uploads max_initiate '\
              'max_allow_in max_files_open display_interval '\
-             'donated pause auto_ip tracker_proxy anonymizer'.split()
+             'donated pause tracker_proxy anonymizer'.split()
 advanced_ui = 0
 advanced_ui_options_index = 10
 
@@ -928,19 +928,6 @@ class SettingsWindow(object):
         self.ip_frame.add(self.ip_box)
         self.vbox.pack_start(self.ip_frame, expand=False, fill=False)
 
-        self.auto_ip_checkbutton = gtk.CheckButton(_("Automatically fetch external IP (uses anomos.info)"))
-        self.auto_ip_checkbutton.set_active( bool(self.config['auto_ip']) )
-        self.auto_ip_checkbutton.original_value = bool(self.config['auto_ip'])
-
-        def toggle_auto_ip(w):
-            self.config['auto_ip'] = int(not self.config['auto_ip'])
-            self.setfunc('auto_ip', self.config['auto_ip'])
-            if self.config['auto_ip'] == 1:
-                self.ip_field.set_value(getExternalIP())
-            
-        self.auto_ip_checkbutton.connect('toggled', toggle_auto_ip)
-        self.ip_box.pack_start(self.auto_ip_checkbutton, expand=False, fill=False)
-
         self.buttonbox = gtk.HButtonBox()
         self.buttonbox.set_spacing(SPACING)
         
@@ -1255,6 +1242,10 @@ class TorrentInfoWindow(object):
 
         add_item(_('Announce url:'), self.torrent_box.metainfo.announce, y)
         y+=1
+        
+        # Holy shit!
+        s_thread = getScrapeThread(self, self.torrent_box.infohash)
+        s_thread.start()
 
         size = Size(self.torrent_box.metainfo.file_size)
         num_files = _(', in one file')
@@ -1265,9 +1256,6 @@ class TorrentInfoWindow(object):
 
         pl = self.torrent_box.metainfo.piece_length
         count, lastlen = divmod(size, pl)
-        sizedetail = '%d x %d + %d = %d' % (count, pl, lastlen, int(size))
-        add_item(_('Pieces:'), sizedetail, y)
-        y+=1
         add_item(_('Info hash:'), self.torrent_box.infohash.encode('hex'), y)
         y+=1
 
@@ -1283,9 +1271,25 @@ class TorrentInfoWindow(object):
         if not self.torrent_box.is_batch:
             add_item(_('File name:'), filename, y)
             y+=1
+            
+        def add_item2(key, val, y):
+            self.table.attach(ralign(key), 0, 1, y, y+1)
+            v = val
+            v.set_selectable(True)
+            self.table.attach(lalign(v), 1, 2, y, y+1)
+            
+        self.seeds = gtk.Label(_("Seeds:"))
+        self.seed_count = gtk.Label("0")
+        add_item2(self.seeds, self.seed_count,y)
+        y+=1
+        self.leechers = gtk.Label(_("Leechers:"))
+        self.leech_count = gtk.Label("0")
+        add_item2(self.leechers, self.leech_count,y)
+        y+=1
+        
         
         self.vbox.pack_start(self.table)
-
+        
         self.vbox.pack_start(gtk.HSeparator(), expand=False, fill=False)
 
         self.hbox = gtk.HBox(spacing=SPACING)
@@ -2809,12 +2813,12 @@ class DownloadInfoFrame(object):
             
         if len(metainfo.sizes) < 2:
             selector = self.open_window('savefile',
-                                            title="Save location for " + metainfo.name,
-                                            fullname=fullname,
-                                            got_location_func = lambda fn: self.got_location(infohash, fn),
-                                            no_location_func=no_location)
+                title="Save location for " + metainfo.name,
+                fullname=fullname,
+                got_location_func = lambda fn: self.got_location(infohash, fn),
+                no_location_func=no_location)
         else:
-                        selector = self.open_window('choosefolder',
+            selector = self.open_window('choosefolder',
                                             title="Save location for " + metainfo.name,
                                             fullname=fullname,
                                             got_location_func = lambda fn: self.got_location(infohash, fn),
@@ -3175,10 +3179,13 @@ class checkPortThread(threading.Thread):
         self.separator2 = s
     def run(self):
         try:
-            f = urlopen("http://anomos.info/chkport/?port=" + self.port)
+            # Using our own is a bit too obvious for my taste.
+            # Sorry, uTorrent guys. You know we love you.
+            # TODO: Find a neutral, 3rd party HTTPS port checker 
+            f = urlopen("http://www.utorrent.com/testport?port=" + self.port)
             the_page = str(f.read())
             f.close()
-            if 'closed' in the_page:
+            if 'error' in the_page:
                 log.info(_("Ports are closed!"))
                 return
             else:
@@ -3189,17 +3196,25 @@ class checkPortThread(threading.Thread):
                 gtk.gdk.threads_leave()
         except Exception, e:
             return
+            
+#This works most of the time, however, it is not elegant or foolproof.        
+class getScrapeThread(threading.Thread):
+    def __init__(self, box, infohash):
+        threading.Thread.__init__(self)
+        self.box = box
+        self.infohash = infohash
         
-#is this a privacy concern?
-def getExternalIP():
-    try:
-        ## XXX: Broken with HTTPS
-        f = urlopen("http://anomos.info/getip/")
-        s = str(f.read())
-        f.close()
-        return s
-    except:
-        return ""
+    def run(self):
+        try:
+            # :( :( :(
+            scrape_data = self.box.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.infohash]._rerequest.scrape()
+
+            self.box.seed_count.set_text(str(scrape_data['files'][self.infohash]['complete']))
+            self.box.leech_count.set_text(str(scrape_data['files'][self.infohash]['incomplete']))
+        
+        except Exception, e:
+            log.info(e)
+            return
 
 def anomosify(data, config):
 
@@ -3241,9 +3256,6 @@ if __name__ == '__main__':
     else:
         newtorrents = args
     controlsocket = ControlSocket(config)
-
-    if config['auto_ip'] == 1:
-        config['ip'] = getExternalIP()
 
     got_control_socket = True
     try:

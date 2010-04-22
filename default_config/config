@@ -18,7 +18,6 @@ pause = 0
 max_upload_rate = 18871
 display_interval = 0.5
 save_in = 
-auto_ip = 0
 ask_for_save = 1
 minport = 5061
 max_allow_in = 200

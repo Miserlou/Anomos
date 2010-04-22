@@ -324,3 +324,42 @@ class Rerequester(object):
                 log.info("Got peer %s"%str(x['ip']))
                 peers.append((x['ip'], x['port'], x.get('nid')))
         return peers
+        
+    def scrape(self):
+        query = '?info_hash=%s' % b64encode(self.infohash)
+        return self._scrape(query)
+        
+    def _scrape(self, query):
+        """ Make an HTTP GET request to the tracker
+            Note: This runs in its own thread.
+        """
+        self.spath = "/scrape"
+        if not self.https:
+            log.warning("Warning: Will not connect to non HTTPS server")
+            return
+        try:
+            if self.proxy_url:
+                h = ProxyHTTPSConnection(self.proxy_url, \
+                                         username=self.proxy_username, \
+                                         password=self.proxy_password, \
+                                         ssl_context=self.ssl_ctx)
+                s = "https://%s:%d%s%s" % (self.url, self.remote_port, self.spath, query)
+                h.putrequest('GET', s)
+            else:
+                #No proxy url, use normal connection
+                h = HTTPSConnection(self.url, self.remote_port, ssl_context=self.ssl_ctx)
+                h.putrequest('GET', self.spath+query)
+            h.endheaders()
+            resp = h.getresponse()
+            data = resp.read()
+            resp.close()
+            h.close()
+            h = None
+        # urllib2 can raise various crap that doesn't have a common base
+        # exception class especially when proxies are used, at least
+        # ValueError and stuff from httplib
+        except Exception, g:
+            def f(r='Problem connecting to ' + self.url + ':  ' + str(g)):
+                self._postrequest(errormsg=r)
+                
+        return bdecode(data)

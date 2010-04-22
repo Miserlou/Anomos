@@ -144,7 +144,7 @@ class Certificate:
         m2.x509_gmtime_adj(notBefore, 0)
         m2.x509_gmtime_adj(notAfter, 60*60*24*365*5)
         # Sign the certificate
-        self.cert.sign(pkey, 'ripemd160')
+        self.cert.sign(pkey, 'sha1')
         # Save it
         self.cert.save_pem(self.certfile)
 
