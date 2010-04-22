@@ -316,12 +316,12 @@ class Rerequester(object):
         if type(p) == str:
             for x in xrange(0, len(p), 6):
                 ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
-                log.info("Got peer %s"%ip)
                 port = (ord(p[x+4]) << 8) | ord(p[x+5])
+                log.info("Got peer %s:%s" % (ip, port))
                 peers.append((ip, port, None))
         else:
             for x in p:
-                log.info("Got peer %s"%str(x['ip']))
+                log.info("Got peer %s:%s" % (str(x['ip']), str(x['port'])))
                 peers.append((x['ip'], x['port'], x.get('nid')))
         return peers
         
