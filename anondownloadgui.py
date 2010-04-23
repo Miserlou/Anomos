@@ -1287,7 +1287,6 @@ class TorrentInfoWindow(object):
         add_item2(self.leechers, self.leech_count,y)
         y+=1
         
-        
         self.vbox.pack_start(self.table)
         
         self.vbox.pack_start(gtk.HSeparator(), expand=False, fill=False)
@@ -1311,6 +1310,10 @@ class TorrentInfoWindow(object):
             filelistbutton.set_sensitive(False)
         lbbox.pack_start(filelistbutton, expand=False, fill=False)
 
+        reabutton = gtk.Button(_("Reannounce"))
+        reabutton.connect('clicked', lambda w: self.manual_reannounce())
+        lbbox.pack_end(reabutton, expand=True, fill=True)
+
         closebutton = gtk.Button(stock='gtk-close')
         closebutton.connect('clicked', lambda w: self.close())
         rbbox.pack_end(closebutton, expand=False, fill=False)
@@ -1326,6 +1329,9 @@ class TorrentInfoWindow(object):
 
     def close(self):
         self.win.destroy()
+
+    def manual_reannounce(self):
+        self.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.torrent_box.infohash]._rerequest._announce()
 
 class TorrentBox(gtk.EventBox):
     
