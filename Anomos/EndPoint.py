@@ -106,7 +106,6 @@ class EndPoint(AnomosEndPointProtocol):
         return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)
 
     def send_partial(self, amount):
-        log.info("Sending partial")
         """ Provides partial sending of messages for RateLimiter """
         if self.closed:
             # Send nothing if the connection is closed.
