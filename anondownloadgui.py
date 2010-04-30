@@ -1296,10 +1296,9 @@ class TorrentInfoWindow(object):
         rbbox = gtk.HButtonBox()
         lbbox.set_spacing(SPACING)
 
-        if OpenPath.can_open_files:
-            opendirbutton = IconButton(_("Open directory"), stock=gtk.STOCK_OPEN)
-            opendirbutton.connect('clicked', self.torrent_box.open_dir)
-            lbbox.pack_start(opendirbutton, expand=False, fill=False)
+        opendirbutton = IconButton(_("Open directory"), stock=gtk.STOCK_OPEN)
+        opendirbutton.connect('clicked', self.torrent_box.open_dir)
+        lbbox.pack_start(opendirbutton, expand=False, fill=False)
 
         opendirbutton.set_sensitive(self.torrent_box.can_open_dir())
 
