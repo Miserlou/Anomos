@@ -2,8 +2,12 @@ Anomos Inventors and Developers (in alphabetical order):
 Rich Jones
 John Schanck
 
-Special Thanks:
-Omac, Namespace and all them boys in IRC
+Special Thanks (in no particular order):
+Omac
+Namespace
+Chris Ballinger (OSX Work)
+Joao Almeida  (OSX Work)
+and all them boys in IRC
 
 Funding Graciously Provided By:
 NLNet Foundation
