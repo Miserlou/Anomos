@@ -622,7 +622,7 @@ def track(args):
         ctx = servercert.get_ctx(allow_unknown_ca=True,
                                  req_peer_cert=False,
                                  session="tracker")
-        HTTPSServer(config['bind'], config['port'], ctx, t.get)
+        HTTPSServer(config['bind'], config['port'], ctx, t.get, e.schedule)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:

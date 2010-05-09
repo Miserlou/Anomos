@@ -23,12 +23,23 @@ from gzip import GzipFile
 from time import strftime
 
 class HTTPSConnection(Dispatcher):
-    def __init__(self, socket, getfunc):
+    def __init__(self, socket, getfunc, sched):
         Dispatcher.__init__(self, socket)
         self.req = ''
         self.set_terminator('\n')
         self.getfunc = getfunc
+        self.sched = sched
+        self.timeout_interval = 5
+        self.sched(self.timeout_interval, self.timeout)
+        self.got_incoming = False
         self.next_func = self.read_type
+
+    def timeout(self):
+        if not self.got_incoming:
+            self.handle_close()
+        else:
+            self.got_incoming = False
+            self.sched(self.timeout_interval, self.timeout)
 
     ## HTTP handling methods ##
     def read_type(self, data):
@@ -126,6 +137,7 @@ class HTTPSConnection(Dispatcher):
     ## asynchat.async_chat methods ##
     def collect_incoming_data(self, data):
         self.req += data
+        self.got_incoming = True
 
     def found_terminator(self):
         creq = self.req
@@ -151,32 +163,48 @@ class HTTPSConnection(Dispatcher):
 
 
 class HTTPSServer(asyncore.dispatcher):
-    def __init__(self, addr, port, ssl_context, getfunc):
+    def __init__(self, addr, port, ssl_context, getfunc, sched):
         asyncore.dispatcher.__init__(self)
         self.ssl_ctx=ssl_context
         self.create_socket()
         self.bind((addr, port))
         self.listen(socket.SOMAXCONN)
         self.getfunc = getfunc
+        self.sched = sched
 
     def create_socket(self):
         conn=SSL.Connection(self.ssl_ctx)
         self.set_socket(conn)
         self.socket.setblocking(1)
-        self.socket.set_socket_read_timeout(SSL.timeout(1))
-        self.socket.set_socket_write_timeout(SSL.timeout(1))
+        self.socket.set_socket_read_timeout(SSL.timeout(5))
+        self.socket.set_socket_write_timeout(SSL.timeout(5))
         self.set_reuse_addr()
         self.add_channel()
 
     def handle_accept(self):
         try:
-            sock, addr = self.socket.accept()
-        except (SSL.SSLError, socket.error), e:
-            log.warning("Exception in HTTPSServer socket.accept: " + str(e))
+            sock, addr = self.socket.socket.accept()
+        except socket.error, e:
+            log.warning("Could not accept socket. %s" % e)
             return
-        sock.setblocking(0)
 
-        HTTPSConnection(sock, self.getfunc)
+        try:
+            ssl = SSL.Connection(self.ssl_ctx, sock)
+            ssl.addr = addr
+            ssl.setup_ssl()
+            ssl.set_accept_state()
+            ssl.accept_ssl()
+        except SSL.SSLError, e:
+            log.warning("Could not accept socket from %s -- %s " % (str(addr), str(e)))
+            return
+        
+        check = getattr(ssl, 'postConnectionCheck', ssl.serverPostConnectionCheck)
+        if check is not None and not check(ssl.get_peer_cert(), ssl.addr[0]):
+            log.warning('SSL post connection check failed for %s' % str(addr))
+            return
+        else:
+            ssl.setblocking(0)
+            HTTPSConnection(ssl, self.getfunc, self.sched)
 
     def handle_error(self):
         log.critical('\n'+traceback.format_exc())
