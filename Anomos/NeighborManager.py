@@ -38,7 +38,7 @@ class NeighborManager(object):
         self.ratelimiter = ratelimiter
         self.neighbors = {}
         self.relay_measure = Measure(self.config['max_rate_period'])
-        self.relay_count = 0
+        self.relays = []
         self.incomplete = {}
         self.torrents = {}
         self.waiting_tcs = {}
@@ -119,9 +119,9 @@ class NeighborManager(object):
 
     ## AnomosNeighborInitializer got a full handshake ##
     def add_neighbor(self, socket, id):
-        log.info("Adding Neighbor: \\x%02x" % ord(id))
         self.neighbors[id] = NeighborLink(self, socket, id, \
                 self.config, self.ratelimiter)
+        log.info("Added Neighbor: \\x%02x" % ord(id))
 
     def rm_neighbor(self, nid):
         if self.incomplete.has_key(nid):
@@ -130,6 +130,7 @@ class NeighborManager(object):
             self.neighbors.pop(nid)
         if nid is not None:
             self.failedPeers.append(nid)
+            log.info("Removed Neighbor: \\x%02x" % ord(nid))
 
     #TODO: implement banning
     def ban(self, ip):
@@ -252,26 +253,29 @@ class NeighborManager(object):
     ## Relay Management ##
     def make_relay(self, nid, data, orelay):
         if self.neighbors.has_key(nid):
-            self.relay_count += 1
             r = self.neighbors[nid].start_relay_stream(nid, data, orelay)
             orelay.set_other_relay(r)
+            self.relays.append((orelay, r))
         elif self.incomplete.has_key(nid):
             def relay_tc():
-                self.relay_count += 1
                 r = self.neighbors[nid].start_relay_stream(nid,data,orelay)
                 orelay.set_other_relay(r)
+                self.relays.append((orelay, r))
             self.waiting_tcs.setdefault(nid, [])
             self.waiting_tcs[nid].append(relay_tc)
 
-    def dec_relay_count(self):
-        self.relay_count -= 1
+    def rm_relay(self, relay):
+        for i in range(len(self.relays)):
+            if relay in self.relays[i]:
+                self.relays.remove(self.relays[i])
+                break
 
     def get_relay_count(self):
-        return self.relay_count
+        return len(self.relays)
 
     def get_relay_stats(self):
         rate = self.relay_measure.get_rate()
-        count = self.relay_count
+        count = len(self.relays)
         sent = self.relay_measure.get_total()
         return {'relayRate' : rate, 'relayCount' : count, 'relaySent' : sent}
 
