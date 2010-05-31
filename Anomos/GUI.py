@@ -392,7 +392,7 @@ class FileSelection():
 
     def destroy(self, widget=None):
         return
-    
+
 class OpenFileSelection():
         def __init__(self, main, title='', fullname='', got_location_func=None, no_location_func=None, got_multiple_location_func=None, show=True):
 
@@ -634,6 +634,15 @@ class SaveFileSelection():
                                     gtk.STOCK_OPEN, gtk.RESPONSE_OK))
             dialog.set_default_response(gtk.RESPONSE_OK)
             dialog.set_current_name(os.path.split(fullname)[1])
+
+            #This is a ghetto version of XDG_DOWNLOAD_DIR, pyxdg doesn't
+            # provide for some reason.
+            try:
+                dpath = os.path.join(os.environ.get('HOME', "/"), "Downloads")
+                if os.path.exists(dpath):
+                    dialog.set_current_folder(dpath)
+            except Exception, e:
+                pass
             response = dialog.run()
 
             if response == gtk.RESPONSE_OK:
