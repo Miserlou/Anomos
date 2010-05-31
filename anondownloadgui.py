@@ -624,8 +624,9 @@ class LogWindow(object):
         self.vbox.pack_start(self.scroll)
 
         self.buttonbox = gtk.HButtonBox()
-
         self.buttonbox.set_spacing(SPACING)
+ 
+        self.closebutton = gtk.Button(stock='gtk-close')
         self.closebutton.connect('clicked', self.close)
 
         self.savebutton = gtk.Button(stock='gtk-save')
