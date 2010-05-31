@@ -86,8 +86,6 @@ class Multitorrent(object):
         self.singleport_listener.find_port(listen_fail_ok)
         self.filepool = FilePool(config['max_files_open'])
         set_filesystem_encoding(config['filesystem_encoding'])
-        
-        
 
     def close_listening_socket(self):
         self.singleport_listener.close_sockets()
@@ -225,11 +223,10 @@ class _SingleTorrent(object):
         contfunc()
 
     def _start_download(self, metainfo, feedback, save_path):
-    
         # GTK Crash Hack
         import time
         time.sleep(.2)
-        
+
         self.feedback = feedback
         self._set_auto_uploads()
 
