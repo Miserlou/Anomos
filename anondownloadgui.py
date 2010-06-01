@@ -111,7 +111,7 @@ def find_dir(path):
             return directory
         directory, garbage = os.path.split(directory)
         if garbage == '':
-            break        
+            break
     return None
 
 def smart_dir(path):
@@ -150,7 +150,7 @@ class Validator(gtk.Entry):
     minimum = None
     maximum = None
     cast = int
-    
+
     def __init__(self, option_name, config, setfunc):
         gtk.Entry.__init__(self)
         self.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000000"))
@@ -160,9 +160,8 @@ class Validator(gtk.Entry):
 
         self.original_value = config[option_name]
         self.set_text(str(self.original_value))
-            
         self.set_size_request(self.width,-1)
-        
+
         self.connect('insert-text', self.text_inserted)
         self.connect('focus-out-event', self.focus_out)
 
@@ -176,8 +175,8 @@ class Validator(gtk.Entry):
 
     def set_value(self, value):
         self.set_text(str(value))
-        self.setfunc(self.option_name, value)        
-        
+        self.setfunc(self.option_name, value)
+
     def focus_out(self, entry, widget):
         value = self.get_value()
 
@@ -226,9 +225,8 @@ class PortValidator(Validator):
 
         self.original_value = config[option_name]
         self.set_text(str(self.original_value))
-            
         self.set_size_request(self.width,-1)
-        
+
         self.connect('insert-text', self.text_inserted)
         self.connect('focus-out-event', self.focus_out)
         self.main = main
@@ -255,9 +253,9 @@ class PortValidator(Validator):
             value = self.maximum
 
         self.set_value(value)
-        
+
         self.main.warning.set_tooltip_text(_("The ports on your router are not configured properly. This will interefere with file transfers. Please forward port ") + str(value) + _(" to your machine."))
-            
+
         self.main.checkPort()
 
 class PercentValidator(Validator):
@@ -273,7 +271,7 @@ class RateSliderBox(gtk.VBox):
     base = 10
     multiplier = 4
     max_exponent = 3.3
-    
+
     def __init__(self, config, torrentqueue):
         gtk.VBox.__init__(self, homogeneous=False)
         self.config = config
@@ -288,7 +286,7 @@ class RateSliderBox(gtk.VBox):
         self.rate_slider_adj = gtk.Adjustment(
             self.rate_to_slider(self.config['max_upload_rate']), 0,
             self.max_exponent, 0.01, 0.1)
-        
+
         self.rate_slider = gtk.HScale(self.rate_slider_adj)
         self.rate_slider.set_draw_value(False)
         self.rate_slider_adj.connect('value_changed', self.set_max_upload_rate)
@@ -411,7 +409,7 @@ class StopButton(gtk.Button):
         self.stop_image.set_from_stock(gtk.STOCK_MEDIA_PAUSE, gtk.ICON_SIZE_BUTTON)
         self.stop_image.show()
         self.add(self.stop_image)
-    
+
     def toggle(self, widget=None):
         self.set_paused(not self.main.config['pause'])
 
@@ -442,7 +440,7 @@ class NewTorrentButton(gtk.Button):
 
     def toggle(self, widget):
         self.launch_maketorrent_gui()
-    
+
     def launch_maketorrent_gui(self):
         makeatorrentgui.main(parent=self)
 
@@ -456,7 +454,7 @@ class SeedingButton(gtk.Button):
         self.torrents = torrents
         self.connect('clicked', self.toggle)
         self.update_label()
-        
+
     def toggle(self, widget):
         self.show_seeding()
         self.update_label()
@@ -514,7 +512,7 @@ class VersionWindow(Window):
         self.image = gtk.Image()
         self.image.set_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_DIALOG)
         self.hbox.pack_start(self.image)
-        
+
         self.label = gtk.Label()
         self.label.set_markup(
             ("A newer version of %s is available.\n" % app_name) +
@@ -596,7 +594,7 @@ class AboutWindow(object):
         self.win.show_all()
 
     def close(self, widget):
-        self.win.destroy()    
+        self.win.destroy()
 
 
 class LogWindow(object):
@@ -608,7 +606,6 @@ class LogWindow(object):
         self.win.set_default_size(600, 200)
         self.win.set_border_width(SPACING)
         self.win.set_position(gtk.WIN_POS_CENTER)
-            
         self.buffer = logbuffer
         self.text = gtk.TextView(self.buffer)
         self.text.set_editable(False)
@@ -692,6 +689,8 @@ class ConnectionsWindow(object):
         self.win.set_border_width(SPACING)
         self.win.set_position(gtk.WIN_POS_CENTER)
         nbr_mngrs = self.main.torrentqueue.wrapped.multitorrent.nbr_mngrs
+
+        ips = []
 
         for url in nbr_mngrs:
             ips.append(nbr_mngrs[url].get_ips())
