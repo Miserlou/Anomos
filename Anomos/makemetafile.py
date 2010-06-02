@@ -119,8 +119,8 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
     if comment:
         data['comment'] = comment
     if aurls and len(aurls) > 1:
-        data['announce-list'] = aurls
-    h.write(bencode(data))
+        data['announce-list'] = [aurls]
+        h.write(bencode(data))
     h.close()
 
 def make_meta_multifile(files, url, piece_len_exp, flag=Event(), progress=dummy,
@@ -154,7 +154,7 @@ def make_meta_multifile(files, url, piece_len_exp, flag=Event(), progress=dummy,
     if comment:
         data['comment'] = comment
     if aurls and len(aurls) > 1:
-        data['announce-list'] = aurls
+        data['announce-list'] = [aurls]
 
     h.write(bencode(data))
     h.close()
