@@ -79,7 +79,7 @@ class MainWindow(Window):
 
         self.file_list = gtk.TreeView(self.file_store)
         r = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('_Files', r, text=0)
+        column = gtk.TreeViewColumn(' _Files', r, text=0)
         self.file_list.append_column(column)
         self.file_list.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 
@@ -107,6 +107,48 @@ class MainWindow(Window):
         self.clear_button.set_sensitive(False)
         self.file_list_button_box.pack_start(self.clear_button)
         self.table.attach(self.file_list_button_box,0,2,y,y+1,
+                          xoptions=gtk.FILL, yoptions=0)
+        y+=1
+
+        self.table.attach(lalign(gtk.Label('Announce URLs:')),
+                          0,2,y,y+1, xoptions=gtk.FILL, yoptions=gtk.FILL, )
+        y+=1
+
+        self.a_store = gtk.ListStore(gobject.TYPE_STRING)
+
+        for i in range(8): self.a_store.append(('foo',))
+
+        self.a_scroll = gtk.ScrolledWindow()
+        self.a_scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.a_scroll.set_shadow_type(gtk.SHADOW_OUT)
+
+        self.a_list = gtk.TreeView(self.a_store)
+        r = gtk.CellRendererText()
+        column = gtk.TreeViewColumn(' _Announce URL', r, text=0)
+        self.a_list.append_column(column)
+        self.a_list.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+
+        a_list_height = self.a_list.size_request()[1] + SCROLLBAR_WIDTH
+        self.a_store.clear()
+
+        self.a_scroll.set_size_request(-1, a_list_height)
+        self.a_scroll.add(self.a_list)
+        self.table.attach(self.a_scroll,0,2,y,y+1,yoptions=gtk.EXPAND|gtk.FILL)
+        y+=1
+
+        self.a_list_button_box = gtk.HBox(homogeneous=True,spacing=SPACING)
+        self.a_add_button = gtk.Button("Add URL")
+        self.a_add_button.connect('clicked', self.add_url)
+        self.a_list_button_box.pack_start(self.a_add_button)
+        self.a_remove_button = gtk.Button(stock=gtk.STOCK_REMOVE)
+        self.a_remove_button.connect('clicked', self.remove_url)
+        self.a_remove_button.set_sensitive(False)
+        self.a_list_button_box.pack_start(self.a_remove_button)
+        self.a_clear_button = gtk.Button(stock=gtk.STOCK_CLEAR)
+        self.a_clear_button.connect('clicked', self.clear_url_list)
+        self.a_clear_button.set_sensitive(False)
+        self.a_list_button_box.pack_start(self.a_clear_button)
+        self.table.attach(self.a_list_button_box,0,2,y,y+1,
                           xoptions=gtk.FILL, yoptions=0)
         y+=1
 
@@ -151,15 +193,16 @@ class MainWindow(Window):
 
         self.box.pack_end(self.buttonbox, expand=False, fill=False)
 
-        self.announce_entry.connect('changed', self.check_buttons)
+        self.announce_entry.connect('changed', self.check_make_button)
         self.file_store.connect('row-changed', self.check_buttons)
         sel = self.file_list.get_selection()
         sel.connect('changed', self.check_buttons)
 
-        self.add(self.box)
+        self.a_store.connect('row-changed', self.check_a_buttons)
+        asel = self.a_list.get_selection()
+        asel.connect('changed', self.check_a_buttons)
 
-#        HelpWindow(None, makeHelp('btmaketorrentgui', defaults))
-        
+        self.add(self.box)
         self.show_all()
 
     def remove_selection(self,widget):
@@ -169,9 +212,20 @@ class MainWindow(Window):
         for row in rows:
             list_store.remove(list_store.get_iter(row))
 
+    def remove_url(self,widget):
+        sel = self.a_list.get_selection()
+        list_store, rows = sel.get_selected_rows()
+        rows.reverse()
+        for row in rows:
+            list_store.remove(list_store.get_iter(row))
+
     def clear_file_list(self,widget):
         self.file_store.clear()
         self.check_buttons()
+
+    def clear_url_list(self,widget):
+        self.a_store.clear()
+        self.check_a_buttons()
 
     def choose_files(self,widget):
         fn = None
@@ -189,12 +243,12 @@ class MainWindow(Window):
         if self.config['torrent_dir']:
             fn = self.config['torrent_dir']
         else:
-            fn = Desktop.desktop 
+            fn = Desktop.desktop
 
         selector = OpenMultiFolderSelection(self, title="Select folders to put in .atorrent:",
                                 fullname=fn,
                                 got_multiple_location_func=self.add_files)
-    
+
     def add_files(self, names):
         for name in names:
             name = u'' + name
@@ -203,6 +257,12 @@ class MainWindow(Window):
         if torrent_dir[-1] != os.sep:
             torrent_dir += os.sep
         self.config['torrent_dir'] = torrent_dir
+
+    def add_url(self, names):
+        announce_url = self.announce_entry.get_text()
+        if len(announce_url) >= len('https://x.cc') and ('https:' in announce_url):
+            self.a_store.append((announce_url,))
+            self.check_buttons()
 
     def get_piece_size_exponent(self):
         i = self.piece_size.get_active()
@@ -217,6 +277,14 @@ class MainWindow(Window):
             files.append(self.file_store.get_value(it, 0))
             it = self.file_store.iter_next(it)
         return files
+
+    def get_url_list(self):
+        it = self.a_store.get_iter_first()
+        aus = []
+        while it is not None:
+            aus.append(self.a_store.get_value(it, 0))
+            it = self.a_store.iter_next(it)
+        return aus
 
     def get_announce_url(self):
         announce_url = self.announce_entry.get_text()
@@ -252,6 +320,42 @@ class MainWindow(Window):
             self.clear_button.set_sensitive(False)
             self.remove_button.set_sensitive(False)
             self.makebutton.set_sensitive(False)
+        self.check_a_buttons()
+
+    def check_a_buttons(self, *widgets):
+        a_list = self.get_url_list()
+        announce_url = self.get_announce_url()
+
+        if len(a_list) >= 1:
+            self.a_clear_button.set_sensitive(True)
+            sel = self.a_list.get_selection()
+            list_store, rows = sel.get_selected_rows()
+            if len(rows):
+                self.a_remove_button.set_sensitive(True)
+            else:
+                self.a_remove_button.set_sensitive(False)
+            if len(announce_url) >= len('https://x.cc') and ('https:' in announce_url):
+                self.a_add_button.set_sensitive(True)
+            else:
+                self.a_add_button.set_sensitive(False)
+        else:
+            self.a_clear_button.set_sensitive(False)
+            self.a_remove_button.set_sensitive(False)
+            self.makebutton.set_sensitive(False)
+
+    def check_make_button(self, *widgets):
+        a_list = self.get_url_list()
+        file_list = self.get_file_list()
+        announce_url = self.get_announce_url()
+        if len(file_list) >= 1 and len(a_list) >= 1:
+            self.makebutton.set_sensitive(True)
+        else:
+            self.makebutton.set_sensitive(False)
+        if len(announce_url) >= len('https://x.cc') and ('https:' in
+                announce_url):
+            self.a_add_button.set_sensitive(True)
+        else:
+            self.a_add_button.set_sensitive(False)
 
     def quit(self, widget):
         self.destroy()

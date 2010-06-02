@@ -2457,7 +2457,7 @@ class DownloadInfoFrame(object):
         return path
 
     def drag_highlight(self, widget=None):
-        widgets = (self.knownbox, self.runbox, self.queuebox) 
+        widgets = (self.knownbox, self.runbox, self.queuebox)
         for w in widgets:
             if w != widget:
                 w.drag_unhighlight()
@@ -2662,7 +2662,7 @@ class DownloadInfoFrame(object):
     def on_window_event(self, widget, event):
         state = event.new_window_state
         # One day, we may need this again. Now, the WIMP bug is fixed by
-        # using GTK 2.16 rather than 2.18        
+        # using GTK 2.16 rather than 2.18
         if state == gtk.gdk.WINDOW_STATE_ICONIFIED:
             pass
         else:
@@ -2724,7 +2724,7 @@ class DownloadInfoFrame(object):
         try:
             f = file(name, 'rb')
             data = f.read()
-        except IOError: 
+        except IOError:
             pass # the user has selected a directory or other non-file object
         else:
             if not '.atorrent' in name:
@@ -2742,7 +2742,7 @@ class DownloadInfoFrame(object):
         try:
             f = file(name, 'rb')
             data = f.read()
-        except IOError: 
+        except IOError:
             pass # the user has selected a directory or other non-file object
         else:
             if not '.torrent' in name:
@@ -2934,7 +2934,7 @@ class DownloadInfoFrame(object):
         if self.errordialog is not None:
             if not self.errordialog.multi:
                 self.errordialog.destroy()
-                self.errordialog = MessageDialog(self.mainwindow, title, 
+                self.errordialog = MessageDialog(self.mainwindow, title,
                                                  _('Multiple errors have occurred. '),
                                                  _('Click OK to view the error log.'),
                                                  buttons=gtk.BUTTONS_OK_CANCEL,
