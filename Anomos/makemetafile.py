@@ -105,9 +105,21 @@ def make_meta_file(path, url, piece_len_exp, flag=Event(), progress=dummy,
         return
     check_info(info)
     h = file(f, 'wb')
-    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime()), 'anon': '1'}
+
+    aurl = ""
+    if type(url) == list:
+        aurls = []
+        for a in url:
+            aurls.append(a.strip())
+        aurl = url[0].strip()
+    else:
+        aurl = url.strip()
+
+    data = {'info': info, 'announce': aurl, 'creation date': int(bttime()), 'anon': '1'}
     if comment:
         data['comment'] = comment
+    if aurls and len(aurls) > 1:
+        data['announce-list'] = aurls
     h.write(bencode(data))
     h.close()
 
@@ -128,9 +140,22 @@ def make_meta_multifile(files, url, piece_len_exp, flag=Event(), progress=dummy,
     #TODO: this
     #check_info(info)
     h = file(f, 'wb')
-    data = {'info': info, 'announce': url.strip(), 'creation date': int(bttime()), 'anon': '1'}
+
+    aurl = ""
+    if type(url) == list:
+        aurls = []
+        for a in url:
+            aurls.append(a.strip())
+        aurl = url[0].strip()
+    else:
+        aurl = url.strip()
+
+    data = {'info': info, 'announce': aurl, 'creation date': int(bttime()), 'anon': '1'}
     if comment:
         data['comment'] = comment
+    if aurls and len(aurls) > 1:
+        data['announce-list'] = aurls
+
     h.write(bencode(data))
     h.close()
 

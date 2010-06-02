@@ -293,11 +293,11 @@ class MainWindow(Window):
 
     def make(self, widget):
         file_list = self.get_file_list()
+        a_list = self.get_url_list()
         piece_size_exponent = self.get_piece_size_exponent()
-        announce_url = self.get_announce_url()
         errored = False
         if not errored:
-            d = ProgressDialog(self, file_list, announce_url, piece_size_exponent)
+            d = ProgressDialog(self, file_list, a_list, piece_size_exponent)
             d.main()
 
     def check_buttons(self, *widgets):
@@ -364,13 +364,13 @@ class MainWindow(Window):
 
 class ProgressDialog(gtk.Dialog):
 
-    def __init__(self, parent, file_list, announce_url, piece_length):
+    def __init__(self, parent, file_list, a_list, piece_length):
         gtk.Dialog.__init__(self, parent=parent, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT)
         self.set_size_request(400,-1)
         self.set_border_width(SPACING)
         self.set_title('Building torrents...')
         self.file_list = file_list
-        self.announce_url = announce_url
+        self.a_list = a_list
         self.piece_length = piece_length
         self.flag = Event() # ???
 
@@ -413,7 +413,7 @@ class ProgressDialog(gtk.Dialog):
 
     def complete(self):
         try:
-            make_meta_files(self.announce_url,
+            make_meta_files(self.a_list,
                         self.file_list,
                         self.flag,
                         self.set_progress_value,
