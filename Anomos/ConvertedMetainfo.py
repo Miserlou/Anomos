@@ -163,6 +163,8 @@ class ConvertedMetainfo(object):
         self.hashes = [info['pieces'][x:x+20] for x in xrange(0,
             len(info['pieces']), 20)]
         self.infohash = hashlib.sha1(bencode(info)).digest()
+        if metainfo.has_key('announce-list'):
+            self.announce_list = metainfo['announce-list']
 
     def is_anon(self):
         return self.anon
