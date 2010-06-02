@@ -71,7 +71,7 @@ class MainWindow(Window):
 
         self.file_store = gtk.ListStore(gobject.TYPE_STRING)
 
-        for i in range(8): self.file_store.append(('foo',))
+        for i in range(5): self.file_store.append(('foo',))
 
         self.file_scroll = gtk.ScrolledWindow()
         self.file_scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
@@ -110,13 +110,13 @@ class MainWindow(Window):
                           xoptions=gtk.FILL, yoptions=0)
         y+=1
 
-        self.table.attach(lalign(gtk.Label('Announce URLs:')),
+        self.table.attach(lalign(gtk.Label('\nAnnounce URLs:')),
                           0,2,y,y+1, xoptions=gtk.FILL, yoptions=gtk.FILL, )
         y+=1
 
         self.a_store = gtk.ListStore(gobject.TYPE_STRING)
 
-        for i in range(8): self.a_store.append(('foo',))
+        for i in range(5): self.a_store.append(('foo',))
 
         self.a_scroll = gtk.ScrolledWindow()
         self.a_scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
@@ -180,7 +180,7 @@ class MainWindow(Window):
 
         self.buttonbox = gtk.HBox(homogeneous=True, spacing=SPACING)
 
-        self.quitbutton = gtk.Button(stock=gtk.STOCK_QUIT)
+        self.quitbutton = gtk.Button('_Close', stock=gtk.STOCK_QUIT)
         self.quitbutton.connect('clicked', self.quit)
         self.buttonbox.pack_start(self.quitbutton, expand=True, fill=True)
 
