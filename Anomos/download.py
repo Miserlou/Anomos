@@ -238,6 +238,7 @@ class _SingleTorrent(object):
 
         self.feedback = feedback
         self._set_auto_uploads()
+        self.metainfo = metainfo
 
         self.infohash = metainfo.infohash
         self.file_size = metainfo.file_size
@@ -326,7 +327,7 @@ class _SingleTorrent(object):
                     self.config['max_rate_period'])
         self._torrent = Torrent(self.infohash, make_upload,
                                 downloader, len(metainfo.hashes), self)
-        self.reported_port = self.config['forwarded_port']
+        self.reported_port = self.config['forwarded_port'] # This is unlikely.
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port(self.neighbors)
             self.reserved_ports.append(self.reported_port)
