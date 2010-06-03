@@ -92,14 +92,22 @@ class Multitorrent(object):
 
     def start_torrent(self, metainfo, config, feedback, filename):
 
-        if not self.nbr_mngrs.has_key(metainfo.announce):
-            ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
-            self.nbr_mngrs[metainfo.announce] = \
-                    NeighborManager(config, self.certificate, \
-                                    self.ssl_ctx, self.sessionid, \
-                                    self.schedule, self.ratelimiter)
+        if hasattr(metainfo, "announce_list"):
+            for aurl in metainfo.announce_list:
+                if not self.nbr_mngrs.has_key(aurl):
+                    ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
+                    self.nbr_mngrs[aurl] = \
+                            NeighborManager(config, self.certificate, \
+                                            self.ssl_ctx, self.sessionid, \
+                                            self.schedule, self.ratelimiter)
+        else:
+            if not self.nbr_mngrs.has_key(metainfo.announce):
+                self.nbr_mngrs[metainfo.announce] = \
+                        NeighborManager(config, self.certificate, \
+                                self.ssl_ctx, self.sessionid, \
+                                self.schedule, self.ratelimiter)
 
-        ## Needs {announce/certificate} list
+        ## Needs {announce/certificate} dict
         torrent = _SingleTorrent(self.event_handler, \
                                  self.singleport_listener,\
                                  self.ratelimiter, self.filepool, config,\
@@ -206,6 +214,7 @@ class _SingleTorrent(object):
         self.neighbors = neighbors
         self.certificate = certificate
         self.sessionid = sessionid
+        self.rerequesters = []
 
     def schedule(self, delay, func):
         self.event_handler.schedule(delay, func, context=self)
@@ -323,6 +332,14 @@ class _SingleTorrent(object):
             self.reserved_ports.append(self.reported_port)
         self.neighbors.add_torrent(self.infohash, self._torrent)
         self._listening = True
+        if hasattr(metainfo, "announce_list"):
+            for aurl in metainfo.announce_list:
+                self.rerequesters.append(Rerequester(aurl, self.config,
+                self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
+                upmeasure.get_total, downmeasure.get_total, self.reported_port,
+                self.infohash, self.finflag, self.internal_shutdown,
+                self._announce_done, self.certificate, self.sessionid))
+
         self._rerequest = Rerequester(metainfo.announce, self.config,
             self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
             upmeasure.get_total, downmeasure.get_total, self.reported_port,
