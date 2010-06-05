@@ -91,15 +91,15 @@ class Multitorrent(object):
         self.singleport_listener.close_sockets()
 
     def start_torrent(self, metainfo, config, feedback, filename):
-
         if hasattr(metainfo, "announce_list"):
-            for aurl in metainfo.announce_list:
-                if not self.nbr_mngrs.has_key(aurl):
-                    ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
-                    self.nbr_mngrs[aurl] = \
-                            NeighborManager(config, self.certificate, \
-                                            self.ssl_ctx, self.sessionid, \
-                                            self.schedule, self.ratelimiter)
+            for aurl_list in metainfo.announce_list:
+                for aurl in aurl_list:
+                    if not self.nbr_mngrs.has_key(aurl):
+                        ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
+                        self.nbr_mngrs[aurl] = \
+                                NeighborManager(config, self.certificate, \
+                                                self.ssl_ctx, self.sessionid, \
+                                                self.schedule, self.ratelimiter)
         else:
             if not self.nbr_mngrs.has_key(metainfo.announce):
                 self.nbr_mngrs[metainfo.announce] = \
@@ -306,8 +306,7 @@ class _SingleTorrent(object):
         downmeasure = Measure(self.config['max_rate_period'])
         self._upmeasure = upmeasure
         self._downmeasure = downmeasure
-        self._ratemeasure = RateMeasure(self._storagewrapper.
-                                        amount_left_with_partials)
+        self._ratemeasure = RateMeasure(self._storagewrapper.amount_left_with_partials)
         picker = PiecePicker(len(metainfo.hashes), self.config)
         for i in xrange(len(metainfo.hashes)):
             if self._storagewrapper.do_I_have(i):
@@ -331,15 +330,17 @@ class _SingleTorrent(object):
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port(self.neighbors)
             self.reserved_ports.append(self.reported_port)
+        # Loopify this
         self.neighbors.add_torrent(self.infohash, self._torrent)
         self._listening = True
         if hasattr(metainfo, "announce_list"):
-            for aurl in metainfo.announce_list:
-                self.rerequesters.append(Rerequester(aurl, self.config,
-                self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
-                upmeasure.get_total, downmeasure.get_total, self.reported_port,
-                self.infohash, self.finflag, self.internal_shutdown,
-                self._announce_done, self.certificate, self.sessionid))
+            for aurl_list in metainfo.announce_list:
+                for aurl in aurl_list:
+                    self.rerequesters.append(Rerequester(aurl, self.config,
+                    self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
+                    upmeasure.get_total, downmeasure.get_total, self.reported_port,
+                    self.infohash, self.finflag, self.internal_shutdown,
+                    self._announce_done, self.certificate, self.sessionid))
 
         self._rerequest = Rerequester(metainfo.announce, self.config,
             self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
