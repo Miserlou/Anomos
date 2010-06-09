@@ -85,7 +85,7 @@ class NeighborManager(object):
     def socket_cb(self, sock):
         """ Called by P2PConnection after connect() has completed """
         if sock.connected:
-            log.info('Connected to %s' %str(sock.addr))
+            log.info('Connected to %s:%d' % sock.addr)
             for id,v in self.incomplete.iteritems():
                 if v == sock.addr:
                     break
@@ -121,7 +121,8 @@ class NeighborManager(object):
     def add_neighbor(self, socket, id):
         self.neighbors[id] = NeighborLink(self, socket, id, \
                 self.config, self.ratelimiter)
-        log.info("Added Neighbor: \\x%02x" % ord(id))
+        log.info("Added Neighbor: \\x%02x @ %s:%d" %
+                                 (ord(id), socket.addr[0], socket.addr[1]))
 
     def rm_neighbor(self, nid):
         if self.incomplete.has_key(nid):
