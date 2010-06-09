@@ -38,7 +38,7 @@ from Anomos.parsedir import parsedir
 from Anomos import bttime, version, is_valid_ipv4, LOG as log
 
 defaults = [
-    ('port', 80, "Port to listen on."),
+    ('port', 443, "Port to listen on."),
     ('bind', '', 'ip to bind to locally'),
     ('socket_timeout', 15, 'timeout for closing connections'),
     ('timeout_downloaders_interval', 45 * 60, 'seconds between expiring downloaders'),
