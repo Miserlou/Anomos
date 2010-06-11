@@ -286,7 +286,8 @@ class MessageDialog(gtk.MessageDialog):
                  ):
         gtk.MessageDialog.__init__(self, parent,
                                    self.flags,
-                                   type, buttons, message)
+                                   type=gtk.MESSAGE_ERROR, buttons=buttons,
+                                   message_format=message)
 
         self.set_size_request(-1, -1)
         self.set_resizable(False)

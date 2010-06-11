@@ -159,6 +159,9 @@ class ConvertedMetainfo(object):
         self.name = self._get_field_utf8(info, 'name')
         self.name_fs = self._to_fs(self.name)
         self.piece_length = info['piece length']
+        if self.piece_length not in [2**18, 2**19, 2**20]:
+            raise BTFailure("Torrent uses invalid piece size: %s " %
+                    self.piece_length)
         self.announce = metainfo['announce']
         self.hashes = [info['pieces'][x:x+20] for x in xrange(0,
             len(info['pieces']), 20)]
