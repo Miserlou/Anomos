@@ -98,7 +98,7 @@ class SimPeer:
             self.infohashes[ihash] = (int(ul), int(dl), int(left))
 
     def needs_natcheck(self, max_nc_attempts=3):
-        return self.nat and self.num_natcheck < max_nc_attempts
+        return self.nat and (0 <= self.num_natcheck < max_nc_attempts)
 
     def add_neighbor(self, peerid, nid, ip, port):
         """

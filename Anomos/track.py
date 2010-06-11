@@ -403,6 +403,9 @@ class Tracker(object):
             if skey is None:
                 raise ValueError("Peer did not provide session key")
             simpeer = self.networkmodel.init_peer(peerid, peercert, ip, port, skey)
+            # XXX: Not the right place for this NAT stuff
+            if self.natcheck == 0:
+                simpeer.nat = False
 
         self.networkmodel.update_peer(peerid, ip, paramslist)
         if params('event') != 'stopped':
