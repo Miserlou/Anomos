@@ -13,6 +13,7 @@
 
 import os
 import sys
+import time
 import Anomos.Crypto
 
 from Anomos import bttime, LOG as log
@@ -78,6 +79,7 @@ class Certificate:
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
 
+        self.cert = None
         if not (os.path.exists(self.certfile) and os.path.exists(self.keyfile)):
             if self.tracker:
                 hostname = self._gethostname()
@@ -86,6 +88,15 @@ class Certificate:
             self._create(hostname=hostname)
         else:
             self._load()
+
+        if self.is_expired():
+            if tracker:
+                log.critical(
+                 "\n*-*-------------------------------------------------------------------*-*\n"
+                   "*-* Your certificate is expired. Clients will not be able to connect! *-*\n" +
+                   "*-*-------------------------------------------------------------------*-*\n")
+            else:
+                log.warning("Your certificate is expired. Some trackers may reject your requests.")
 
     def _gethostname(self):
         from socket import gethostname
@@ -147,6 +158,23 @@ class Certificate:
         self.cert.sign(pkey, 'sha1')
         # Save it
         self.cert.save_pem(self.certfile)
+
+    def is_expired(self):
+        if self.cert is None:
+            return True
+        before_time = self.cert.get_not_before()
+        after_time = self.cert.get_not_after()
+        before_tuple = before_time.get_datetime().timetuple()
+        after_tuple = after_time.get_datetime().timetuple()
+        now_tuple = time.gmtime()
+        #cert has expired
+        if now_tuple > after_tuple:
+            return True
+        #cert is not yet valid, not likely but should still return True
+        if now_tuple < before_tuple:
+            return True
+        return False
+
 
     def get_ctx(self, allow_unknown_ca=False, req_peer_cert=True, session=None):
         ctx = SSL.Context("sslv23")
