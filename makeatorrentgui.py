@@ -162,18 +162,18 @@ class MainWindow(Window):
         y+=1
 
         # Piece size
-        self.table.attach(ralign(gtk.Label('Piece size:')),0,1,y,y+1,
-                          xoptions=gtk.FILL, yoptions=0)
-        self.piece_size = gtk.combo_box_new_text()
-        self.piece_size.offset = 15
-        for i in range(7):
-            self.piece_size.append_text(str(Size(2**(i+self.piece_size.offset))))
-        self.piece_size.set_active(self.config['piece_size_pow2'] -
-                                   self.piece_size.offset)
-        self.piece_size_box = gtk.HBox(spacing=SPACING)
-        self.piece_size_box.pack_start(self.piece_size, expand=False, fill=False)
-        self.table.attach(self.piece_size_box,1,2,y,y+1, xoptions=gtk.FILL|gtk.EXPAND, yoptions=0)
-        y+=1
+        # self.table.attach(ralign(gtk.Label('Piece size:')),0,1,y,y+1,
+        #                  xoptions=gtk.FILL, yoptions=0)
+        # self.piece_size = gtk.combo_box_new_text()
+        # self.piece_size.offset = 15
+        # for i in range(7):
+        #    self.piece_size.append_text(str(Size(2**(i+self.piece_size.offset))))
+        # self.piece_size.set_active(self.config['piece_size_pow2'] -
+        #                           self.piece_size.offset)
+        # self.piece_size_box = gtk.HBox(spacing=SPACING)
+        # self.piece_size_box.pack_start(self.piece_size, expand=False, fill=False)
+        # self.table.attach(self.piece_size_box,1,2,y,y+1, xoptions=gtk.FILL|gtk.EXPAND, yoptions=0)
+        # y+=1
 
 
         self.box.pack_start(self.table, expand=True, fill=True)
@@ -265,10 +265,12 @@ class MainWindow(Window):
             self.check_buttons()
 
     def get_piece_size_exponent(self):
-        i = self.piece_size.get_active()
-        exp = i+self.piece_size.offset
-        self.config['piece_size_pow2'] = exp
-        return exp
+        # Uncomment to use piece selector!
+        # i = self.piece_size.get_active()
+        # exp = i+self.piece_size.offset
+        # self.config['piece_size_pow2'] = exp
+        # return exp
+        return 2**19  # 512KB
 
     def get_file_list(self):
         it = self.file_store.get_iter_first()
