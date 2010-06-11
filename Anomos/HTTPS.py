@@ -134,6 +134,9 @@ class HTTPSConnection(Dispatcher):
         self.push(r.getvalue())
         self.close_when_done()
 
+    def getClientIP(self): # For Twisted compatibility
+        return self.addr[0]
+
     ## asynchat.async_chat methods ##
     def collect_incoming_data(self, data):
         self.req += data

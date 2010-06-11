@@ -159,7 +159,7 @@ def params_factory(dictionary, default=None):
 
 class Tracker(object):
 
-    def __init__(self, config, certificate, event_handler):
+    def __init__(self, config, certificate, schedule):
         self.config = config
         self.response_size = config['response_size']
         self.max_give = config['max_give']
@@ -189,8 +189,7 @@ class Tracker(object):
                 log.warning("**warning** specified css file -- %s -- does not exist." % infopage_css)
                 log.warning('Exception: %s' % str(e))
 
-        self.event_handler = event_handler
-        self.schedule = self.event_handler.schedule
+        self.schedule = schedule
 
         self.certificate = certificate
         self.natcheck_ctx = certificate.get_ctx(allow_unknown_ca=True)
@@ -502,7 +501,7 @@ class Tracker(object):
         pqs = dict(zip(pqs.keys(), [q[0] for q in pqs.values()]))
         paramslist.update(pqs)
 
-        ip = handler.addr[0]
+        ip = handler.getClientIP()
         nip = get_forwarded_ip(headers)
         if nip and not self.only_local_override_ip:
             ip = nip
@@ -620,7 +619,7 @@ def track(args):
     Anomos.Crypto.init(config['data_dir'])
     servercert = Anomos.Crypto.Certificate("server", True, True)
     e = EventHandler()
-    t = Tracker(config, servercert, e)
+    t = Tracker(config, servercert, e.schedule)
     try:
         ctx = servercert.get_ctx(allow_unknown_ca=True,
                                  req_peer_cert=False,
