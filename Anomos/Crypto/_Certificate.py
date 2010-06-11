@@ -20,7 +20,7 @@ from Anomos import bttime, LOG as log
 from Anomos.Protocol import toint
 from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath
 from Anomos.Crypto import CryptoError
-from M2Crypto import m2, RSA, EVP, X509, SSL, util as m2util
+from M2Crypto import m2, RSA, EVP, X509, SSL, Rand, util as m2util
 from binascii import b2a_hex
 
 # Cipher Set:
@@ -76,6 +76,8 @@ class Certificate:
         self.tracker = tracker
         if None in (global_cryptodir, global_randfile):
             raise CryptoError('Crypto not initialized, call initCrypto first')
+        if loc is None:
+            loc = b"%s" % Rand.rand_bytes(32) 
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
 

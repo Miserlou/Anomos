@@ -70,7 +70,10 @@ class Multitorrent(object):
         self.config = dict(config)
         Anomos.Crypto.init(self.config['data_dir'])
         self.sessionid = Anomos.Crypto.get_rand(8)
-        self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
+        if self.config['identity'] not in ['', None]:
+            self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
+        else:
+            self.certificate = Anomos.Crypto.Certificate()
         self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=True)
         self.event_handler = EventHandler(doneflag)
         self.schedule = self.event_handler.schedule
