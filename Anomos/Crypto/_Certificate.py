@@ -166,6 +166,11 @@ class Certificate:
             return True
         before_time = self.cert.get_not_before()
         after_time = self.cert.get_not_after()
+        # M2Crypto < 0.19 doesn't have get_datetime, so
+        # checking expiration is a pain.
+        # TODO: Disallow M2<.19 or hack up our own get_datetime
+        if not hasattr(before_time, 'get_datetime'):
+            return False
         before_tuple = before_time.get_datetime().timetuple()
         after_tuple = after_time.get_datetime().timetuple()
         now_tuple = time.gmtime()
