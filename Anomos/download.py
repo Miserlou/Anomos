@@ -111,7 +111,7 @@ class Multitorrent(object):
             if hasattr(metainfo, "announce_list"):
                 for aurl_list in metainfo.announce_list:
                     for aurl in aurl_list:
-                        if self.torrents[aurl][1] = None:
+                        if self.torrents[aurl][1] == None:
                             t = threading.Thread(target=self.gen_cert,
                                 args=(self.cflag,self.dflag,))
                             t.start()

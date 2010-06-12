@@ -226,8 +226,11 @@ class DL(Feedback):
 
             self.d.set_torrent_values(metainfo.name, os.path.abspath(saveas),
                                 metainfo.file_size, len(metainfo.hashes))
-            self.torrent = self.multitorrent.start_torrent(metainfo,
-                                self.config, self, saveas)
+            def cb(torrent):
+                self.torrent = torrent
+                self.get_status()
+            self.multitorrent.start_torrent(metainfo, self.config,
+                         self, saveas, callback=cb)
         except BTFailure, e:
             print str(e)
             return
