@@ -11,7 +11,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Written by Bram Cohen and Uoti Urpala
+# Written by Bram Cohen and Uoti Urpala, modified by Anomos Liberty
+# Enhancements
 
 import os
 import sys
@@ -80,19 +81,44 @@ class Multitorrent(object):
         self.nbr_mngrs = {}
         self.torrents = {}
         set_filesystem_encoding(config['filesystem_encoding'])
+        self.listen_fail_ok = listen_fail_ok
+
+        # If the user supplies an identify from the configuration, use this
+        # for all connections. If not, use only ephemeral certificates,
+        # generated in their own thread.
+        # TODO: Allow users who supply an identity to provide different
+        # identities to different trackers.
         if self.config['identity'] not in ['', None]:
             self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
         else:
             self.certificate = None
-        self.listen_fail_ok = listen_fail_ok
+            self.certificates = {}
 
+        # This dictionary contains everything necessary to maintain connections
+        # to numerous trackers and their surrounding networks.
+        # {announce_url: [NeighborManager, Certificate, SessionID,
+        # SSL Context, SingleportListener]}
+        self.trackers = {}
 
     def close_listening_socket(self):
         self.singleport_listener.close_sockets()
 
     def start_torrent(self, metainfo, config, feedback, filename,callback=None):
+
         if callback is not None:
             self.callback = callback
+
+        # TODO: Make this compatible with BEP12, allowing tracker load
+        # balancing
+        if hasattr(metainfo, "announce_list"):
+            for aurl_list in metainfo.announce_list:
+                for aurl in aurl_list:
+                    if self.torrents[aurl][1] = None:
+                        t = threading.Thread(target=self.gen_cert,
+                            args=(self.cflag,self.dflag,))
+                        t.start()
+
+
         if not self.cflag.isSet() and self.certificate is None: 
             self.schedule(1, lambda:self.start_torrent( metainfo, config, feedback,
                 filename), context=None)
@@ -121,7 +147,6 @@ class Multitorrent(object):
                                 self.ssl_ctx, self.sessionid, \
                                 self.schedule, self.ratelimiter)
 
-        ## Needs {announce/certificate} dict
         torrent = _SingleTorrent(self.event_handler, \
                                  self.singleport_listener,\
                                  self.ratelimiter, self.filepool, config,\
@@ -145,6 +170,13 @@ class Multitorrent(object):
         self.singleport_listener = SingleportListener(self.config, self.ssl_ctx)
         self.singleport_listener.find_port(self.listen_fail_ok)
         devent.set()
+
+    def gen_keep_cert(self, aurl):
+        self.trackers[aurl][1]= Anomos.Crypto.Certificate()
+        self.trackers[aurl][2]= Anomos.Crypto.get_rand(8)
+        self.trackers[aurl][3]= self.trackers[aurl][1].get_ctx(allow_unknown_ca=True)
+        self.trackers[aurl][4]= SingleportListener(self.config, self.ssl_ctx)
+        self.trackers[aurl][4].find_port(self.listen_fail_ok)
 
     def set_option(self, option, value):
         if option not in self.config or self.config[option] == value:
