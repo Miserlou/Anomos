@@ -13,8 +13,6 @@
 
 # Written by John Schanck
 
-import threading
-
 from Anomos.AnomosNeighborInitializer import AnomosNeighborInitializer
 from Anomos.P2PConnection import P2PConnection
 

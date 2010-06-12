@@ -34,6 +34,7 @@ class HTTPS(http.HTTPChannel):
 
 class HTTPSFactory(http.HTTPFactory):
     protocol = HTTPS
+    timeOut = 15
 
 class ServerCTXFactory(object):
     def __init__(self, cert):
@@ -59,7 +60,7 @@ def track(args):
     Anomos.Crypto.init(config['data_dir'])
     servercert = Anomos.Crypto.Certificate("server", True, True)
     e = EventHandler()
-    t = Tracker(config, servercert, e.schedule)
+    t = Tracker(config, servercert, reactor.callLater)
     HTTPSRequestHandler.tracker = t
     try:
         wrapper.listenSSL(config['port'],
