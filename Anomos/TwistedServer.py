@@ -34,6 +34,7 @@ class HTTPS(http.HTTPChannel):
 
 class HTTPSFactory(http.HTTPFactory):
     protocol = HTTPS
+    timeOut = 15
 
 class ServerCTXFactory(object):
     def __init__(self, cert):
