@@ -7,6 +7,8 @@ import twisted.python.log as twistlog
 
 from twisted.web import http
 
+from socket import SOMAXCONN
+
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.track import defaults, isotime, Tracker
 import Anomos.Crypto
@@ -65,7 +67,9 @@ def track(args):
     try:
         wrapper.listenSSL(config['port'],
                           HTTPSFactory(),
-                          ServerCTXFactory(servercert))
+                          ServerCTXFactory(servercert),
+                          interface=config['bind'],
+                          backlog=SOMAXCONN)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:
