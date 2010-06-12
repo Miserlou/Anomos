@@ -77,7 +77,7 @@ class Certificate:
         if None in (global_cryptodir, global_randfile):
             raise CryptoError('Crypto not initialized, call initCrypto first')
         if loc is None:
-            loc = b"%s" % Rand.rand_bytes(32) 
+            loc = b2a_hex(Rand.rand_bytes(32))
         self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
         self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
 
