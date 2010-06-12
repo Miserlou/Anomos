@@ -20,7 +20,7 @@ from Anomos import LOG as log
 
 class NatCheck(object):
 
-    def __init__(self, ssl_ctx, resultfunc, schedule, peerid, ip, port):
+    def __init__(self, ctx_factory, resultfunc, schedule, peerid, ip, port):
         self.resultfunc = resultfunc
         self.peerid = peerid
         self.ip = ip
@@ -28,7 +28,7 @@ class NatCheck(object):
         self.id = chr(255)
 
         self.socket = P2PConnection(addr=(ip,port),
-                                    ssl_ctx=ssl_ctx,
+                                    ssl_ctx=ctx_factory.getContext(),
                                     connect_cb=self.socket_cb,
                                     schedule=schedule)
 

@@ -31,6 +31,7 @@ import Anomos.Crypto
 from Anomos.EventHandler import EventHandler
 from Anomos.HTTPS import HTTPSServer
 from Anomos.NatCheck import NatCheck
+from Anomos.TwistedNatCheck import NatCheckCTXFactory, NatChecker
 from Anomos.NetworkModel import NetworkModel
 from Anomos.bencode import bencode, bdecode, Bencached
 from Anomos.parseargs import parseargs, formatDefinitions
@@ -38,6 +39,7 @@ from Anomos.parsedir import parsedir
 from Anomos import bttime, version, is_valid_ipv4, LOG as log
 
 defaults = [
+    ('old_nc', 0, "XXX: Temporary, toggle old-style NatCheck on and off"),
     ('port', 443, "Port to listen on."),
     ('bind', '', 'ip to bind to locally'),
     ('socket_timeout', 15, 'timeout for closing connections'),
@@ -192,9 +194,10 @@ class Tracker(object):
         self.schedule = schedule
 
         self.certificate = certificate
-        self.natcheck_ctx = certificate.get_ctx(allow_unknown_ca=True)
+        self.natcheck_ctx = NatCheckCTXFactory(self.certificate)
 
         self.networkmodel = NetworkModel(config)
+        self.natchecker = NatChecker(self.natcheck_ctx, self.networkmodel.natcheck_cb)
 
         self.only_local_override_ip = config['only_local_override_ip']
         if self.only_local_override_ip == 2:
@@ -410,8 +413,11 @@ class Tracker(object):
         if params('event') != 'stopped':
             port = int(params('port'))
             if simpeer.needs_natcheck(self.natcheck):
-                NatCheck(self.natcheck_ctx, self.networkmodel.natcheck_cb,
-                        self.schedule, peerid, ip, port)
+                if self.config['old_nc']:
+                    NatCheck(self.natcheck_ctx, self.networkmodel.natcheck_cb,
+                            self.schedule, peerid, ip, port)
+                else:
+                    self.natchecker.check(ip, port, peerid)
             nbrs_needed = simpeer.num_needed()
             if nbrs_needed > 0:
                 self.networkmodel.rand_connect(peerid, nbrs_needed)
