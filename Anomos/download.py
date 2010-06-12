@@ -93,7 +93,7 @@ class Multitorrent(object):
     def start_torrent(self, metainfo, config, feedback, filename,callback=None):
         if callback is not None:
             self.callback = callback
-        if not self.cflag.isSet(): 
+        if not self.cflag.isSet() and self.certificate is None: 
             self.schedule(1, lambda:self.start_torrent( metainfo, config, feedback,
                 filename), context=None)
             if not self.dflag.isSet():
@@ -101,6 +101,9 @@ class Multitorrent(object):
                         args=(self.cflag,self.dflag,))
                 t.start()
             return
+
+        #self.cflag = threading.Event()
+        #self.dflag = threading.Event()
 
         if hasattr(metainfo, "announce_list"):
             for aurl_list in metainfo.announce_list:

@@ -270,7 +270,7 @@ class MainWindow(Window):
         # exp = i+self.piece_size.offset
         # self.config['piece_size_pow2'] = exp
         # return exp
-        return 2**19  # 512KB
+        return 19  # 512KB
 
     def get_file_list(self):
         it = self.file_store.get_iter_first()

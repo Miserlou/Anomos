@@ -368,8 +368,10 @@ class TorrentQueue(Feedback):
             t = self.torrents[infohash]
             if t.state == RUN_QUEUED:
                 continue
-            totals = t.dl.get_total_transfer()
-            # not updated for remaining torrents if one is stopped, who cares
+            totals = [0,0]
+            if t.dl is not None:
+                totals = t.dl.get_total_transfer()
+                # not updated for remaining torrents if one is stopped, who cares
             t.uptotal = t.uptotal_old + totals[0]
             t.downtotal = t.downtotal_old + totals[1]
             if t.finishtime is None or t.finishtime > now - 120:
@@ -431,7 +433,8 @@ class TorrentQueue(Feedback):
             t.state = KNOWN
             return True
         assert t.state == RUNNING
-        t.dl.shutdown()
+        if t.dl is not None:
+            t.dl.shutdown()
         if infohash == self.starting_torrent:
             self.starting_torrent = None
         try:
@@ -441,7 +444,9 @@ class TorrentQueue(Feedback):
             return False
         else:
             t.state = KNOWN
-            totals = t.dl.get_total_transfer()
+            totals = [0,0]
+            if t.dl is not None:
+                totals = t.dl.get_total_transfer()
             t.uptotal_old += totals[0]
             t.uptotal = t.uptotal_old
             t.downtotal_old += totals[1]
@@ -569,7 +574,7 @@ class TorrentQueue(Feedback):
 
     def request_status(self, infohash, want_spew, want_fileinfo):
         torrent = self.torrents.get(infohash)
-        if torrent is None or torrent.state != RUNNING:
+        if torrent is None or torrent.state != RUNNING or torrent.dl is None:
             return
         status = torrent.dl.get_status(want_spew, want_fileinfo)
         if torrent.finishtime is not None:
