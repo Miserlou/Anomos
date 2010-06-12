@@ -220,13 +220,13 @@ class Rerequester(object):
                                          ssl_context=self.ssl_ctx)
                 s = "https://%s:%d%s%s" % (self.url, self.remote_port, self.path, query)
                 h.putrequest('GET', s)
-                
-                # I suggest that for now, until there is a better solution in python, 
+
+                # I suggest that for now, until there is a better solution in python,
                 # that connections with socks proxies be done with:
-                #  socat TCP4-LISTEN:5555,fork SOCKS4A:s,socksport=9050 
+                #  socat TCP4-LISTEN:5555,fork SOCKS4A:s,socksport=9050
                 #  or use Privoxy:
                 #  127.0.0.1:8118
-                                    
+
             else:
                 #No proxy url, use normal connection
                 h = HTTPSConnection(self.url, self.remote_port, ssl_context=self.ssl_ctx)
@@ -322,11 +322,11 @@ class Rerequester(object):
             for x in p:
                 peers.append((x['ip'], x['port'], x.get('nid')))
         return peers
-        
+
     def scrape(self):
         query = '?info_hash=%s' % b64encode(self.infohash)
         return self._scrape(query)
-        
+
     def _scrape(self, query):
         """ Make an HTTP GET request to the tracker
             Note: This runs in its own thread.

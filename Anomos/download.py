@@ -69,31 +69,39 @@ class Multitorrent(object):
     def __init__(self, config, doneflag, listen_fail_ok=False):
         self.config = dict(config)
         Anomos.Crypto.init(self.config['data_dir'])
-        self.sessionid = Anomos.Crypto.get_rand(8)
-        if self.config['identity'] not in ['', None]:
-            self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
-        else:
-            self.certificate = Anomos.Crypto.Certificate()
-        self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=True)
+        self.cflag = threading.Event()
+        self.dflag = threading.Event()
         self.event_handler = EventHandler(doneflag)
         self.schedule = self.event_handler.schedule
-
+        self.filepool = FilePool(config['max_files_open'])
         self.ratelimiter = RateLimiter(self.schedule)
         self.ratelimiter.set_parameters(config['max_upload_rate'],
                                         config['upload_unit_size'])
-
         self.nbr_mngrs = {}
         self.torrents = {}
-
-        self.singleport_listener = SingleportListener(self.config, self.ssl_ctx)
-        self.singleport_listener.find_port(listen_fail_ok)
-        self.filepool = FilePool(config['max_files_open'])
         set_filesystem_encoding(config['filesystem_encoding'])
+        if self.config['identity'] not in ['', None]:
+            self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
+        else:
+            self.certificate = None
+        self.listen_fail_ok = listen_fail_ok
+
 
     def close_listening_socket(self):
         self.singleport_listener.close_sockets()
 
-    def start_torrent(self, metainfo, config, feedback, filename):
+    def start_torrent(self, metainfo, config, feedback, filename,callback=None):
+        if callback is not None:
+            self.callback = callback
+        if not self.cflag.isSet(): 
+            self.schedule(1, lambda:self.start_torrent( metainfo, config, feedback,
+                filename), context=None)
+            if not self.dflag.isSet():
+                t = threading.Thread(target=self.gen_cert,
+                        args=(self.cflag,self.dflag,))
+                t.start()
+            return
+
         if hasattr(metainfo, "announce_list"):
             for aurl_list in metainfo.announce_list:
                 for aurl in aurl_list:
@@ -121,7 +129,19 @@ class Multitorrent(object):
         def start():
             torrent.start_download(metainfo, feedback, filename)
         self.schedule(0, start, context=torrent)
-        return torrent
+        if self.callback is not None:
+            self.callback(torrent)
+        else:
+            return torrent
+
+    def gen_cert(self, devent, sevent):
+        sevent.set()
+        self.certificate = Anomos.Crypto.Certificate()
+        self.sessionid = Anomos.Crypto.get_rand(8)
+        self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=True)
+        self.singleport_listener = SingleportListener(self.config, self.ssl_ctx)
+        self.singleport_listener.find_port(self.listen_fail_ok)
+        devent.set()
 
     def set_option(self, option, value):
         if option not in self.config or self.config[option] == value:

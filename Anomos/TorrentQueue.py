@@ -385,14 +385,17 @@ class TorrentQueue(Feedback):
     def _check_queue(self):
         if self.starting_torrent is not None or self.config['pause']:
             return
+        def t_callback(torrent):
+            t.dl = torrent
         for infohash in self.running_torrents:
             if self.torrents[infohash].state == RUN_QUEUED:
                 self.starting_torrent = infohash
                 t = self.torrents[infohash]
                 t.state = RUNNING
                 t.finishtime = None
-                t.dl = self.multitorrent.start_torrent(t.metainfo, self.config,
-                                                       self, t.dlpath)
+                self.multitorrent.start_torrent(t.metainfo, self.config,
+                                                       self, t.dlpath,
+                                                       callback=t_callback)
                 return
         if not self.queue or len(self.running_torrents) >= \
                self.config['def_running_torrents']:
@@ -404,8 +407,8 @@ class TorrentQueue(Feedback):
         t.state = RUNNING
         t.finishtime = None
         self.running_torrents.append(infohash)
-        t.dl = self.multitorrent.start_torrent(t.metainfo, self.config, self,
-                                               t.dlpath)
+        self.multitorrent.start_torrent(t.metainfo, self.config, self,
+                                               t.dlpath,callback=t_callback)
         self._send_state(infohash)
 
     def _send_state(self, infohash):
@@ -741,7 +744,6 @@ class TorrentQueue(Feedback):
 
     def error(self, torrent, level, text):
         self.run_ui_task(self.ui.error, torrent.infohash, level, text)
-
 
 class ThreadWrappedQueue(object):
 
