@@ -70,8 +70,7 @@ class Multitorrent(object):
     def __init__(self, config, doneflag, listen_fail_ok=False):
         self.config = dict(config)
         Anomos.Crypto.init(self.config['data_dir'])
-        self.cflag = threading.Event()
-        self.dflag = threading.Event()
+        self.cert_flag = threading.Event()
         self.event_handler = EventHandler(doneflag)
         self.schedule = self.event_handler.schedule
         self.filepool = FilePool(config['max_files_open'])
@@ -90,6 +89,7 @@ class Multitorrent(object):
         # identities to different trackers.
         if self.config['identity'] not in ['', None]:
             self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
+            self.post_certificate_load()
         else:
             self.certificate = None
             self.certificates = {}
@@ -105,32 +105,26 @@ class Multitorrent(object):
 
     def start_torrent(self, metainfo, config, feedback, filename,callback=None):
 
-        if callback is not None:
-            self.callback = callback
-
         # TODO: Make this compatible with BEP12, allowing tracker load
         # balancing
-        if hasattr(metainfo, "announce_list"):
-            for aurl_list in metainfo.announce_list:
-                for aurl in aurl_list:
-                    if self.torrents[aurl][1] = None:
-                        t = threading.Thread(target=self.gen_cert,
-                            args=(self.cflag,self.dflag,))
-                        t.start()
-
-
-        if not self.cflag.isSet() and self.certificate is None: 
-            self.schedule(1, lambda:self.start_torrent( metainfo, config, feedback,
-                filename), context=None)
-            if not self.dflag.isSet():
-                t = threading.Thread(target=self.gen_cert,
-                        args=(self.cflag,self.dflag,))
-                t.start()
-            return
-
-        #self.cflag = threading.Event()
-        #self.dflag = threading.Event()
-
+        if not self.cert_flag.isSet(): 
+            if hasattr(metainfo, "announce_list"):
+                for aurl_list in metainfo.announce_list:
+                    for aurl in aurl_list:
+                        if self.torrents[aurl][1] = None:
+                            t = threading.Thread(target=self.gen_cert,
+                                args=(self.cflag,self.dflag,))
+                            t.start()
+            else:
+                threading.Thread(target=self.gen_cert, args=[]).start()
+                self.schedule(1,
+                        lambda:
+                            self.try_start_torrent(metainfo, config, feedback, filename, callback),
+                        context=None)
+        else:
+            self.try_start_torrent(metainfo, config, feedback, filename, callback)
+    
+    def try_start_torrent(self, metainfo, config, feedback, filename,callback=None):
         if hasattr(metainfo, "announce_list"):
             for aurl_list in metainfo.announce_list:
                 for aurl in aurl_list:
@@ -157,19 +151,21 @@ class Multitorrent(object):
         def start():
             torrent.start_download(metainfo, feedback, filename)
         self.schedule(0, start, context=torrent)
-        if self.callback is not None:
-            self.callback(torrent)
+        if callback is not None:
+            callback(torrent)
         else:
             return torrent
 
-    def gen_cert(self, devent, sevent):
-        sevent.set()
+    def gen_cert(self):
         self.certificate = Anomos.Crypto.Certificate()
+        self.post_certificate_load()
+
+    def post_certificate_load(self):
         self.sessionid = Anomos.Crypto.get_rand(8)
         self.ssl_ctx = self.certificate.get_ctx(allow_unknown_ca=True)
         self.singleport_listener = SingleportListener(self.config, self.ssl_ctx)
         self.singleport_listener.find_port(self.listen_fail_ok)
-        devent.set()
+        self.cert_flag.set()
 
     def gen_keep_cert(self, aurl):
         self.trackers[aurl][1]= Anomos.Crypto.Certificate()
