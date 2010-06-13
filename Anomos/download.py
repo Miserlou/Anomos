@@ -415,14 +415,15 @@ class _SingleTorrent(object):
             self._announce_done, self.trackers[aurl][1],
             self.trackers[aurl][2]))
 
-        #accumulate total relay stats
-        self.relay_stats = {'relayRate':0, 'relayCount':0, 'relaySent':0}
-        for aurl, info in self.trackers.items():
-            self.relay_stats.update(info[0].get_relay_stats())
+        def get_rstats():
+            relay_stats = {'relayRate':0, 'relayCount':0, 'relaySent':0}
+            for aurl, info in self.trackers.items():
+                relay_stats.update(info[0].get_relay_stats())
+            return relay_stats
 
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             downmeasure.get_rate, upmeasure.get_total, downmeasure.get_total,
-            self.relay_stats, self._ratemeasure.get_time_left,
+            get_rstats, self._ratemeasure.get_time_left,
             self._ratemeasure.get_size_left, self.file_size, self.finflag,
             downloader, self._myfiles)
 

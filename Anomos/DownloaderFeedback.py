@@ -11,7 +11,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Written by Bram Cohen
+# Written by Bram Cohen, modified by Anomos Liberty Enhancements
 
 class DownloaderFeedback(object):
 

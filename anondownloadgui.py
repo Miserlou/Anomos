@@ -1815,6 +1815,7 @@ class RunningTorrentBox(DroppableTorrentBox):
             self.main.make_statusrequest()
 
     def update_status(self, statistics):
+
         fractionDone = statistics.get('fractionDone')
         activity = statistics.get('activity')
 
