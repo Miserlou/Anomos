@@ -168,6 +168,7 @@ class Multitorrent(object):
                     if not self.trackers.has_key(aurl):
                         self.trackers[aurl] = [None, None, None, None, None]
                     if self.trackers[aurl][1] is None:
+                        log.info("Generating a new certificate")
                         self.trackers[aurl][1]= Anomos.Crypto.Certificate()
                         self.trackers[aurl][2]= Anomos.Crypto.get_rand(8)
                         self.trackers[aurl][3]= self.trackers[aurl][1].get_ctx(allow_unknown_ca=True)
@@ -552,10 +553,16 @@ class _SingleTorrent(object):
             self._filepool.remove_files(self._myfiles)
         if self._listening:
             for aurl, info in self.trackers.items():
-                info[0].remove_torrent(self.infohash)
+                try:
+                    info[0].remove_torrent(self.infohash)
+                except KeyError, e:
+                    continue
         for port in self.reserved_ports:
             for aurl, info in self.trackers.items():
-                info[4].release_port(port)
+                try:
+                    info[4].release_port(port)
+                except KeyError, e:
+                    continue
         if self._storage is not None:
             self._storage.close()
         self.schedule(0, gc.collect)
