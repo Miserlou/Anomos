@@ -116,7 +116,7 @@ class Multitorrent(object):
                         context=None)
             else:
                 threading.Thread(target=self.gen_keep_certs,
-                        args=[[[metainfo.announce]]]]).start()
+                        args=[[[metainfo.announce]]]).start()
                 self.schedule(1,
                         lambda:
                             self.try_start_torrent(metainfo, config, feedback, filename, callback),
@@ -156,7 +156,7 @@ class Multitorrent(object):
         # balancing
         for aurl_list in announce_list:
                 for aurl in aurl_list:
-                    if self.trackers[aurl][1] = None:
+                    if self.trackers[aurl][1] is None:
                         self.trackers[aurl][1]= Anomos.Crypto.Certificate()
                         self.trackers[aurl][2]= Anomos.Crypto.get_rand(8)
                         self.trackers[aurl][3]= self.trackers[aurl][1].get_ctx(allow_unknown_ca=True)
