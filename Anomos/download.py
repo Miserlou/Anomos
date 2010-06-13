@@ -244,7 +244,7 @@ class _SingleTorrent(object):
         self._announced = False
         self._listening = False
         self.reserved_ports = []
-        self.reported_port = None
+        self.reported_ports = [] 
         self._myfiles = None
         self.started = False
         self.is_seed = False
@@ -373,8 +373,11 @@ class _SingleTorrent(object):
                                 downloader, len(metainfo.hashes), self)
         self.reported_port = self.config['forwarded_port'] # This is unlikely.
         if not self.reported_port:
-            self.reported_port = self._singleport_listener.get_port(self.neighbors)
-            self.reserved_ports.append(self.reported_port)
+            for aurl, info in self.trackers:
+                self.reported_port = info[4].get_port(info[0])
+                self.reserved_ports.append(self.reported_port)
+        else:
+            self.reported_ports.append(self.reported_port)
         for aurl, info in trackers:
             info[0].add_torrent(self.infohash, self._torrent)
         self._listening = True
@@ -395,7 +398,7 @@ class _SingleTorrent(object):
 
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             downmeasure.get_rate, upmeasure.get_total, downmeasure.get_total,
-            self.neighbors.get_relay_stats, self._ratemeasure.get_time_left,
+            self.relay_stats, self._ratemeasure.get_time_left,
             self._ratemeasure.get_size_left, self.file_size, self.finflag,
             downloader, self._myfiles)
 
@@ -525,9 +528,11 @@ class _SingleTorrent(object):
         if self._myfiles is not None:
             self._filepool.remove_files(self._myfiles)
         if self._listening:
-            self.neighbors.remove_torrent(self.infohash)
+            for aurl, info in self.trackers:
+                info[0].remove_torrent(self.infohash)
         for port in self.reserved_ports:
-            self._singleport_listener.release_port(port)
+            for aurl, info in self.trackers:
+                info[4].release_port(port)
         if self._storage is not None:
             self._storage.close()
         self.schedule(0, gc.collect)
@@ -561,23 +566,33 @@ class _SingleTorrent(object):
         if not self._listening:
             return
         r = self.config['forwarded_port']
+        allports = []
+        rs = []
+        for aurl, info in self.trackers:
+            allports.append(info[4].port)
         if r:
             for port in self.reserved_ports:
-                self._singleport_listener.release_port(port)
+                for aurl, info in self.trackers:
+                    info[4].release_port(port)
             del self.reserved_ports[:]
             if self.reported_port == r:
                 return
-        elif self._singleport_listener.port != self.reported_port:
-            r = self._singleport_listener.get_port(self.neighbors)
-            self.reserved_ports.append(r)
+        elif self.reported_port not in allports:
+            for aurl, info in self.trackers:
+                tr = info[4].get_port(info[0])
+                self.reserved_ports.append(tr)
+                rs.append(tr)
+            r = tr  # Blahhhh XXX Richard fix this later after you test!
         else:
             return
         self.reported_port = r
-        self._rerequest.change_port(r)
+        for aurl, info in self.trackers:
+            info[4].change_port(r)
 
     def _announce_done(self):
         for port in self.reserved_ports[:-1]:
-            self._singleport_listener.release_port(port)
+            for aurl, info in self.trackers:
+                info[4].release_port(port)
         del self.reserved_ports[:-1]
 
     def _set_auto_uploads(self):
