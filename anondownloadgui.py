@@ -1320,7 +1320,7 @@ class TorrentInfoWindow(object):
         self.win.destroy()
 
     def manual_reannounce(self):
-        self.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.torrent_box.infohash]._rerequest._announce()
+        self.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.torrent_box.infohash].rerequest()
 
 class TorrentBox(gtk.EventBox):
     def __init__(self, infohash, metainfo, dlpath, completion, main):
@@ -3186,7 +3186,7 @@ class getScrapeThread(threading.Thread):
     def run(self):
         try:
             # :( :( :(
-            scrape_data = self.box.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.infohash]._rerequest.scrape()
+            scrape_data = self.box.torrent_box.main.torrentqueue.wrapped.multitorrent.torrents[self.infohash].scrape()
 
             self.box.seed_count.set_text(str(scrape_data['files'][self.infohash]['complete']))
             self.box.leech_count.set_text(str(scrape_data['files'][self.infohash]['incomplete']))

@@ -101,7 +101,8 @@ class Multitorrent(object):
         self.trackers = {}
 
     def close_listening_socket(self):
-        self.singleport_listener.close_sockets()
+        for aurl, info in self.trackers.items():
+            info[4].close_sockets()
 
     def start_torrent(self, metainfo, config, feedback, filename,callback=None):
 
@@ -125,16 +126,24 @@ class Multitorrent(object):
             self.try_start_torrent(metainfo, config, feedback, filename, callback)
 
     def try_start_torrent(self, metainfo, config, feedback, filename,callback=None):
+
+        if not self.cert_flag.isSet():
+                self.schedule(1,
+                        lambda:
+                            self.try_start_torrent(metainfo, config, feedback, filename, callback),
+                        context=None)
+                return
+
         torrent = _SingleTorrent(self.event_handler, \
-                                 self.singleport_listener,\
+                                 self.trackers,\
                                  self.ratelimiter, self.filepool, config,\
-                                 self.nbr_mngrs[metainfo.announce],\
-                                 self.certificate, self.sessionid)
+                                 )
         self.event_handler.add_context(torrent)
         self.torrents[metainfo.infohash] = torrent
         def start():
             torrent.start_download(metainfo, feedback, filename)
         self.schedule(0, start, context=torrent)
+        self.cert_flag = threading.Event()
         if callback is not None:
             callback(torrent)
         else:
@@ -156,6 +165,8 @@ class Multitorrent(object):
         # balancing
         for aurl_list in announce_list:
                 for aurl in aurl_list:
+                    if not self.trackers.has_key(aurl):
+                        self.trackers[aurl] = [None, None, None, None, None]
                     if self.trackers[aurl][1] is None:
                         self.trackers[aurl][1]= Anomos.Crypto.Certificate()
                         self.trackers[aurl][2]= Anomos.Crypto.get_rand(8)
@@ -163,10 +174,12 @@ class Multitorrent(object):
                         self.trackers[aurl][4]= SingleportListener(self.config,
                                 self.trackers[aurl][3])
                         self.trackers[aurl][4].find_port(self.listen_fail_ok)
-                        self.trackers[aurl][0] = NeighborManager(config,
+                        nbr = NeighborManager(self.config,
                                 self.trackers[aurl][1], \
                                 self.trackers[aurl][3], self.trackers[aurl][2], \
                                 self.schedule, self.ratelimiter)
+                        self.nbr_mngrs[aurl] = nbr
+                        self.trackers[aurl][0] = nbr
         self.cert_flag.set()
 
     def set_option(self, option, value):
@@ -185,9 +198,11 @@ class Multitorrent(object):
             self.ratelimiter.set_parameters(self.config['max_upload_rate'],
                                             value)
         elif option == 'maxport':
-            if not self.config['minport'] <= self.singleport_listener.port <= \
-                   self.config['maxport']:
-                self.singleport_listener.find_port()
+            for aurl, info in self.trackers.items():
+                port = info[4].port
+                if not self.config['minport'] <= port <= \
+                       self.config['maxport']:
+                    info[4].find_port()
 
     def get_completion(self, config, metainfo, save_path, filelist=False):
         if not config['data_dir']:
@@ -244,7 +259,7 @@ class _SingleTorrent(object):
         self._announced = False
         self._listening = False
         self.reserved_ports = []
-        self.reported_ports = [] 
+        self.reported_ports = []
         self._myfiles = None
         self.started = False
         self.is_seed = False
@@ -373,12 +388,12 @@ class _SingleTorrent(object):
                                 downloader, len(metainfo.hashes), self)
         self.reported_port = self.config['forwarded_port'] # This is unlikely.
         if not self.reported_port:
-            for aurl, info in self.trackers:
+            for aurl, info in self.trackers.items():
                 self.reported_port = info[4].get_port(info[0])
                 self.reserved_ports.append(self.reported_port)
         else:
             self.reported_ports.append(self.reported_port)
-        for aurl, info in trackers:
+        for aurl, info in self.trackers.items():
             info[0].add_torrent(self.infohash, self._torrent)
         self._listening = True
         if hasattr(metainfo, "announce_list"):
@@ -390,10 +405,18 @@ class _SingleTorrent(object):
                     self.infohash, self.finflag, self.internal_shutdown,
                     self._announce_done, self.trackers[aurl][1],
                     self.trackers[aurl][2]))
+        else:
+            aurl = metainfo.announce
+            self.rerequesters.append(Rerequester(aurl, self.config,
+            self.schedule, self.trackers[aurl][0], self._storagewrapper.get_amount_left,
+            upmeasure.get_total, downmeasure.get_total, self.reported_port,
+            self.infohash, self.finflag, self.internal_shutdown,
+            self._announce_done, self.trackers[aurl][1],
+            self.trackers[aurl][2]))
 
         #accumulate total relay stats
         self.relay_stats = {'relayRate':0, 'relayCount':0, 'relaySent':0}
-        for aurl, info in self.trackers:
+        for aurl, info in self.trackers.items():
             self.relay_stats.update(info[0].get_relay_stats())
 
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
@@ -404,7 +427,7 @@ class _SingleTorrent(object):
 
         self._announced = True
 
-        for req in rerequesters:
+        for req in self.rerequesters:
             req.begin()
         self.started = True
         if not self.finflag.isSet():
@@ -460,7 +483,7 @@ class _SingleTorrent(object):
         # tell the tracker about seed status.
         self.is_seed = True
         if self._announced:
-            for req in rerequesters:
+            for req in self.rerequesters:
                 req.announce_finish()
         self._activity = ('seeding', 1)
         if self.config['check_hashes']:
@@ -520,7 +543,7 @@ class _SingleTorrent(object):
         self._doneflag.set()
         log.info("Closing connections, please wait...")
         if self._announced:
-            for req in rerequesters:
+            for req in self.rerequesters:
                 req.announce_stop()
                 req.cleanup()
         if self._hashcheck_thread is not None:
@@ -528,10 +551,10 @@ class _SingleTorrent(object):
         if self._myfiles is not None:
             self._filepool.remove_files(self._myfiles)
         if self._listening:
-            for aurl, info in self.trackers:
+            for aurl, info in self.trackers.items():
                 info[0].remove_torrent(self.infohash)
         for port in self.reserved_ports:
-            for aurl, info in self.trackers:
+            for aurl, info in self.trackers.items():
                 info[4].release_port(port)
         if self._storage is not None:
             self._storage.close()
@@ -568,17 +591,17 @@ class _SingleTorrent(object):
         r = self.config['forwarded_port']
         allports = []
         rs = []
-        for aurl, info in self.trackers:
+        for aurl, info in self.trackers.items():
             allports.append(info[4].port)
         if r:
             for port in self.reserved_ports:
-                for aurl, info in self.trackers:
+                for aurl, info in self.trackers.items():
                     info[4].release_port(port)
             del self.reserved_ports[:]
             if self.reported_port == r:
                 return
         elif self.reported_port not in allports:
-            for aurl, info in self.trackers:
+            for aurl, info in self.trackers.items():
                 tr = info[4].get_port(info[0])
                 self.reserved_ports.append(tr)
                 rs.append(tr)
@@ -586,12 +609,12 @@ class _SingleTorrent(object):
         else:
             return
         self.reported_port = r
-        for aurl, info in self.trackers:
+        for aurl, info in self.trackers.items():
             info[4].change_port(r)
 
     def _announce_done(self):
         for port in self.reserved_ports[:-1]:
-            for aurl, info in self.trackers:
+            for aurl, info in self.trackers.items():
                 info[4].release_port(port)
         del self.reserved_ports[:-1]
 
@@ -611,3 +634,12 @@ class _SingleTorrent(object):
         else:
             uploads = int(sqrt(rate * .6))
         self.config['max_uploads_internal'] = uploads
+
+    def rerequest(self):
+        for req in self.rerequesters:
+            req._announce()
+
+    def scrape(self):
+        for req in self.rerequesters:
+            # When trackers are up, make this cumulative:
+            return req.scrape()
