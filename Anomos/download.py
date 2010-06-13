@@ -105,42 +105,26 @@ class Multitorrent(object):
 
     def start_torrent(self, metainfo, config, feedback, filename,callback=None):
 
-        # TODO: Make this compatible with BEP12, allowing tracker load
-        # balancing
         if not self.cert_flag.isSet(): 
             if hasattr(metainfo, "announce_list"):
-                for aurl_list in metainfo.announce_list:
-                    for aurl in aurl_list:
-                        if self.torrents[aurl][1] == None:
-                            t = threading.Thread(target=self.gen_cert,
-                                args=(self.cflag,self.dflag,))
-                            t.start()
+                t = threading.Thread(target=self.gen_keep_certs,
+                args=(metainfo.announce_list,))
+                t.start()
+                self.schedule(1,
+                        lambda:
+                            self.try_start_torrent(metainfo, config, feedback, filename, callback),
+                        context=None)
             else:
-                threading.Thread(target=self.gen_cert, args=[]).start()
+                threading.Thread(target=self.gen_keep_certs,
+                        args=[[[metainfo.announce]]]]).start()
                 self.schedule(1,
                         lambda:
                             self.try_start_torrent(metainfo, config, feedback, filename, callback),
                         context=None)
         else:
             self.try_start_torrent(metainfo, config, feedback, filename, callback)
-    
-    def try_start_torrent(self, metainfo, config, feedback, filename,callback=None):
-        if hasattr(metainfo, "announce_list"):
-            for aurl_list in metainfo.announce_list:
-                for aurl in aurl_list:
-                    if not self.nbr_mngrs.has_key(aurl):
-                        ### XXX: Is using the same cert on different trackers a threat to anonymity? Yes.
-                        self.nbr_mngrs[aurl] = \
-                                NeighborManager(config, self.certificate, \
-                                                self.ssl_ctx, self.sessionid, \
-                                                self.schedule, self.ratelimiter)
-        else:
-            if not self.nbr_mngrs.has_key(metainfo.announce):
-                self.nbr_mngrs[metainfo.announce] = \
-                        NeighborManager(config, self.certificate, \
-                                self.ssl_ctx, self.sessionid, \
-                                self.schedule, self.ratelimiter)
 
+    def try_start_torrent(self, metainfo, config, feedback, filename,callback=None):
         torrent = _SingleTorrent(self.event_handler, \
                                  self.singleport_listener,\
                                  self.ratelimiter, self.filepool, config,\
@@ -167,12 +151,23 @@ class Multitorrent(object):
         self.singleport_listener.find_port(self.listen_fail_ok)
         self.cert_flag.set()
 
-    def gen_keep_cert(self, aurl):
-        self.trackers[aurl][1]= Anomos.Crypto.Certificate()
-        self.trackers[aurl][2]= Anomos.Crypto.get_rand(8)
-        self.trackers[aurl][3]= self.trackers[aurl][1].get_ctx(allow_unknown_ca=True)
-        self.trackers[aurl][4]= SingleportListener(self.config, self.ssl_ctx)
-        self.trackers[aurl][4].find_port(self.listen_fail_ok)
+    def gen_keep_certs(self, announce_list):
+        # TODO: Make this compatible with BEP12, allowing tracker load
+        # balancing
+        for aurl_list in announce_list:
+                for aurl in aurl_list:
+                    if self.trackers[aurl][1] = None:
+                        self.trackers[aurl][1]= Anomos.Crypto.Certificate()
+                        self.trackers[aurl][2]= Anomos.Crypto.get_rand(8)
+                        self.trackers[aurl][3]= self.trackers[aurl][1].get_ctx(allow_unknown_ca=True)
+                        self.trackers[aurl][4]= SingleportListener(self.config,
+                                self.trackers[aurl][3])
+                        self.trackers[aurl][4].find_port(self.listen_fail_ok)
+                        self.trackers[aurl][0] = NeighborManager(config,
+                                self.trackers[aurl][1], \
+                                self.trackers[aurl][3], self.trackers[aurl][2], \
+                                self.schedule, self.ratelimiter)
+        self.cert_flag.set()
 
     def set_option(self, option, value):
         if option not in self.config or self.config[option] == value:
@@ -233,10 +228,9 @@ class Multitorrent(object):
 
 class _SingleTorrent(object):
 
-    def __init__(self, event_handler, singleport_listener, ratelimiter, filepool,
-                 config, neighbors, certificate, sessionid):
+    def __init__(self, event_handler, trackers, ratelimiter, filepool,
+                 config):
         self.event_handler = event_handler
-        self._singleport_listener = singleport_listener
         self._ratelimiter = ratelimiter
         self._filepool = filepool
         self.config = dict(config)
@@ -246,7 +240,6 @@ class _SingleTorrent(object):
         self._upmeasure = None
         self._downmeasure = None
         self._torrent = None
-        self._rerequest = None
         self._statuscollecter = None
         self._announced = False
         self._listening = False
@@ -265,10 +258,8 @@ class _SingleTorrent(object):
         self._activity = ('Initial startup', 0)
         self.feedback = None
         self.messages = []
-        self.neighbors = neighbors
-        self.certificate = certificate
-        self.sessionid = sessionid
         self.rerequesters = []
+        self.trackers = trackers
 
     def schedule(self, delay, func):
         self.event_handler.schedule(delay, func, context=self)
@@ -384,23 +375,24 @@ class _SingleTorrent(object):
         if not self.reported_port:
             self.reported_port = self._singleport_listener.get_port(self.neighbors)
             self.reserved_ports.append(self.reported_port)
-        # Loopify this
-        self.neighbors.add_torrent(self.infohash, self._torrent)
+        for aurl, info in trackers:
+            info[0].add_torrent(self.infohash, self._torrent)
         self._listening = True
         if hasattr(metainfo, "announce_list"):
             for aurl_list in metainfo.announce_list:
                 for aurl in aurl_list:
                     self.rerequesters.append(Rerequester(aurl, self.config,
-                    self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
+                    self.schedule, self.trackers[aurl][0], self._storagewrapper.get_amount_left,
                     upmeasure.get_total, downmeasure.get_total, self.reported_port,
                     self.infohash, self.finflag, self.internal_shutdown,
-                    self._announce_done, self.certificate, self.sessionid))
+                    self._announce_done, self.trackers[aurl][1],
+                    self.trackers[aurl][2]))
 
-        self._rerequest = Rerequester(metainfo.announce, self.config,
-            self.schedule, self.neighbors, self._storagewrapper.get_amount_left,
-            upmeasure.get_total, downmeasure.get_total, self.reported_port,
-            self.infohash, self.finflag, self.internal_shutdown,
-            self._announce_done, self.certificate, self.sessionid)
+        #accumulate total relay stats
+        self.relay_stats = {'relayRate':0, 'relayCount':0, 'relaySent':0}
+        for aurl, info in self.trackers:
+            self.relay_stats.update(info[0].get_relay_stats())
+
         self._statuscollecter = DownloaderFeedback(choker, upmeasure.get_rate,
             downmeasure.get_rate, upmeasure.get_total, downmeasure.get_total,
             self.neighbors.get_relay_stats, self._ratemeasure.get_time_left,
@@ -408,7 +400,9 @@ class _SingleTorrent(object):
             downloader, self._myfiles)
 
         self._announced = True
-        self._rerequest.begin()
+
+        for req in rerequesters:
+            req.begin()
         self.started = True
         if not self.finflag.isSet():
             self._activity = ('downloading', 0)
@@ -463,7 +457,8 @@ class _SingleTorrent(object):
         # tell the tracker about seed status.
         self.is_seed = True
         if self._announced:
-            self._rerequest.announce_finish()
+            for req in rerequesters:
+                req.announce_finish()
         self._activity = ('seeding', 1)
         if self.config['check_hashes']:
             self._save_fastresume(True)
@@ -522,8 +517,9 @@ class _SingleTorrent(object):
         self._doneflag.set()
         log.info("Closing connections, please wait...")
         if self._announced:
-            self._rerequest.announce_stop()
-            self._rerequest.cleanup()
+            for req in rerequesters:
+                req.announce_stop()
+                req.cleanup()
         if self._hashcheck_thread is not None:
             self._hashcheck_thread.join() # should die soon after doneflag set
         if self._myfiles is not None:

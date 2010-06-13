@@ -65,6 +65,7 @@ class SingleportListener(object):
         self.ports[port] = [serversocket, 0]
         self._check_close(oldport)
 
+    #   Get a port and assign a NeighborManager to it
     def get_port(self, nbrmgr):
         if self.port:
             self.ports[self.port][0].set_neighbor_manager(nbrmgr)
