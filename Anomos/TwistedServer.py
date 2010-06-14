@@ -31,6 +31,15 @@ class HTTPSRequestHandler(http.Request):
 
 class HTTPS(http.HTTPChannel):
     requestFactory = HTTPSRequestHandler
+    def requestDone(self, request):
+        """
+        Called by first request in queue when it is done.
+        """
+        if request != self.requests[0]: raise TypeError
+        del self.requests[0]
+
+        self.transport.loseConnection()
+
 
 class HTTPSFactory(http.HTTPFactory):
     protocol = HTTPS
