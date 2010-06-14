@@ -123,6 +123,23 @@ class Multitorrent(object):
                             self.try_start_torrent(metainfo, config, feedback, filename, callback),
                         context=None)
         else:
+            if self.certificate is not None:
+                aurl = metainfo.announce
+                if not self.trackers.has_key(aurl):
+                    self.trackers[aurl] = [None, None, None, None, None]
+                if self.trackers[aurl][1] is None:
+                    log.info("Generating a new certificate")
+                    self.trackers[aurl][1]= self.certificate
+                    self.trackers[aurl][2]= self.sessionid
+                    self.trackers[aurl][3]= self.ssl_ctx
+                    self.trackers[aurl][4]= self.singleport_listener
+                    self.trackers[aurl][4].find_port(self.listen_fail_ok)
+                    nbr = NeighborManager(self.config,
+                            self.trackers[aurl][1], \
+                            self.trackers[aurl][3], self.trackers[aurl][2], \
+                            self.schedule, self.ratelimiter)
+                    self.nbr_mngrs[aurl] = nbr
+                    self.trackers[aurl][0] = nbr
             self.try_start_torrent(metainfo, config, feedback, filename, callback)
 
     def try_start_torrent(self, metainfo, config, feedback, filename,callback=None):
