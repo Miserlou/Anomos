@@ -386,9 +386,6 @@ class ProgressDialog(gtk.Dialog):
         self.vbox.set_spacing(SPACING)
         self.vbox.pack_start(lalign(self.label), expand=False, fill=False)
 
-        self.progressbar = gtk.ProgressBar()
-        self.vbox.pack_start(self.progressbar, expand=False, fill=False)
-
         self.cancelbutton = gtk.Button(stock=gtk.STOCK_CANCEL)
         self.cancelbutton.connect('clicked', self.cancel)
         self.action_area.pack_end(self.cancelbutton)
@@ -406,11 +403,10 @@ class ProgressDialog(gtk.Dialog):
         self.destroy()
 
     def set_progress_value(self, value):
-        self.progressbar.set_fraction(value)
         self._update_gui()
 
     def set_file(self, filename):
-        self.label.set_text('building ' + filename + '.atorrent')
+        self.label.set_text('Building ' + filename + '.atorrent, please wait!..\n')
         self._update_gui()
 
     def _update_gui(self):
