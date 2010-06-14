@@ -419,7 +419,7 @@ class _SingleTorrent(object):
                 for aurl in aurl_list:
                     self.rerequesters.append(Rerequester(aurl, self.config,
                     self.schedule, self.trackers[aurl][0], self._storagewrapper.get_amount_left,
-                    upmeasure.get_total, downmeasure.get_total, self.reported_port,
+                    upmeasure.get_total, downmeasure.get_total, info[4].get_port(info[0]),
                     self.infohash, self.finflag, self.internal_shutdown,
                     self._announce_done, self.trackers[aurl][1],
                     self.trackers[aurl][2]))
@@ -621,15 +621,21 @@ class _SingleTorrent(object):
         if r:
             for port in self.reserved_ports:
                 for aurl, info in self.trackers.items():
-                    info[4].release_port(port)
+                    try:
+                        info[4].release_port(port)
+                    except KeyError, e:
+                        continue
             del self.reserved_ports[:]
             if self.reported_port == r:
                 return
         elif self.reported_port not in allports:
             for aurl, info in self.trackers.items():
-                tr = info[4].get_port(info[0])
-                self.reserved_ports.append(tr)
-                rs.append(tr)
+                try:
+                    tr = info[4].get_port(info[0])
+                    self.reserved_ports.append(tr)
+                    rs.append(tr)
+                except KeyError, e:
+                    continue
             r = tr  # Blahhhh XXX Richard fix this later after you test!
         else:
             return
