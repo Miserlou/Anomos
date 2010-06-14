@@ -1,6 +1,5 @@
 import twisted.internet.protocol as protocol
 import twisted.protocols.basic as basic
-import twisted.internet.reactor as reactor
 import M2Crypto.SSL.TwistedProtocolWrapper as wrapper
 import M2Crypto.SSL as SSL
  
@@ -8,6 +7,7 @@ from Anomos.Protocol import NAT_CHECK_ID, NAME as PROTOCOL_NAME
 from Anomos.P2PConnection import PostConnectionChecker
 
 class NatChecker(object):
+    reactor = None
     def __init__(self, ctx_factory, callback):
         self.ctx = ctx_factory
         self.callback = callback
@@ -17,7 +17,8 @@ class NatChecker(object):
         factory.peerid = peerid
         factory.callback = self.callback
         wrapper.connectSSL(ip, port, factory, self.ctx,
-                            postConnectionCheck=PostConnectionChecker)
+                            postConnectionCheck=PostConnectionChecker,
+                            reactor=self.reactor)
 
 class NatCheckCTXFactory(object):
     def __init__(self, cert):
@@ -79,10 +80,13 @@ class TwistedNatCheck(protocol.Protocol, basic.StatefulStringProtocol):
         self.transport.loseConnection()
         return "done"
 
+protocol.ClientFactory.noisy = False
+
 class NatCheckFactory(protocol.ClientFactory):
     protocol = TwistedNatCheck
     callback = lambda x,y: None
     peerid = None
+    noisy = False
 
     def do_callback(self, result):
         self.callback(self.peerid, result)

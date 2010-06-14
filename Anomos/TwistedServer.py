@@ -1,13 +1,11 @@
 import sys
 import M2Crypto.X509 as X509
 import M2Crypto.m2 as m2
-import M2Crypto.SSL.TwistedProtocolWrapper as wrapper
-import twisted.internet.reactor as reactor
 import twisted.python.log as twistlog
+import twisted.web.http as http
+import M2Crypto.SSL.TwistedProtocolWrapper as wrapper
 
-from twisted.web import http
-
-from socket import SOMAXCONN
+from twisted.internet.selectreactor import SelectReactor, _NO_FILENO, _NO_FILEDESC
 
 from Anomos.parseargs import parseargs, formatDefinitions
 from Anomos.track import defaults, isotime, Tracker
@@ -36,7 +34,13 @@ class HTTPS(http.HTTPChannel):
 
 class HTTPSFactory(http.HTTPFactory):
     protocol = HTTPS
-    timeOut = 15
+    timeOut = 10
+    noisy = False
+    def __init__(self, logPath=None):
+        if logPath is not None:
+            logPath = os.path.abspath(logPath)
+        self.logPath = logPath
+
 
 class ServerCTXFactory(object):
     def __init__(self, cert):
@@ -45,6 +49,28 @@ class ServerCTXFactory(object):
                                 session="tracker")
     def getContext(self):
         return self.ctx
+
+
+class SSLSelectReactor(SelectReactor):
+    def _doReadOrWrite(self, selectable, method, dict):
+        try:
+            why = getattr(selectable, method)()
+            handfn = getattr(selectable, 'fileno', None)
+            if not handfn:
+                why = _NO_FILENO
+            elif handfn() == -1:
+                why = _NO_FILEDESC
+        except:
+            why = sys.exc_info()[1]
+            log.info(repr(why))
+        if why:
+            self._disconnectSelectable(selectable, why, method=="doRead")
+
+def install():
+    del sys.modules['twisted.internet.reactor']
+    reactor = SSLSelectReactor()
+    from twisted.internet.main import installReactor
+    installReactor(reactor)
 
 def track(args):
     if len(args) == 0:
@@ -57,19 +83,25 @@ def track(args):
         print 'run with no arguments for parameter explanations'
         return
 
+    install()
+    import twisted.internet.reactor as reactor
     twistlog.PythonLoggingObserver(loggerName='anomos').start()
 
     Anomos.Crypto.init(config['data_dir'])
     servercert = Anomos.Crypto.Certificate("server", True, True)
     e = EventHandler()
     t = Tracker(config, servercert, reactor.callLater)
+    t.natchecker.reactor = reactor
     HTTPSRequestHandler.tracker = t
     try:
+        from socket import SOMAXCONN
+        wrapper.noisy = False
         wrapper.listenSSL(config['port'],
                           HTTPSFactory(),
                           ServerCTXFactory(servercert),
                           interface=config['bind'],
-                          backlog=SOMAXCONN)
+                          backlog=SOMAXCONN,
+                          reactor=reactor)
     except Exception, e:
         log.critical("Cannot start tracker. %s" % e)
     else:
