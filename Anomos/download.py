@@ -640,7 +640,10 @@ class _SingleTorrent(object):
     def _announce_done(self):
         for port in self.reserved_ports[:-1]:
             for aurl, info in self.trackers.items():
-                info[4].release_port(port)
+                try:
+                    info[4].release_port(port)
+                except KeyError, e:
+                    continue
         del self.reserved_ports[:-1]
 
     def _set_auto_uploads(self):

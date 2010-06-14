@@ -237,16 +237,16 @@ class Rerequester(object):
             resp.close()
             h.close()
             h = None
-            def f():
-                self._postrequest(data)
-            self.schedule(0, f)
         # urllib2 can raise various crap that doesn't have a common base
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib
         except Exception, g:
             def f(r='Problem connecting to ' + self.url + ':  ' + str(g)):
                 self._postrequest(errormsg=r)
-                self.schedule(0, f)
+        else:
+            def f():
+                self._postrequest(data)
+        self.schedule(0, f)
 
     def _fail(self):
         if self.fail_wait is None:
