@@ -1399,8 +1399,7 @@ class TorrentBox(gtk.EventBox):
                 self.progressbar.set_text(done_label)
             else:
                 eta_label = '?'
-                progress_bar_label = '%.1f%% done, %s remaining' % \
-                                 (int(0)/10, eta_label)
+                progress_bar_label = _("Starting download..")
 
                 self.progressbar.set_text(progress_bar_label)
         else:
