@@ -71,11 +71,13 @@ class MainWindow(Window):
 
         self.file_store = gtk.ListStore(gobject.TYPE_STRING)
 
-        for i in range(5): self.file_store.append(('foo',))
+        for i in range(4): self.file_store.append(('foo',))
 
         self.file_scroll = gtk.ScrolledWindow()
-        self.file_scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
-        self.file_scroll.set_shadow_type(gtk.SHADOW_OUT)
+        self.file_scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.file_scroll.set_shadow_type(gtk.SHADOW_IN)
+        self.file_scroll.set_size_request(-1, SPACING)
+        self.file_scroll.set_border_width(SPACING)
 
         self.file_list = gtk.TreeView(self.file_store)
         r = gtk.CellRendererText()
@@ -116,11 +118,13 @@ class MainWindow(Window):
 
         self.a_store = gtk.ListStore(gobject.TYPE_STRING)
 
-        for i in range(5): self.a_store.append(('foo',))
+        for i in range(4): self.a_store.append(('foo',))
 
         self.a_scroll = gtk.ScrolledWindow()
-        self.a_scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
-        self.a_scroll.set_shadow_type(gtk.SHADOW_OUT)
+        self.a_scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.a_scroll.set_shadow_type(gtk.SHADOW_IN)
+        self.a_scroll.set_size_request(-1, SPACING)
+        self.a_scroll.set_border_width(SPACING)
 
         self.a_list = gtk.TreeView(self.a_store)
         r = gtk.CellRendererText()
