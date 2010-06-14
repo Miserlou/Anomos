@@ -74,6 +74,7 @@ class SSLSelectReactor(SelectReactor):
             log.info(repr(why))
         if why:
             self._disconnectSelectable(selectable, why, method=="doRead")
+            selectable.loseConnection()
 
 def install():
     del sys.modules['twisted.internet.reactor']
