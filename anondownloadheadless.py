@@ -234,7 +234,6 @@ class DL(Feedback):
         except BTFailure, e:
             print str(e)
             return
-        self.get_status()
         self.multitorrent.event_handler.loop()
         self.d.display({'activity':'shutting down', 'fractionDone':0})
         self.torrent.shutdown()
