@@ -555,8 +555,11 @@ class AboutWindow(object):
         self.win.set_resizable(False)
         self.win.connect('destroy', lambda w: main.window_closed('about'))
         self.scroll = gtk.ScrolledWindow()
-        self.scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.scroll.set_shadow_type(gtk.SHADOW_IN)
+        self.scroll.set_size_request(-1, SPACING)
+        self.scroll.set_border_width(SPACING)
+
 
         self.outervbox = gtk.VBox()
 
@@ -613,8 +616,10 @@ class LogWindow(object):
         self.text.set_wrap_mode(gtk.WRAP_WORD)
 
         self.scroll = gtk.ScrolledWindow()
-        self.scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.scroll.set_shadow_type(gtk.SHADOW_IN)
+        self.scroll.set_size_request(-1, SPACING)
+        self.scroll.set_border_width(SPACING)
         self.scroll.add(self.text)
 
         self.vbox = gtk.VBox(spacing=SPACING)
@@ -622,7 +627,7 @@ class LogWindow(object):
 
         self.buttonbox = gtk.HButtonBox()
         self.buttonbox.set_spacing(SPACING)
- 
+
         self.closebutton = gtk.Button(stock='gtk-close')
         self.closebutton.connect('clicked', self.close)
 
@@ -707,8 +712,10 @@ class ConnectionsWindow(object):
         self.create_columns()
 
         self.scroll = gtk.ScrolledWindow()
-        self.scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.scroll.set_shadow_type(gtk.SHADOW_IN)
+        self.scroll.set_size_request(-1, SPACING)
+        self.scroll.set_border_width(SPACING)
         self.scroll.add(self.treeView)
 
         self.vbox = gtk.VBox(spacing=SPACING)
