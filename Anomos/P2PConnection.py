@@ -110,7 +110,7 @@ class P2PConnection(Dispatcher):
         except (SSL.SSLError, SSL.Checker.SSLVerificationError, socket.error), e:
             # will result in connect_cb being called with
             # self.connected = False
-            log.info("Failed to connect to %s:%d. %s" % (addr[0], addr[1], e))
+            log.info("Problem connecting to %s:%d. %s" % (addr[0], addr[1], e))
         else:
             # All socket operations after connect() are non-blocking
             # and handled with asyncore
