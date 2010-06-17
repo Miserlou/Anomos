@@ -1,3 +1,4 @@
+import twisted.internet.error as error
 import twisted.internet.protocol as protocol
 import twisted.protocols.basic as basic
 import M2Crypto.SSL.TwistedProtocolWrapper as wrapper
@@ -5,6 +6,7 @@ import M2Crypto.SSL as SSL
  
 from Anomos.Protocol import NAT_CHECK_ID, NAME as PROTOCOL_NAME
 from Anomos.P2PConnection import PostConnectionChecker
+from Anomos import LOG as log
 
 class NatChecker(object):
     reactor = None
@@ -33,11 +35,37 @@ class TwistedNatCheck(protocol.Protocol, basic.StatefulStringProtocol):
     protocol_extensions = '\0'*7
     expecting = 1
     msgbuf = ""
+    result = False
+    timeout = 5
+    timeoutCall = None
 
     def connectionMade(self):
+        self.setTimeout()
         self.writeHeader()
 
+    def connectionLost(self, reason):
+        self.cancelTimeout()
+        self.factory.do_callback(self.result)
+
+    def setTimeout(self):
+        from twisted.internet import reactor
+        self.timeoutCall = reactor.callLater(self.timeout,
+                                             self.transport.loseConnection)
+
+    def resetTimeout(self):
+        if self.timeoutCall:
+            self.timeoutCall.reset(self.timeout)
+
+    def cancelTimeout(self):
+        if self.timeoutCall:
+            try:
+                self.timeoutCall.cancel()
+            except error.AlreadyCalled:
+                pass
+            self.timeoutCall = None
+
     def dataReceived(self, recd):
+        self.resetTimeout()
         self.msgbuf += recd
         while len(self.msgbuf) >= self.expecting:
             msg = self.msgbuf[:self.expecting]
@@ -50,35 +78,44 @@ class TwistedNatCheck(protocol.Protocol, basic.StatefulStringProtocol):
                         self.nid + self.protocol_extensions
         self.transport.write(hdr)
 
-    def lengthLimitExceeded(self, len):
-        self.transport.loseConnection()
-
     def proto_init(self, msg):
         if ord(msg) != len(PROTOCOL_NAME):
-            raise HandshakeError("Protocol name mismatch")
+            self.check_failed("Protocol name mismatch")
+            return "done"
         self.expecting = len(PROTOCOL_NAME)
         return "name"
 
     def proto_name(self, msg):
         if msg != PROTOCOL_NAME:
-            raise HandshakeError("Protocol name mismatch")
+            self.check_failed("Protocol name mismatch")
+            return "done"
         self.expecting = 1
         return "nid"
 
     def proto_nid(self, msg):
         if msg != self.nid:
-            raise HandshakeError("Neighbor ID mismatch")
+            self.check_failed("Neighbor ID mismatch")
+            return "done"
         self.expecting = 7
         return "flags"
 
     def proto_flags(self, msg):
         if len(msg) != 7:
-            raise HandshakeError("Invalid header")
-        if len(self.msgbuf) > 0:
-            self.lengthLimitExceeded(len(self.msgbuf))
-        self.factory.do_callback(True)
-        self.transport.loseConnection()
+            self.check_failed("Invalid header")
+        elif len(self.msgbuf) > 0:
+            self.check_failed("Client sent unexpected data")
+        else:
+            self.result = True
         return "done"
+    
+    def proto_done(self, msg):
+        self.msgbuf = "" # discard unread data on error
+        return "done"
+
+    def check_failed(self, msg):
+        host,port = self.transport.addr
+        log.info("NatCheck failed for %s:%d - %s" % (host, port, msg))
+        self.result = False
 
 protocol.ClientFactory.noisy = False
 
@@ -96,4 +133,3 @@ class NatCheckFactory(protocol.ClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         pass
-

@@ -49,10 +49,7 @@ class P2PConnection(Dispatcher):
             if self.new_collector:
                 self.new_collector = False
             return self.collector.get_reader()
-        else:
-            log.critical("Request for a reader was made before " \
-                         "a connection was assigned a collector")
-            raise RuntimeError("Unable to get data collector")
+        return None
 
     def flushed(self):
         return (self.ac_out_buffer == '') and self.producer_fifo.is_empty()
@@ -74,7 +71,7 @@ class P2PConnection(Dispatcher):
     def collect_incoming_data(self, data):
         if self.collector:
             self.collector.collect_incoming_data(data)
-        else:
+        elif len(data) > 0:
             log.warning("Dropping %d bytes of data" % len(data))
 
     def found_terminator(self):
@@ -82,6 +79,9 @@ class P2PConnection(Dispatcher):
         # the _reader is expecting next
         try:
             self.set_terminator(self.get_reader().next())
+        except AttributeError:
+            # Connection was closed on an error and self.get_reader returned None
+            self.discard_buffers()
         except StopIteration:
             # This represents a context change. The last call to
             # self.get_reader().next() finished the neighbor
@@ -92,7 +92,7 @@ class P2PConnection(Dispatcher):
             if self.new_collector:
                 self.set_terminator(self.get_reader().next())
             else:
-                self.close()
+                self.handle_close()
 
     ## asyncore.dispatcher methods ##
 

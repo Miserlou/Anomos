@@ -16,7 +16,7 @@
 # Written by John M. Schanck
 
 from Anomos.Protocol import NAT_CHECK_ID, NAME as protocol_name
-from Anomos import HandshakeError, LOG as log
+from Anomos import LOG as log
 
 class AnomosNeighborInitializer(object):
     """ Temporary connection handler created to instantiate
@@ -42,17 +42,20 @@ class AnomosNeighborInitializer(object):
            to the Anomos protocol"""
         yield 1
         if ord(self._message) != len(protocol_name):
-            raise HandshakeError("Protocol name mismatch")
+            log.info("Dropping connection from %s:%d - Protocol name mismatch." % self.socket.addr)
+            return
         self._message = ''
         yield len(protocol_name) # protocol name -- 'Anomos'
         if self._message != protocol_name:
-            raise HandshakeError("Protocol name mismatch")
+            log.info("Dropping connection from %s:%d - Protocol name mismatch." % self.socket.addr)
+            return
         self._message = ''
         yield 1  # NID
         if self.id is None:
             self.id = self._message
         elif self.id != self._message:
-            raise HandshakeError("Neighbor ID mismatch")
+            log.info("Dropping connection from %s:%d - Neighbor ID mismatch." % self.socket.addr)
+            return
         self._message = ''
         yield 7  # reserved bytes (ignore these for now)
         self._got_full_header()
@@ -82,7 +85,7 @@ class AnomosNeighborInitializer(object):
         self.socket.push(hdr)
     def socket_closed(self):
         if self.id != NAT_CHECK_ID and self.id != '':
-            log.info("Failed to initialize connection to %s" % str(self.id))
+            log.info("Failed to initialize connection to \\x%02x" % ord(self.id))
         if not self.complete:
             self.manager.initializer_failed(self.id)
         self.socket = None

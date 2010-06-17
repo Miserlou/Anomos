@@ -120,9 +120,6 @@ class BTFailure(Exception):
 class BTShutdown(BTFailure):
     pass
 
-class HandshakeError(Exception):
-    pass
-
 def trace_on_call(fn):
     """Starts PDB when the decorated method is called"""
     import pdb
