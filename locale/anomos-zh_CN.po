@@ -1,0 +1,631 @@
+# Chinese (Simplified) translation for anomos
+# Copyright (c) 2010 Rosetta Contributors and Canonical Ltd 2010
+# This file is distributed under the same license as the anomos package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: anomos\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2010-02-18 19:16-0500\n"
+"PO-Revision-Date: 2010-03-12 00:52+0000\n"
+"Last-Translator: omac777 <Unknown>\n"
+"Language-Team: Chinese (Simplified) <zh_CN@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-06-17 20:48+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+#: anondownloadgui.py:87
+msgid "Press the i for information"
+msgstr "按我的信息"
+
+#: anondownloadgui.py:88
+msgid "Press the X to remove this download"
+msgstr "按X删除此下载"
+
+#: anondownloadgui.py:304
+msgid "Open a torrent"
+msgstr "打开一个以.atorrent"
+
+#: anondownloadgui.py:322
+msgid "Change the settings"
+msgstr "更改设置"
+
+#: anondownloadgui.py:392
+msgid "Create a new torrent"
+msgstr "创建一个新的.atorrent"
+
+#: anondownloadgui.py:413
+msgid "List torrents you're seeding"
+msgstr "你名单种子播种"
+
+#: anondownloadgui.py:440
+msgid "List torrents you're downloading"
+msgstr "名单种子你下载"
+
+#: anondownloadgui.py:469
+#, python-format
+msgid "New %s version available"
+msgstr "新版本可用%s"
+
+#: anondownloadgui.py:517
+#, python-format
+msgid "About %s"
+msgstr "关于%s"
+
+#: anondownloadgui.py:530
+#, python-format
+msgid "Version %s"
+msgstr "版本 %s"
+
+#: anondownloadgui.py:550 anondownloadgui.py:2435
+msgid "Donate"
+msgstr "捐赠"
+
+#: anondownloadgui.py:570
+#, python-format
+msgid "%s Activity Log"
+msgstr "活动日志 %s"
+
+#: anondownloadgui.py:653
+msgid "Active Connections"
+msgstr "活动连接"
+
+#: anondownloadgui.py:697
+msgid "Port"
+msgstr "港口"
+
+#: anondownloadgui.py:702
+msgid "Country"
+msgstr "国家"
+
+#: anondownloadgui.py:768
+#, python-format
+msgid "%s Settings"
+msgstr "设置 %s"
+
+#: anondownloadgui.py:774
+msgid "Upload rate:"
+msgstr "上传速度："
+
+#: anondownloadgui.py:782
+msgid "Seed completed torrents:"
+msgstr "种子完成的种子："
+
+#: anondownloadgui.py:790
+msgid "until share ratio reaches "
+msgstr "直到份额的比例达到 "
+
+#: anondownloadgui.py:802
+msgid "for "
+msgstr "为了 "
+
+#: anondownloadgui.py:808
+msgid " minutes, whichever comes first. 0 is unlimited."
+msgstr " 分钟，以先到者为准。 0是无限的。"
+
+#: anondownloadgui.py:815
+msgid "Look for available port:"
+msgstr "0是无限的。    查询可用的端口："
+
+#: anondownloadgui.py:818
+msgid "starting at port: "
+msgstr "开始在端口： "
+
+#: anondownloadgui.py:830
+msgid "Download folder:"
+msgstr "下载文件夹："
+
+#: anondownloadgui.py:835
+msgid "Default:"
+msgstr "默认值："
+
+#: anondownloadgui.py:845
+msgid "Change.."
+msgstr "变更.."
+
+#: anondownloadgui.py:850
+msgid "Ask where to save each download"
+msgstr "问在哪里保存每个下载"
+
+#: anondownloadgui.py:863
+msgid "Torrent anonymizer tracker URL:"
+msgstr "Torrent Anonymizer公司跟踪网址："
+
+#: anondownloadgui.py:867
+msgid "The tracker to use instead of the old torrent tracker"
+msgstr "该跟踪器来代替旧的.atorrent跟踪"
+
+#: anondownloadgui.py:872
+msgid "Proxy address to use (Tor+Privoxy is 127.0.0.1:8118):"
+msgstr "使用代理服务器地址（Tor的+ Privoxy是127.0.0.1:8118）："
+
+#: anondownloadgui.py:876
+msgid "Where is your proxy?"
+msgstr "您的代理在哪里？"
+
+#: anondownloadgui.py:881
+msgid "IP to report to the tracker:"
+msgstr "IP来报告跟踪："
+
+#: anondownloadgui.py:885
+msgid "If you want to connect through Tor"
+msgstr "如果您想通过Tor连接"
+
+#: anondownloadgui.py:890
+msgid "Automatically fetch external IP (uses anomos.info)"
+msgstr "自动获取外部IP（使用anomos.info）"
+
+#: anondownloadgui.py:937
+msgid "Choose default download directory"
+msgstr "选择默认的下载目录"
+
+#: anondownloadgui.py:1005
+#, python-format
+msgid "Files in \"%s\""
+msgstr "文件在%s"
+
+#: anondownloadgui.py:1029
+msgid "Filename"
+msgstr "文件名"
+
+#: anondownloadgui.py:1029
+msgid "Length"
+msgstr "长度"
+
+#: anondownloadgui.py:1194
+#, python-format
+msgid "Peers for \"%s\""
+msgstr "对同行%s"
+
+#: anondownloadgui.py:1200
+msgid "IP address"
+msgstr "IP地址"
+
+#: anondownloadgui.py:1200
+msgid "Client"
+msgstr "客户端"
+
+#: anondownloadgui.py:1200
+msgid "Connection"
+msgstr "连接"
+
+#: anondownloadgui.py:1200
+msgid "KB/s down"
+msgstr "KB/s 的下降"
+
+#: anondownloadgui.py:1200
+msgid "KB/s up"
+msgstr "KB/s 上传"
+
+#: anondownloadgui.py:1399
+msgid "Torrent name:"
+msgstr ".aTorrent名称："
+
+#: anondownloadgui.py:1402
+msgid "Announce url:"
+msgstr "公布网址："
+
+#: anondownloadgui.py:1406
+msgid ", in one file"
+msgstr "，在一个文件中"
+
+#: anondownloadgui.py:1408
+#, python-format
+msgid ", in %d files"
+msgstr ""
+
+#: anondownloadgui.py:1409
+msgid "Total size:"
+msgstr "总面积："
+
+#: anondownloadgui.py:1416
+msgid "Pieces:"
+msgstr "件："
+
+#: anondownloadgui.py:1418
+msgid "Info hash:"
+msgstr "信息哈希："
+
+#: anondownloadgui.py:1427
+msgid "Save in:"
+msgstr "保存："
+
+#: anondownloadgui.py:1431
+msgid "File name:"
+msgstr "文件名："
+
+#: anondownloadgui.py:1444
+msgid "Open directory"
+msgstr "开放目录"
+
+#: anondownloadgui.py:1450
+msgid "Show file list"
+msgstr "显示文件列表"
+
+#: anondownloadgui.py:1568
+msgid "Torrent info"
+msgstr ".aTorrent信息"
+
+#: anondownloadgui.py:1576 anondownloadgui.py:1945
+msgid "Remove torrent"
+msgstr "删除.atorrent"
+
+#: anondownloadgui.py:1579
+msgid "Cancel torrent"
+msgstr "取消.atorrent"
+
+#: anondownloadgui.py:1614
+#, python-format
+msgid ", will seed for %s"
+msgstr "，将种子%s"
+
+#: anondownloadgui.py:1616
+msgid ", will seed indefinitely."
+msgstr "，将种子下去。"
+
+#: anondownloadgui.py:1619
+#, python-format
+msgid "Done, share ratio: %d%%"
+msgstr ""
+
+#: anondownloadgui.py:1622
+#, python-format
+msgid "Done, %s uploaded"
+msgstr "这样，上传 %s"
+
+#: anondownloadgui.py:1625
+msgid "Done"
+msgstr "做完"
+
+#: anondownloadgui.py:1638
+msgid "Torrent _info"
+msgstr "Torrent信息"
+
+#: anondownloadgui.py:1644
+msgid "_Open directory"
+msgstr "开放目录"
+
+#: anondownloadgui.py:1646
+msgid "_File list"
+msgstr "文件列表"
+
+#: anondownloadgui.py:1718
+#, python-format
+msgid "Are you sure you want to remove \"%s\"?"
+msgstr "您确定要删除\"%s\"？"
+
+#: anondownloadgui.py:1721
+#, python-format
+msgid "Your share ratio for this torrent is %d%%. "
+msgstr ""
+
+#: anondownloadgui.py:1723
+#, python-format
+msgid "You have uploaded %s to this torrent. "
+msgstr "您上传%s本洪流。 "
+
+#: anondownloadgui.py:1726
+msgid "Remove this torrent?"
+msgstr "删除此种子？"
+
+#: anondownloadgui.py:1737
+msgid "Anomos has no running torrents"
+msgstr "Anomos没有运行的种子"
+
+#: anondownloadgui.py:1751
+msgid "Finished"
+msgstr "成品"
+
+#: anondownloadgui.py:1752
+msgid "drag into list to seed"
+msgstr "拖到种子名单"
+
+#: anondownloadgui.py:1755
+msgid "Failed"
+msgstr "失败"
+
+#: anondownloadgui.py:1756
+msgid "drag into list to resume"
+msgstr "拖动到列表恢复"
+
+#: anondownloadgui.py:1763
+msgid "Re_start"
+msgstr "重新启动"
+
+#: anondownloadgui.py:1764 anondownloadgui.py:1827 anondownloadgui.py:1862
+#: anondownloadgui.py:1961
+msgid "_Remove torrent"
+msgstr "删除.atorrent"
+
+#: anondownloadgui.py:1811
+msgid "Waiting"
+msgstr "轮候"
+
+#: anondownloadgui.py:1822
+msgid "Download _now"
+msgstr "立即下载"
+
+#: anondownloadgui.py:1829 anondownloadgui.py:1858 anondownloadgui.py:1958
+msgid "_Cancel download"
+msgstr "取消下载"
+
+#: anondownloadgui.py:1846
+msgid "Paused"
+msgstr "暂停"
+
+#: anondownloadgui.py:1884
+msgid "Running"
+msgstr "运行"
+
+#: anondownloadgui.py:1934
+msgid "Share ratio: -"
+msgstr "股份比例： -"
+
+#: anondownloadgui.py:2046
+msgid "Download"
+msgstr "下载"
+
+#: anondownloadgui.py:2048
+msgid "Upload"
+msgstr "上传"
+
+#: anondownloadgui.py:2050
+msgid "Relay"
+msgstr "继电器"
+
+#: anondownloadgui.py:2405
+msgid "Downloads (0)"
+msgstr "下载（0）"
+
+#: anondownloadgui.py:2407
+msgid "Seeds (0)"
+msgstr "种子（0）"
+
+#: anondownloadgui.py:2409
+msgid "_Open an .atorrent file"
+msgstr "打开一个。atorrent文件的"
+
+#: anondownloadgui.py:2410
+msgid "_Anonymize and open a .torrent file"
+msgstr "匿名化，并打开一个BT。torrent文件"
+
+#: anondownloadgui.py:2412
+msgid "_Play "
+msgstr "播放 "
+
+#: anondownloadgui.py:2413
+msgid "Pa_use "
+msgstr "暂停 "
+
+#: anondownloadgui.py:2415
+msgid "Make a _new .atorrent file"
+msgstr "创建一个新的。atorrent文件"
+
+#: anondownloadgui.py:2417
+msgid "S_ettings"
+msgstr "设置"
+
+#: anondownloadgui.py:2419
+msgid "_Quit"
+msgstr "退出"
+
+#: anondownloadgui.py:2422
+msgid "_Downloads"
+msgstr "下载"
+
+#: anondownloadgui.py:2423
+msgid "_Seeds"
+msgstr "种子"
+
+#: anondownloadgui.py:2425
+msgid "_Connections"
+msgstr "连接"
+
+#: anondownloadgui.py:2426
+msgid "_Log"
+msgstr "登陆"
+
+#: anondownloadgui.py:2427
+msgid "Settings"
+msgstr "设置"
+
+#: anondownloadgui.py:2429
+msgid "_Go"
+msgstr "进入"
+
+#: anondownloadgui.py:2430
+msgid "S_top"
+msgstr "停止"
+
+#: anondownloadgui.py:2433 anondownloadgui.py:2450
+msgid "_Help"
+msgstr "帮助"
+
+#: anondownloadgui.py:2434
+msgid "A_bout"
+msgstr "关于中国"
+
+#: anondownloadgui.py:2438
+msgid "_File"
+msgstr "文件"
+
+#: anondownloadgui.py:2442
+msgid "_Control"
+msgstr "控制"
+
+#: anondownloadgui.py:2446
+msgid "_View"
+msgstr "查看"
+
+#: anondownloadgui.py:2618
+msgid "Yes"
+msgstr "是"
+
+#: anondownloadgui.py:2618
+msgid "No"
+msgstr "否"
+
+#: anondownloadgui.py:2618
+msgid "Cancel"
+msgstr "取消"
+
+#: anondownloadgui.py:2619
+msgid "Do you really want to quit?"
+msgstr "你真的要退出吗？"
+
+#: anondownloadgui.py:2622
+msgid "Really quit?"
+msgstr "真的退出？"
+
+#: anondownloadgui.py:2770
+#, python-format
+msgid ""
+"Anomos help is at \n"
+"%s\n"
+" Would you like to go there now?"
+msgstr "Anomos帮助是在 %s.  你愿意去那里呢？"
+
+#: anondownloadgui.py:2772
+msgid "Visit help web page?"
+msgstr "访问帮助网页？"
+
+#: anondownloadgui.py:2828
+msgid "There is one finished torrent in the list. "
+msgstr "有一个列表中完成洪流。 "
+
+#: anondownloadgui.py:2829
+msgid "Do you want to remove it?"
+msgstr "你想删除它？"
+
+#: anondownloadgui.py:2831
+#, python-format
+msgid "There are %d finished torrents in the list. "
+msgstr ""
+
+#: anondownloadgui.py:2832
+msgid "Do you want to remove all of them?"
+msgstr "你要删除所有这些？"
+
+#: anondownloadgui.py:2834
+msgid "Remove all finished torrents?"
+msgstr "删除所有成品种子？"
+
+#: anondownloadgui.py:2841
+msgid "No finished torrents"
+msgstr "没有完成种子"
+
+#: anondownloadgui.py:2842
+msgid "There are no finished torrents to remove."
+msgstr "没有完成种子删除。"
+
+#: anondownloadgui.py:2971
+msgid "File exists!"
+msgstr "文件存在！"
+
+#: anondownloadgui.py:2972
+#, python-format
+msgid ""
+"\"%s\" already exists.\n"
+" Do you want to choose a different file name?."
+msgstr "%s 已经存在。你想选择一个不同的文件名？。"
+
+#: anondownloadgui.py:3109 anondownloadgui.py:3117
+msgid "error"
+msgstr "错误"
+
+#: anondownloadgui.py:3109 anondownloadgui.py:3117
+msgid "critical"
+msgstr "关键"
+
+#: anondownloadgui.py:3115
+#, python-format
+msgid "(global message) : %s"
+msgstr "（全球信息）：%s"
+
+#: anondownloadgui.py:3123
+#, python-format
+msgid "%s Error"
+msgstr "%s 错误"
+
+#: anondownloadgui.py:3129
+msgid "Multiple errors have occurred. "
+msgstr "多个错误发生。 "
+
+#: anondownloadgui.py:3130
+msgid "Click OK to view the error log."
+msgstr "单击确定以查看错误日志。"
+
+#: anondownloadgui.py:3174
+msgid "Complete:\t"
+msgstr "完成：\t"
+
+#: anondownloadgui.py:3174
+msgid ""
+"%\n"
+"Down:\t\t"
+msgstr "％ 订金：\t\t"
+
+#: anondownloadgui.py:3174
+msgid ""
+"\n"
+"Up:\t\t\t"
+msgstr ""
+"\n"
+"截至：\t\t\t"
+
+#: anondownloadgui.py:3174
+msgid ""
+"\n"
+"Relay:\t\t"
+msgstr ""
+"\n"
+"继电器：\t\t"
+
+#: anondownloadgui.py:3275
+msgid "Stop running torrent?"
+msgstr "停止运行种子？"
+
+#: anondownloadgui.py:3276
+#, python-format
+msgid ""
+"You are about to start \"%s\". Do you want to stop the last running torrent "
+"as well?"
+msgstr "您将要启动%s。是否要停止运行的最后洪流呢？"
+
+#: anondownloadgui.py:3288
+msgid "Have you donated?"
+msgstr "你捐？"
+
+#: anondownloadgui.py:3289
+#, python-format
+msgid "Welcome to the new version of %s. Have you donated?"
+msgstr "欢迎来到%s个新版本。你捐？"
+
+#: anondownloadgui.py:3303
+msgid "Thanks!"
+msgstr "谢谢！"
+
+#: anondownloadgui.py:3304
+msgid "Thanks for donating! To donate again, "
+msgstr "感谢捐赠！再次捐赠， "
+
+#: anondownloadgui.py:3305
+msgid "select \"Donate\" from the \"Help\" menu."
+msgstr "选择捐赠从帮助菜单。"
+
+#: anondownloadgui.py:3322
+msgid ""
+"The ports on your router are not configured properly. This will interefere "
+"with file transfers. Please forward the appropriate ports to your machine."
+msgstr "路由器上的端口配置不正确。这会干扰与文件传输。请提出了相应的端口到你的机器。"
+
+#: anondownloadgui.py:3342
+msgid "Ports are closed!"
+msgstr "端口是关闭！"
+
+#: anondownloadgui.py:3345
+msgid "Ports are open!"
+msgstr "港口是开放！"
