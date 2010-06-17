@@ -104,6 +104,7 @@ class P2PConnection(Dispatcher):
         sslsock.set_socket_read_timeout(SSL.timeout(10))
         sslsock.set_socket_write_timeout(SSL.timeout(10))
         sslsock.setblocking(1)
+        self.addr = addr
         try:
             sslsock.connect(addr)
         except (SSL.SSLError, SSL.Checker.SSLVerificationError, socket.error), e:
@@ -114,7 +115,6 @@ class P2PConnection(Dispatcher):
             # All socket operations after connect() are non-blocking
             # and handled with asyncore
             sslsock.setblocking(0)
-            self.addr = addr
             self.set_socket(sslsock) # registers with asyncore
             self.connected = True # connect_cb success
         if self.schedule is not None:
