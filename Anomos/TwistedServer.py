@@ -3,6 +3,7 @@ import M2Crypto.X509 as X509
 import M2Crypto.m2 as m2
 import twisted.python.log as twistlog
 import twisted.web.http as http
+import twisted.protocols.policies as policies
 import M2Crypto.SSL.TwistedProtocolWrapper as wrapper
 
 from twisted.internet.selectreactor import SelectReactor, _NO_FILENO, _NO_FILEDESC
@@ -39,6 +40,9 @@ class HTTPS(http.HTTPChannel):
         del self.requests[0]
 
         self.transport.loseConnection()
+
+    def timeoutConnection(self):
+        policies.TimeoutMixin.timeoutConnection(self)
 
 
 class HTTPSFactory(http.HTTPFactory):

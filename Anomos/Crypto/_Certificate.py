@@ -154,7 +154,7 @@ class Certificate:
         # Set the period of time the cert is valid for (5 years from issue)
         notBefore = m2.x509_get_not_before(self.cert.x509)
         notAfter = m2.x509_get_not_after(self.cert.x509)
-        m2.x509_gmtime_adj(notBefore, 0)
+        m2.x509_gmtime_adj(notBefore, -60*60*24)
         m2.x509_gmtime_adj(notAfter, 60*60*24*365*5)
         # Sign the certificate
         self.cert.sign(pkey, 'sha1')
