@@ -8,22 +8,22 @@ msgstr ""
 "Project-Id-Version: anomos\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-02-18 19:16-0500\n"
-"PO-Revision-Date: 2010-03-08 21:54+0000\n"
-"Last-Translator: Rich Jones <miserlou@gmail.com>\n"
+"PO-Revision-Date: 2010-05-16 10:49+0000\n"
+"Last-Translator: max_b <Unknown>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2010-03-27 22:00+0000\n"
+"X-Launchpad-Export-Date: 2010-06-17 20:48+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
 #: anondownloadgui.py:87
 msgid "Press the i for information"
-msgstr ""
+msgstr "Appuyer sur i pour l'aide"
 
 #: anondownloadgui.py:88
 msgid "Press the X to remove this download"
-msgstr ""
+msgstr "Cliquer sur X pour supprimer ce téléchargement"
 
 #: anondownloadgui.py:304
 msgid "Open a torrent"
@@ -31,7 +31,7 @@ msgstr "Ouvrir un torrent"
 
 #: anondownloadgui.py:322
 msgid "Change the settings"
-msgstr ""
+msgstr "Modifier les paramètres"
 
 #: anondownloadgui.py:392
 msgid "Create a new torrent"
@@ -39,11 +39,11 @@ msgstr "Créer un nouveau torrent"
 
 #: anondownloadgui.py:413
 msgid "List torrents you're seeding"
-msgstr ""
+msgstr "Liste des torrents en partage"
 
 #: anondownloadgui.py:440
 msgid "List torrents you're downloading"
-msgstr ""
+msgstr "liste des torrents en téléchargement"
 
 #: anondownloadgui.py:469
 #, python-format
@@ -88,19 +88,19 @@ msgstr ""
 
 #: anondownloadgui.py:774
 msgid "Upload rate:"
-msgstr ""
+msgstr "taux d'envoie"
 
 #: anondownloadgui.py:782
 msgid "Seed completed torrents:"
-msgstr ""
+msgstr "partage de torrents complets"
 
 #: anondownloadgui.py:790
 msgid "until share ratio reaches "
-msgstr ""
+msgstr "jusqu'à atteindre le ratio de partage "
 
 #: anondownloadgui.py:802
 msgid "for "
-msgstr ""
+msgstr "pour "
 
 #: anondownloadgui.py:808
 msgid " minutes, whichever comes first. 0 is unlimited."
@@ -108,11 +108,11 @@ msgstr ""
 
 #: anondownloadgui.py:815
 msgid "Look for available port:"
-msgstr ""
+msgstr "recherche d'un port valable"
 
 #: anondownloadgui.py:818
 msgid "starting at port: "
-msgstr ""
+msgstr "démarrer au port : "
 
 #: anondownloadgui.py:830
 msgid "Download folder:"
@@ -124,11 +124,11 @@ msgstr "Défaut:"
 
 #: anondownloadgui.py:845
 msgid "Change.."
-msgstr ""
+msgstr "changer"
 
 #: anondownloadgui.py:850
 msgid "Ask where to save each download"
-msgstr ""
+msgstr "demander o`u sauver chaque téléchargement"
 
 #: anondownloadgui.py:863
 msgid "Torrent anonymizer tracker URL:"
@@ -136,23 +136,23 @@ msgstr ""
 
 #: anondownloadgui.py:867
 msgid "The tracker to use instead of the old torrent tracker"
-msgstr ""
+msgstr "le tracker à utiliser à la place de l'ancien tracker de torrent"
 
 #: anondownloadgui.py:872
 msgid "Proxy address to use (Tor+Privoxy is 127.0.0.1:8118):"
-msgstr ""
+msgstr "l'adresse du proxy à utiliser"
 
 #: anondownloadgui.py:876
 msgid "Where is your proxy?"
-msgstr ""
+msgstr "ou est votre proxy?"
 
 #: anondownloadgui.py:881
 msgid "IP to report to the tracker:"
-msgstr ""
+msgstr "IP à renvoyer au tracker"
 
 #: anondownloadgui.py:885
 msgid "If you want to connect through Tor"
-msgstr ""
+msgstr "Si vous voulez vous connecter à travers TOR"
 
 #: anondownloadgui.py:890
 msgid "Automatically fetch external IP (uses anomos.info)"
@@ -160,12 +160,12 @@ msgstr ""
 
 #: anondownloadgui.py:937
 msgid "Choose default download directory"
-msgstr ""
+msgstr "Choisir le dossier de téléchargement par défaut"
 
 #: anondownloadgui.py:1005
 #, python-format
 msgid "Files in \"%s\""
-msgstr ""
+msgstr "fichiers dans \"%s\""
 
 #: anondownloadgui.py:1029
 msgid "Filename"
@@ -178,7 +178,7 @@ msgstr "Longueur"
 #: anondownloadgui.py:1194
 #, python-format
 msgid "Peers for \"%s\""
-msgstr ""
+msgstr "Source pour \"%s\""
 
 #: anondownloadgui.py:1200
 msgid "IP address"
@@ -202,7 +202,7 @@ msgstr "ko/s sortant"
 
 #: anondownloadgui.py:1399
 msgid "Torrent name:"
-msgstr ""
+msgstr "Nom du Torrent"
 
 #: anondownloadgui.py:1402
 msgid "Announce url:"
@@ -210,12 +210,12 @@ msgstr ""
 
 #: anondownloadgui.py:1406
 msgid ", in one file"
-msgstr ""
+msgstr ", en un fichier"
 
 #: anondownloadgui.py:1408
 #, python-format
 msgid ", in %d files"
-msgstr ""
+msgstr ", en %d fichiers"
 
 #: anondownloadgui.py:1409
 msgid "Total size:"
@@ -227,7 +227,7 @@ msgstr "Morceaux :"
 
 #: anondownloadgui.py:1418
 msgid "Info hash:"
-msgstr ""
+msgstr "info hash"
 
 #: anondownloadgui.py:1427
 msgid "Save in:"
@@ -247,7 +247,7 @@ msgstr "Afficher la liste de fichiers"
 
 #: anondownloadgui.py:1568
 msgid "Torrent info"
-msgstr ""
+msgstr "infos sur le torrent"
 
 #: anondownloadgui.py:1576 anondownloadgui.py:1945
 msgid "Remove torrent"
@@ -255,7 +255,7 @@ msgstr "Supprimer le torrent"
 
 #: anondownloadgui.py:1579
 msgid "Cancel torrent"
-msgstr ""
+msgstr "annuler le torrent"
 
 #: anondownloadgui.py:1614
 #, python-format
@@ -269,12 +269,12 @@ msgstr ""
 #: anondownloadgui.py:1619
 #, python-format
 msgid "Done, share ratio: %d%%"
-msgstr ""
+msgstr "Fini, ratio de partage : %d%%"
 
 #: anondownloadgui.py:1622
 #, python-format
 msgid "Done, %s uploaded"
-msgstr ""
+msgstr "Fini, %s envoyé"
 
 #: anondownloadgui.py:1625
 msgid "Done"
@@ -286,7 +286,7 @@ msgstr ""
 
 #: anondownloadgui.py:1644
 msgid "_Open directory"
-msgstr ""
+msgstr "_ouvrir le dossier"
 
 #: anondownloadgui.py:1646
 msgid "_File list"
@@ -295,12 +295,12 @@ msgstr ""
 #: anondownloadgui.py:1718
 #, python-format
 msgid "Are you sure you want to remove \"%s\"?"
-msgstr ""
+msgstr "Etes-vous sur de vouloir enlever \"%s\"?"
 
 #: anondownloadgui.py:1721
 #, python-format
 msgid "Your share ratio for this torrent is %d%%. "
-msgstr ""
+msgstr "Votre ratio de partage pour ce torrent est de %d%% "
 
 #: anondownloadgui.py:1723
 #, python-format
@@ -309,11 +309,11 @@ msgstr ""
 
 #: anondownloadgui.py:1726
 msgid "Remove this torrent?"
-msgstr ""
+msgstr "Enlever ce torrent"
 
 #: anondownloadgui.py:1737
 msgid "Anomos has no running torrents"
-msgstr ""
+msgstr "Anomos n'a pas de torrent actif"
 
 #: anondownloadgui.py:1751
 msgid "Finished"
@@ -346,15 +346,15 @@ msgstr "En attente"
 
 #: anondownloadgui.py:1822
 msgid "Download _now"
-msgstr ""
+msgstr "Télécharger maintenant"
 
 #: anondownloadgui.py:1829 anondownloadgui.py:1858 anondownloadgui.py:1958
 msgid "_Cancel download"
-msgstr ""
+msgstr "Annuler maintenant"
 
 #: anondownloadgui.py:1846
 msgid "Paused"
-msgstr "Suspendue"
+msgstr "En pause"
 
 #: anondownloadgui.py:1884
 msgid "Running"
@@ -378,35 +378,35 @@ msgstr "Relais"
 
 #: anondownloadgui.py:2405
 msgid "Downloads (0)"
-msgstr ""
+msgstr "Téléchargement"
 
 #: anondownloadgui.py:2407
 msgid "Seeds (0)"
-msgstr ""
+msgstr "partage"
 
 #: anondownloadgui.py:2409
 msgid "_Open an .atorrent file"
-msgstr ""
+msgstr "_ouvrir un fichier .atorrent"
 
 #: anondownloadgui.py:2410
 msgid "_Anonymize and open a .torrent file"
-msgstr ""
+msgstr "_Anonymiser et ouvrir un fichier .atorrent"
 
 #: anondownloadgui.py:2412
 msgid "_Play "
-msgstr ""
+msgstr "_lire "
 
 #: anondownloadgui.py:2413
 msgid "Pa_use "
-msgstr ""
+msgstr "Pause "
 
 #: anondownloadgui.py:2415
 msgid "Make a _new .atorrent file"
-msgstr ""
+msgstr "Créer un nouveau fichier .atorrent"
 
 #: anondownloadgui.py:2417
 msgid "S_ettings"
-msgstr ""
+msgstr "Paramètres"
 
 #: anondownloadgui.py:2419
 msgid "_Quit"
@@ -414,11 +414,11 @@ msgstr "_Quitter"
 
 #: anondownloadgui.py:2422
 msgid "_Downloads"
-msgstr ""
+msgstr "_Téléchargement"
 
 #: anondownloadgui.py:2423
 msgid "_Seeds"
-msgstr ""
+msgstr "_partagés"
 
 #: anondownloadgui.py:2425
 msgid "_Connections"
@@ -426,7 +426,7 @@ msgstr "_Connexions"
 
 #: anondownloadgui.py:2426
 msgid "_Log"
-msgstr ""
+msgstr "_log"
 
 #: anondownloadgui.py:2427
 msgid "Settings"

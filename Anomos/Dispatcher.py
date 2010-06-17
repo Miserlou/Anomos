@@ -64,6 +64,8 @@ class Dispatcher (asyncore.dispatcher):
             else:
                 self.handle_error()
             return
+        except Exception, e:
+            log.info(e)
 
         # XXX: This is a hack. When a connection is closed abruptly
         # without a shutdown notification, we get left in a CLOSE_WAIT

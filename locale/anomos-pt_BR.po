@@ -8,13 +8,13 @@ msgstr ""
 "Project-Id-Version: anomos\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-02-18 19:16-0500\n"
-"PO-Revision-Date: 2010-03-08 19:42+0000\n"
-"Last-Translator: Túlio R. Anjos <Unknown>\n"
+"PO-Revision-Date: 2010-04-24 04:12+0000\n"
+"Last-Translator: Sam Samuels <gemini_sam_samuels@hotmail.co.uk>\n"
 "Language-Team: Brazilian Portuguese <pt_BR@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2010-03-27 22:00+0000\n"
+"X-Launchpad-Export-Date: 2010-06-17 20:48+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
 #: anondownloadgui.py:87
@@ -132,7 +132,7 @@ msgstr "Perguntar aonde salvar cada arquivo"
 
 #: anondownloadgui.py:863
 msgid "Torrent anonymizer tracker URL:"
-msgstr ""
+msgstr "URL do tracker para anonimizar Torrent:"
 
 #: anondownloadgui.py:867
 msgid "The tracker to use instead of the old torrent tracker"
