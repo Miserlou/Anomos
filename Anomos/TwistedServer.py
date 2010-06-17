@@ -40,6 +40,9 @@ class HTTPS(http.HTTPChannel):
 
         self.transport.loseConnection()
 
+    def timeoutConnection(self):
+        policies.TimeoutMixin.timeoutConnection(self)
+
 
 class HTTPSFactory(http.HTTPFactory):
     protocol = HTTPS
