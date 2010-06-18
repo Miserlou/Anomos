@@ -2707,7 +2707,7 @@ class DownloadInfoFrame(object):
         # Delete ephemeral certs
         # Eventually, this shouldn't be necessary as we should never have to
         # write to disk
-        global_cryptodir = Anomos.Crypto.global_cryptodir
+        global_cryptodir = Anomos.Crypto.global_tempcerts
         for cert in os.listdir(global_cryptodir):
             path = os.path.join(global_cryptodir, cert)
             try:
