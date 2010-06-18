@@ -78,8 +78,13 @@ class Certificate:
             raise CryptoError('Crypto not initialized, call initCrypto first')
         if loc is None:
             loc = b2a_hex(Rand.rand_bytes(32))
-        self.keyfile = os.path.join(global_tempcerts, '%s-key.pem' % (loc))
-        self.certfile = os.path.join(global_tempcerts, '%s-cert.pem' % (loc))
+
+        if tracker:
+            self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
+            self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
+        else:
+            self.keyfile = os.path.join(global_tempcerts, '%s-key.pem' % (loc))
+            self.certfile = os.path.join(global_tempcerts, '%s-cert.pem' % (loc))
 
         self.cert = None
         if not (os.path.exists(self.certfile) and os.path.exists(self.keyfile)):
