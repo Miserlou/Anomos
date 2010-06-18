@@ -45,7 +45,6 @@ from Anomos.defaultargs import get_defaults
 from Anomos.parseargs import parseargs, makeHelp
 from Anomos.GUI import *
 from Anomos.bencode import bdecode, bencode
-import makeatorrentgui
 from Anomos import configfile
 from Anomos import HELP_URL, DONATE_URL
 from Anomos import is_frozen_exe
@@ -56,6 +55,8 @@ from Anomos import OpenPath
 from Anomos import Desktop
 from Anomos import LOG as log
 from Anomos import pygeoip
+import makeatorrentgui
+import Anomos.Crypto
 
 #This sets the locale information when using translations
 locale.setlocale(locale.LC_ALL, '')
@@ -2702,6 +2703,20 @@ class DownloadInfoFrame(object):
             self.statusIcon = None
 
         self.torrentqueue.set_done()
+
+        # Delete ephemeral certs
+        # Eventually, this shouldn't be necessary as we should never have to
+        # write to disk
+        global_cryptodir = Anomos.Crypto.global_cryptodir
+        for cert in os.listdir(global_cryptodir):
+            path = os.path.join(global_cryptodir, cert)
+            try:
+                if os.path.isfile(path):
+                    os.unlink(path)
+            except Exception, e:    #Should be okay, this is only called up exit anyway
+                log.info(e)
+                continue
+
         gtk.main_quit()
 
     def make_statusrequest(self):
