@@ -202,6 +202,8 @@ class NeighborManager(object):
             log.error("Not starting circuit -- SessionID mismatch!")
         elif torrent is None:
             log.error("Not starting circuit -- Unknown torrent")
+        elif nid in self.failedPeers:
+            log.info("Not starting circuit -- no longer connected to \\x%02x" % ord(nid))
         elif nid in self.incomplete:
             log.info("Postponing circuit until neighbor \\x%02x completes " % ord(nid))
             self.schedule_tc(nid, infohash, aeskey, nextTC)

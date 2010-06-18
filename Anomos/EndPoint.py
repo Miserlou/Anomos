@@ -40,7 +40,7 @@ class EndPoint(AnomosEndPointProtocol):
         else:
             self.send_confirm()
             self.connection_completed()
-            log.info("Sent confirm")
+            log.info("Sent confirm on EP %s" % self.uniq_id())
 
     def connection_completed(self):
         """ Called when a CONFIRM message is received
