@@ -393,7 +393,8 @@ class Tracker(object):
         simpeer = self.networkmodel.get(peerid)
         if simpeer and not simpeer.cmp_certificate(peercert):
             # Certificate mismatch
-            raise ValueError("Certificate mismatch")
+            raise ValueError('Your certificate does not match the one ' \
+                             'associated with this session')
 
         if params('ip') is not None and params('ip') != ip: # Substitute in client-specified IP
             ip = params('ip')  # Client cert is rechecked during NatCheck
@@ -403,7 +404,7 @@ class Tracker(object):
             port = int(params('port'))
             skey = params('sessionid')
             if skey is None:
-                raise ValueError("Peer did not provide session key")
+                raise ValueError('You did not provide a session key')
             simpeer = self.networkmodel.init_peer(peerid, peercert, ip, port, skey)
             # XXX: Not the right place for this NAT stuff
             if self.natcheck == 0:
@@ -481,7 +482,7 @@ class Tracker(object):
         if params('event') == 'started':
             sessionid = params('sessionid')
             if not sessionid or len(sessionid) != 8:
-                raise ValueError('invalid session key')
+                raise ValueError('invalid or missing session key')
 
     def get(self, handler, path, headers):
         paramslist = {}
@@ -496,11 +497,13 @@ class Tracker(object):
             # base64_decode the appropriate fields
             for k in ['info_hash', 'sessionid', 'failed']:
                 if pqs.has_key(k):
-                    pqs[k] = [b64decode(v) for v in pqs[k]]
+                    pqs[k] = map(b64decode, pqs[k])
         except TypeError, e:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                     bencode({'failure reason':
-                                'you sent me garbage - ' + str(e)}))
+                                'Your request looks like it came from a ' \
+                                'BitTorrent client. This is an Anomos tracker. ' \
+                                'Learn more at http://anomos.info'}))
 
         # parse_qs returns key/vals in the form {key0:[val0],...}
         # this converts them to {key0:val0,...}
@@ -511,7 +514,6 @@ class Tracker(object):
         nip = get_forwarded_ip(headers)
         if nip and not self.only_local_override_ip:
             ip = nip
-
 
         if path != 'announce':
             # Handle non-announce connections. ie: Tracker scrapes, favicon
@@ -524,7 +526,8 @@ class Tracker(object):
             if peercert is None:
                 return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                         bencode({'failure reason':
-                                    'You announced without a certificate'}))
+                                    'Your client did not provide an SSL ' \
+                                    'certificate. Are you using Anomos?'}))
 
         # Validate the GET request
         try:
@@ -532,7 +535,7 @@ class Tracker(object):
         except ValueError, e:
             return (400, 'Bad Request', {'Content-Type': 'text/plain'},
                 bencode({'failure reason':
-                            'You sent me garbage - ' + str(e)}))
+                            'Invalid request - ' + str(e)}))
 
         # Update Tracker's information about the peer
         try:
