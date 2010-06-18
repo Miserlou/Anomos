@@ -626,7 +626,7 @@ def track(args):
         return
 
     Anomos.Crypto.init(config['data_dir'])
-    servercert = Anomos.Crypto.Certificate("server", True, True)
+    servercert = Anomos.Crypto.Certificate(loc="server", tracker=True, ephemeral=False)
     e = EventHandler()
     t = Tracker(config, servercert, e.schedule)
     try:

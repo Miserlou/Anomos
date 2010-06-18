@@ -32,13 +32,11 @@ try:
     global_randfile
     global_dd
     global_certpath
-    global_tempcerts
 except NameError:
     global_cryptodir = None
     global_randfile = None
     global_dd = None
     global_certpath = None
-    global_tempcerts = None
 
 class CryptoError(BTFailure):
     pass
@@ -65,7 +63,7 @@ def init(data_dir):
     threading.init()
 
     global get_rand
-    global global_cryptodir, global_randfile, global_dd, global_certpath, global_tempcerts
+    global global_cryptodir, global_randfile, global_dd, global_certpath
 
     if None not in (global_cryptodir, global_randfile):
         log.warning("Crypto already initialized with root directory: %s. Not using %s." % (global_dd, data_dir))
@@ -73,13 +71,10 @@ def init(data_dir):
     # Initialize directory structure
     global_dd = data_dir
     global_cryptodir = os.path.join(data_dir, 'crypto')
-    global_tempcerts = os.path.join(global_cryptodir, 'temp')
     if not os.path.exists(data_dir):
         os.mkdir(data_dir, 0700)
     if not os.path.exists(global_cryptodir):
         os.mkdir(global_cryptodir, 0700)
-    if not os.path.exists(global_tempcerts):
-        os.mkdir(global_tempcerts, 0700)
     # Copy the default certificates into the user's crypto dir
     global_certpath = os.path.join(global_cryptodir, 'default_certificates')
     if not os.path.exists(global_certpath):

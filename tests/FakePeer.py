@@ -10,7 +10,7 @@ def init():
 
 class FakePeer(object):
     def __init__(self):
-        self.cert = Anomos.Crypto.Certificate("fake-peer")
+        self.cert = Anomos.Crypto.Certificate(ephemeral=True)
         self.ctx = self.cert.get_ctx(allow_unknown_ca=True)
         self.ctx.set_cipher_list('HIGH:!ADH:!MD5:@STRENGTH')
         self.sock = None

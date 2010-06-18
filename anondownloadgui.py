@@ -2704,19 +2704,6 @@ class DownloadInfoFrame(object):
 
         self.torrentqueue.set_done()
 
-        # Delete ephemeral certs
-        # Eventually, this shouldn't be necessary as we should never have to
-        # write to disk
-        global_cryptodir = Anomos.Crypto.global_tempcerts
-        for cert in os.listdir(global_cryptodir):
-            path = os.path.join(global_cryptodir, cert)
-            try:
-                if os.path.isfile(path):
-                    os.unlink(path)
-            except Exception, e:    #Should be okay, this is only called up exit anyway
-                log.info(e)
-                continue
-
         gtk.main_quit()
 
     def make_statusrequest(self):

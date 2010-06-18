@@ -18,7 +18,7 @@ import Anomos.Crypto
 
 from Anomos import bttime, LOG as log
 from Anomos.Protocol import toint
-from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath, global_tempcerts
+from Anomos.Crypto import global_cryptodir, global_randfile, global_certpath
 from Anomos.Crypto import CryptoError
 from M2Crypto import m2, RSA, EVP, X509, SSL, Rand, util as m2util
 from binascii import b2a_hex
@@ -71,39 +71,38 @@ def mk_verify_cb(**kwargs):
 
 ## Certificate class ##
 class Certificate:
-    def __init__(self, loc=None, secure=False, tracker=False):
-        self.secure = secure
-        self.tracker = tracker
-        if None in (global_cryptodir, global_randfile, global_tempcerts):
+    def __init__(self, loc=None, tracker=False, ephemeral=True):
+        if None in (global_cryptodir, global_randfile):
             raise CryptoError('Crypto not initialized, call initCrypto first')
-        if loc is None:
-            loc = b2a_hex(Rand.rand_bytes(32))
 
-        if tracker:
-            self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
-            self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
-        else:
-            self.keyfile = os.path.join(global_tempcerts, '%s-key.pem' % (loc))
-            self.certfile = os.path.join(global_tempcerts, '%s-cert.pem' % (loc))
+        self.tracker = tracker
+        self.ephemeral = ephemeral
 
         self.cert = None
-        if not (os.path.exists(self.certfile) and os.path.exists(self.keyfile)):
-            if self.tracker:
-                hostname = self._gethostname()
-            else:
-                hostname = 'localhost'
-            self._create(hostname=hostname)
+        if ephemeral:
+            self._create()
         else:
-            self._load()
-
-        if self.is_expired():
-            if tracker:
-                log.critical(
-                 "\n*-*-------------------------------------------------------------------*-*\n"
-                   "*-* Your certificate is expired. Clients will not be able to connect! *-*\n" +
-                   "*-*-------------------------------------------------------------------*-*\n")
+            if loc is None:
+                loc = b2a_hex(Rand.rand_bytes(32))
+            self.keyfile = os.path.join(global_cryptodir, '%s-key.pem' % (loc))
+            self.certfile = os.path.join(global_cryptodir, '%s-cert.pem' % (loc))
+            if not (os.path.exists(self.certfile) and os.path.exists(self.keyfile)):
+                if self.tracker:
+                    hostname = self._gethostname()
+                else:
+                    hostname = 'localhost'
+                self._create(hostname=hostname)
             else:
-                log.warning("Your certificate is expired. Some trackers may reject your requests.")
+                self._load()
+
+            if self.is_expired():
+                if tracker:
+                    log.critical(
+                     "\n*-*-------------------------------------------------------------------*-*\n"
+                       "*-* Your certificate is expired. Clients will not be able to connect! *-*\n" +
+                       "*-*-------------------------------------------------------------------*-*\n")
+                else:
+                    log.warning("Your certificate is expired. Some trackers may reject your requests.")
 
     def _gethostname(self):
         from socket import gethostname
@@ -117,32 +116,25 @@ class Certificate:
     def _load(self):
         """Attempts to load the certificate and key from self.certfile and self.keyfile,
            Generates the certificate and key if they don't exist"""
-        if not self.secure:
-            self.rsakey = RSA.load_key(self.keyfile, m2util.no_passphrase_callback)
+        # Allow 3 attempts before quitting
+        i = 0
+        while i < 3:
+            try:
+                self.rsakey = RSA.load_key(self.keyfile)
+                break
+            except RSA.RSAError:
+                i += 1
         else:
-            # Allow 3 attempts before quitting
-            i = 0
-            while i < 3:
-                try:
-                    self.rsakey = RSA.load_key(self.keyfile)
-                    break
-                except RSA.RSAError:
-                    i += 1
-            else:
-                log.warning("\nInvalid password entered, exiting.")
-                sys.exit()
+            log.warning("\nInvalid password entered, exiting.")
+            sys.exit() #XXX: Is there any chance we need to do some cleanup before this?
         self.cert = X509.load_cert(self.certfile)
 
     @Anomos.Crypto.use_rand_file
     def _create(self, hostname='localhost'):
         # Make the RSA key
         self.rsakey = RSA.gen_key(2048, m2.RSA_F4)
-        if self.secure:
-            # Save the key, AES256-CBC encrypted
+        if not self.ephemeral:
             self.rsakey.save_key(self.keyfile, 'aes_256_cbc')
-        else:
-            # Save the key unencrypted.
-            self.rsakey.save_key(self.keyfile, None, callback=m2util.no_passphrase_callback)
         # Make the public key
         pkey = EVP.PKey()
         pkey.assign_rsa(self.rsakey, 0)
@@ -159,12 +151,14 @@ class Certificate:
         # Set the period of time the cert is valid for (5 years from issue)
         notBefore = m2.x509_get_not_before(self.cert.x509)
         notAfter = m2.x509_get_not_after(self.cert.x509)
+        #XXX: Randomize validity dates?
         m2.x509_gmtime_adj(notBefore, -60*60*24)
         m2.x509_gmtime_adj(notAfter, 60*60*24*365*5)
         # Sign the certificate
         self.cert.sign(pkey, 'sha1')
-        # Save it
-        self.cert.save_pem(self.certfile)
+        if not self.ephemeral:
+            # Save it
+            self.cert.save_pem(self.certfile)
 
     def is_expired(self):
         if self.cert is None:

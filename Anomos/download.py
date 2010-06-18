@@ -88,7 +88,8 @@ class Multitorrent(object):
         # TODO: Allow users who supply an identity to provide different
         # identities to different trackers.
         if self.config['identity'] not in ['', None]:
-            self.certificate = Anomos.Crypto.Certificate(self.config['identity'])
+            self.certificate = Anomos.Crypto.Certificate(loc=self.config['identity'], \
+                                                          ephemeral=False)
             self.post_certificate_load()
         else:
             self.certificate = None
@@ -167,7 +168,7 @@ class Multitorrent(object):
             return torrent
 
     def gen_cert(self):
-        self.certificate = Anomos.Crypto.Certificate()
+        self.certificate = Anomos.Crypto.Certificate(ephemeral=True)
         self.post_certificate_load()
 
     def post_certificate_load(self):
@@ -186,7 +187,7 @@ class Multitorrent(object):
                         self.trackers[aurl] = [None, None, None, None, None]
                     if self.trackers[aurl][1] is None:
                         log.info("Generating a new certificate")
-                        self.trackers[aurl][1]= Anomos.Crypto.Certificate()
+                        self.trackers[aurl][1]= Anomos.Crypto.Certificate(ephemeral=True)
                         self.trackers[aurl][2]= Anomos.Crypto.get_rand(8)
                         self.trackers[aurl][3]= self.trackers[aurl][1].get_ctx(allow_unknown_ca=True)
                         self.trackers[aurl][4]= SingleportListener(self.config,

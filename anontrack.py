@@ -50,7 +50,7 @@ def track(argv):
     twistlog.PythonLoggingObserver(loggerName='anomos').start()
 
     Anomos.Crypto.init(config['data_dir'])
-    servercert = Anomos.Crypto.Certificate("server", True, True)
+    servercert = Anomos.Crypto.Certificate(loc="server", tracker=True, ephemeral=False)
     t = Tracker(config, servercert, reactor.callLater)
     t.natchecker.reactor = reactor
     Anomos.TwistedServer.HTTPSRequestHandler.tracker = t
