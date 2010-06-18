@@ -36,7 +36,7 @@ class EndPoint(AnomosEndPointProtocol):
         self.next_upload = None
         if data is not None:
             self.send_tracking_code(data)
-            log.info("Sent TC")
+            log.info("Sending TC on EP %s" % self.uniq_id())
         else:
             self.send_confirm()
             self.connection_completed()
@@ -55,11 +55,11 @@ class EndPoint(AnomosEndPointProtocol):
         self.choker.connection_made(self)
         self.download = self.torrent.make_download(self)
         self.torrent.add_active_stream(self)
-        log.info("Confirm received, stream is now active")
+        log.info("Confirm received, EP %s is now active" % self.uniq_id())
 
     def completion_timeout(self):
         if not self.complete:
-            log.info("Timeout close")
+            log.info("Timeout on EP %s" % self.uniq_id())
             self.close()
 
     def is_flushed(self):
@@ -81,13 +81,13 @@ class EndPoint(AnomosEndPointProtocol):
         if self.closed:
             log.warning("Double close")
             return
-        log.info("Closing %s"%self.uniq_id())
+        log.info("Closing EP %s"%self.uniq_id())
         if self.complete:
             self.send_break()
         self.shutdown()
 
     def shutdown(self):
-        log.info("Shutting down EP")
+        log.info("Shutting down EP %s" % self.uniq_id())
         if self.complete and not self.closed:
             self.torrent.rm_active_stream(self)
             self.choker.connection_lost(self)# Must come before changes to
@@ -99,11 +99,11 @@ class EndPoint(AnomosEndPointProtocol):
         self.ratelimiter.clean_closed()
 
     def got_exception(self, e):
-        log.info("EP Exception")
+        log.info("Exception on EP %s" % self.uniq_id())
         self.torrent.handle_exception(e)
 
     def uniq_id(self):
-        return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)
+        return "[%02x:%04x]" % (ord(self.neighbor.id), self.stream_id)
 
     def send_partial(self, amount):
         """ Provides partial sending of messages for RateLimiter """
