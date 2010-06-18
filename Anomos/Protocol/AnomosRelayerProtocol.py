@@ -61,17 +61,10 @@ class AnomosRelayerProtocol(AnomosProtocol):
         log.info("breaking %s" % str(self))
         self.network_ctl_msg(BREAK)
         self.sent_break = True
-        #self.neighbor.queue_message(self.stream_id, BREAK)
-        #if self.should_queue():
-        #    self.ratelimiter.queue(self)
     def send_tracking_code(self, trackcode):
-        #XXX: Just a test, Throw tcodes into the PMQ instead of sending them
-        # immediately
-        #self.network_ctl_msg(TCODE, trackcode)
         log.info("Queuing tracking code")
         self.neighbor.queue_message(self.stream_id, TCODE+trackcode)
         if self.next_upload is None:
-            log.info("Queuing self")
             self.ratelimiter.queue(self)
     def send_relay_message(self, msg):
         self.neighbor.queue_message(self.stream_id, msg)
