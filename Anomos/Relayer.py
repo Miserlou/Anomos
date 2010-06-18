@@ -75,8 +75,7 @@ class Relayer(AnomosRelayerProtocol):
         return b
 
     def connection_completed(self):
-        log.info("Relay connection [%02x:%d] established" %
-                            (int(ord(self.neighbor.id)),self.stream_id))
+        log.info("Relay connection %s established" % self.uniq_id())
         self.complete = True
         self.flush_pre_buffer()
         self.orelay.complete = True
@@ -99,7 +98,7 @@ class Relayer(AnomosRelayerProtocol):
         if self.closed:
             log.warning("%s: Double close" % self.uniq_id())
             return
-        log.info("Closing %s"%self.uniq_id())
+        log.info("Closing R %s"%self.uniq_id())
         if self.complete and not self.sent_break:
             self.send_break()
         self.shutdown()
@@ -141,4 +140,4 @@ class Relayer(AnomosRelayerProtocol):
         #self.torrent.handle_exception(e)
 
     def uniq_id(self):
-        return "%02x:%04x" % (ord(self.neighbor.id), self.stream_id)
+        return "[%02x:%04x]" % (ord(self.neighbor.id), self.stream_id)

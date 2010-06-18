@@ -94,20 +94,11 @@ class NeighborManager(object):
             AnomosNeighborInitializer(self, sock, id)
         else:
             #Remove nid,loc pair from incomplete
-            torm = []
-            for k,v in self.incomplete.items():
+            for k,v in self.incomplete.iteritems():
                 if v == sock.addr:
-                    log.info('Failed to connect, discarding \\x%02x' % ord(k))
-                    torm.append(k)            
-            for j in torm:
-                self.rm_neighbor(j)
-            if sock.addr == None:
-                if self.incomplete.items() != []:
-                    log.info("Remaining incomplete peers: %d" %len(self.incomplete.items()))
-                else:
-                    log.info("No remaining incomplete peers")
-            else:
-                log.info("Failed to open connection to %s\n" % str(sock.addr))
+                    log.info('Discarding neighbor \\x%02x @ %s:%d' %
+                                (ord(k), sock.addr[0], sock.addr[1]))
+                    self.rm_neighbor(j)
 
     def failed_connections(self):
         return self.failedPeers
@@ -211,6 +202,8 @@ class NeighborManager(object):
             log.error("Not starting circuit -- SessionID mismatch!")
         elif torrent is None:
             log.error("Not starting circuit -- Unknown torrent")
+        elif nid in self.failedPeers:
+            log.info("Not starting circuit -- no longer connected to \\x%02x" % ord(nid))
         elif nid in self.incomplete:
             log.info("Postponing circuit until neighbor \\x%02x completes " % ord(nid))
             self.schedule_tc(nid, infohash, aeskey, nextTC)

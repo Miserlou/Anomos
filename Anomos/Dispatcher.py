@@ -143,7 +143,7 @@ class Dispatcher (asyncore.dispatcher):
 
     def handle_expt(self):
         log.critical("Exception encountered!")
-        self.close()
+        self.handle_close()
 
     def handle_error(self):
         t, v, tb = sys.exc_info()
@@ -151,7 +151,7 @@ class Dispatcher (asyncore.dispatcher):
             raise
         else:
             log.info(traceback.format_exc())
-            self.close()
+            self.handle_close()
 
     def push (self, data):
         self.producer_fifo.push (simple_producer (data))
@@ -190,7 +190,7 @@ class Dispatcher (asyncore.dispatcher):
                 if p is None:
                     if not self.ac_out_buffer:
                         self.producer_fifo.pop()
-                        self.close()
+                        self.handle_close()
                     return
                 elif isinstance(p, str):
                     self.producer_fifo.pop()
