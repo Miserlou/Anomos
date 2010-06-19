@@ -84,7 +84,7 @@ class AnomosNeighborInitializer(object):
                        self.protocol_extensions()
         self.socket.push(hdr)
     def socket_closed(self):
-        if self.id != NAT_CHECK_ID and self.id != '':
+        if self.id and self.id != NAT_CHECK_ID:
             log.info("Failed to initialize connection to \\x%02x" % ord(self.id))
         if not self.complete:
             self.manager.initializer_failed(self.id)
