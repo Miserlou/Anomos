@@ -57,8 +57,11 @@ class Dispatcher (asyncore.dispatcher):
         try:
             data = self.recv (self.ac_in_buffer_size)
         except SSL.SSLError, err:
-            if "unexpected eof" in err:
+            if "unexpected eof" in err.message:
                 self.handle_close()
+            elif "retry" in err.message:
+                log.info("Ignoring SSLError: %s" % err.message)
+                pass
             elif err[0] in [ECONNRESET, ENOTCONN, ESHUTDOWN]:
                 self.handle_close()
             else:
