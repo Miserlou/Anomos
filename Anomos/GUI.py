@@ -31,7 +31,7 @@ MIN_MULTI_PANE_HEIGHT = 160
 BT_TARGET_TYPE = 0
 EXTERNAL_TARGET_TYPE = 1
 
-BT_TARGET       = ("application/x-bittorrent", gtk.TARGET_SAME_APP, BT_TARGET_TYPE      )
+BT_TARGET       = ("application/x-anomos", gtk.TARGET_SAME_APP, BT_TARGET_TYPE      )
 EXTERNAL_TARGET = ("text/uri-list"           , 0                  , EXTERNAL_TARGET_TYPE)
 
 # a slightly hackish but very reliable way to get OS scrollbar width
@@ -239,7 +239,7 @@ class AutoScrollingWindow(ScrolledWindow):
         ScrolledWindow.__init__(self)
         self.drag_dest_set(gtk.DEST_DEFAULT_MOTION |
                            gtk.DEST_DEFAULT_DROP,
-                           [( "application/x-bittorrent",  gtk.TARGET_SAME_APP, BT_TARGET_TYPE )],
+                           [( "application/x-anomos",  gtk.TARGET_SAME_APP, BT_TARGET_TYPE )],
                            gtk.gdk.ACTION_MOVE)
         self.connect('drag_motion'       , self.drag_motion       )
         self.vscrolltimeout = None
@@ -343,6 +343,7 @@ class FileSelection():
         filter = gtk.FileFilter()
         filter.set_name("Torrents")
         filter.add_mime_type("application/x-bittorrent")
+        filter.add_mime_type("application/x-anomos")
         filter.add_pattern("*.atorrent")
         filter.add_pattern("*.torrent")
         dialog.add_filter(filter)
@@ -420,6 +421,7 @@ class OpenFileSelection():
             filter = gtk.FileFilter()
             filter.set_name("Torrents")
             filter.add_mime_type("application/x-bittorrent")
+            filter.add_mime_type("application/x-anomos")
             filter.add_pattern("*.atorrent")
             filter.add_pattern("*.torrent")
             dialog.add_filter(filter)
