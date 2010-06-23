@@ -1,6 +1,5 @@
 import asyncore
 import bisect
-import fcntl
 import os
 import threading
 import traceback
@@ -85,6 +84,7 @@ class EventHandler(object):
             log.critical('\n'+traceback.format_exc())
 
 if os.name == 'posix':
+    import fcntl
     class WakeupFD(asyncore.file_dispatcher):
         def handle_read(self):
             self.read(1)
