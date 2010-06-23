@@ -241,7 +241,8 @@ class Rerequester(object):
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib
         except Exception, g:
-            def f(r='Problem connecting to ' + self.url + ':  ' + str(g)):
+            def f(r='Problem connecting to ' + self.url + ':' +
+                    str(self.remote_port) + '  -  ' + str(g)):
                 self._postrequest(errormsg=r)
         else:
             def f():
@@ -357,7 +358,8 @@ class Rerequester(object):
         # exception class especially when proxies are used, at least
         # ValueError and stuff from httplib
         except Exception, g:
-            def f(r='Problem connecting to ' + self.url + ':  ' + str(g)):
+            def f(r='Problem connecting to ' + self.url + ':' +
+                    str(self.remote_port) + '  -  ' + str(g)):
                 self._postrequest(errormsg=r)
-                
+
         return bdecode(data)
