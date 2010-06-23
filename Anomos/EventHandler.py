@@ -1,5 +1,6 @@
 import asyncore
 import bisect
+import fcntl
 import os
 import threading
 import traceback
@@ -95,6 +96,9 @@ if os.name == 'posix':
     class WakeupPipe(object):
         def __init__(self, r, w):
             self.r = WakeupFD(r)
+            # Set w fd to nonblocking
+            flags = fcntl.fcntl(w, fcntl.F_GETFL, 0)
+            fcntl.fcntl(w, fcntl.F_SETFL, flags | os.O_NONBLOCK)
             self.w = w
         def now(self):
             os.write(self.w, '!')
