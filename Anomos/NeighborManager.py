@@ -174,9 +174,6 @@ class NeighborManager(object):
             self.schedule(0, task)
         del self.waiting_tcs[id]
 
-    def lost_neighbor(self, id):
-        self.rm_neighbor(id)
-
     def initializer_failed(self, id):
         """Connection closed before finishing initialization"""
         self.rm_neighbor(id)

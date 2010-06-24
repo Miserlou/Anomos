@@ -179,7 +179,7 @@ class NeighborLink(AnomosNeighborProtocol):
 
     def socket_closed(self):
         self.close_all_streams()
-        self.manager.lost_neighbor(self.id)
+        self.manager.rm_neighbor(self.id)
         # Socket reference must be removed here or socket waits
         # CLOSE_WAIT state until this object is garbage collected
         self.socket = None
