@@ -771,10 +771,12 @@ if os.name == 'nt':
                 got_multiple_location_func is not None):
                 self.bfs.Flags |= comdlg.OFN_ALLOWMULTISELECT
 
+            #XXX Wtf is all this shit
             path, filename = os.path.split(fullname)
             self.bfs.lpstrInitialDir = path
             self.bfs.lpstrFile = filename
             self.bfs.lpstrTitle = title
+            log.info(fullname)
 
             self.thread = threading.Thread(target=self.run)
             if show:
