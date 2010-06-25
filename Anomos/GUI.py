@@ -758,6 +758,9 @@ if os.name == 'nt':
                      got_multiple_location_func=None,
                      show=True):
             self.main = main
+
+            # There is no documentation for this anywhere.
+            # Arggghhhhh
             self.bfs = self._klass()
             self.bfs.Flags = self._flags
             self.bfs.filter = self._filter
@@ -771,12 +774,10 @@ if os.name == 'nt':
                 got_multiple_location_func is not None):
                 self.bfs.Flags |= comdlg.OFN_ALLOWMULTISELECT
 
-            #XXX Wtf is all this shit
             path, filename = os.path.split(fullname)
             self.bfs.lpstrInitialDir = path
             self.bfs.lpstrFile = filename
             self.bfs.lpstrTitle = title
-            log.info(fullname)
 
             self.thread = threading.Thread(target=self.run)
             if show:
@@ -815,9 +816,11 @@ if os.name == 'nt':
         _flags = comdlg.OFN_FILEMUSTEXIST|comdlg.OFN_PATHMUSTEXIST
         _filter = "All files (*.*)|*.*"
 
-    class SaveFileSelection(BaseFileSelection):
-        _klass = comdlg.SaveFileDialog
-        _filter = "All files (*.*)|*.*"
+    # Broken in current Venster version.
+    # Just use default PyGTK, ugly but it works better.
+    #class SaveFileSelection(BaseFileSelection):
+    #    _klass = comdlg.SaveFileDialog
+    #    _filter = "All files (*.*)|*.*"
 
 
 class PaddedHSeparator(gtk.VBox):
